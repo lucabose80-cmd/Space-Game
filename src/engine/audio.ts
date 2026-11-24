@@ -200,6 +200,13 @@ export class SoundEngine {
     this.playNoise(0.06, 2200, 0.09);
   }
 
+  public playPerfectParry(): void {
+    this.playTone(880, 1760, 0.12, 'triangle', 0.12, 0);
+    this.playTone(1318, 2093, 0.18, 'sine', 0.11, 0.04);
+    this.playTone(587, 1175, 0.14, 'square', 0.06, 0.02);
+    this.playNoise(0.07, 3200, 0.08);
+  }
+
   public playRailBeam(): void {
     this.playNoise(0.24, 1800, 0.12);
     this.playTone(1180, 190, 0.28, 'sawtooth', 0.09);

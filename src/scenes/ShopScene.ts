@@ -65,17 +65,41 @@ export interface ShopCallbacks {
   onHudDirty: () => void;
 }
 
-// Walkable floor & architectural collision bounds aligned pixel-for-pixel to public/art/shop_bg.png
-const FLOOR_LEFT = 54;
-const FLOOR_RIGHT = 432;
-const FLOOR_TOP = 114;
-const FLOOR_BOTTOM = 228;
+type SolidShape =
+  | { kind: 'rrect'; x: number; y: number; w: number; h: number; r: number }
+  | { kind: 'circle'; x: number; y: number; r: number };
 
-const SOLID_RECTS = [
-  { x: 174, y: 106, w: 134, h: 72 }, // Grand U-shaped Checkout Counter
-  { x: 24, y: 112, w: 70, h: 72 }, // Left Exo-Werkbank station
-  { x: 26, y: 196, w: 62, h: 42 }, // Bottom-left stacked crates
-  { x: 388, y: 206, w: 42, h: 32 }, // Bottom-right crate & potted plants
+// Rounded walkable shop floor bounds aligned pixel-for-pixel to public/art/shop_bg.png
+const FLOOR_LEFT = 48;
+const FLOOR_RIGHT = 434;
+const FLOOR_TOP = 116;
+const FLOOR_BOTTOM = 232;
+const FLOOR_CORNER_R = 26;
+const PLAYER_RADIUS = 5.5;
+
+// Exact curved & L-shaped furniture collision geometry (ZERO invisible square corners!)
+const SOLID_SHAPES: SolidShape[] = [
+  // Grand U-shaped Checkout Counter — split cleanly with a walkable right-side gate (y=121..148)!
+  { kind: 'rrect', x: 178, y: 98, w: 128, h: 22, r: 4 }, // Back counter console under window
+  { kind: 'rrect', x: 176, y: 112, w: 20, h: 56, r: 8 }, // Left counter wing
+  { kind: 'rrect', x: 178, y: 150, w: 128, h: 26, r: 13 }, // Rounded front checkout arc!
+  { kind: 'rrect', x: 288, y: 148, w: 18, h: 26, r: 7 }, // Lower-right counter wing (below swing gate)
+  { kind: 'circle', x: 165, y: 138, r: 6.5 }, // Small junction box left of counter
+
+  // Left L-shaped Shop-Ausbau terminal (exact L contour — open floor in front!)
+  { kind: 'rrect', x: 20, y: 110, w: 70, h: 34, r: 7 },
+  { kind: 'rrect', x: 20, y: 140, w: 34, h: 42, r: 7 },
+
+  // Bottom-left diagonal crate cluster (exact tight circles per crate)
+  { kind: 'circle', x: 46, y: 206, r: 10 },
+  { kind: 'circle', x: 65, y: 208, r: 8.5 },
+  { kind: 'circle', x: 55, y: 224, r: 11 },
+  { kind: 'circle', x: 74, y: 229, r: 9.5 },
+
+  // Bottom-right tool crate & potted plants
+  { kind: 'rrect', x: 391, y: 212, w: 25, h: 25, r: 6 },
+  { kind: 'circle', x: 427, y: 223, r: 8.5 },
+  { kind: 'circle', x: 434, y: 208, r: 7.5 },
 ];
 
 // Interactive station hotspots matching public/art/shop_bg.png
@@ -84,6 +108,7 @@ const CHEST_POS = { x: 336, y: 118 };
 const WARP_GATE_POS = { x: 426, y: 152 };
 const SHOP_DOOR_POS = { x: 240, y: 218 };
 const CHECKOUT_SPOT = { x: 240, y: 192 };
+const COUNTER_GATE_POS = { x: 296, y: 134 };
 
 export class ShopScene {
   private state: GameState;
@@ -97,6 +122,7 @@ export class ShopScene {
   private dashCooldown = 0;
   private dashVx = 0;
   private dashVy = 0;
+  private gateOpen = 0;
 
   public shopOpen = false;
   public shopTimer = 0;
@@ -313,38 +339,147 @@ export class ShopScene {
       }
     }
 
+    // Smoothly swing open the counter access flap whenever hero approaches the right-side gate!
+    const nearGate = Math.hypot(this.playerX - COUNTER_GATE_POS.x, this.playerY - COUNTER_GATE_POS.y) < 34;
+    const gateTarget = nearGate ? 1 : 0;
+    this.gateOpen += (gateTarget - this.gateOpen) * Math.min(1, dt * 11);
+
     this.updateCustomers(dt);
     this.updateInteraction(input);
     this.updateEffects(dt);
   }
 
-  private movePlayer(dx: number, dy: number): void {
-    const nx = Math.max(FLOOR_LEFT + 8, Math.min(FLOOR_RIGHT - 8, this.playerX + dx));
-    if (!this.collidesStatic(nx, this.playerY)) {
-      this.playerX = nx;
-    }
-    const ny = Math.max(FLOOR_TOP + 6, Math.min(FLOOR_BOTTOM - 6, this.playerY + dy));
-    if (!this.collidesStatic(this.playerX, ny)) {
-      this.playerY = ny;
-    }
+  public isBehindCounter(x = this.playerX, y = this.playerY): boolean {
+    return x >= 192 && x <= 290 && y >= 118 && y <= 152;
   }
 
-  private collidesStatic(x: number, y: number): boolean {
-    const r = 6;
-    for (const rect of SOLID_RECTS) {
-      if (
-        x + r > rect.x &&
-        x - r < rect.x + rect.w &&
-        y + r > rect.y &&
-        y - r < rect.y + rect.h
-      ) {
-        return true;
+  private movePlayer(dx: number, dy: number): void {
+    let px = this.playerX + dx;
+    let py = this.playerY + dy;
+
+    // 3-pass exact SDF push-out so player glides smoothly around every rounded edge & circle!
+    for (let iter = 0; iter < 3; iter++) {
+      // 1. Curved room outer boundary (rounded corners matching wooden walls!)
+      const clamped = this.clampToRoundedFloor(px, py);
+      px = clamped.x;
+      py = clamped.y;
+
+      // 2. Curved furniture & U-counter walls
+      for (const s of SOLID_SHAPES) {
+        if (s.kind === 'circle') {
+          const out = this.pushOutCircle(px, py, s.x, s.y, s.r + PLAYER_RADIUS);
+          px = out.x;
+          py = out.y;
+        } else {
+          const out = this.pushOutRoundedRect(px, py, s.x, s.y, s.w, s.h, s.r, PLAYER_RADIUS);
+          px = out.x;
+          py = out.y;
+        }
+      }
+
+      // 3. Round Holo-Pedestals (smooth circular slide!)
+      for (const p of this.state.pedestals) {
+        const out = this.pushOutCircle(px, py, p.x, p.y + 1, 10.5 + PLAYER_RADIUS);
+        px = out.x;
+        py = out.y;
       }
     }
-    for (const p of this.state.pedestals) {
-      if (Math.abs(x - p.x) < 15 && Math.abs(y - p.y) < 12) return true;
+
+    this.playerX = px;
+    this.playerY = py;
+  }
+
+  private clampToRoundedFloor(x: number, y: number): { x: number; y: number } {
+    const minX = FLOOR_LEFT + PLAYER_RADIUS;
+    const maxX = FLOOR_RIGHT - PLAYER_RADIUS;
+    const minY = FLOOR_TOP + PLAYER_RADIUS;
+    const maxY = FLOOR_BOTTOM - PLAYER_RADIUS;
+    let px = Math.max(minX, Math.min(maxX, x));
+    let py = Math.max(minY, Math.min(maxY, y));
+
+    const r = Math.max(2, FLOOR_CORNER_R - PLAYER_RADIUS);
+    const innerMinX = minX + r;
+    const innerMaxX = maxX - r;
+    const innerMinY = minY + r;
+    const innerMaxY = maxY - r;
+
+    // Push gently inward along the 4 curved wooden corner arcs
+    const cx = px < innerMinX ? innerMinX : px > innerMaxX ? innerMaxX : px;
+    const cy = py < innerMinY ? innerMinY : py > innerMaxY ? innerMaxY : py;
+    if (cx !== px && cy !== py) {
+      const dx = px - cx;
+      const dy = py - cy;
+      const dist = Math.hypot(dx, dy);
+      if (dist > r && dist > 0.001) {
+        px = cx + (dx / dist) * r;
+        py = cy + (dy / dist) * r;
+      }
     }
-    return false;
+    return { x: px, y: py };
+  }
+
+  private pushOutCircle(
+    px: number,
+    py: number,
+    cx: number,
+    cy: number,
+    minDist: number,
+  ): { x: number; y: number } {
+    const dx = px - cx;
+    const dy = py - cy;
+    const d2 = dx * dx + dy * dy;
+    if (d2 >= minDist * minDist) return { x: px, y: py };
+    const dist = Math.sqrt(d2);
+    if (dist < 0.0001) return { x: cx, y: cy + minDist };
+    return {
+      x: cx + (dx / dist) * minDist,
+      y: cy + (dy / dist) * minDist,
+    };
+  }
+
+  private pushOutRoundedRect(
+    px: number,
+    py: number,
+    rx: number,
+    ry: number,
+    rw: number,
+    rh: number,
+    cornerR: number,
+    pad: number,
+  ): { x: number; y: number } {
+    const cr = Math.min(cornerR, rw * 0.5, rh * 0.5);
+    const ix0 = rx + cr;
+    const ix1 = rx + rw - cr;
+    const iy0 = ry + cr;
+    const iy1 = ry + rh - cr;
+
+    const qx = Math.max(ix0, Math.min(ix1, px));
+    const qy = Math.max(iy0, Math.min(iy1, py));
+    const dx = px - qx;
+    const dy = py - qy;
+    const d2 = dx * dx + dy * dy;
+    const minDist = cr + pad;
+
+    if (d2 >= minDist * minDist) return { x: px, y: py };
+
+    if (d2 > 0.0001) {
+      const dist = Math.sqrt(d2);
+      return {
+        x: qx + (dx / dist) * minDist,
+        y: qy + (dy / dist) * minDist,
+      };
+    }
+
+    // Center is inside inner core rect: push out along nearest face
+    const dLeft = px - ix0;
+    const dRight = ix1 - px;
+    const dTop = py - iy0;
+    const dBottom = iy1 - py;
+    const m = Math.min(dLeft, dRight, dTop, dBottom);
+    if (m === dLeft) return { x: ix0 - minDist, y: py };
+    if (m === dRight) return { x: ix1 + minDist, y: py };
+    if (m === dTop) return { x: px, y: iy0 - minDist };
+    return { x: px, y: iy1 + minDist };
   }
 
   private spawnCustomer(): void {
@@ -556,17 +691,25 @@ export class ShopScene {
 
     const waitingCustomer = this.customers.find((c) => c.state === 'waiting_checkout');
 
-    // 1. Checkout Counter (priority when customer is waiting!)
-    const distCounter = Math.hypot(this.playerX - 240, this.playerY - 186);
-    if (waitingCustomer && distCounter < 58) {
+    // 1. Checkout Counter — authentic Moonlighter rule: walk behind the counter to ring up buyers!
+    const behind = this.isBehindCounter();
+    if (waitingCustomer && behind) {
       this.activePrompt = {
         label: '[E] Kassieren!',
         x: 240,
-        y: 164,
+        y: 112,
       };
       if (input.interactPressed()) {
         this.checkoutNextCustomer();
       }
+      return;
+    }
+    if (waitingCustomer && !behind && Math.hypot(this.playerX - 240, this.playerY - 186) < 48) {
+      this.activePrompt = {
+        label: '→ Rechts hinter den Tresen zum Kassieren!',
+        x: 248,
+        y: 162,
+      };
       return;
     }
 
@@ -709,8 +852,11 @@ export class ShopScene {
     drawGlow(ctx, 64, 132, 32, '#38e8d4', 0.16 + pulse * 0.08);
     drawGlow(ctx, 444, 152, 42 + pulse * 6, '#38e8d4', 0.28 + pulse * 0.14);
 
-    // Subtle crisp status pill on bottom airlock door & SEKTOR 1 badge by Warp-Gate
+    // Subtle crisp status pill on bottom airlock door, PROMENADE & SHOP-AUSBAU badges
     this.renderStationBadges(ctx);
+
+    // Integrated right-side counter walkway & animated brass swing gate (access behind checkout!)
+    this.renderCounterGate(ctx, pulse);
 
     // 3. Depth-Sorted Dynamic Entities (Pedestals, Customers, Player)
     type Drawable = { y: number; draw: () => void };
@@ -737,6 +883,18 @@ export class ShopScene {
 
     drawables.sort((a, b) => a.y - b.y);
     for (const d of drawables) d.draw();
+
+    // 3D Perspective Occlusion: when hero stands BEHIND the counter, draw the front counter lip in front!
+    if (art.shopBg && this.playerY < 156 && this.playerX > 180 && this.playerX < 306) {
+      // Exact slice of front counter masonry & checkout console from 960x540 shop_bg.png (2x scale)
+      ctx.drawImage(art.shopBg, 174 * 2, 150 * 2, 136 * 2, 32 * 2, 174, 150, 136, 32);
+      // Re-draw any customer standing directly in front of the counter so they stay in front of the counter lip
+      for (const c of this.customers) {
+        if (c.y >= 174 && c.x > 168 && c.x < 316) {
+          this.renderCustomer(ctx, c);
+        }
+      }
+    }
 
     // 4. Warm Cozy Lighting Aura, Unlocked Shop Decor Lanterns & Dust Motes
     const auraLevel = this.state.upgrades.shopAura ?? 0;
@@ -866,6 +1024,66 @@ export class ShopScene {
     ctx.strokeRect(tx - 30, ty - 5, 60, 10);
     ctx.fillStyle = '#fde047';
     ctx.fillText('SHOP-AUSBAU', tx, ty + 2);
+  }
+
+  private renderCounterGate(ctx: CanvasRenderingContext2D, pulse: number): void {
+    // 1. Clean warm wood-plank & slate floor passage blended seamlessly into the right counter arm
+    ctx.fillStyle = '#323a4c'; // interior dark slate transition left
+    ctx.fillRect(284, 121, 9, 25);
+    ctx.fillStyle = '#795238'; // warm oak planks right matching shop_bg.png floor!
+    ctx.fillRect(293, 121, 15, 25);
+    ctx.fillStyle = '#62402b';
+    ctx.fillRect(293, 127, 15, 1);
+    ctx.fillRect(293, 134, 15, 1);
+    ctx.fillRect(293, 141, 15, 1);
+    // Subtle dark bevel shadow under upper counter cut edge
+    ctx.fillStyle = 'rgba(14, 18, 30, 0.35)';
+    ctx.fillRect(285, 122, 23, 2);
+
+    // Subtle brass threshold & counter-end masonry caps top & bottom
+    ctx.fillStyle = '#272f40';
+    ctx.fillRect(285, 119, 23, 3);
+    ctx.fillRect(285, 145, 23, 3);
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillRect(286, 120, 21, 1);
+    ctx.fillRect(286, 146, 21, 1);
+
+    // 2. Animated Brass-Trimmed Wooden Counter Swing-Gate (hinged at bottom-right (299, 145))!
+    ctx.save();
+    ctx.translate(299, 145);
+    ctx.rotate(-this.gateOpen * 1.15); // swings smoothly inward/open as hero walks up!
+    ctx.fillStyle = '#473022';
+    ctx.fillRect(-3.5, -21, 7, 21);
+    ctx.fillStyle = '#925d3b';
+    ctx.fillRect(-2.5, -20, 5, 19);
+    ctx.fillStyle = '#fbbf24'; // brass hinge & top latch
+    ctx.fillRect(-2, -2.5, 4, 2.5);
+    ctx.fillRect(-2, -19.5, 4, 2);
+    ctx.restore();
+
+    // 3. Soft pulsing checkout mat inside the counter booth when a customer is waiting!
+    const waitingCustomer = this.customers.find((c) => c.state === 'waiting_checkout');
+    if (waitingCustomer) {
+      const behind = this.isBehindCounter();
+      ctx.save();
+      ctx.strokeStyle = behind ? '#4ade80' : '#fde047';
+      ctx.lineWidth = 1.2;
+      ctx.globalAlpha = 0.5 + pulse * 0.45;
+      ctx.beginPath();
+      ctx.ellipse(240, 138, 12 + pulse * 2, 7 + pulse, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      drawGlow(ctx, 240, 138, 20, behind ? '#4ade80' : '#fbbf24', 0.25 + pulse * 0.14);
+
+      if (!behind) {
+        // Gentle pulsing entry arrow right at the counter swing gate!
+        const shift = Math.sin(this.time * 8) * 2.5;
+        ctx.fillStyle = '#4ade80';
+        ctx.font = 'bold 7px Silkscreen, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('◀', 310 + shift, 136);
+      }
+      ctx.restore();
+    }
   }
 
   private renderPedestal(ctx: CanvasRenderingContext2D, p: PedestalSlot): void {

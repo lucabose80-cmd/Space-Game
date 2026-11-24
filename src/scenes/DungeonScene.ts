@@ -224,6 +224,12 @@ export class DungeonScene {
   // Active kinetic shield (Blade secondary), melee lunge pose & blaster hold visuals
   private shieldActive = false;
   private shieldAngle = 0;
+  private shieldOpenAnim = 0;
+  private shieldHoldTime = 0;
+  private shieldHitFlash = 0;
+  private shieldRipple = 0;
+  private shieldRippleAngle = 0;
+  private shieldRecoil = 0;
   private blasterRecoil = 0;
   private lastAimAngle = 0;
   private swingPoseTimer = 0;
@@ -531,6 +537,9 @@ export class DungeonScene {
     this.specialCooldown = Math.max(0, this.specialCooldown - dt);
     this.blasterRecoil = Math.max(0, this.blasterRecoil - dt * 5);
     this.swingPoseTimer = Math.max(0, this.swingPoseTimer - dt);
+    this.shieldHitFlash = Math.max(0, this.shieldHitFlash - dt * 4.5);
+    this.shieldRipple = Math.max(0, this.shieldRipple - dt * 3.4);
+    this.shieldRecoil = Math.max(0, this.shieldRecoil - dt * 7.0);
 
     if (this.comboResetTimer > 0) {
       this.comboResetTimer -= dt;
@@ -643,12 +652,24 @@ export class DungeonScene {
       }
     }
 
-    // Blade Secondary: Hold RMB / K for Kinetic Energy Shield!
+    // Blade Secondary: Hold RMB / K for Hex-Aegis Kinetic Shield (+ Perfect Parry Reflect window!)
+    const wasShielding = this.shieldActive;
     this.shieldActive =
       weapon === 'blade' && input.secondaryHeld() && this.dashTimer <= 0 && this.attackCooldown <= 0.05;
     if (this.shieldActive) {
+      if (!wasShielding) {
+        this.shieldHoldTime = 0;
+        this.shieldRipple = 0.65;
+        this.shieldRippleAngle = this.getAimAngle(input);
+      } else {
+        this.shieldHoldTime += dt;
+      }
+      this.shieldOpenAnim = Math.min(1, this.shieldOpenAnim + dt * 9.5);
       this.shieldAngle = this.getAimAngle(input);
       this.orientFacing(this.shieldAngle);
+    } else {
+      this.shieldHoldTime = 0;
+      this.shieldOpenAnim = Math.max(0, this.shieldOpenAnim - dt * 11.0);
     }
 
     // Jetpack Dash (Space)
@@ -1918,32 +1939,57 @@ export class DungeonScene {
   private damagePlayer(amount: number, kx: number, ky: number, attacker?: Enemy): void {
     if (this.invulnTimer > 0 || this.finished) return;
 
-    // Check Kinetic Energy Shield block!
+    // Check Hex-Aegis Kinetic Shield block!
     let finalAmount = amount;
     if (this.shieldActive) {
       const incomingAngle = Math.atan2(-ky, -kx);
       const diff = Math.abs(this.normalizeAngle(incomingAngle - this.shieldAngle));
       if (diff <= Math.PI * 0.6) {
-        finalAmount = Math.max(2, Math.round(amount * 0.25));
-        sound.playShieldBlock();
+        const isPerfect = this.shieldHoldTime <= 0.24;
+        finalAmount = isPerfect ? 0 : Math.max(2, Math.round(amount * 0.25));
+        this.shieldHitFlash = 1.0;
+        this.shieldRipple = 1.0;
+        this.shieldRippleAngle = incomingAngle;
+        this.shieldRecoil = 1.0;
+        if (isPerfect) {
+          sound.playPerfectParry();
+          this.hitStop = 0.04;
+          this.triggerShake(0.14, 2.8);
+          this.state.energy = Math.min(100, this.state.energy + 14);
+          this.shockwaves.push({
+            x: this.playerX + Math.cos(this.shieldAngle) * 12,
+            y: this.playerY + Math.sin(this.shieldAngle) * 12,
+            maxRadius: 34,
+            color: '#fde047',
+            life: 0.2,
+            maxLife: 0.2,
+          });
+        } else {
+          sound.playShieldBlock();
+        }
         this.spawnBurst(
-          this.playerX + Math.cos(this.shieldAngle) * 11,
-          this.playerY + Math.sin(this.shieldAngle) * 11,
-          '#38e8d4',
-          10,
+          this.playerX + Math.cos(this.shieldAngle) * 13,
+          this.playerY + Math.sin(this.shieldAngle) * 13,
+          isPerfect ? '#fde047' : '#38e8d4',
+          isPerfect ? 16 : 10,
         );
         if (attacker) {
-          attacker.vx -= kx * 140;
-          attacker.vy -= ky * 140;
+          attacker.vx -= kx * (isPerfect ? 230 : 150);
+          attacker.vy -= ky * (isPerfect ? 230 : 150);
         }
         this.floats.push({
           x: this.playerX,
-          y: this.playerY - 16,
-          text: `BLOCK -${finalAmount}`,
-          color: '#38e8d4',
-          life: 0.75,
-          maxLife: 0.75,
+          y: this.playerY - 17,
+          text: isPerfect ? 'PERFEKT!' : `BLOCK -${finalAmount}`,
+          color: isPerfect ? '#fde047' : '#38e8d4',
+          life: 0.8,
+          maxLife: 0.8,
         });
+        if (isPerfect) {
+          this.invulnTimer = Math.max(this.invulnTimer, 0.35);
+          this.callbacks.onHudDirty();
+          return;
+        }
       }
     }
 
@@ -2039,22 +2085,61 @@ export class DungeonScene {
           this.projectiles.splice(i, 1);
         }
       } else {
-        // Check Kinetic Shield full projectile block!
-        if (this.shieldActive && Math.hypot(this.playerX - p.x, this.playerY - p.y) < 15 + p.radius) {
+        // Check Hex-Aegis Kinetic Shield projectile block & Perfect Parry Reflect!
+        if (this.shieldActive && Math.hypot(this.playerX - p.x, this.playerY - p.y) < 18 + p.radius) {
           const toBolt = Math.atan2(p.y - this.playerY, p.x - this.playerX);
           if (Math.abs(this.normalizeAngle(toBolt - this.shieldAngle)) <= Math.PI * 0.58) {
-            sound.playShieldBlock();
-            this.spawnBurst(p.x, p.y, '#38e8d4', 10);
-            this.state.energy = Math.min(100, this.state.energy + 6);
-            this.floats.push({
-              x: p.x,
-              y: p.y - 8,
-              text: 'PARADE!',
-              color: '#38e8d4',
-              life: 0.65,
-              maxLife: 0.65,
-            });
-            this.projectiles.splice(i, 1);
+            const isPerfect = this.shieldHoldTime <= 0.24;
+            this.shieldHitFlash = 1.0;
+            this.shieldRipple = 1.0;
+            this.shieldRippleAngle = toBolt;
+            this.shieldRecoil = 1.0;
+
+            if (isPerfect) {
+              // Reflect the enemy projectile back in blazing gold at 1.9x speed & 2x damage!
+              sound.playPerfectParry();
+              this.hitStop = 0.036;
+              this.triggerShake(0.12, 2.4);
+              const speed = Math.max(240, Math.hypot(p.vx, p.vy) * 1.9);
+              p.fromPlayer = true;
+              p.vx = Math.cos(this.shieldAngle) * speed;
+              p.vy = Math.sin(this.shieldAngle) * speed;
+              p.damage = Math.max(26, Math.round(p.damage * 2.1));
+              p.color = '#fde047';
+              p.radius = 4.5;
+              p.life = 1.8;
+              this.state.energy = Math.min(100, this.state.energy + 14);
+              this.spawnBurst(p.x, p.y, '#fde047', 14);
+              this.shockwaves.push({
+                x: p.x,
+                y: p.y,
+                maxRadius: 28,
+                color: '#fde047',
+                life: 0.18,
+                maxLife: 0.18,
+              });
+              this.floats.push({
+                x: p.x,
+                y: p.y - 10,
+                text: 'KONTER!',
+                color: '#fde047',
+                life: 0.75,
+                maxLife: 0.75,
+              });
+            } else {
+              sound.playShieldBlock();
+              this.spawnBurst(p.x, p.y, '#38e8d4', 11);
+              this.state.energy = Math.min(100, this.state.energy + 7);
+              this.floats.push({
+                x: p.x,
+                y: p.y - 8,
+                text: 'PARADE!',
+                color: '#38e8d4',
+                life: 0.65,
+                maxLife: 0.65,
+              });
+              this.projectiles.splice(i, 1);
+            }
             this.callbacks.onHudDirty();
             continue;
           }
@@ -2427,8 +2512,8 @@ export class DungeonScene {
       }
     }
 
-    // Kinetic Shield Arc when blocking with Plasma-Klinge!
-    if (this.shieldActive) {
+    // Faceted 2.5D Hex-Aegis Kinetic Shield (animates smoothly on deploy & retract!)
+    if (this.shieldOpenAnim > 0.02) {
       this.renderKineticShield(ctx);
     }
 
@@ -2781,39 +2866,179 @@ export class DungeonScene {
   }
 
   private renderKineticShield(ctx: CanvasRenderingContext2D): void {
-    const pulse = 0.5 + 0.5 * Math.sin(this.time * 12);
+    const open = this.shieldOpenAnim;
+    // Elastic snap-open spring curve
+    const spring = open < 1 ? open * (1 + Math.sin(open * Math.PI) * 0.14) : 1;
+    const halfSpan = Math.PI * 0.46 * Math.min(1.06, spring);
+    if (halfSpan < 0.05) return;
+
+    const cx = this.playerX;
+    const cy = this.playerY - 2;
+    const squashY = 0.86;
+    const baseR = 17.5 - this.shieldRecoil * 2.8;
+    const innerR = baseR - 5.2;
+    const outerR = baseR + 2.4;
+    const panels = 6;
+    const startA = this.shieldAngle - halfSpan;
+    const endA = this.shieldAngle + halfSpan;
+
+    const pulse = 0.5 + 0.5 * Math.sin(this.time * 11);
+    const perfectWindow = this.shieldActive && this.shieldHoldTime <= 0.24;
+    const flash = Math.max(this.shieldHitFlash, perfectWindow ? 0.55 : 0);
+    const alpha = Math.min(1, open * 1.15);
+
+    const pt = (r: number, a: number) => ({
+      x: cx + Math.cos(a) * r,
+      y: cy + Math.sin(a) * r * squashY,
+    });
+
+    const emitter = pt(6.5, this.shieldAngle);
+    const leftTip = pt(baseR, startA);
+    const rightTip = pt(baseR, endA);
+    const frontMid = pt(outerR + 0.8, this.shieldAngle);
+
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    ctx.strokeStyle = `rgba(56, 232, 212, ${0.7 + pulse * 0.25})`;
-    ctx.lineWidth = 4;
+
+    // 1. Holographic projector beams shooting from hero's wrist emitter to shield wings!
+    ctx.strokeStyle = flash > 0.4 ? `rgba(253, 224, 71, ${alpha * 0.45})` : `rgba(56, 232, 212, ${alpha * 0.36})`;
+    ctx.lineWidth = 1.1;
     ctx.beginPath();
-    ctx.arc(
-      this.playerX,
-      this.playerY,
-      15,
-      this.shieldAngle - Math.PI * 0.44,
-      this.shieldAngle + Math.PI * 0.44,
-    );
+    ctx.moveTo(emitter.x, emitter.y);
+    ctx.lineTo(leftTip.x, leftTip.y);
+    ctx.moveTo(emitter.x, emitter.y);
+    ctx.lineTo(rightTip.x, rightTip.y);
     ctx.stroke();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
-    ctx.lineWidth = 1.5;
+
+    // 2. Translucent 6-Panel Faceted 2.5D Hex-Aegis Field Fill!
     ctx.beginPath();
-    ctx.arc(
-      this.playerX,
-      this.playerY,
-      16,
-      this.shieldAngle - Math.PI * 0.36,
-      this.shieldAngle + Math.PI * 0.36,
-    );
+    for (let i = 0; i <= panels; i++) {
+      const a = startA + (endA - startA) * (i / panels);
+      const p = pt(outerR, a);
+      if (i === 0) ctx.moveTo(p.x, p.y);
+      else ctx.lineTo(p.x, p.y);
+    }
+    for (let i = panels; i >= 0; i--) {
+      const a = startA + (endA - startA) * (i / panels);
+      const p = pt(innerR, a);
+      ctx.lineTo(p.x, p.y);
+    }
+    ctx.closePath();
+    ctx.fillStyle =
+      flash > 0.35
+        ? `rgba(253, 224, 71, ${alpha * (0.28 + flash * 0.34)})`
+        : `rgba(20, 184, 166, ${alpha * (0.24 + pulse * 0.1)})`;
+    ctx.fill();
+
+    // 3. Illuminated Sci-Fi Honeycomb / Facet Grid Struts + Traveling Scanline!
+    const scanIdx = ((this.time * 4.2) % (panels + 1)) - 0.5;
+    for (let i = 0; i < panels; i++) {
+      const a0 = startA + (endA - startA) * (i / panels);
+      const a1 = startA + (endA - startA) * ((i + 1) / panels);
+      const am = (a0 + a1) * 0.5;
+      const scanBoost = Math.max(0, 1 - Math.abs(i - scanIdx) * 0.85);
+
+      const o0 = pt(outerR, a0);
+      const o1 = pt(outerR, a1);
+      const i0 = pt(innerR, a0);
+      const i1 = pt(innerR, a1);
+      const midIn = pt((innerR + outerR) * 0.5, am);
+
+      // Highlight individual scanned facet subtly
+      if (scanBoost > 0.15) {
+        ctx.fillStyle = `rgba(165, 243, 252, ${alpha * scanBoost * 0.28})`;
+        ctx.beginPath();
+        ctx.moveTo(o0.x, o0.y);
+        ctx.lineTo(o1.x, o1.y);
+        ctx.lineTo(i1.x, i1.y);
+        ctx.lineTo(i0.x, i0.y);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // Crisp honeycomb diagonal struts inside each energy panel
+      ctx.strokeStyle =
+        flash > 0.45
+          ? `rgba(255, 251, 235, ${alpha * 0.8})`
+          : `rgba(103, 232, 249, ${alpha * (0.42 + scanBoost * 0.45)})`;
+      ctx.lineWidth = 0.85;
+      ctx.beginPath();
+      ctx.moveTo(i0.x, i0.y);
+      ctx.lineTo(o0.x, o0.y);
+      ctx.moveTo(i0.x, i0.y);
+      ctx.lineTo(midIn.x, midIn.y);
+      ctx.lineTo(o1.x, o1.y);
+      ctx.stroke();
+    }
+
+    // 4. Outer Razor Facet Frame (Teal Halo + Incandescent Core Edge)
+    ctx.strokeStyle =
+      flash > 0.4
+        ? `rgba(253, 224, 71, ${alpha * 0.92})`
+        : `rgba(56, 232, 212, ${alpha * (0.85 + pulse * 0.15)})`;
+    ctx.lineWidth = 2.6;
+    ctx.beginPath();
+    for (let i = 0; i <= panels; i++) {
+      const a = startA + (endA - startA) * (i / panels);
+      const p = pt(outerR, a);
+      if (i === 0) ctx.moveTo(p.x, p.y);
+      else ctx.lineTo(p.x, p.y);
+    }
     ctx.stroke();
-    drawGlow(
-      ctx,
-      this.playerX + Math.cos(this.shieldAngle) * 14,
-      this.playerY + Math.sin(this.shieldAngle) * 14,
-      16,
-      '#38e8d4',
-      0.32,
-    );
+
+    ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.95})`;
+    ctx.lineWidth = 1.1;
+    ctx.stroke();
+
+    // Inner subtle boundary rail
+    ctx.strokeStyle = `rgba(56, 232, 212, ${alpha * 0.5})`;
+    ctx.lineWidth = 0.9;
+    ctx.beginPath();
+    for (let i = 0; i <= panels; i++) {
+      const a = startA + (endA - startA) * (i / panels);
+      const p = pt(innerR, a);
+      if (i === 0) ctx.moveTo(p.x, p.y);
+      else ctx.lineTo(p.x, p.y);
+    }
+    ctx.stroke();
+
+    // 5. Expanding Energy Impact Ripple Wave on Block / Deploy!
+    if (this.shieldRipple > 0.04) {
+      const rp = pt(baseR, this.shieldRippleAngle);
+      const rWave = (1 - this.shieldRipple) * 16 + 3;
+      ctx.strokeStyle =
+        this.shieldHitFlash > 0.2
+          ? `rgba(253, 224, 71, ${this.shieldRipple})`
+          : `rgba(165, 243, 252, ${this.shieldRipple * 0.9})`;
+      ctx.lineWidth = 1.8 * this.shieldRipple + 0.6;
+      ctx.beginPath();
+      ctx.ellipse(rp.x, rp.y, rWave, rWave * 0.72, this.shieldAngle + Math.PI / 2, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // 6. Dual Wing Emitter Nodes & Central Aegis Diamond!
+    const nodeColor = flash > 0.4 ? '#fde047' : '#38e8d4';
+    for (const tip of [leftTip, rightTip]) {
+      ctx.fillStyle = nodeColor;
+      ctx.fillRect(tip.x - 1.8, tip.y - 1.8, 3.6, 3.6);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(tip.x - 0.8, tip.y - 0.8, 1.6, 1.6);
+    }
+
+    // Central Aegis core emblem at front center of barrier
+    ctx.fillStyle = nodeColor;
+    ctx.beginPath();
+    ctx.moveTo(frontMid.x, frontMid.y - 3.2);
+    ctx.lineTo(frontMid.x + 2.8, frontMid.y);
+    ctx.lineTo(frontMid.x, frontMid.y + 3.2);
+    ctx.lineTo(frontMid.x - 2.8, frontMid.y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(frontMid.x - 1, frontMid.y - 1, 2, 2);
+
+    // Soft ambient shield glow
+    drawGlow(ctx, frontMid.x, frontMid.y, 19, nodeColor, alpha * (0.34 + flash * 0.25));
     ctx.restore();
   }
 
