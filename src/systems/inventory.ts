@@ -6,11 +6,18 @@ export type ContainerId = 'cargo' | 'chest';
 export const CARGO_SIZE = 20;
 export const CHEST_SIZE = 28;
 
-export function createEmptyInventory(): InventoryData {
+export function createEmptyInventory(chestCapacity = CHEST_SIZE): InventoryData {
   return {
     cargo: Array.from({ length: CARGO_SIZE }, () => null),
-    chest: Array.from({ length: CHEST_SIZE }, () => null),
+    chest: Array.from({ length: Math.max(CHEST_SIZE, chestCapacity) }, () => null),
   };
+}
+
+export function ensureChestCapacity(inv: InventoryData, capacity: number): void {
+  const target = Math.max(CHEST_SIZE, capacity);
+  while (inv.chest.length < target) {
+    inv.chest.push(null);
+  }
 }
 
 function tryAddToSlots(slots: Array<ItemStack | null>, itemId: string, qty: number): number {
@@ -186,17 +193,81 @@ export function depositAllCargoToChest(inv: InventoryData): number {
 
 /**
  * Safe extraction (Start Warp Pad, Warp-Beacon [R], or Boss Victory):
- * - All carried backpack loot is secured!
- * - Any 'warp_anchor' relic teleports its right-neighbor slot straight into the Shop Chest!
+ * Evaluates all directional positional modifiers on the 5x4 Expedition Cargo Grid:
+ * - row_curse (▲): decays unless placed in the top row (indices 0..4)
+ * - volatile_boost (←): consumes 1 unit from left neighbor for +180 Cr resonance bonus
+ * - mirror_clone (↑): duplicates +1 copy of the relic directly above (index - 5)
+ * - warp_anchor (→): teleports right neighbor straight into the Shop Chest
  */
 export function processSafeReturnEffects(inv: InventoryData): {
   warpedToChest: string[];
+  clonedItems: string[];
+  cursedLost: string[];
+  resonanceBonus: number;
   savedCount: number;
 } {
   const warpedToChest: string[] = [];
-  let warpedCount = 0;
+  const clonedItems: string[] = [];
+  const cursedLost: string[] = [];
+  let resonanceBonus = 0;
+  let extraChestSaved = 0;
   const cols = 5;
 
+  // 1. row_curse (▲): must sit in top row (0..4) or it destabilizes on warp!
+  for (let i = cols; i < inv.cargo.length; i++) {
+    const s = inv.cargo[i];
+    if (!s) continue;
+    const def = getItemDef(s.itemId);
+    if (def.modifier === 'row_curse') {
+      cursedLost.push(s.qty > 1 ? `${def.name} (×${s.qty})` : def.name);
+      inv.cargo[i] = null;
+    }
+  }
+
+  // 2. volatile_boost (←): consumes 1 unit of the left neighbor slot for +180 Cr bonus
+  for (let i = 0; i < inv.cargo.length; i++) {
+    const s = inv.cargo[i];
+    if (!s) continue;
+    if (getItemDef(s.itemId).modifier === 'volatile_boost') {
+      const col = i % cols;
+      if (col > 0) {
+        const leftIdx = i - 1;
+        const left = inv.cargo[leftIdx];
+        if (left && left.qty > 0) {
+          left.qty -= 1;
+          if (left.qty <= 0) inv.cargo[leftIdx] = null;
+          resonanceBonus += 180;
+        }
+      }
+    }
+  }
+
+  // 3. mirror_clone (↑): snapshot targets directly above before cloning +1 unit!
+  const cloneTargets: string[] = [];
+  for (let i = cols; i < inv.cargo.length; i++) {
+    const s = inv.cargo[i];
+    if (!s) continue;
+    if (getItemDef(s.itemId).modifier === 'mirror_clone') {
+      const above = inv.cargo[i - cols];
+      if (above && above.qty > 0) {
+        cloneTargets.push(above.itemId);
+      }
+    }
+  }
+  for (const itemId of cloneTargets) {
+    const remBag = addItemToBackpack(inv, itemId, 1);
+    if (remBag === 0) {
+      clonedItems.push(getItemDef(itemId).name);
+    } else {
+      const remChest = addItemToChest(inv, itemId, 1);
+      if (remChest === 0) {
+        extraChestSaved += 1;
+        clonedItems.push(getItemDef(itemId).name);
+      }
+    }
+  }
+
+  // 4. warp_anchor (→): teleports right neighbor straight into the Shop Chest!
   for (let i = 0; i < inv.cargo.length; i++) {
     const s = inv.cargo[i];
     if (!s) continue;
@@ -209,7 +280,7 @@ export function processSafeReturnEffects(inv: InventoryData): {
           const rem = addItemToChest(inv, neighbor.itemId, neighbor.qty);
           const moved = neighbor.qty - rem;
           if (moved > 0) {
-            warpedCount += moved;
+            extraChestSaved += moved;
             warpedToChest.push(getItemDef(neighbor.itemId).name);
           }
           if (rem === 0) inv.cargo[rightIdx] = null;
@@ -221,23 +292,54 @@ export function processSafeReturnEffects(inv: InventoryData): {
 
   return {
     warpedToChest,
-    savedCount: countBackpackItems(inv) + warpedCount,
+    clonedItems,
+    cursedLost,
+    resonanceBonus,
+    savedCount: countBackpackItems(inv) + extraChestSaved,
   };
 }
 
 /**
  * Moonlighter-style Extraction Defeat Penalty:
- * - Falling at 0 HP in the dungeon loses ALL carried expedition backpack items!
- * - Only items previously stored in your Shop Storage Chest remain safe!
+ * - First, any 'warp_anchor' (→) relic rescues its RIGHT neighbor slot straight into the Shop Chest!
+ * - All remaining carried expedition backpack items are lost at 0 HP!
  */
 export function processDefeatPenalty(inv: InventoryData): {
   itemsLost: number;
   itemsSaved: number;
   shatteredItems: string[];
+  warpedToChest: string[];
 } {
   let itemsLost = 0;
+  let itemsSaved = 0;
   const shatteredItems: string[] = [];
+  const warpedToChest: string[] = [];
+  const cols = 5;
 
+  // Step 1: Collect right-neighbor indices protected by warp_anchor (→) BEFORE wiping cargo!
+  const protectedRightSlots = new Set<number>();
+  for (let i = 0; i < inv.cargo.length; i++) {
+    const s = inv.cargo[i];
+    if (!s) continue;
+    if (getItemDef(s.itemId).modifier === 'warp_anchor' && i % cols < cols - 1) {
+      protectedRightSlots.add(i + 1);
+    }
+  }
+
+  for (const idx of protectedRightSlots) {
+    const neighbor = inv.cargo[idx];
+    if (!neighbor) continue;
+    const rem = addItemToChest(inv, neighbor.itemId, neighbor.qty);
+    const moved = neighbor.qty - rem;
+    if (moved > 0) {
+      itemsSaved += moved;
+      warpedToChest.push(getItemDef(neighbor.itemId).name);
+    }
+    if (rem === 0) inv.cargo[idx] = null;
+    else neighbor.qty = rem;
+  }
+
+  // Step 2: Wipe all remaining cargo slots
   for (let i = 0; i < inv.cargo.length; i++) {
     const s = inv.cargo[i];
     if (s) {
@@ -251,8 +353,9 @@ export function processDefeatPenalty(inv: InventoryData): {
 
   return {
     itemsLost,
-    itemsSaved: 0,
+    itemsSaved,
     shatteredItems,
+    warpedToChest,
   };
 }
 

@@ -305,8 +305,11 @@ export class HubScene {
     // 4. Warp-Gate to Sector 1
     if (Math.hypot(this.playerX - WARP_GATE_POS.x, this.playerY - WARP_GATE_POS.y) < 38) {
       this.activePrompt = {
-        label: '[E] Warp: Sektor 1 (Verlassene Korvette)',
-        x: WARP_GATE_POS.x - 54,
+        label:
+          this.state.timeOfDay === 'night'
+            ? '[E] 🌙 Nacht-Warp: Sektor 1 (+35 % Rar-Loot)'
+            : '[E] Warp: Sektor 1 (Verlassene Korvette)',
+        x: WARP_GATE_POS.x - 58,
         y: WARP_GATE_POS.y - 30,
       };
       if (input.interactPressed()) {
@@ -352,6 +355,7 @@ export class HubScene {
 
   public render(ctx: CanvasRenderingContext2D): void {
     const art = getHDArt();
+    const isNight = this.state.timeOfDay === 'night';
 
     if (art.hubBg) {
       ctx.drawImage(art.hubBg, 0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
@@ -360,19 +364,35 @@ export class HubScene {
       ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
     }
 
-    // Twinkling nebula stars at top overlook
+    // Real Day / Night Atmospheric Lighting across Port Solaris Promenade
+    if (isNight) {
+      ctx.fillStyle = 'rgba(10, 16, 44, 0.32)';
+      ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+    } else {
+      ctx.fillStyle = 'rgba(255, 224, 150, 0.05)';
+      ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+    }
+
+    // Twinkling nebula stars at top overlook (extra luminous at night!)
     for (const s of this.stars) {
       const a = 0.25 + 0.75 * Math.max(0, Math.sin(this.time * 2.6 + s.phase));
-      ctx.fillStyle = `rgba(255, 252, 224, ${a * 0.85})`;
-      ctx.fillRect(s.x, s.y, 1.5, 1.5);
+      ctx.fillStyle = `rgba(255, 252, 224, ${a * (isNight ? 1.0 : 0.75)})`;
+      ctx.fillRect(s.x, s.y, isNight ? 1.8 : 1.4, isNight ? 1.8 : 1.4);
     }
 
     // Ambient landmark glows (Forge fire, Med-Bay emerald, Star Compass, Warp-Gate!)
     const pulse = 0.5 + 0.5 * Math.sin(this.time * 4.2);
-    drawGlow(ctx, 132, 82, 36, '#fb923c', 0.24 + pulse * 0.1);
-    drawGlow(ctx, 354, 72, 34, '#34d399', 0.22 + pulse * 0.08);
-    drawGlow(ctx, 240, 166, 36, '#38e8d4', 0.16 + pulse * 0.07);
-    drawGlow(ctx, 434, 160, 44 + pulse * 6, '#38e8d4', 0.3 + pulse * 0.12);
+    const nightBoost = isNight ? 0.14 : 0;
+    drawGlow(ctx, 132, 82, 38, '#fb923c', 0.24 + nightBoost + pulse * 0.1);
+    drawGlow(ctx, 354, 72, 36, '#34d399', 0.22 + nightBoost + pulse * 0.08);
+    drawGlow(ctx, 240, 166, 38, '#38e8d4', 0.16 + nightBoost * 0.7 + pulse * 0.07);
+    drawGlow(ctx, 434, 160, 46 + pulse * 6, '#38e8d4', 0.3 + nightBoost + pulse * 0.12);
+    if (isNight) {
+      // Cozy street-lamp pools at night!
+      drawGlow(ctx, 84, 126, 32, '#fbbf24', 0.28);
+      drawGlow(ctx, 198, 124, 28, '#fbbf24', 0.22);
+      drawGlow(ctx, 286, 124, 28, '#fbbf24', 0.22);
+    }
 
     // Subtle crisp building signage pills
     this.renderSignPills(ctx);

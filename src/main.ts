@@ -129,6 +129,9 @@ class StarlighterGame {
       onOpenPedestal: (ped) => this.ui.openPedestalModal(ped),
       onOpenWorkbench: () => this.ui.openShopUpgradeModal(),
       onOpenChest: () => this.ui.openInventoryModal(true, 'bag'),
+      onOpenBounties: () => this.ui.openBountiesModal(),
+      onOpenSaleBox: () => this.ui.openSaleBoxModal(),
+      onAdvanceTime: () => this.handleAdvanceTime(),
       onEnterDungeon: () => this.transitionTo('hub', 'shop'),
       onToast: (msg, tone) => this.ui.toast(msg, tone),
       onHudDirty: () => {
@@ -169,6 +172,28 @@ class StarlighterGame {
 
     this.lastTime = performance.now();
     requestAnimationFrame((t) => this.loop(t));
+  }
+
+  private handleAdvanceTime(): void {
+    if (this.transitionDir !== 0) return;
+    sound.playDayTransition();
+    this.transitionDir = 1;
+    this.pendingTransition = () => {
+      const res = this.state.advanceTimeOfDay();
+      this.ui.renderHud();
+      this.syncTouch();
+      if (res.newDay) {
+        this.ui.toast(
+          `☀ Guten Morgen! Tag ${res.day} beginnt — frische Sonderaufträge an der Pinnwand!`,
+          'good',
+        );
+      } else {
+        this.ui.toast(
+          `🌙 Es wird Nacht (Tag ${res.day}) — Sektor 1 bietet jetzt +35 % seltene & epische Beute!`,
+          'info',
+        );
+      }
+    };
   }
 
   private handleSwapWeapon(): void {

@@ -241,6 +241,31 @@ export class SoundEngine {
     this.playTone(130, 32, 0.36, 'sawtooth', 0.15);
     this.playTone(84, 28, 0.4, 'triangle', 0.13, 0.02);
   }
+
+  public playShieldBreak(): void {
+    this.playNoise(0.24, 2400, 0.16);
+    this.playTone(940, 140, 0.28, 'sawtooth', 0.12);
+    this.playTone(580, 95, 0.24, 'square', 0.08, 0.05);
+  }
+
+  public playThiefAlarm(): void {
+    this.playTone(880, 1180, 0.1, 'square', 0.08, 0);
+    this.playTone(1180, 880, 0.1, 'square', 0.08, 0.11);
+    this.playTone(880, 1240, 0.12, 'square', 0.09, 0.22);
+  }
+
+  public playThiefCaught(): void {
+    this.playNoise(0.12, 950, 0.14);
+    this.playTone(320, 640, 0.09, 'triangle', 0.1, 0);
+    this.playTone(640, 960, 0.12, 'triangle', 0.1, 0.08);
+    this.playTone(960, 1320, 0.16, 'sine', 0.1, 0.16);
+  }
+
+  public playDayTransition(): void {
+    this.playTone(392, 523, 0.18, 'sine', 0.07, 0);
+    this.playTone(523, 659, 0.22, 'triangle', 0.07, 0.12);
+    this.playTone(659, 784, 0.28, 'sine', 0.06, 0.24);
+  }
 }
 
 export const sound = new SoundEngine();

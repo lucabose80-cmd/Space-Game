@@ -122,7 +122,7 @@ export const ITEMS: ItemDef[] = [
     baseValue: 330,
     maxStack: 5,
     modifier: 'fragile',
-    modifierLabel: 'Zerbrechlich: Zerbricht bei Tod (auch im Gürtel!)',
+    modifierLabel: 'Zerbrechlich: Hoher Wert, zerbricht jedoch bei Tod im Wrack!',
     description: 'Tiefgefrorenes Sternenharz von enormem Wert, doch extrem stoßempfindlich.',
     glowColor: '#fb923c',
     dropWeight: 7,
@@ -135,10 +135,49 @@ export const ITEMS: ItemDef[] = [
     baseValue: 390,
     maxStack: 5,
     modifier: 'warp_anchor',
-    modifierLabel: 'Warp-Anker: Sendet den rechten Nachbar-Slot bei Rückkehr in die Truhe!',
+    modifierLabel: 'Warp-Anker (→): Rettet den RECHTEN Nachbar-Slot sogar bei Tod in die Truhe!',
     description: 'Schwebende Ringe stabilisieren ein Miniatur-Wurmloch im Frachtraum.',
     glowColor: '#34d399',
-    dropWeight: 6,
+    dropWeight: 7,
+    minDepth: 1,
+  },
+  {
+    id: 'mimic_cube',
+    name: 'Klon-Würfel',
+    rarity: 'rare',
+    baseValue: 225,
+    maxStack: 5,
+    modifier: 'mirror_clone',
+    modifierLabel: 'Klon-Matrix (↑): Dupliziert bei Extraktion +1 Stück des Relikts ÜBER sich!',
+    description: 'Holografischer Materie-Duplikator — im richtigen Slot ein echter Goldesel.',
+    glowColor: '#38e8d4',
+    dropWeight: 7,
+    minDepth: 1,
+  },
+  {
+    id: 'phase_shard',
+    name: 'Phasen-Splitter',
+    rarity: 'rare',
+    baseValue: 275,
+    maxStack: 5,
+    modifier: 'row_curse',
+    modifierLabel: 'Phasen-Fluch (▲): Nur in der OBERSTEN Rucksack-Reihe stabil — sonst Verlust!',
+    description: 'Instabiler Dimensionskristall, der im unteren Frachtraum zerfällt.',
+    glowColor: '#c084fc',
+    dropWeight: 7,
+    minDepth: 1,
+  },
+  {
+    id: 'nova_core',
+    name: 'Nova-Kondensator',
+    rarity: 'epic',
+    baseValue: 410,
+    maxStack: 5,
+    modifier: 'volatile_boost',
+    modifierLabel: 'Resonanz (←): Opfert bei Extraktion 1 Item LINKS daneben für +180 Cr Bonus!',
+    description: 'Eingekapselte Miniatur-Sonne, die benachbarten Schrott in reine Energie wandelt.',
+    glowColor: '#fbbf24',
+    dropWeight: 5,
     minDepth: 2,
   },
   {
@@ -192,16 +231,22 @@ export function getItemDef(itemId: string): ItemDef {
   return def;
 }
 
-export function rollLootItem(depth: number, guaranteedRare = false): string {
+export function rollLootItem(depth: number, guaranteedRare = false, nightBoost = false): string {
   const pool = ITEMS.filter((item) => {
     if (item.dropWeight <= 0) return false;
     if (guaranteedRare) return item.rarity === 'rare' || item.rarity === 'epic';
     return item.minDepth <= depth;
   });
-  const totalWeight = pool.reduce((sum, item) => sum + item.dropWeight, 0);
+  const getW = (item: ItemDef) => {
+    if (!nightBoost) return item.dropWeight;
+    return item.rarity === 'rare' || item.rarity === 'epic'
+      ? item.dropWeight * 1.35
+      : item.dropWeight;
+  };
+  const totalWeight = pool.reduce((sum, item) => sum + getW(item), 0);
   let r = Math.random() * totalWeight;
   for (const item of pool) {
-    r -= item.dropWeight;
+    r -= getW(item);
     if (r <= 0) return item.id;
   }
   return pool[0]?.id ?? 'scrap_coil';

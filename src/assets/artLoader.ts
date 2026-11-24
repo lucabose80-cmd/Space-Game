@@ -5,6 +5,8 @@ import { flipCanvasHorizontal, makeFlashSilhouette } from './pixelArt';
 export interface HDArtAssets {
   loaded: boolean;
   shopBg: HTMLImageElement | null;
+  shopBgT2: HTMLImageElement | null;
+  shopBgT3: HTMLImageElement | null;
   hubBg: HTMLImageElement | null;
   dungeonBg: HTMLImageElement | null;
 
@@ -15,6 +17,7 @@ export interface HDArtAssets {
   heroFlash: HTMLCanvasElement | null;
 
   customers: HTMLCanvasElement[];
+  custThief: HTMLCanvasElement | null;
   npcKael: HTMLCanvasElement | null;
   npcLyra: HTMLCanvasElement | null;
   npcWanderer: HTMLCanvasElement | null;
@@ -23,6 +26,8 @@ export interface HDArtAssets {
   weaponUrls: Record<WeaponId, string>;
 
   pedestal: HTMLCanvasElement | null;
+  propSaleBox: HTMLCanvasElement | null;
+  propSleepPod: HTMLCanvasElement | null;
   podIntact: HTMLCanvasElement | null;
   chestClosed: HTMLCanvasElement | null;
   chestOpen: HTMLCanvasElement | null;
@@ -44,6 +49,8 @@ export interface HDArtAssets {
 const art: HDArtAssets = {
   loaded: false,
   shopBg: null,
+  shopBgT2: null,
+  shopBgT3: null,
   hubBg: null,
   dungeonBg: null,
   heroDown: null,
@@ -52,6 +59,7 @@ const art: HDArtAssets = {
   heroLeft: null,
   heroFlash: null,
   customers: [],
+  custThief: null,
   npcKael: null,
   npcLyra: null,
   npcWanderer: null,
@@ -66,6 +74,8 @@ const art: HDArtAssets = {
     hammer: '/art/sprites/weapon_hammer.png',
   },
   pedestal: null,
+  propSaleBox: null,
+  propSleepPod: null,
   podIntact: null,
   chestClosed: null,
   chestOpen: null,
@@ -112,6 +122,8 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
 
   const [
     shopBg,
+    shopBgT2,
+    shopBgT3,
     hubBg,
     dungeonBg,
     heroDownImg,
@@ -120,6 +132,7 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
     custHornedImg,
     custAstroImg,
     custGreenImg,
+    custThiefImg,
     npcKaelImg,
     npcLyraImg,
     npcWandererImg,
@@ -127,6 +140,8 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
     weaponBlasterImg,
     weaponHammerImg,
     pedestalImg,
+    saleBoxImg,
+    sleepPodImg,
     podImg,
     chestClosedImg,
     chestOpenImg,
@@ -138,6 +153,8 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
     ...itemImgs
   ] = await Promise.all([
     loadImage('/art/shop_bg.png'),
+    loadImage('/art/shop_bg_t2.png'),
+    loadImage('/art/shop_bg_t3.png'),
     loadImage('/art/hub_bg.png'),
     loadImage('/art/dungeon_bg.png'),
     loadImage('/art/sprites/hero_down.png'),
@@ -146,6 +163,7 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
     loadImage('/art/sprites/cust_horned.png'),
     loadImage('/art/sprites/cust_astro.png'),
     loadImage('/art/sprites/cust_green.png'),
+    loadImage('/art/sprites/cust_thief.png'),
     loadImage('/art/sprites/npc_kael.png'),
     loadImage('/art/sprites/npc_lyra.png'),
     loadImage('/art/sprites/npc_wanderer.png'),
@@ -153,6 +171,8 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
     loadImage('/art/sprites/weapon_blaster.png'),
     loadImage('/art/sprites/weapon_hammer.png'),
     loadImage('/art/sprites/pedestal.png'),
+    loadImage('/art/sprites/prop_salebox.png'),
+    loadImage('/art/sprites/prop_sleep_pod.png'),
     loadImage('/art/sprites/pod_intact.png'),
     loadImage('/art/sprites/chest_closed.png'),
     loadImage('/art/sprites/chest_open.png'),
@@ -165,6 +185,8 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
   ]);
 
   art.shopBg = shopBg;
+  art.shopBgT2 = shopBgT2;
+  art.shopBgT3 = shopBgT3;
   art.hubBg = hubBg;
   art.dungeonBg = dungeonBg;
 
@@ -177,6 +199,7 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
   art.customers = [custAstroImg, custHornedImg, custGreenImg]
     .map(imgToCanvas)
     .filter((c): c is HTMLCanvasElement => c !== null);
+  art.custThief = imgToCanvas(custThiefImg);
 
   art.npcKael = imgToCanvas(npcKaelImg);
   art.npcLyra = imgToCanvas(npcLyraImg);
@@ -187,6 +210,8 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
   art.weapons.hammer = imgToCanvas(weaponHammerImg);
 
   art.pedestal = imgToCanvas(pedestalImg);
+  art.propSaleBox = imgToCanvas(saleBoxImg);
+  art.propSleepPod = imgToCanvas(sleepPodImg);
   art.podIntact = imgToCanvas(podImg);
   art.chestClosed = imgToCanvas(chestClosedImg);
   art.chestOpen = imgToCanvas(chestOpenImg);

@@ -303,6 +303,39 @@ export const UPGRADE_TRACKS: UpgradeTrack[] = [
 
   // ==================== ASTRO-BARTER SHOP-TERMINAL (EIGENER LADENAUSBAU) ====================
   {
+    key: 'shopTier',
+    shop: 'shop_terminal',
+    title: 'Shop-Vergrößerung (Raum & Podeste)',
+    subtitle: 'Mehr Holo-Podeste, Sonderangebots-Kiste & größere Lagertruhe',
+    iconUrl: '/art/sprites/prop_salebox.png',
+    tiers: [
+      {
+        level: 1,
+        name: 'Stufe II · Astro-Barter Galerie',
+        description:
+          'Erweitert Astro-Barter auf 6 Holo-Podeste, schaltet die Sonderangebots-Kiste (Sale-Box) frei & 36 Truhen-Slots!',
+        creditCost: 580,
+        materials: [
+          { itemId: 'alien_prism', qty: 2 },
+          { itemId: 'scrap_coil', qty: 3 },
+        ],
+        statLabel: '4 → 6 Podeste · Sale-Box · 36 Truhe',
+      },
+      {
+        level: 2,
+        name: 'Stufe III · Solaris Flaggschiff-Basar',
+        description:
+          'Verwandelt deinen Laden in den goldenen Flaggschiff-Basar mit 8 Holo-Podesten, 48 Truhen-Slots & mehr VIP-Kunden!',
+        creditCost: 1450,
+        materials: [
+          { itemId: 'star_compass', qty: 2 },
+          { itemId: 'void_relic', qty: 1 },
+        ],
+        statLabel: '6 → 8 Podeste · 48 Truhe · Flaggschiff',
+      },
+    ],
+  },
+  {
     key: 'shopAura',
     shop: 'shop_terminal',
     title: 'Shop-Atmosphäre & Deko',
@@ -374,7 +407,10 @@ export function getPlayerCombatStats(upgrades: UpgradeLevels) {
   const energyRegenMults = [1.0, 1.25, 1.5, 1.8];
   const tipBonuses = [0, 0.1, 0.2];
   const scannerBonuses = [0, 0.08, 0.16];
+  const pedestalCounts = [4, 6, 8];
+  const chestCaps = [28, 36, 48];
 
+  const tier = upgrades.shopTier ?? 0;
   const aura = upgrades.shopAura ?? 0;
   const scanner = upgrades.shopScanner ?? 0;
   const bio = upgrades.bioRegen ?? 0;
@@ -393,5 +429,9 @@ export function getPlayerCombatStats(upgrades: UpgradeLevels) {
     energyRegenMult: energyRegenMults[bio] ?? 1.0,
     shopTipBonus: (tipBonuses[aura] ?? 0) + (scannerBonuses[scanner] ?? 0),
     customerPatienceBonus: 1 + aura * 0.25 + scanner * 0.2,
+    pedestalCount: pedestalCounts[tier] ?? 4,
+    chestCapacity: chestCaps[tier] ?? 28,
+    hasSaleBox: tier >= 1,
+    maxCustomers: 3 + tier * 2 + aura,
   };
 }

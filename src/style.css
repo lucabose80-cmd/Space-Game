@@ -558,6 +558,9 @@ body {
 
 .slot-grid.chest-grid {
   grid-template-columns: repeat(7, 1fr);
+  max-height: 205px;
+  overflow-y: auto;
+  padding-right: 3px;
 }
 
 .inv-slot {
@@ -612,6 +615,20 @@ body {
   width: 6px;
   height: 6px;
   border-radius: 50%;
+}
+
+.slot-mod-badge {
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  padding: 0 3px;
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  line-height: 11px;
+  border-radius: 2px;
+  color: #0b1120;
+  font-weight: 700;
+  pointer-events: none;
 }
 
 .inspector-box {

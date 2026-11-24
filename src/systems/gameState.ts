@@ -1,43 +1,86 @@
-import { ITEMS } from '../data/items';
+import { getItemDef, ITEMS } from '../data/items';
 import { getPlayerCombatStats, UPGRADE_TRACKS } from '../data/upgrades';
 import type {
+  BountyContract,
   CodexEntry,
   InventoryData,
+  ItemStack,
   PedestalSlot,
   SaveData,
+  TimeOfDay,
   UpgradeKey,
   UpgradeLevels,
   WeaponId,
 } from '../types';
 import { createInitialCodex, decayDemandForNewDay } from './economy';
 import {
+  addItemAnywhere,
   addItemToChest,
   CARGO_SIZE,
-  CHEST_SIZE,
   consumeItemTotal,
   countItemTotal,
   createEmptyInventory,
+  ensureChestCapacity,
 } from './inventory';
 
 const SAVE_KEY = 'starlighter_save_v2';
 const LEGACY_SAVE_KEY = 'starlighter_save_v1';
-const SAVE_VERSION = 2;
+const SAVE_VERSION = 3;
 
-export const SHOP_PEDESTAL_COORDS: Array<{ id: number; x: number; y: number }> = [
-  { id: 0, x: 132, y: 152 },
-  { id: 1, x: 132, y: 198 },
-  { id: 2, x: 360, y: 148 },
-  { id: 3, x: 360, y: 192 },
+export const SALE_BOX_MAX_SLOTS = 6;
+
+export const SHOP_PEDESTAL_TIERS: Array<Array<{ id: number; x: number; y: number }>> = [
+  // Tier 0: 4 Holo-Pedestals (Starter Shop)
+  [
+    { id: 0, x: 128, y: 152 },
+    { id: 1, x: 128, y: 206 },
+    { id: 2, x: 358, y: 148 },
+    { id: 3, x: 358, y: 202 },
+  ],
+  // Tier 1: 6 Holo-Pedestals (Stufe II · Astro-Barter Galerie)
+  [
+    { id: 0, x: 108, y: 152 },
+    { id: 1, x: 148, y: 152 },
+    { id: 2, x: 128, y: 206 },
+    { id: 3, x: 336, y: 148 },
+    { id: 4, x: 376, y: 148 },
+    { id: 5, x: 356, y: 202 },
+  ],
+  // Tier 2: 8 Holo-Pedestals (Stufe III · Solaris Flaggschiff-Basar)
+  [
+    { id: 0, x: 106, y: 152 },
+    { id: 1, x: 146, y: 152 },
+    { id: 2, x: 106, y: 206 },
+    { id: 3, x: 146, y: 206 },
+    { id: 4, x: 334, y: 148 },
+    { id: 5, x: 374, y: 148 },
+    { id: 6, x: 334, y: 202 },
+    { id: 7, x: 374, y: 202 },
+  ],
+];
+
+const BOUNTY_CLIENTS = [
+  'Kapitän Orin',
+  'Ingenieurin Vex',
+  'Kartografin Nyx',
+  'Sammler Korr',
+  'Pilotin Mira',
+  'Händler Sol',
+  'Dr. Lyra',
+  'Schmied Kael',
 ];
 
 export class GameState {
   public day = 1;
+  public timeOfDay: TimeOfDay = 'day';
   public credits = 120;
   public totalEarned = 0;
   public totalSold = 0;
   public bossDefeatedCount = 0;
   public inventory: InventoryData = createEmptyInventory();
   public pedestals: PedestalSlot[] = [];
+  public saleBox: ItemStack[] = [];
+  public bounties: BountyContract[] = [];
   public codex: Record<string, CodexEntry> = createInitialCodex();
   public upgrades: UpgradeLevels = {
     blade: 0,
@@ -46,6 +89,7 @@ export class GameState {
     suit: 0,
     stimpack: 0,
     bioRegen: 0,
+    shopTier: 0,
     shopAura: 0,
     shopScanner: 0,
   };
@@ -69,12 +113,14 @@ export class GameState {
 
   public initFreshState(): void {
     this.day = 1;
+    this.timeOfDay = 'day';
     this.credits = 120;
     this.totalEarned = 0;
     this.totalSold = 0;
     this.bossDefeatedCount = 0;
     this.inventory = createEmptyInventory();
     this.codex = createInitialCodex();
+    this.saleBox = [];
     this.upgrades = {
       blade: 0,
       blaster: 0,
@@ -82,6 +128,7 @@ export class GameState {
       suit: 0,
       stimpack: 0,
       bioRegen: 0,
+      shopTier: 0,
       shopAura: 0,
       shopScanner: 0,
     };
@@ -92,15 +139,8 @@ export class GameState {
     };
     this.equippedWeapon = 'blade';
     this.secondaryWeapon = null;
-
-    this.pedestals = SHOP_PEDESTAL_COORDS.map((c) => ({
-      id: c.id,
-      x: c.x,
-      y: c.y,
-      itemId: null,
-      qty: 0,
-      price: 0,
-    }));
+    this.pedestals = [];
+    this.syncShopCapacity();
 
     // Starter salvage stored safely in your Shop Chest so your Expedition Backpack starts clean!
     addItemToChest(this.inventory, 'scrap_coil', 2);
@@ -110,11 +150,37 @@ export class GameState {
     this.markDiscovered('bio_gel');
     this.markDiscovered('alien_prism');
 
+    this.bounties = this.generateBounties();
     this.restoreFullVitals();
   }
 
   public getStats() {
     return getPlayerCombatStats(this.upgrades);
+  }
+
+  /**
+   * Synchronizes Holo-Pedestal layout (4 / 6 / 8) and Shop Chest capacity (28 / 36 / 48)
+   * with the current shopTier while preserving all already stocked items!
+   */
+  public syncShopCapacity(): void {
+    const stats = this.getStats();
+    ensureChestCapacity(this.inventory, stats.chestCapacity);
+
+    const tierIdx = Math.max(0, Math.min(SHOP_PEDESTAL_TIERS.length - 1, this.upgrades.shopTier ?? 0));
+    const coords = SHOP_PEDESTAL_TIERS[tierIdx];
+    const prev = this.pedestals;
+
+    this.pedestals = coords.map((c, idx) => {
+      const old = prev[idx];
+      return {
+        id: c.id,
+        x: c.x,
+        y: c.y,
+        itemId: old?.itemId ?? null,
+        qty: old?.qty ?? 0,
+        price: old?.price ?? 0,
+      };
+    });
   }
 
   public restoreFullVitals(): void {
@@ -129,10 +195,159 @@ export class GameState {
     if (entry) entry.discovered = true;
   }
 
-  public advanceDay(): void {
+  /**
+   * Advances the real Moonlighter-style Day <-> Night rhythm:
+   * - Day -> Night (same day, unlocks +35% Night Loot Bonus in Sector 1!)
+   * - Night -> Next Day (day + 1, refreshes market demand & bulletin board bounties!)
+   */
+  public advanceTimeOfDay(): { day: number; timeOfDay: TimeOfDay; newDay: boolean } {
+    if (this.timeOfDay === 'day') {
+      this.timeOfDay = 'night';
+      this.restoreFullVitals();
+      this.save();
+      return { day: this.day, timeOfDay: this.timeOfDay, newDay: false };
+    }
+    this.timeOfDay = 'day';
     this.day += 1;
     decayDemandForNewDay(this.codex);
+    this.bounties = this.generateBounties();
+    this.restoreFullVitals();
     this.save();
+    return { day: this.day, timeOfDay: this.timeOfDay, newDay: true };
+  }
+
+  public advanceDay(): void {
+    this.advanceTimeOfDay();
+  }
+
+  // ==================== BOUNTIES / SONDERAUFTRÄGE ====================
+  public generateBounties(): BountyContract[] {
+    const unlockedRare = this.day >= 2 || this.bossDefeatedCount > 0;
+    const pool = ITEMS.filter((item) => {
+      if (item.dropWeight <= 0) return false;
+      if (item.rarity === 'epic') return this.day >= 3;
+      if (item.rarity === 'rare') return unlockedRare;
+      return true;
+    });
+
+    const chosen: typeof ITEMS = [];
+    const available = [...pool];
+    while (chosen.length < 3 && available.length > 0) {
+      const idx = Math.floor(Math.random() * available.length);
+      chosen.push(available.splice(idx, 1)[0]);
+    }
+
+    const clients = [...BOUNTY_CLIENTS].sort(() => Math.random() - 0.5);
+
+    return chosen.map((item, idx) => {
+      const qty =
+        item.rarity === 'common'
+          ? 2 + Math.floor(Math.random() * 2)
+          : item.rarity === 'uncommon'
+            ? 1 + Math.floor(Math.random() * 2)
+            : 1;
+      const rawReward = item.baseValue * qty * 1.65;
+      const rewardCredits = Math.max(45, Math.round(rawReward / 5) * 5);
+      return {
+        id: `bounty_d${this.day}_${idx}_${item.id}`,
+        clientName: clients[idx % clients.length],
+        itemId: item.id,
+        qty,
+        rewardCredits,
+        completed: false,
+      };
+    });
+  }
+
+  public canCompleteBounty(bountyId: string): boolean {
+    const b = this.bounties.find((entry) => entry.id === bountyId);
+    if (!b || b.completed) return false;
+    return countItemTotal(this.inventory, b.itemId) >= b.qty;
+  }
+
+  public hasReadyBounty(): boolean {
+    return this.bounties.some((b) => !b.completed && countItemTotal(this.inventory, b.itemId) >= b.qty);
+  }
+
+  public completeBounty(bountyId: string): BountyContract | null {
+    const b = this.bounties.find((entry) => entry.id === bountyId);
+    if (!b || b.completed) return null;
+    if (!consumeItemTotal(this.inventory, b.itemId, b.qty)) return null;
+
+    b.completed = true;
+    this.credits += b.rewardCredits;
+    this.totalEarned += b.rewardCredits;
+    this.totalSold += b.qty;
+    this.save();
+    return b;
+  }
+
+  // ==================== SALE-BOX / SONDERANGEBOTS-KISTE ====================
+  public countSaleBoxItems(): number {
+    return this.saleBox.reduce((sum, s) => sum + s.qty, 0);
+  }
+
+  public addToSaleBox(itemId: string, qty = 1): boolean {
+    if (qty <= 0) return false;
+    const def = getItemDef(itemId);
+    let rem = qty;
+
+    // First check if enough space exists before consuming inventory
+    let space = 0;
+    for (const s of this.saleBox) {
+      if (s.itemId === itemId) space += Math.max(0, def.maxStack - s.qty);
+    }
+    space += Math.max(0, SALE_BOX_MAX_SLOTS - this.saleBox.length) * def.maxStack;
+    if (space < qty) return false;
+    if (!consumeItemTotal(this.inventory, itemId, qty)) return false;
+
+    for (const s of this.saleBox) {
+      if (s.itemId === itemId && s.qty < def.maxStack && rem > 0) {
+        const add = Math.min(rem, def.maxStack - s.qty);
+        s.qty += add;
+        rem -= add;
+      }
+    }
+    while (rem > 0 && this.saleBox.length < SALE_BOX_MAX_SLOTS) {
+      const add = Math.min(rem, def.maxStack);
+      this.saleBox.push({ itemId, qty: add });
+      rem -= add;
+    }
+
+    this.save();
+    return true;
+  }
+
+  public takeFromSaleBox(index: number): boolean {
+    const stack = this.saleBox[index];
+    if (!stack || stack.qty <= 0) return false;
+    const rem = addItemAnywhere(this.inventory, stack.itemId, stack.qty);
+    if (rem === 0) {
+      this.saleBox.splice(index, 1);
+    } else {
+      stack.qty = rem;
+    }
+    this.save();
+    return true;
+  }
+
+  public popSaleBoxSale(): { itemId: string; itemName: string; price: number } | null {
+    const idx = this.saleBox.findIndex((s) => s.qty > 0);
+    if (idx === -1) return null;
+    const stack = this.saleBox[idx];
+    const def = getItemDef(stack.itemId);
+    const price = Math.max(10, Math.round(def.baseValue * 0.7));
+
+    stack.qty -= 1;
+    if (stack.qty <= 0) {
+      this.saleBox.splice(idx, 1);
+    }
+
+    this.credits += price;
+    this.totalEarned += price;
+    this.totalSold += 1;
+    this.save();
+    return { itemId: def.id, itemName: def.name, price };
   }
 
   public swapEquippedWeapons(): boolean {
@@ -219,6 +434,9 @@ export class GameState {
       consumeItemTotal(this.inventory, mat.itemId, mat.qty);
     }
     this.upgrades[key] += 1;
+    if (key === 'shopTier') {
+      this.syncShopCapacity();
+    }
     this.restoreFullVitals();
     this.save();
     return true;
@@ -237,6 +455,7 @@ export class GameState {
       const payload: SaveData = {
         version: SAVE_VERSION,
         day: this.day,
+        timeOfDay: this.timeOfDay,
         credits: this.credits,
         totalEarned: this.totalEarned,
         totalSold: this.totalSold,
@@ -248,6 +467,8 @@ export class GameState {
           qty: p.qty,
           price: p.price,
         })),
+        saleBox: this.saleBox,
+        bounties: this.bounties,
         codex: this.codex,
         upgrades: this.upgrades,
         unlockedWeapons: this.unlockedWeapons,
@@ -269,15 +490,29 @@ export class GameState {
       if (!parsed) return false;
 
       this.day = parsed.day ?? 1;
+      this.timeOfDay = parsed.timeOfDay === 'night' ? 'night' : 'day';
       this.credits = parsed.credits ?? 120;
       this.totalEarned = parsed.totalEarned ?? 0;
       this.totalSold = parsed.totalSold ?? 0;
       this.bossDefeatedCount = parsed.bossDefeatedCount ?? 0;
 
-      // Migrate v1 safeBelt + 15 cargo -> v2 20-slot cargo + 28-slot chest cleanly
-      const inv = createEmptyInventory();
+      this.upgrades = {
+        blade: parsed.upgrades?.blade ?? 0,
+        blaster: parsed.upgrades?.blaster ?? 0,
+        hammer: parsed.upgrades?.hammer ?? 0,
+        suit: parsed.upgrades?.suit ?? 0,
+        stimpack: parsed.upgrades?.stimpack ?? 0,
+        bioRegen: parsed.upgrades?.bioRegen ?? 0,
+        shopTier: parsed.upgrades?.shopTier ?? 0,
+        shopAura: parsed.upgrades?.shopAura ?? 0,
+        shopScanner: parsed.upgrades?.shopScanner ?? 0,
+      };
+
+      // Migrate v1/v2 inventory cleanly up to current shopTier chest capacity (28 / 36 / 48)
+      const chestCap = this.getStats().chestCapacity;
+      const inv = createEmptyInventory(chestCap);
       const rawChest = parsed.inventory?.chest ?? [];
-      for (let i = 0; i < Math.min(CHEST_SIZE, rawChest.length); i++) {
+      for (let i = 0; i < Math.min(chestCap, rawChest.length); i++) {
         inv.chest[i] = rawChest[i] ?? null;
       }
       const rawBelt = parsed.inventory?.safeBelt ?? [];
@@ -290,16 +525,6 @@ export class GameState {
       }
       this.inventory = inv;
 
-      this.upgrades = {
-        blade: parsed.upgrades?.blade ?? 0,
-        blaster: parsed.upgrades?.blaster ?? 0,
-        hammer: parsed.upgrades?.hammer ?? 0,
-        suit: parsed.upgrades?.suit ?? 0,
-        stimpack: parsed.upgrades?.stimpack ?? 0,
-        bioRegen: parsed.upgrades?.bioRegen ?? 0,
-        shopAura: parsed.upgrades?.shopAura ?? 0,
-        shopScanner: parsed.upgrades?.shopScanner ?? 0,
-      };
       this.unlockedWeapons = {
         blade: true,
         blaster: parsed.unlockedWeapons?.blaster ?? false,
@@ -325,7 +550,9 @@ export class GameState {
       }
       this.codex = baseCodex;
 
-      this.pedestals = SHOP_PEDESTAL_COORDS.map((c, i) => {
+      const tierIdx = Math.max(0, Math.min(SHOP_PEDESTAL_TIERS.length - 1, this.upgrades.shopTier));
+      const coords = SHOP_PEDESTAL_TIERS[tierIdx];
+      this.pedestals = coords.map((c, i) => {
         const saved = parsed.pedestals?.[i];
         return {
           id: c.id,
@@ -336,6 +563,14 @@ export class GameState {
           price: saved?.price ?? 0,
         };
       });
+
+      this.saleBox = Array.isArray(parsed.saleBox)
+        ? parsed.saleBox.filter((s) => s && typeof s.itemId === 'string' && s.qty > 0).slice(0, SALE_BOX_MAX_SLOTS)
+        : [];
+      this.bounties =
+        Array.isArray(parsed.bounties) && parsed.bounties.length > 0
+          ? parsed.bounties
+          : this.generateBounties();
 
       this.restoreFullVitals();
       return true;

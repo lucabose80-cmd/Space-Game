@@ -33,6 +33,8 @@ type CustomerState =
   | 'entering'
   | 'browsing'
   | 'thinking'
+  | 'stealing'
+  | 'fleeing'
   | 'to_checkout'
   | 'waiting_checkout'
   | 'leaving';
@@ -40,6 +42,7 @@ type CustomerState =
 interface Customer {
   id: number;
   speciesIndex: number;
+  isThief: boolean;
   x: number;
   y: number;
   waypoints: Array<{ x: number; y: number }>;
@@ -60,6 +63,9 @@ export interface ShopCallbacks {
   onOpenPedestal: (pedestal: PedestalSlot) => void;
   onOpenWorkbench: () => void;
   onOpenChest: () => void;
+  onOpenBounties: () => void;
+  onOpenSaleBox: () => void;
+  onAdvanceTime: () => void;
   onEnterDungeon: () => void;
   onToast: (msg: string, tone?: 'info' | 'good' | 'warn') => void;
   onHudDirty: () => void;
@@ -69,7 +75,7 @@ type SolidShape =
   | { kind: 'rrect'; x: number; y: number; w: number; h: number; r: number }
   | { kind: 'circle'; x: number; y: number; r: number };
 
-// Rounded walkable shop floor bounds aligned pixel-for-pixel to public/art/shop_bg.png
+// Rounded walkable shop floor bounds aligned pixel-for-pixel to public/art/shop_bg*.png
 const FLOOR_LEFT = 48;
 const FLOOR_RIGHT = 434;
 const FLOOR_TOP = 116;
@@ -79,11 +85,11 @@ const PLAYER_RADIUS = 5.5;
 
 // Exact curved & L-shaped furniture collision geometry (ZERO invisible square corners!)
 const SOLID_SHAPES: SolidShape[] = [
-  // Grand U-shaped Checkout Counter — split cleanly with a walkable right-side gate (y=121..148)!
+  // Grand U-shaped Checkout Counter — open right-side passage at y=121..147!
   { kind: 'rrect', x: 178, y: 98, w: 128, h: 22, r: 4 }, // Back counter console under window
   { kind: 'rrect', x: 176, y: 112, w: 20, h: 56, r: 8 }, // Left counter wing
   { kind: 'rrect', x: 178, y: 150, w: 128, h: 26, r: 13 }, // Rounded front checkout arc!
-  { kind: 'rrect', x: 288, y: 148, w: 18, h: 26, r: 7 }, // Lower-right counter wing (below swing gate)
+  { kind: 'rrect', x: 288, y: 148, w: 18, h: 26, r: 7 }, // Lower-right counter wing (below passage)
   { kind: 'circle', x: 165, y: 138, r: 6.5 }, // Small junction box left of counter
 
   // Left L-shaped Shop-Ausbau terminal (exact L contour — open floor in front!)
@@ -102,9 +108,12 @@ const SOLID_SHAPES: SolidShape[] = [
   { kind: 'circle', x: 434, y: 208, r: 7.5 },
 ];
 
-// Interactive station hotspots matching public/art/shop_bg.png
+// Interactive station hotspots matching public/art/shop_bg*.png
 const WORKBENCH_POS = { x: 92, y: 164 };
-const CHEST_POS = { x: 336, y: 118 };
+const SLEEP_POD_POS = { x: 120, y: 122 };
+const SALE_BOX_POS = { x: 186, y: 188 };
+const CHEST_POS = { x: 334, y: 118 };
+const BOUNTY_BOARD_POS = { x: 386, y: 118 };
 const WARP_GATE_POS = { x: 426, y: 152 };
 const SHOP_DOOR_POS = { x: 240, y: 218 };
 const CHECKOUT_SPOT = { x: 240, y: 192 };
@@ -133,6 +142,7 @@ export class ShopScene {
   private customers: Customer[] = [];
   private nextCustomerId = 1;
   private spawnTimer = 1.4;
+  private saleBoxTimer = 5.5;
 
   private particles: Particle[] = [];
   private floats: FloatingText[] = [];
@@ -147,7 +157,7 @@ export class ShopScene {
     this.state = state;
     this.callbacks = callbacks;
 
-    for (let i = 0; i < 24; i++) {
+    for (let i = 0; i < 26; i++) {
       this.windowStars.push({
         x: 146 + Math.random() * 190,
         y: 26 + Math.random() * 52,
@@ -179,7 +189,7 @@ export class ShopScene {
       this.spawnBurst(426, 152, '#38e8d4', 20);
     } else {
       this.playerX = 240;
-      this.playerY = 185;
+      this.playerY = 188;
       this.facing = 'down';
     }
     this.callbacks.onHudDirty();
@@ -187,7 +197,9 @@ export class ShopScene {
 
   public toggleShopOpen(): void {
     if (!this.shopOpen) {
-      const hasStock = this.state.pedestals.some((p) => p.itemId !== null && p.qty > 0);
+      const hasStock =
+        this.state.pedestals.some((p) => p.itemId !== null && p.qty > 0) ||
+        (this.state.getStats().hasSaleBox && this.state.countSaleBoxItems() > 0);
       if (!hasStock) {
         this.callbacks.onToast(
           'Bestücke zuerst mindestens ein Holo-Podest mit [E], bevor du öffnest!',
@@ -200,9 +212,13 @@ export class ShopScene {
       this.shopTimer = this.shopDuration;
       this.daySalesCount = 0;
       this.daySalesCredits = 0;
-      this.spawnTimer = 1.0;
+      this.spawnTimer = 0.9;
+      this.saleBoxTimer = 6.5;
       sound.playShopBell();
-      this.callbacks.onToast('Astro-Barter ist GEÖFFNET! Bediene Kunden an der Kasse mit [E].', 'good');
+      this.callbacks.onToast(
+        'Astro-Barter ist GEÖFFNET! Geh rechts hinter den Tresen [E] & achte auf Weltraum-Diebe!',
+        'good',
+      );
       this.spawnBurst(SHOP_DOOR_POS.x, SHOP_DOOR_POS.y, '#4ade80', 14);
       this.callbacks.onHudDirty();
     } else {
@@ -224,15 +240,24 @@ export class ShopScene {
     }
 
     sound.playShopBell();
-    if (this.daySalesCount > 0) {
-      this.callbacks.onToast(
-        `Tag ${this.state.day} beendet: ${this.daySalesCount} Relikte für ${this.daySalesCredits} Cr verkauft!`,
-        'good',
-      );
-      this.state.advanceDay();
-    } else if (!manual) {
-      this.callbacks.onToast('Ladenschluss! Probiere neue Preise oder hol frischen Loot im Sektor.', 'info');
-      this.state.advanceDay();
+    if (this.daySalesCount > 0 || !manual) {
+      const res = this.state.advanceTimeOfDay();
+      if (this.daySalesCount > 0) {
+        const phaseNote = res.newDay
+          ? `Morgen bricht an (Tag ${res.day} · neue Aufträge!)`
+          : `Nacht bricht an (+35 % seltener Loot in Sektor 1!)`;
+        this.callbacks.onToast(
+          `Schicht beendet: ${this.daySalesCount} Relikte für ${this.daySalesCredits} Cr! ${phaseNote}`,
+          'good',
+        );
+      } else {
+        this.callbacks.onToast(
+          res.newDay
+            ? `Ladenschluss! Tag ${res.day} beginnt mit frischen Aufträgen.`
+            : 'Ladenschluss! Die Nacht bricht an — ideal für eine Sektor-Expedition (+35 % Rar-Loot)!',
+          'info',
+        );
+      }
     } else {
       this.callbacks.onToast('Laden geschlossen.', 'info');
     }
@@ -248,8 +273,8 @@ export class ShopScene {
       (fromY < 182 && toY > 186 && Math.abs(fromX - 240) < 75);
     if (crossesCounter) {
       return [
-        { x: fromX < 240 ? 156 : 326, y: 204 },
-        { x: 240, y: 204 },
+        { x: fromX < 240 ? 158 : 320, y: 208 },
+        { x: 240, y: 208 },
         { x: toX, y: toY },
       ];
     }
@@ -259,7 +284,7 @@ export class ShopScene {
   public update(dt: number, input: InputManager): void {
     this.time += dt;
 
-    // Ambient sparks at left Exo-Werkbank
+    // Ambient sparks at left Shop-Ausbau console
     if (Math.random() < dt * 4.5) {
       this.particles.push({
         x: 56 + (Math.random() - 0.5) * 26,
@@ -273,7 +298,7 @@ export class ShopScene {
       });
     }
 
-    // Swirling energy motes pouring gently from the right Warp-Gate
+    // Swirling energy motes pouring gently from the right Promenade exit
     if (Math.random() < dt * 8) {
       this.particles.push({
         x: 438 + (Math.random() - 0.5) * 8,
@@ -287,21 +312,21 @@ export class ShopScene {
       });
     }
 
-    // Player movement & cozy dash
+    // Player movement & cozy dash (also great for tackling fleeing Space Thieves!)
     this.dashCooldown = Math.max(0, this.dashCooldown - dt);
     const move = input.getMoveVector();
 
     if (input.dashPressed() && this.dashCooldown <= 0 && (move.x !== 0 || move.y !== 0)) {
-      this.dashTimer = 0.16;
-      this.dashCooldown = 0.48;
-      this.dashVx = move.x * 230;
-      this.dashVy = move.y * 230;
+      this.dashTimer = 0.17;
+      this.dashCooldown = 0.46;
+      this.dashVx = move.x * 238;
+      this.dashVy = move.y * 238;
       sound.playDash();
       this.spawnBurst(this.playerX, this.playerY + 4, '#fb923c', 6);
     }
 
-    let vx = move.x * 104;
-    let vy = move.y * 104;
+    let vx = move.x * 106;
+    let vy = move.y * 106;
     if (this.dashTimer > 0) {
       this.dashTimer -= dt;
       vx = this.dashVx;
@@ -330,19 +355,48 @@ export class ShopScene {
       if (this.shopTimer <= 0) {
         this.closeShop(false);
       } else {
+        const stats = this.state.getStats();
         this.spawnTimer -= dt;
-        const maxCustomers = 3 + this.state.upgrades.shopAura;
-        if (this.spawnTimer <= 0 && this.customers.length < maxCustomers) {
+        if (this.spawnTimer <= 0 && this.customers.length < stats.maxCustomers) {
           this.spawnCustomer();
-          this.spawnTimer = 4.0 + Math.random() * 2.5;
+          const tierPace = Math.max(2.6, 4.0 - this.state.upgrades.shopTier * 0.55);
+          this.spawnTimer = tierPace + Math.random() * 2.1;
+        }
+
+        // Automatic Bargain Sales from unlocked Sale-Box (Stufe II+) while shoppers are inside!
+        if (stats.hasSaleBox && this.state.countSaleBoxItems() > 0 && this.customers.length > 0) {
+          this.saleBoxTimer -= dt;
+          if (this.saleBoxTimer <= 0) {
+            this.saleBoxTimer = 6.5 + Math.random() * 3.5;
+            const sale = this.state.popSaleBoxSale();
+            if (sale) {
+              this.daySalesCount += 1;
+              this.daySalesCredits += sale.price;
+              sound.playRegister();
+              this.spawnBurst(SALE_BOX_POS.x, SALE_BOX_POS.y - 4, '#fb923c', 12);
+              this.floats.push({
+                x: SALE_BOX_POS.x,
+                y: SALE_BOX_POS.y - 16,
+                text: `+${sale.price} Cr (SALE!)`,
+                color: '#fbbf24',
+                life: 1.4,
+                maxLife: 1.4,
+              });
+              this.callbacks.onToast(
+                `Sonderangebot! ${sale.itemName} automatisch für ${sale.price} Cr verkauft.`,
+                'good',
+              );
+              this.callbacks.onHudDirty();
+            }
+          }
         }
       }
     }
 
-    // Smoothly swing open the counter access flap whenever hero approaches the right-side gate!
+    // Smoothly retract holographic counter filament whenever hero approaches the right-side passage!
     const nearGate = Math.hypot(this.playerX - COUNTER_GATE_POS.x, this.playerY - COUNTER_GATE_POS.y) < 34;
     const gateTarget = nearGate ? 1 : 0;
-    this.gateOpen += (gateTarget - this.gateOpen) * Math.min(1, dt * 11);
+    this.gateOpen += (gateTarget - this.gateOpen) * Math.min(1, dt * 12);
 
     this.updateCustomers(dt);
     this.updateInteraction(input);
@@ -356,6 +410,7 @@ export class ShopScene {
   private movePlayer(dx: number, dy: number): void {
     let px = this.playerX + dx;
     let py = this.playerY + dy;
+    const hasSaleBox = this.state.getStats().hasSaleBox;
 
     // 3-pass exact SDF push-out so player glides smoothly around every rounded edge & circle!
     for (let iter = 0; iter < 3; iter++) {
@@ -377,9 +432,20 @@ export class ShopScene {
         }
       }
 
-      // 3. Round Holo-Pedestals (smooth circular slide!)
+      // 3. Chrono-Ruhekapsel (Sleep Pod) & unlocked Sale-Box smooth circles
+      const outSleep = this.pushOutCircle(px, py, SLEEP_POD_POS.x, SLEEP_POD_POS.y + 1, 8.5 + PLAYER_RADIUS);
+      px = outSleep.x;
+      py = outSleep.y;
+
+      if (hasSaleBox) {
+        const outBox = this.pushOutCircle(px, py, SALE_BOX_POS.x, SALE_BOX_POS.y + 1, 7.5 + PLAYER_RADIUS);
+        px = outBox.x;
+        py = outBox.y;
+      }
+
+      // 4. Round Holo-Pedestals (smooth circular slide — 4 / 6 / 8 depending on Shop Tier!)
       for (const p of this.state.pedestals) {
-        const out = this.pushOutCircle(px, py, p.x, p.y + 1, 10.5 + PLAYER_RADIUS);
+        const out = this.pushOutCircle(px, py, p.x, p.y + 1, 10.0 + PLAYER_RADIUS);
         px = out.x;
         py = out.y;
       }
@@ -483,12 +549,18 @@ export class ShopScene {
   }
 
   private spawnCustomer(): void {
+    const hasStockedPed = this.state.pedestals.some((p) => p.itemId !== null && p.qty > 0);
+    const hasActiveThief = this.customers.some((c) => c.isThief);
+    // ~20% chance to spawn a sneaky Space Thief whenever stocked pedestals exist!
+    const isThief = hasStockedPed && !hasActiveThief && Math.random() < 0.2;
+
     const c: Customer = {
       id: this.nextCustomerId++,
       speciesIndex: Math.floor(Math.random() * 3),
+      isThief,
       x: SHOP_DOOR_POS.x + (Math.random() - 0.5) * 10,
       y: SHOP_DOOR_POS.y + 8,
-      waypoints: [{ x: SHOP_DOOR_POS.x, y: 204 }],
+      waypoints: [{ x: SHOP_DOOR_POS.x, y: 206 }],
       state: 'entering',
       stateTimer: 0.35,
       walkAnim: 0,
@@ -515,16 +587,66 @@ export class ShopScene {
   private getBrowseSpot(ped: PedestalSlot): { x: number; y: number } {
     // Stand neatly beside the pedestal toward the central walkway so price tag stays 100% readable!
     return {
-      x: ped.x < 240 ? ped.x + 22 : ped.x - 22,
+      x: ped.x < 240 ? ped.x + 20 : ped.x - 20,
       y: ped.y + 4,
     };
   }
 
-  private updateCustomers(dt: number): void {
-    const speed = 54;
+  private tackleThief(c: Customer, index: number): void {
+    const recoveredId = c.carriedItemId;
+    let recoveredName = 'Relikt';
+    if (recoveredId) {
+      recoveredName = getItemDef(recoveredId).name;
+      // Restore item back onto original pedestal if empty or matching, else safely into Shop Chest!
+      const ped = this.state.pedestals.find((p) => p.id === c.targetPedestalId);
+      if (ped && (!ped.itemId || ped.itemId === recoveredId)) {
+        ped.itemId = recoveredId;
+        ped.qty += 1;
+      } else {
+        addItemToChest(this.state.inventory, recoveredId, 1);
+      }
+      c.carriedItemId = null;
+    }
 
+    const bounty = 35;
+    this.state.credits += bounty;
+    this.state.totalEarned += bounty;
+    this.state.save();
+
+    sound.playThiefCaught();
+    this.spawnBurst(c.x, c.y, '#fbbf24', 18);
+    this.spawnBurst(c.x, c.y, '#c084fc', 12);
+    this.floats.push({
+      x: c.x,
+      y: c.y - 18,
+      text: `GESCHNAPPT! +${bounty} Cr`,
+      color: '#4ade80',
+      life: 1.5,
+      maxLife: 1.5,
+    });
+    this.callbacks.onToast(
+      recoveredId
+        ? `Weltraum-Dieb gestellt! ${recoveredName} gerettet + ${bounty} Cr Kopfgeld!`
+        : `Weltraum-Dieb vertrieben! +${bounty} Cr Sicherheits-Prämie!`,
+      'good',
+    );
+    this.customers.splice(index, 1);
+    this.callbacks.onHudDirty();
+  }
+
+  private updateCustomers(dt: number): void {
     for (let i = this.customers.length - 1; i >= 0; i--) {
       const c = this.customers[i];
+
+      // Space Thief Tackle Check: bump or dash into a stealing/fleeing thief to recover stolen loot!
+      if (c.isThief && (c.state === 'fleeing' || c.state === 'stealing')) {
+        const catchDist = this.dashTimer > 0 ? 24 : 19;
+        if (Math.hypot(this.playerX - c.x, this.playerY - c.y) < catchDist) {
+          this.tackleThief(c, i);
+          continue;
+        }
+      }
+
       if (c.emoteTimer > 0) {
         c.emoteTimer -= dt;
         if (c.emoteTimer <= 0 && c.state !== 'waiting_checkout') {
@@ -532,6 +654,7 @@ export class ShopScene {
         }
       }
 
+      const speed = c.state === 'fleeing' ? 88 : c.isThief ? 62 : 54;
       const nextWp = c.waypoints[0];
       if (nextWp) {
         const dx = nextWp.x - c.x;
@@ -540,7 +663,7 @@ export class ShopScene {
         if (dist > 3) {
           c.x += (dx / dist) * speed * dt;
           c.y += (dy / dist) * speed * dt;
-          c.walkAnim += dt * 9;
+          c.walkAnim += dt * (c.state === 'fleeing' ? 15 : 9);
           continue;
         }
         c.waypoints.shift();
@@ -561,8 +684,53 @@ export class ShopScene {
           c.waypoints = this.planPath(c.x, c.y, SHOP_DOOR_POS.x, SHOP_DOOR_POS.y + 10);
         }
       } else if (c.state === 'browsing') {
-        c.state = 'thinking';
-        c.stateTimer = 1.0 + Math.random() * 0.7;
+        if (c.isThief) {
+          c.state = 'stealing';
+          c.stateTimer = 1.05;
+        } else {
+          c.state = 'thinking';
+          c.stateTimer = 1.0 + Math.random() * 0.7;
+        }
+      } else if (c.state === 'stealing') {
+        c.stateTimer -= dt;
+        if (c.stateTimer <= 0) {
+          const ped = this.state.pedestals.find((p) => p.id === c.targetPedestalId);
+          if (ped && ped.itemId && ped.qty > 0) {
+            const stolenId = ped.itemId;
+            ped.qty -= 1;
+            if (ped.qty <= 0) {
+              ped.itemId = null;
+              ped.qty = 0;
+            }
+            c.carriedItemId = stolenId;
+            c.state = 'fleeing';
+            c.waypoints = this.planPath(c.x, c.y, SHOP_DOOR_POS.x, SHOP_DOOR_POS.y + 10);
+            sound.playThiefAlarm();
+            this.spawnBurst(ped.x, ped.y - 8, '#fb7185', 14);
+            this.floats.push({
+              x: c.x,
+              y: c.y - 20,
+              text: 'DIEBSTAHL!',
+              color: '#fb7185',
+              life: 1.5,
+              maxLife: 1.5,
+            });
+            this.callbacks.onToast(
+              `🚨 DIEB! Schnapp ihn mit Dash [SPACE] oder lauf in ihn hinein, bevor er entkommt!`,
+              'warn',
+            );
+            this.state.save();
+          } else {
+            c.state = 'leaving';
+            c.waypoints = this.planPath(c.x, c.y, SHOP_DOOR_POS.x, SHOP_DOOR_POS.y + 10);
+          }
+        }
+      } else if (c.state === 'fleeing') {
+        // Reached the exit door — thief escaped with the relic!
+        const lostName = c.carriedItemId ? getItemDef(c.carriedItemId).name : 'einem Relikt';
+        sound.playReaction('outrageous');
+        this.callbacks.onToast(`Der Weltraum-Dieb ist mit ${lostName} entkommen!`, 'warn');
+        this.customers.splice(i, 1);
       } else if (c.state === 'thinking') {
         c.stateTimer -= dt;
         if (c.stateTimer <= 0) {
@@ -704,7 +872,7 @@ export class ShopScene {
       }
       return;
     }
-    if (waitingCustomer && !behind && Math.hypot(this.playerX - 240, this.playerY - 186) < 48) {
+    if (waitingCustomer && !behind && Math.hypot(this.playerX - 240, this.playerY - 186) < 46) {
       this.activePrompt = {
         label: '→ Rechts hinter den Tresen zum Kassieren!',
         x: 248,
@@ -715,7 +883,7 @@ export class ShopScene {
 
     // 2. Holo-Pedestals
     let nearestPed: PedestalSlot | null = null;
-    let bestPedDist = 30;
+    let bestPedDist = 27;
     for (const p of this.state.pedestals) {
       const d = Math.hypot(this.playerX - p.x, this.playerY - p.y);
       if (d < bestPedDist) {
@@ -735,11 +903,62 @@ export class ShopScene {
       return;
     }
 
-    // 3. Astro-Barter Shop-Terminal (Shop-Ausbau, Deko & Scan-Codex)
-    if (Math.hypot(this.playerX - WORKBENCH_POS.x, this.playerY - WORKBENCH_POS.y) < 42) {
+    // 3. Unlocked Sonderangebots-Kiste (Sale-Box, Stufe II+)
+    if (this.state.getStats().hasSaleBox) {
+      if (Math.hypot(this.playerX - SALE_BOX_POS.x, this.playerY - SALE_BOX_POS.y) < 26) {
+        const count = this.state.countSaleBoxItems();
+        this.activePrompt = {
+          label: `[E] Sonderangebots-Kiste (${count})`,
+          x: SALE_BOX_POS.x,
+          y: SALE_BOX_POS.y - 22,
+        };
+        if (input.interactPressed()) {
+          sound.playUiClick();
+          this.callbacks.onOpenSaleBox();
+        }
+        return;
+      }
+    }
+
+    // 4. Chrono-Ruhekapsel (Sleep Pod — Day <-> Night cycle!)
+    if (Math.hypot(this.playerX - SLEEP_POD_POS.x, this.playerY - SLEEP_POD_POS.y) < 26) {
+      const label =
+        this.state.timeOfDay === 'day'
+          ? '[E] Ruhen → Nacht (+35 % Rar-Loot)'
+          : `[E] Schlafen → Morgen (Tag ${this.state.day + 1})`;
       this.activePrompt = {
-        label: '[E] Shop-Ausbau & Deko',
-        x: WORKBENCH_POS.x + 12,
+        label,
+        x: SLEEP_POD_POS.x + 14,
+        y: SLEEP_POD_POS.y - 20,
+      };
+      if (input.interactPressed()) {
+        if (this.shopOpen) this.closeShop(true);
+        this.callbacks.onAdvanceTime();
+      }
+      return;
+    }
+
+    // 5. Auftrags-Pinnwand (Sonderaufträge / Bounties!)
+    if (Math.hypot(this.playerX - BOUNTY_BOARD_POS.x, this.playerY - BOUNTY_BOARD_POS.y) < 28) {
+      this.activePrompt = {
+        label: this.state.hasReadyBounty()
+          ? '[E] ★ Sonderauftrag abliefern!'
+          : '[E] Auftrags-Pinnwand (Bounties)',
+        x: BOUNTY_BOARD_POS.x - 16,
+        y: BOUNTY_BOARD_POS.y - 18,
+      };
+      if (input.interactPressed()) {
+        sound.playUiClick();
+        this.callbacks.onOpenBounties();
+      }
+      return;
+    }
+
+    // 6. Astro-Barter Shop-Terminal (Shop-Ausbau, Vergrößerung & Deko)
+    if (Math.hypot(this.playerX - WORKBENCH_POS.x, this.playerY - WORKBENCH_POS.y) < 38) {
+      this.activePrompt = {
+        label: '[E] Shop-Ausbau & Vergrößerung',
+        x: WORKBENCH_POS.x + 16,
         y: WORKBENCH_POS.y - 26,
       };
       if (input.interactPressed()) {
@@ -749,10 +968,10 @@ export class ShopScene {
       return;
     }
 
-    // 4. Lagertruhe (blue steel chest upper-right)
-    if (Math.hypot(this.playerX - CHEST_POS.x, this.playerY - CHEST_POS.y) < 32) {
+    // 7. Lagertruhe (blue steel chest upper-right)
+    if (Math.hypot(this.playerX - CHEST_POS.x, this.playerY - CHEST_POS.y) < 28) {
       this.activePrompt = {
-        label: '[E] Lagertruhe & Fracht',
+        label: `[E] Lagertruhe (${this.state.getStats().chestCapacity} Slots)`,
         x: CHEST_POS.x,
         y: CHEST_POS.y - 18,
       };
@@ -763,7 +982,7 @@ export class ShopScene {
       return;
     }
 
-    // 5. Exit Airlock to Port Solaris Promenade (Schmiede, Med-Bay & Warp-Gate!)
+    // 8. Exit Airlock to Port Solaris Promenade (Schmiede, Med-Bay & Warp-Gate!)
     if (Math.hypot(this.playerX - WARP_GATE_POS.x, this.playerY - WARP_GATE_POS.y) < 36) {
       this.activePrompt = {
         label: '[E] Port Solaris (Shops & Sektor)',
@@ -780,7 +999,7 @@ export class ShopScene {
       return;
     }
 
-    // 6. Shop Open/Close Door (bottom airlock hatch)
+    // 9. Shop Open/Close Door (bottom airlock hatch)
     if (Math.hypot(this.playerX - SHOP_DOOR_POS.x, this.playerY - SHOP_DOOR_POS.y) < 30) {
       this.activePrompt = {
         label: this.shopOpen ? '[E] Laden schließen' : '[E] Laden öffnen',
@@ -828,12 +1047,29 @@ export class ShopScene {
 
   public render(ctx: CanvasRenderingContext2D): void {
     const art = getHDArt();
+    const isNight = this.state.timeOfDay === 'night';
+    const shopTier = this.state.upgrades.shopTier ?? 0;
+    const shopBg =
+      shopTier >= 2
+        ? (art.shopBgT3 ?? art.shopBgT2 ?? art.shopBg)
+        : shopTier === 1
+          ? (art.shopBgT2 ?? art.shopBg)
+          : art.shopBg;
 
-    // 1. High-craft Moonlighter Space-Shop Room Backdrop (960x540 rendered 1:1!)
-    if (art.shopBg) {
-      ctx.drawImage(art.shopBg, 0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+    // 1. High-craft Tiered Moonlighter Space-Shop Room Backdrop (960x540 rendered 1:1!)
+    if (shopBg) {
+      ctx.drawImage(shopBg, 0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
     } else {
       ctx.fillStyle = '#1b1d2b';
+      ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+    }
+
+    // Real Day / Night Atmospheric Lighting Wash
+    if (isNight) {
+      ctx.fillStyle = 'rgba(10, 16, 44, 0.25)';
+      ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+    } else {
+      ctx.fillStyle = 'rgba(255, 224, 150, 0.045)';
       ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
     }
 
@@ -841,26 +1077,41 @@ export class ShopScene {
     // Subtle twinkling star glints inside the panoramic nebula window
     for (const s of this.windowStars) {
       const a = 0.25 + 0.75 * Math.max(0, Math.sin(this.time * 2.8 + s.phase));
-      ctx.fillStyle = `rgba(255, 252, 224, ${a * 0.85})`;
-      ctx.fillRect(s.x, s.y, 1.5, 1.5);
+      ctx.fillStyle = `rgba(255, 252, 224, ${a * (isNight ? 1.0 : 0.75)})`;
+      ctx.fillRect(s.x, s.y, isNight ? 1.8 : 1.4, isNight ? 1.8 : 1.4);
     }
 
-    // Pulsing cyan holographic glows on Counter, Exo-Werkbank, and Warp-Gate
+    // Pulsing cyan holographic glows on Counter, Shop-Ausbau Terminal, and Promenade Exit
     const pulse = 0.5 + 0.5 * Math.sin(this.time * 4.2);
-    drawGlow(ctx, 206, 146, 22, '#38e8d4', 0.14 + pulse * 0.08);
-    drawGlow(ctx, 240, 156, 24, '#38e8d4', 0.12 + pulse * 0.06);
-    drawGlow(ctx, 64, 132, 32, '#38e8d4', 0.16 + pulse * 0.08);
-    drawGlow(ctx, 444, 152, 42 + pulse * 6, '#38e8d4', 0.28 + pulse * 0.14);
+    const nightBoost = isNight ? 0.1 : 0;
+    drawGlow(ctx, 206, 146, 22, '#38e8d4', 0.14 + nightBoost + pulse * 0.08);
+    drawGlow(ctx, 240, 156, 24, '#38e8d4', 0.12 + nightBoost + pulse * 0.06);
+    drawGlow(ctx, 64, 132, 32, '#38e8d4', 0.16 + nightBoost + pulse * 0.08);
+    drawGlow(ctx, 444, 152, 42 + pulse * 6, '#38e8d4', 0.28 + nightBoost + pulse * 0.14);
 
-    // Subtle crisp status pill on bottom airlock door, PROMENADE & SHOP-AUSBAU badges
-    this.renderStationBadges(ctx);
+    // Subtle crisp status pills (Door, Promenade, Shop-Ausbau, Auftrags-Pinnwand!)
+    this.renderStationBadges(ctx, pulse);
 
-    // Integrated right-side counter walkway & animated brass swing gate (access behind checkout!)
+    // Sleek retractable holographic laser filament on the baked right-side counter opening!
     this.renderCounterGate(ctx, pulse);
 
-    // 3. Depth-Sorted Dynamic Entities (Pedestals, Customers, Player)
+    // 3. Depth-Sorted Dynamic Entities (Sleep Pod, Sale-Box, Pedestals, Customers, Player)
     type Drawable = { y: number; draw: () => void };
     const drawables: Drawable[] = [];
+
+    // Chrono-Ruhekapsel (Sleep Pod) upper-left
+    drawables.push({
+      y: SLEEP_POD_POS.y,
+      draw: () => this.renderSleepPod(ctx, pulse),
+    });
+
+    // Unlocked Sonderangebots-Kiste (Sale-Box, Stufe II+)
+    if (this.state.getStats().hasSaleBox) {
+      drawables.push({
+        y: SALE_BOX_POS.y,
+        draw: () => this.renderSaleBox(ctx, pulse),
+      });
+    }
 
     for (const p of this.state.pedestals) {
       drawables.push({
@@ -885,10 +1136,13 @@ export class ShopScene {
     for (const d of drawables) d.draw();
 
     // 3D Perspective Occlusion: when hero stands BEHIND the counter, draw the front counter lip in front!
-    if (art.shopBg && this.playerY < 156 && this.playerX > 180 && this.playerX < 306) {
-      // Exact slice of front counter masonry & checkout console from 960x540 shop_bg.png (2x scale)
-      ctx.drawImage(art.shopBg, 174 * 2, 150 * 2, 136 * 2, 32 * 2, 174, 150, 136, 32);
-      // Re-draw any customer standing directly in front of the counter so they stay in front of the counter lip
+    if (shopBg && this.playerY < 156 && this.playerX > 180 && this.playerX < 306) {
+      // Exact slice of front counter masonry & checkout console from active 960x540 tier backdrop (2x scale)
+      ctx.drawImage(shopBg, 174 * 2, 150 * 2, 136 * 2, 32 * 2, 174, 150, 136, 32);
+      // Re-draw any customer or Sale-Box directly in front of the counter so depth stays crisp
+      if (this.state.getStats().hasSaleBox) {
+        this.renderSaleBox(ctx, pulse);
+      }
       for (const c of this.customers) {
         if (c.y >= 174 && c.x > 168 && c.x < 316) {
           this.renderCustomer(ctx, c);
@@ -899,18 +1153,18 @@ export class ShopScene {
     // 4. Warm Cozy Lighting Aura, Unlocked Shop Decor Lanterns & Dust Motes
     const auraLevel = this.state.upgrades.shopAura ?? 0;
     const scannerLevel = this.state.upgrades.shopScanner ?? 0;
-    drawGlow(ctx, 118, 92, 54, '#fbbf24', 0.11 + auraLevel * 0.06);
-    drawGlow(ctx, 368, 92, 54, '#fbbf24', 0.11 + auraLevel * 0.06);
+    drawGlow(ctx, 118, 92, 56, '#fbbf24', 0.11 + nightBoost + auraLevel * 0.06);
+    drawGlow(ctx, 368, 92, 56, '#fbbf24', 0.11 + nightBoost + auraLevel * 0.06);
 
     if (auraLevel >= 1) {
       // Visible floating warm Holo-Lanterns flanking the shop!
       const lanterns = [
-        { x: 158, y: 112, phase: 0 },
-        { x: 322, y: 112, phase: 1.8 },
+        { x: 156, y: 108, phase: 0 },
+        { x: 324, y: 108, phase: 1.8 },
       ];
       for (const l of lanterns) {
         const bob = Math.sin(this.time * 3.1 + l.phase) * 2.2;
-        drawGlow(ctx, l.x, l.y + bob, 24, '#fbbf24', 0.34);
+        drawGlow(ctx, l.x, l.y + bob, 26, '#fbbf24', 0.34 + nightBoost);
         ctx.fillStyle = '#475569';
         ctx.fillRect(l.x - 3, l.y - 5 + bob, 6, 2);
         ctx.fillStyle = '#f59e0b';
@@ -920,14 +1174,14 @@ export class ShopScene {
       }
     }
     if (auraLevel >= 2) {
-      // VIP Star-Lounge orbiting golden crystal ornaments
+      // VIP Star-Lounge orbiting golden-cyan crystal ornaments flanking the panoramic window
       const crystals = [
-        { x: 118, y: 118, phase: 0.7 },
-        { x: 368, y: 118, phase: 2.5 },
+        { x: 158, y: 84, phase: 0.7 },
+        { x: 322, y: 84, phase: 2.5 },
       ];
       for (const cr of crystals) {
         const bob = Math.sin(this.time * 4 + cr.phase) * 2.5;
-        drawGlow(ctx, cr.x, cr.y + bob, 20, '#38e8d4', 0.32);
+        drawGlow(ctx, cr.x, cr.y + bob, 20, '#38e8d4', 0.32 + nightBoost);
         ctx.fillStyle = '#38e8d4';
         ctx.beginPath();
         ctx.moveTo(cr.x, cr.y - 5 + bob);
@@ -948,7 +1202,9 @@ export class ShopScene {
       const mx = m.x + Math.sin(this.time * 0.7 + m.phase) * 8;
       const my = m.y - ((this.time * m.speed + m.phase * 15) % 85) + 40;
       const alpha = 0.2 + 0.35 * Math.sin(this.time * 2 + m.phase);
-      ctx.fillStyle = `rgba(255, 240, 195, ${Math.max(0, alpha)})`;
+      ctx.fillStyle = isNight
+        ? `rgba(165, 243, 252, ${Math.max(0, alpha)})`
+        : `rgba(255, 240, 195, ${Math.max(0, alpha)})`;
       ctx.fillRect(mx, my, 1, 1);
     }
 
@@ -960,7 +1216,7 @@ export class ShopScene {
     }
     ctx.globalAlpha = 1;
 
-    // 6. Floating Credit Popups
+    // 6. Floating Credit & Thief Popups
     ctx.font = 'bold 7px Silkscreen, monospace';
     ctx.textAlign = 'center';
     for (const f of this.floats) {
@@ -989,7 +1245,54 @@ export class ShopScene {
     }
   }
 
-  private renderStationBadges(ctx: CanvasRenderingContext2D): void {
+  private renderSleepPod(ctx: CanvasRenderingContext2D, pulse: number): void {
+    const art = getHDArt();
+    const x = SLEEP_POD_POS.x;
+    const y = SLEEP_POD_POS.y;
+    const isNight = this.state.timeOfDay === 'night';
+
+    drawPixelShadow(ctx, x, y + 9, 12, 4, 0.45);
+    drawGlow(ctx, x, y - 2, 20, isNight ? '#818cf8' : '#38e8d4', 0.2 + pulse * 0.08);
+    if (art.propSleepPod) {
+      ctx.drawImage(art.propSleepPod, x - 13, y - 16, 26, 26);
+    } else {
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(x - 10, y - 8, 20, 14);
+      ctx.fillStyle = '#38e8d4';
+      ctx.fillRect(x - 7, y - 5, 14, 7);
+    }
+  }
+
+  private renderSaleBox(ctx: CanvasRenderingContext2D, pulse: number): void {
+    const art = getHDArt();
+    const x = SALE_BOX_POS.x;
+    const y = SALE_BOX_POS.y;
+    const count = this.state.countSaleBoxItems();
+
+    drawPixelShadow(ctx, x, y + 9, 11, 3.6, 0.46);
+    drawGlow(ctx, x, y - 2, 18, '#fb923c', (count > 0 ? 0.3 : 0.14) + pulse * 0.08);
+    if (art.propSaleBox) {
+      ctx.drawImage(art.propSaleBox, x - 11, y - 14, 22, 23);
+    } else {
+      ctx.fillStyle = '#92400e';
+      ctx.fillRect(x - 9, y - 7, 18, 14);
+    }
+
+    // Compact amber "SALE" / stock count badge
+    ctx.font = 'bold 5px Silkscreen, monospace';
+    ctx.textAlign = 'center';
+    const tag = count > 0 ? `SALE ×${count}` : 'SALE';
+    const tw = Math.max(24, Math.ceil(ctx.measureText(tag).width) + 6);
+    ctx.fillStyle = 'rgba(20, 14, 10, 0.92)';
+    ctx.fillRect(x - tw / 2, y + 8, tw, 8);
+    ctx.strokeStyle = count > 0 ? '#fbbf24' : '#94a3b8';
+    ctx.lineWidth = 0.7;
+    ctx.strokeRect(x - tw / 2, y + 8, tw, 8);
+    ctx.fillStyle = count > 0 ? '#fde047' : '#cbd5e1';
+    ctx.fillText(tag, x, y + 14);
+  }
+
+  private renderStationBadges(ctx: CanvasRenderingContext2D, pulse: number): void {
     // Bottom door OPEN/CLOSED status pill
     const dx = SHOP_DOOR_POS.x;
     const dy = 216;
@@ -1004,8 +1307,8 @@ export class ShopScene {
     ctx.fillText(this.shopOpen ? 'OFFEN' : 'ZU [E]', dx, dy + 2);
 
     // Subtle Port Solaris Promenade exit badge
-    const gx = 412;
-    const gy = 114;
+    const gx = 418;
+    const gy = 116;
     ctx.fillStyle = 'rgba(12, 18, 32, 0.88)';
     ctx.fillRect(gx - 28, gy - 5, 56, 10);
     ctx.strokeStyle = '#38e8d4';
@@ -1024,44 +1327,74 @@ export class ShopScene {
     ctx.strokeRect(tx - 30, ty - 5, 60, 10);
     ctx.fillStyle = '#fde047';
     ctx.fillText('SHOP-AUSBAU', tx, ty + 2);
+
+    // Auftrags-Pinnwand (Bounties Board) compact pinned wall badge right below cork board
+    const bx = BOUNTY_BOARD_POS.x - 4;
+    const by = 82;
+    const ready = this.state.hasReadyBounty();
+    ctx.fillStyle = 'rgba(15, 22, 36, 0.92)';
+    ctx.fillRect(bx - 22, by - 5, 44, 10);
+    ctx.strokeStyle = ready ? '#4ade80' : '#fbbf24';
+    ctx.lineWidth = 0.8;
+    ctx.strokeRect(bx - 22, by - 5, 44, 10);
+    ctx.fillStyle = ready ? '#4ade80' : '#fde047';
+    ctx.fillText('AUFTRÄGE', bx, by + 2);
+
+    if (ready) {
+      const bob = Math.sin(this.time * 6) * 2;
+      drawGlow(ctx, bx + 22, by - 6 + bob, 11, '#fbbf24', 0.45 + pulse * 0.25);
+      ctx.fillStyle = '#fbbf24';
+      ctx.beginPath();
+      ctx.arc(bx + 22, by - 6 + bob, 4.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 6px Silkscreen, monospace';
+      ctx.fillText('!', bx + 22, by - 4 + bob);
+    }
   }
 
   private renderCounterGate(ctx: CanvasRenderingContext2D, pulse: number): void {
-    // 1. Clean warm wood-plank & slate floor passage blended seamlessly into the right counter arm
-    ctx.fillStyle = '#323a4c'; // interior dark slate transition left
-    ctx.fillRect(284, 121, 9, 25);
-    ctx.fillStyle = '#795238'; // warm oak planks right matching shop_bg.png floor!
-    ctx.fillRect(293, 121, 15, 25);
-    ctx.fillStyle = '#62402b';
-    ctx.fillRect(293, 127, 15, 1);
-    ctx.fillRect(293, 134, 15, 1);
-    ctx.fillRect(293, 141, 15, 1);
-    // Subtle dark bevel shadow under upper counter cut edge
-    ctx.fillStyle = 'rgba(14, 18, 30, 0.35)';
-    ctx.fillRect(285, 122, 23, 2);
+    // Architectural right-side counter opening is baked directly into shop_bg*.png!
+    // Render ONLY a sleek retractable cyan holographic security filament between the two stone caps:
+    const topY = 121;
+    const botY = 146;
+    const gx = 297;
+    const closedFrac = Math.max(0, 1 - this.gateOpen);
 
-    // Subtle brass threshold & counter-end masonry caps top & bottom
-    ctx.fillStyle = '#272f40';
-    ctx.fillRect(285, 119, 23, 3);
-    ctx.fillRect(285, 145, 23, 3);
-    ctx.fillStyle = '#94a3b8';
-    ctx.fillRect(286, 120, 21, 1);
-    ctx.fillRect(286, 146, 21, 1);
-
-    // 2. Animated Brass-Trimmed Wooden Counter Swing-Gate (hinged at bottom-right (299, 145))!
     ctx.save();
-    ctx.translate(299, 145);
-    ctx.rotate(-this.gateOpen * 1.15); // swings smoothly inward/open as hero walks up!
-    ctx.fillStyle = '#473022';
-    ctx.fillRect(-3.5, -21, 7, 21);
-    ctx.fillStyle = '#925d3b';
-    ctx.fillRect(-2.5, -20, 5, 19);
-    ctx.fillStyle = '#fbbf24'; // brass hinge & top latch
-    ctx.fillRect(-2, -2.5, 4, 2.5);
-    ctx.fillRect(-2, -19.5, 4, 2);
+    // Subtle micro emitter pins integrated flush into top & bottom counter end-caps
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(gx - 2, topY - 1, 4, 2.5);
+    ctx.fillRect(gx - 2, botY - 1.5, 4, 2.5);
+    ctx.fillStyle = closedFrac > 0.15 ? '#38e8d4' : '#4ade80';
+    ctx.fillRect(gx - 1, topY - 0.5, 2, 1.5);
+    ctx.fillRect(gx - 1, botY - 1, 2, 1.5);
+
+    // Retracting dual-end laser filament (disappears seamlessly when player steps up!)
+    if (closedFrac > 0.04) {
+      const halfSpan = ((botY - topY) * 0.5) * closedFrac;
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = `rgba(56, 232, 212, ${(0.28 + pulse * 0.22) * closedFrac})`;
+      ctx.lineWidth = 3.2;
+      ctx.beginPath();
+      ctx.moveTo(gx, topY);
+      ctx.lineTo(gx, topY + halfSpan);
+      ctx.moveTo(gx, botY);
+      ctx.lineTo(gx, botY - halfSpan);
+      ctx.stroke();
+
+      ctx.strokeStyle = `rgba(224, 255, 255, ${(0.72 + pulse * 0.25) * closedFrac})`;
+      ctx.lineWidth = 1.0;
+      ctx.beginPath();
+      ctx.moveTo(gx, topY);
+      ctx.lineTo(gx, topY + halfSpan);
+      ctx.moveTo(gx, botY);
+      ctx.lineTo(gx, botY - halfSpan);
+      ctx.stroke();
+    }
     ctx.restore();
 
-    // 3. Soft pulsing checkout mat inside the counter booth when a customer is waiting!
+    // Soft pulsing checkout mat inside the counter booth when a customer is waiting!
     const waitingCustomer = this.customers.find((c) => c.state === 'waiting_checkout');
     if (waitingCustomer) {
       const behind = this.isBehindCounter();
@@ -1075,12 +1408,12 @@ export class ShopScene {
       drawGlow(ctx, 240, 138, 20, behind ? '#4ade80' : '#fbbf24', 0.25 + pulse * 0.14);
 
       if (!behind) {
-        // Gentle pulsing entry arrow right at the counter swing gate!
+        // Gentle pulsing entry arrow right at the open counter entrance!
         const shift = Math.sin(this.time * 8) * 2.5;
         ctx.fillStyle = '#4ade80';
         ctx.font = 'bold 7px Silkscreen, monospace';
         ctx.textAlign = 'center';
-        ctx.fillText('◀', 310 + shift, 136);
+        ctx.fillText('◀', 311 + shift, 136);
       }
       ctx.restore();
     }
@@ -1146,11 +1479,33 @@ export class ShopScene {
     const atlas = getAtlas();
     const walking = c.walkAnim > 0;
     const bob = walking ? Math.abs(Math.sin(c.walkAnim)) * 2.2 : Math.sin(this.time * 2.8 + c.id) * 0.5;
-    const tilt = walking ? Math.sin(c.walkAnim) * 0.06 : 0;
+    const tilt = walking ? Math.sin(c.walkAnim) * (c.state === 'fleeing' ? 0.12 : 0.06) : 0;
+
+    // Flashing red capture ring beneath fleeing Space Thief!
+    if (c.isThief && c.state === 'fleeing') {
+      const alertPulse = 0.5 + 0.5 * Math.sin(this.time * 20);
+      ctx.save();
+      ctx.strokeStyle = `rgba(251, 113, 133, ${0.55 + alertPulse * 0.45})`;
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.ellipse(c.x, c.y + 10, 12 + alertPulse * 3, 5 + alertPulse * 1.5, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      drawGlow(ctx, c.x, c.y, 18, '#fb7185', 0.25 + alertPulse * 0.2);
+      ctx.restore();
+    } else if (c.isThief && c.state === 'stealing') {
+      drawGlow(ctx, c.x, c.y, 16, '#c084fc', 0.35);
+    }
 
     drawPixelShadow(ctx, c.x, c.y + 11, 8, 3.2, 0.48);
 
-    if (art.customers.length > 0) {
+    const thiefSpr = c.isThief ? art.custThief : null;
+    if (thiefSpr) {
+      ctx.save();
+      ctx.translate(c.x, c.y + 10 - bob);
+      ctx.rotate(tilt);
+      ctx.drawImage(thiefSpr, -11, -26, 22, 28);
+      ctx.restore();
+    } else if (art.customers.length > 0) {
       const spr = art.customers[c.speciesIndex % art.customers.length];
       ctx.save();
       ctx.translate(c.x, c.y + 10 - bob);
@@ -1162,12 +1517,27 @@ export class ShopScene {
       ctx.drawImage(frames[Math.floor(c.walkAnim) % 2], Math.round(c.x - 8), Math.round(c.y - 10));
     }
 
-    // Carried item when walking to checkout
+    // Carried item (either buying or stolen loot!)
     if (c.carriedItemId) {
       const itemSpr = art.items[c.carriedItemId] ?? atlas.items[c.carriedItemId];
       if (itemSpr) {
         ctx.drawImage(itemSpr, c.x - 7, c.y - 24 - bob, 14, 14);
       }
+    }
+
+    // Space Thief warning & fleeing alert badge!
+    if (c.isThief && (c.state === 'stealing' || c.state === 'fleeing')) {
+      const ebob = Math.sin(this.time * 14) * 1.8;
+      const isFlee = c.state === 'fleeing';
+      ctx.fillStyle = isFlee ? 'rgba(136, 19, 55, 0.95)' : 'rgba(59, 7, 100, 0.92)';
+      ctx.fillRect(c.x - 16, c.y - 36 + ebob, 32, 9);
+      ctx.strokeStyle = isFlee ? '#fb7185' : '#c084fc';
+      ctx.lineWidth = 0.8;
+      ctx.strokeRect(c.x - 16, c.y - 36 + ebob, 32, 9);
+      ctx.fillStyle = isFlee ? '#fff1f2' : '#e9d5ff';
+      ctx.font = 'bold 5px Silkscreen, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(isFlee ? 'DIEB!' : '⚠ ...', c.x, c.y - 29.5 + ebob);
     }
 
     // Thinking dots bubble

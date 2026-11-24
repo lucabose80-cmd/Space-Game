@@ -1,10 +1,19 @@
 export type SceneId = 'shop' | 'hub' | 'dungeon';
 
+export type TimeOfDay = 'day' | 'night';
+
 export type WeaponId = 'blade' | 'blaster' | 'hammer';
 
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic';
 
-export type CargoModifier = 'none' | 'fragile' | 'warp_anchor' | 'smuggler';
+export type CargoModifier =
+  | 'none'
+  | 'fragile'
+  | 'warp_anchor'
+  | 'smuggler'
+  | 'mirror_clone'
+  | 'row_curse'
+  | 'volatile_boost';
 
 export type PriceReaction = 'cheap' | 'fair' | 'expensive' | 'outrageous';
 
@@ -45,6 +54,15 @@ export interface PedestalSlot {
   price: number;
 }
 
+export interface BountyContract {
+  id: string;
+  clientName: string;
+  itemId: string;
+  qty: number;
+  rewardCredits: number;
+  completed: boolean;
+}
+
 export interface CodexEntry {
   itemId: string;
   discovered: boolean;
@@ -65,6 +83,7 @@ export interface UpgradeLevels {
   suit: number; // 0..3
   stimpack: number; // 0..3
   bioRegen: number; // 0..3 (Dr. Lyra Med-Bay: room-clear heal & faster energy regen)
+  shopTier: number; // 0..2 (Astro-Barter expansion: 4 -> 6 -> 8 pedestals, Sale-Box & larger chest!)
   shopAura: number; // 0..2 (Astro-Barter Shop-Terminal: decor & tips)
   shopScanner: number; // 0..2 (Astro-Barter Shop-Terminal: checkout speed & fair-price bonus)
 }
@@ -99,7 +118,7 @@ export interface UpgradeTrack {
 
 export interface InventoryData {
   cargo: Array<ItemStack | null>; // 20 expedition slots (lost on death — extraction only!)
-  chest: Array<ItemStack | null>; // 28 shop storage slots (always safe!)
+  chest: Array<ItemStack | null>; // 28 / 36 / 48 shop storage slots (always safe!)
 }
 
 export interface RunSummary {
@@ -111,17 +130,24 @@ export interface RunSummary {
   itemsLost: number;
   warpedToChest: string[];
   shatteredItems: string[];
+  clonedItems?: string[];
+  cursedLost?: string[];
+  resonanceBonus?: number;
+  nightRun?: boolean;
 }
 
 export interface SaveData {
   version: number;
   day: number;
+  timeOfDay?: TimeOfDay;
   credits: number;
   totalEarned: number;
   totalSold: number;
   bossDefeatedCount: number;
   inventory: InventoryData & { safeBelt?: Array<ItemStack | null> };
   pedestals: Array<{ id: number; itemId: string | null; qty: number; price: number }>;
+  saleBox?: ItemStack[];
+  bounties?: BountyContract[];
   codex: Record<string, CodexEntry>;
   upgrades: UpgradeLevels;
   unlockedWeapons: Record<WeaponId, boolean>;

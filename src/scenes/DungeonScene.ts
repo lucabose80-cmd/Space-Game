@@ -230,6 +230,8 @@ export class DungeonScene {
   private shieldRipple = 0;
   private shieldRippleAngle = 0;
   private shieldRecoil = 0;
+  private shieldOverheatTimer = 0;
+  private shieldOverheatMsgCd = 0;
   private blasterRecoil = 0;
   private lastAimAngle = 0;
   private swingPoseTimer = 0;
@@ -292,11 +294,16 @@ export class DungeonScene {
     this.attackCooldown = 0;
     this.specialCooldown = 0;
     this.shieldActive = false;
+    this.shieldOpenAnim = 0;
+    this.shieldOverheatTimer = 0;
+    this.shieldOverheatMsgCd = 0;
     this.enterRoom(this.floor.startKey, null);
     this.spawnBurst(this.playerX, this.playerY, '#38e8d4', 20);
     this.callbacks.onToast(
-      'Sektor 1: Verlassene Korvette — Beute bleibt nur bei Extraktion [R] sicher!',
-      'info',
+      this.state.timeOfDay === 'night'
+        ? '🌙 Nacht-Expedition in Sektor 1 (+35 % Chance auf seltene & epische Relikte)!'
+        : 'Sektor 1: Verlassene Korvette — Beute bleibt nur bei Extraktion [R] sicher!',
+      this.state.timeOfDay === 'night' ? 'good' : 'info',
     );
     this.callbacks.onHudDirty();
   }
@@ -519,15 +526,37 @@ export class DungeonScene {
       return;
     }
 
-    // Regenerate energy smoothly (boosted by Dr. Lyra's Nano-Vitalserum!)
+    // Energy system: holding the Hex-Aegis Shield actively drains EN (no infinite turtle!);
+    // otherwise regenerate smoothly (boosted by Dr. Lyra's Nano-Vitalserum!)
     const stats = this.state.getStats();
     const prevEnergy = Math.floor(this.state.energy);
-    this.state.energy = Math.min(
-      100,
-      this.state.energy + (this.shieldActive ? 6 : 16) * stats.energyRegenMult * dt,
-    );
+    this.shieldOverheatTimer = Math.max(0, this.shieldOverheatTimer - dt);
+    this.shieldOverheatMsgCd = Math.max(0, this.shieldOverheatMsgCd - dt);
+    if (this.shieldActive) {
+      this.state.energy = Math.max(0, this.state.energy - 26 * dt);
+      if (this.state.energy <= 0) {
+        this.triggerShieldBreak();
+      }
+    } else {
+      const regenRate = this.shieldOverheatTimer > 0 ? 11 : 16;
+      this.state.energy = Math.min(100, this.state.energy + regenRate * stats.energyRegenMult * dt);
+    }
     if (Math.floor(this.state.energy) !== prevEnergy) {
       this.callbacks.onHudDirty();
+    }
+
+    // Subtle overheating smoke sparks from wrist emitter during shield lockout
+    if (this.shieldOverheatTimer > 0 && Math.random() < dt * 10) {
+      this.particles.push({
+        x: this.playerX + (Math.random() - 0.5) * 10,
+        y: this.playerY - 4 + (Math.random() - 0.5) * 6,
+        vx: (Math.random() - 0.5) * 16,
+        vy: -16 - Math.random() * 14,
+        color: Math.random() > 0.4 ? '#fb923c' : '#fb7185',
+        size: 1.5,
+        life: 0.25,
+        maxLife: 0.25,
+      });
     }
 
     this.invulnTimer = Math.max(0, this.invulnTimer - dt);
@@ -557,6 +586,37 @@ export class DungeonScene {
     this.updateDrops(dt);
     this.updateRoomInteractions(input);
     this.updateEffects(dt);
+  }
+
+  private triggerShieldBreak(): void {
+    this.shieldActive = false;
+    this.shieldOpenAnim = 0;
+    this.shieldHoldTime = 0;
+    this.shieldOverheatTimer = 1.8;
+    this.state.energy = 0;
+    sound.playShieldBreak();
+    this.triggerShake(0.22, 3.2);
+    const sx = this.playerX + Math.cos(this.shieldAngle) * 14;
+    const sy = this.playerY - 2 + Math.sin(this.shieldAngle) * 12;
+    this.spawnBurst(sx, sy, '#38e8d4', 14);
+    this.spawnBurst(sx, sy, '#fb7185', 10);
+    this.shockwaves.push({
+      x: sx,
+      y: sy,
+      maxRadius: 34,
+      color: '#fb7185',
+      life: 0.22,
+      maxLife: 0.22,
+    });
+    this.floats.push({
+      x: this.playerX,
+      y: this.playerY - 18,
+      text: 'SCHILD ÜBERHITZT!',
+      color: '#fb7185',
+      life: 1.0,
+      maxLife: 1.0,
+    });
+    this.callbacks.onHudDirty();
   }
 
   private getAimAngle(input: InputManager): number {
@@ -652,10 +712,27 @@ export class DungeonScene {
       }
     }
 
-    // Blade Secondary: Hold RMB / K for Hex-Aegis Kinetic Shield (+ Perfect Parry Reflect window!)
+    // Blade Secondary: Skill-based Hex-Aegis Kinetic Shield (drains EN while held; Perfect Parry <=0.24s!)
     const wasShielding = this.shieldActive;
-    this.shieldActive =
+    const wantsShield =
       weapon === 'blade' && input.secondaryHeld() && this.dashTimer <= 0 && this.attackCooldown <= 0.05;
+    const canShield =
+      this.shieldOverheatTimer <= 0 && (wasShielding ? this.state.energy > 0 : this.state.energy >= 8);
+
+    if (wantsShield && !canShield && this.shieldOverheatMsgCd <= 0) {
+      this.shieldOverheatMsgCd = 0.65;
+      sound.playReaction('expensive');
+      this.floats.push({
+        x: this.playerX,
+        y: this.playerY - 16,
+        text: this.shieldOverheatTimer > 0 ? 'ÜBERHITZT!' : 'KEINE EN!',
+        color: '#fb923c',
+        life: 0.7,
+        maxLife: 0.7,
+      });
+    }
+
+    this.shieldActive = wantsShield && canShield;
     if (this.shieldActive) {
       if (!wasShielding) {
         this.shieldHoldTime = 0;
@@ -1884,6 +1961,7 @@ export class DungeonScene {
     sound.playEnemyDefeat();
     this.spawnBurst(e.x, e.y, e.kind === 'boss' ? '#fbbf24' : '#c084fc', e.kind === 'boss' ? 36 : 14);
 
+    const nightBoost = this.state.timeOfDay === 'night';
     if (e.kind === 'boss') {
       this.triggerShake(0.5, 5.5);
       this.shockwaves.push({
@@ -1898,7 +1976,7 @@ export class DungeonScene {
       this.state.bossDefeatedCount += 1;
       this.spawnLootDrop(e.x, e.y, 'mk4_heart');
       for (let k = 0; k < 3; k++) {
-        this.spawnLootDrop(e.x, e.y, rollLootItem(2, k === 0));
+        this.spawnLootDrop(e.x, e.y, rollLootItem(2, k === 0, nightBoost));
       }
       this.callbacks.onToast(
         'SIEG! Core-Wächter MK-IV besiegt! Sammle den Loot und nutze das Sieges-Portal [E]!',
@@ -1906,7 +1984,7 @@ export class DungeonScene {
       );
       this.state.save();
     } else if (Math.random() < 0.8) {
-      this.spawnLootDrop(e.x, e.y, rollLootItem(this.currentRoom.depth));
+      this.spawnLootDrop(e.x, e.y, rollLootItem(this.currentRoom.depth, false, nightBoost));
     }
 
     if (this.enemies.length === 0 && !this.currentRoom.cleared) {
@@ -1914,7 +1992,7 @@ export class DungeonScene {
       this.roomsCleared += 1;
       sound.playDoorUnlock();
       if (this.currentRoom.type === 'combat') {
-        this.spawnLootDrop(ROOM_CENTER_X, ROOM_CENTER_Y, rollLootItem(this.currentRoom.depth));
+        this.spawnLootDrop(ROOM_CENTER_X, ROOM_CENTER_Y, rollLootItem(this.currentRoom.depth, false, nightBoost));
       }
       // Dr. Lyra's Nano-Vitalserum passive heal on room clear!
       const stats = this.state.getStats();
@@ -1955,7 +2033,7 @@ export class DungeonScene {
           sound.playPerfectParry();
           this.hitStop = 0.04;
           this.triggerShake(0.14, 2.8);
-          this.state.energy = Math.min(100, this.state.energy + 14);
+          this.state.energy = Math.min(100, this.state.energy + 16);
           this.shockwaves.push({
             x: this.playerX + Math.cos(this.shieldAngle) * 12,
             y: this.playerY + Math.sin(this.shieldAngle) * 12,
@@ -1966,6 +2044,7 @@ export class DungeonScene {
           });
         } else {
           sound.playShieldBlock();
+          this.state.energy = Math.max(0, this.state.energy - 12);
         }
         this.spawnBurst(
           this.playerX + Math.cos(this.shieldAngle) * 13,
@@ -1980,11 +2059,14 @@ export class DungeonScene {
         this.floats.push({
           x: this.playerX,
           y: this.playerY - 17,
-          text: isPerfect ? 'PERFEKT!' : `BLOCK -${finalAmount}`,
+          text: isPerfect ? 'PERFEKT! +16 EN' : `BLOCK -${finalAmount}`,
           color: isPerfect ? '#fde047' : '#38e8d4',
           life: 0.8,
           maxLife: 0.8,
         });
+        if (!isPerfect && this.state.energy <= 0) {
+          this.triggerShieldBreak();
+        }
         if (isPerfect) {
           this.invulnTimer = Math.max(this.invulnTimer, 0.35);
           this.callbacks.onHudDirty();
@@ -2024,7 +2106,11 @@ export class DungeonScene {
     sound.playHit();
     this.spawnBurst(pod.x, pod.y, '#fbbf24', 10);
     if (Math.random() < 0.68) {
-      this.spawnLootDrop(pod.x, pod.y, rollLootItem(this.currentRoom.depth));
+      this.spawnLootDrop(
+        pod.x,
+        pod.y,
+        rollLootItem(this.currentRoom.depth, false, this.state.timeOfDay === 'night'),
+      );
     }
   }
 
@@ -2108,7 +2194,7 @@ export class DungeonScene {
               p.color = '#fde047';
               p.radius = 4.5;
               p.life = 1.8;
-              this.state.energy = Math.min(100, this.state.energy + 14);
+              this.state.energy = Math.min(100, this.state.energy + 16);
               this.spawnBurst(p.x, p.y, '#fde047', 14);
               this.shockwaves.push({
                 x: p.x,
@@ -2121,7 +2207,7 @@ export class DungeonScene {
               this.floats.push({
                 x: p.x,
                 y: p.y - 10,
-                text: 'KONTER!',
+                text: 'KONTER! +16 EN',
                 color: '#fde047',
                 life: 0.75,
                 maxLife: 0.75,
@@ -2129,16 +2215,19 @@ export class DungeonScene {
             } else {
               sound.playShieldBlock();
               this.spawnBurst(p.x, p.y, '#38e8d4', 11);
-              this.state.energy = Math.min(100, this.state.energy + 7);
+              this.state.energy = Math.max(0, this.state.energy - 12);
               this.floats.push({
                 x: p.x,
                 y: p.y - 8,
-                text: 'PARADE!',
+                text: 'PARADE (-12 EN)',
                 color: '#38e8d4',
                 life: 0.65,
                 maxLife: 0.65,
               });
               this.projectiles.splice(i, 1);
+              if (this.state.energy <= 0) {
+                this.triggerShieldBreak();
+              }
             }
             this.callbacks.onHudDirty();
             continue;
@@ -2233,10 +2322,11 @@ export class DungeonScene {
         if (input.interactPressed()) {
           chest.opened = true;
           sound.playUpgrade();
+          const nightBoost = this.state.timeOfDay === 'night';
           this.spawnBurst(chest.x, chest.y, '#fbbf24', 20);
-          this.spawnLootDrop(chest.x, chest.y, rollLootItem(2, true));
-          this.spawnLootDrop(chest.x, chest.y, rollLootItem(2, true));
-          this.spawnLootDrop(chest.x, chest.y, rollLootItem(2, false));
+          this.spawnLootDrop(chest.x, chest.y, rollLootItem(2, true, nightBoost));
+          this.spawnLootDrop(chest.x, chest.y, rollLootItem(2, true, nightBoost));
+          this.spawnLootDrop(chest.x, chest.y, rollLootItem(2, false, nightBoost));
           this.callbacks.onToast('Uralte Relikt-Truhe geplündert!', 'good');
         }
       }
@@ -2252,6 +2342,10 @@ export class DungeonScene {
     }
     sound.playWarp();
     const res = processSafeReturnEffects(this.state.inventory);
+    if (res.resonanceBonus > 0) {
+      this.state.credits += res.resonanceBonus;
+      this.state.totalEarned += res.resonanceBonus;
+    }
     this.state.save();
     this.callbacks.onReturnToHub({
       victory: true,
@@ -2262,6 +2356,10 @@ export class DungeonScene {
       itemsLost: 0,
       warpedToChest: res.warpedToChest,
       shatteredItems: [],
+      clonedItems: res.clonedItems,
+      cursedLost: res.cursedLost,
+      resonanceBonus: res.resonanceBonus,
+      nightRun: this.state.timeOfDay === 'night',
     });
   }
 
@@ -2278,8 +2376,9 @@ export class DungeonScene {
       enemiesDefeated: this.enemiesDefeated,
       itemsSaved: res.itemsSaved,
       itemsLost: res.itemsLost,
-      warpedToChest: [],
+      warpedToChest: res.warpedToChest,
       shatteredItems: res.shatteredItems,
+      nightRun: this.state.timeOfDay === 'night',
     });
   }
 
@@ -2371,6 +2470,12 @@ export class DungeonScene {
       ctx.drawImage(art.dungeonBg, 0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
     } else {
       ctx.fillStyle = '#0e131f';
+      ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+    }
+
+    // Cosmic Indigo Night Expedition Ambience (+35% rare/epic loot)
+    if (this.state.timeOfDay === 'night') {
+      ctx.fillStyle = 'rgba(15, 23, 54, 0.16)';
       ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
     }
 
@@ -2515,6 +2620,15 @@ export class DungeonScene {
     // Faceted 2.5D Hex-Aegis Kinetic Shield (animates smoothly on deploy & retract!)
     if (this.shieldOpenAnim > 0.02) {
       this.renderKineticShield(ctx);
+    } else if (this.shieldOverheatTimer > 0) {
+      const pct = Math.max(0, this.shieldOverheatTimer / 1.8);
+      ctx.save();
+      ctx.strokeStyle = 'rgba(251, 113, 133, 0.85)';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.arc(this.playerX, this.playerY + 11, 10, -Math.PI / 2, -Math.PI / 2 + pct * Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
     }
 
     // Hand-Crafted 2.5D Tapered Crescent Weapon Swings + Ghost-Blade Trails!
@@ -2884,8 +2998,11 @@ export class DungeonScene {
 
     const pulse = 0.5 + 0.5 * Math.sin(this.time * 11);
     const perfectWindow = this.shieldActive && this.shieldHoldTime <= 0.24;
+    const energyPct = Math.max(0, Math.min(1, this.state.energy / 100));
+    const lowEnergy = energyPct < 0.28;
+    const warnFlicker = lowEnergy ? 0.55 + 0.45 * Math.sin(this.time * 38) : 1;
     const flash = Math.max(this.shieldHitFlash, perfectWindow ? 0.55 : 0);
-    const alpha = Math.min(1, open * 1.15);
+    const alpha = Math.min(1, open * 1.15) * warnFlicker;
 
     const pt = (r: number, a: number) => ({
       x: cx + Math.cos(a) * r,
@@ -2901,7 +3018,12 @@ export class DungeonScene {
     ctx.globalCompositeOperation = 'lighter';
 
     // 1. Holographic projector beams shooting from hero's wrist emitter to shield wings!
-    ctx.strokeStyle = flash > 0.4 ? `rgba(253, 224, 71, ${alpha * 0.45})` : `rgba(56, 232, 212, ${alpha * 0.36})`;
+    ctx.strokeStyle =
+      flash > 0.4
+        ? `rgba(253, 224, 71, ${alpha * 0.45})`
+        : lowEnergy
+          ? `rgba(251, 113, 133, ${alpha * 0.48})`
+          : `rgba(56, 232, 212, ${alpha * 0.36})`;
     ctx.lineWidth = 1.1;
     ctx.beginPath();
     ctx.moveTo(emitter.x, emitter.y);
@@ -2927,7 +3049,9 @@ export class DungeonScene {
     ctx.fillStyle =
       flash > 0.35
         ? `rgba(253, 224, 71, ${alpha * (0.28 + flash * 0.34)})`
-        : `rgba(20, 184, 166, ${alpha * (0.24 + pulse * 0.1)})`;
+        : lowEnergy
+          ? `rgba(244, 63, 94, ${alpha * (0.26 + pulse * 0.16)})`
+          : `rgba(20, 184, 166, ${alpha * (0.24 + pulse * 0.1)})`;
     ctx.fill();
 
     // 3. Illuminated Sci-Fi Honeycomb / Facet Grid Struts + Traveling Scanline!
@@ -2946,7 +3070,9 @@ export class DungeonScene {
 
       // Highlight individual scanned facet subtly
       if (scanBoost > 0.15) {
-        ctx.fillStyle = `rgba(165, 243, 252, ${alpha * scanBoost * 0.28})`;
+        ctx.fillStyle = lowEnergy
+          ? `rgba(253, 186, 116, ${alpha * scanBoost * 0.3})`
+          : `rgba(165, 243, 252, ${alpha * scanBoost * 0.28})`;
         ctx.beginPath();
         ctx.moveTo(o0.x, o0.y);
         ctx.lineTo(o1.x, o1.y);
@@ -2960,7 +3086,9 @@ export class DungeonScene {
       ctx.strokeStyle =
         flash > 0.45
           ? `rgba(255, 251, 235, ${alpha * 0.8})`
-          : `rgba(103, 232, 249, ${alpha * (0.42 + scanBoost * 0.45)})`;
+          : lowEnergy
+            ? `rgba(251, 146, 60, ${alpha * (0.55 + scanBoost * 0.4)})`
+            : `rgba(103, 232, 249, ${alpha * (0.42 + scanBoost * 0.45)})`;
       ctx.lineWidth = 0.85;
       ctx.beginPath();
       ctx.moveTo(i0.x, i0.y);
@@ -2971,11 +3099,13 @@ export class DungeonScene {
       ctx.stroke();
     }
 
-    // 4. Outer Razor Facet Frame (Teal Halo + Incandescent Core Edge)
+    // 4. Outer Razor Facet Frame (Teal / Warning Coral Halo + Incandescent Core Edge)
     ctx.strokeStyle =
       flash > 0.4
         ? `rgba(253, 224, 71, ${alpha * 0.92})`
-        : `rgba(56, 232, 212, ${alpha * (0.85 + pulse * 0.15)})`;
+        : lowEnergy
+          ? `rgba(251, 113, 133, ${alpha * 0.95})`
+          : `rgba(56, 232, 212, ${alpha * (0.85 + pulse * 0.15)})`;
     ctx.lineWidth = 2.6;
     ctx.beginPath();
     for (let i = 0; i <= panels; i++) {
@@ -2990,12 +3120,26 @@ export class DungeonScene {
     ctx.lineWidth = 1.1;
     ctx.stroke();
 
-    // Inner subtle boundary rail
-    ctx.strokeStyle = `rgba(56, 232, 212, ${alpha * 0.5})`;
-    ctx.lineWidth = 0.9;
+    // Inner subtle boundary rail + live diegetic shield-energy meter arc!
+    ctx.strokeStyle = 'rgba(15, 23, 42, 0.55)';
+    ctx.lineWidth = 1.6;
     ctx.beginPath();
     for (let i = 0; i <= panels; i++) {
       const a = startA + (endA - startA) * (i / panels);
+      const p = pt(innerR, a);
+      if (i === 0) ctx.moveTo(p.x, p.y);
+      else ctx.lineTo(p.x, p.y);
+    }
+    ctx.stroke();
+
+    const meterSpan = halfSpan * energyPct;
+    ctx.strokeStyle =
+      energyPct < 0.28 ? '#fb7185' : energyPct < 0.55 ? '#fbbf24' : '#38e8d4';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    const meterSegs = 10;
+    for (let i = 0; i <= meterSegs; i++) {
+      const a = this.shieldAngle - meterSpan + meterSpan * 2 * (i / meterSegs);
       const p = pt(innerR, a);
       if (i === 0) ctx.moveTo(p.x, p.y);
       else ctx.lineTo(p.x, p.y);
@@ -3017,7 +3161,7 @@ export class DungeonScene {
     }
 
     // 6. Dual Wing Emitter Nodes & Central Aegis Diamond!
-    const nodeColor = flash > 0.4 ? '#fde047' : '#38e8d4';
+    const nodeColor = flash > 0.4 ? '#fde047' : lowEnergy ? '#fb7185' : '#38e8d4';
     for (const tip of [leftTip, rightTip]) {
       ctx.fillStyle = nodeColor;
       ctx.fillRect(tip.x - 1.8, tip.y - 1.8, 3.6, 3.6);

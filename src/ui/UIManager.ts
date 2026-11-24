@@ -150,31 +150,38 @@ export class UIManager {
     const enPct = Math.max(0, Math.min(100, this.state.energy));
     const bagCount = countBackpackItems(this.state.inventory);
     const wMeta = WEAPON_META[this.state.equippedWeapon];
+    const isNight = this.state.timeOfDay === 'night';
+    const timeLabel = isNight ? `🌙 NACHT ${this.state.day}` : `☀ TAG ${this.state.day}`;
+    const timeColor = isNight ? '#818cf8' : 'var(--accent-amber)';
 
     const locationText =
       this.currentScene === 'shop'
-        ? `TAG ${this.state.day} · ASTRO-BARTER`
+        ? `${timeLabel} · ASTRO-BARTER`
         : this.currentScene === 'hub'
-          ? `TAG ${this.state.day} · PORT SOLARIS`
-          : `SEKTOR 1 · VERLASSENE KORVETTE`;
+          ? `${timeLabel} · PORT SOLARIS`
+          : isNight
+            ? `🌙 NACHT · SEKTOR 1 (+35% RAR)`
+            : `SEKTOR 1 · VERLASSENE KORVETTE`;
 
     const hintText =
       this.currentScene === 'shop'
         ? this.shopIsOpen
-          ? 'Kunden stöbern! Bediene Käufer an der Kasse [E].'
-          : 'Podeste [E] bestücken & Laden öffnen [O] — oder rechts zur Promenade Port Solaris!'
+          ? 'Kunden stöbern! Geh rechts hinter den Tresen [E] & schnapp Diebe mit [SPACE]!'
+          : 'Podeste [E] · Auftrags-Pinnwand · Ruhekapsel (Tag↔Nacht) · Laden öffnen [O]'
         : this.currentScene === 'hub'
-          ? 'Links: Astro-Barter · Oben: Kael (Schmiede) & Dr. Lyra (Med-Bay) · Rechts: Sektor 1!'
-          : `${wMeta.name} (${wMeta.secondaryLabel}) · Extrahiere Beute mit [R]!`;
+          ? isNight
+            ? '🌙 Nacht-Bonus aktiv: +35 % seltener & epischer Loot in Sektor 1!'
+            : 'Links: Astro-Barter · Oben: Kael (Schmiede) & Dr. Lyra (Med-Bay) · Rechts: Sektor 1!'
+          : `${wMeta.name} (${this.state.equippedWeapon === 'blade' ? 'Schild verbraucht EN · Perfekt-Parade!' : wMeta.secondaryLabel}) · [R] Extraktion`;
 
     this.hudEl.innerHTML = `
       <div class="hud-top">
         <div class="hud-vitals">
           ${
             this.currentScene === 'shop'
-              ? `<div style="display:flex;justify-content:space-between;font-family:var(--font-pixel);font-size:9px;color:${this.shopIsOpen ? 'var(--accent-emerald)' : 'var(--accent-amber)'};margin-bottom:1px">
-                  <span>TAG ${this.state.day} · SHOP</span>
-                  <span>${this.shopIsOpen ? 'OFFEN' : 'ZU'}</span>
+              ? `<div style="display:flex;justify-content:space-between;gap:6px;font-family:var(--font-pixel);font-size:8.5px;margin-bottom:1px">
+                  <span style="color:${timeColor}">${timeLabel}</span>
+                  <span style="color:${this.shopIsOpen ? 'var(--accent-emerald)' : 'var(--text-muted)'}">${this.shopIsOpen ? 'OFFEN' : 'ZU'}</span>
                 </div>`
               : ''
           }
@@ -207,7 +214,7 @@ export class UIManager {
         <div class="hud-center">
           ${
             this.currentScene !== 'shop'
-              ? `<div class="hud-location-pill">${locationText}</div>`
+              ? `<div class="hud-location-pill" style="${isNight ? 'border-color:#818cf8;color:#c7d2fe' : ''}">${locationText}</div>`
               : ''
           }
         </div>
@@ -233,6 +240,7 @@ export class UIManager {
             this.currentScene === 'shop'
               ? `<span><kbd>WASD</kbd>Gehen</span>
                  <span><kbd>E</kbd>Interagieren</span>
+                 <span><kbd>SPACE</kbd>Dash / Dieb fangen</span>
                  <span><kbd>O</kbd>Laden</span>
                  <span><kbd>I</kbd>Fracht &amp; Codex</span>`
               : this.currentScene === 'hub'
@@ -306,20 +314,27 @@ export class UIManager {
       let title = 'Leerer Slot';
       if (stack) {
         const def = getItemDef(stack.itemId);
-        const modDot =
-          def.modifier === 'fragile'
-            ? '<span class="slot-mod-dot" style="background:#fb7185" title="Zerbrechlich"></span>'
-            : def.modifier === 'warp_anchor'
-              ? '<span class="slot-mod-dot" style="background:#34d399" title="Warp-Anker"></span>'
-              : def.modifier === 'smuggler'
-                ? '<span class="slot-mod-dot" style="background:#fde047" title="Schmuggler-Bonus"></span>'
-                : '';
+        let modBadge = '';
+        if (def.modifier === 'warp_anchor') {
+          modBadge = `<span class="slot-mod-badge" style="background:#34d399" title="Warp-Anker (→): Rettet rechten Nachbar sogar bei Tod!">→</span>`;
+        } else if (def.modifier === 'mirror_clone') {
+          modBadge = `<span class="slot-mod-badge" style="background:#38e8d4" title="Klon-Matrix (↑): Dupliziert Item direkt darüber!">↑</span>`;
+        } else if (def.modifier === 'row_curse') {
+          const unsafe = container === 'cargo' && index >= 5;
+          modBadge = `<span class="slot-mod-badge" style="background:${unsafe ? '#fb7185' : '#c084fc'}" title="Phasen-Fluch (▲): Nur oberste Reihe stabil!">▲</span>`;
+        } else if (def.modifier === 'volatile_boost') {
+          modBadge = `<span class="slot-mod-badge" style="background:#fbbf24" title="Resonanz (←): Opfert Item links für +180 Cr!">←</span>`;
+        } else if (def.modifier === 'fragile') {
+          modBadge = `<span class="slot-mod-dot" style="background:#fb7185" title="Zerbrechlich"></span>`;
+        } else if (def.modifier === 'smuggler') {
+          modBadge = `<span class="slot-mod-dot" style="background:#fde047" title="Schmuggler-Bonus (+15 %)"></span>`;
+        }
         inner = `
-          ${modDot}
+          ${modBadge}
           <img class="pixel-icon" src="${art.itemUrls[stack.itemId]}" alt="${def.name}" />
           <span class="slot-qty">${stack.qty}</span>
         `;
-        title = `${def.name} (x${stack.qty})`;
+        title = `${def.name} (x${stack.qty})${def.modifierLabel ? ' — ' + def.modifierLabel : ''}`;
       }
       return `
         <button class="inv-slot ${container === 'chest' ? 'safe' : ''} ${isSelected ? 'selected' : ''}"
@@ -400,8 +415,8 @@ export class UIManager {
         `
           : `
           <div class="inspector-box" style="justify-content:center;align-items:center;text-align:center;color:var(--text-muted);font-size:12px">
-            <p>Klicke auf einen Slot, um Relikte anzuzeigen oder umzusortieren.</p>
-            <p style="margin-top:6px;color:var(--accent-coral)">⚠ Rucksack-Beute geht bei 0 HP komplett verloren — nur durch Extraktion [R] oder in der Shop-Lagertruhe sicher!</p>
+            <p>Klicke auf zwei Slots, um Relikte taktisch anzuordnen (→ Warp-Anker · ↑ Klon-Matrix · ▲ Oberste Reihe · ← Nova-Resonanz).</p>
+            <p style="margin-top:6px;color:var(--accent-coral)">⚠ Rucksack-Beute geht bei 0 HP verloren — außer dein Warp-Anker (→) rettet seinen rechten Nachbar!</p>
           </div>
         `;
 
@@ -409,7 +424,7 @@ export class UIManager {
         ? `
           <div>
             <div class="section-label">
-              <span>LAGERTRUHE (28 SLOTS)</span>
+              <span>LAGERTRUHE (${this.state.inventory.chest.length} SLOTS)</span>
               <span class="safe-tag">✓ Immer sicher im Shop</span>
             </div>
             <div class="slot-grid chest-grid">
@@ -488,16 +503,16 @@ export class UIManager {
         <div class="inspector-box" style="gap:10px">
           <div style="font-family:var(--font-pixel);font-size:12px;color:var(--accent-cyan)">SO SPIELST DU STARLIGHTER</div>
           <p style="font-size:13px;line-height:1.5;color:var(--text-muted)">
-            <strong>1. Port Solaris (Promenade):</strong> Verlasse deinen Shop rechts, um die Raumstation zu erkunden!
-            Besuche <strong>Schmied Kael</strong> (oben links), um neue Waffen (<em>Puls-Blaster</em>, <em>Grav-Hammer</em>) zu schmieden &amp; auszurüsten,
-            und <strong>Dr. Lyra's Med-Bay</strong> (oben rechts) für Stimpacks &amp; Shop-Deko.
+            <strong>1. Astro-Barter &amp; Ausbau:</strong> Bestücke deine Holo-Podeste [E], geh zum Abkassieren rechts hinter den Tresen und schnapp <strong>Weltraum-Diebe</strong> per Dash [SPACE] (+35 Cr Kopfgeld)!
+            Am linken <strong>Shop-Ausbau-Terminal</strong> vergrößerst du deinen Laden (Stufe I → II → III: bis zu 8 Podeste, 48 Truhen-Slots &amp; automatische <strong>Sonderangebots-Kiste</strong>).
           </p>
           <p style="font-size:13px;line-height:1.5;color:var(--text-muted)">
-            <strong>2. Ein-Waffen-Kampf &amp; Extraktion:</strong> Du führst immer eine aktive Waffe (Wechsel mit <strong>[C]</strong>, sobald du eine 2. Waffe schmiedest).
-            Bei <strong>0 HP</strong> verlierst du <strong>alle Relikte im Expeditions-Rucksack</strong> — extrahiere rechtzeitig über das Start-Portal oder halte <strong>[R]</strong> für den Warp-Beacon (20 Cr)!
+            <strong>2. Tag-/Nacht-Rhythmus &amp; Aufträge:</strong> Nutze die <strong>Chrono-Ruhekapsel</strong> (oben links), um zwischen Tag und Nacht zu wechseln — <strong>Nacht-Expeditionen</strong> geben <strong>+35 % Chance auf seltene &amp; epische Relikte</strong>!
+            An der <strong>Auftrags-Pinnwand</strong> (oben rechts) warten täglich lukrative Kunden-Aufträge (+65 % Bonus-Erlös).
           </p>
           <p style="font-size:13px;line-height:1.5;color:var(--text-muted)">
-            <strong>3. Space-Shop (Astro-Barter):</strong> Lege geborgene Relikte aus deiner Truhe auf die 4 Holo-Podeste [E], setze Preise, öffne den Laden [O] und kassiere zufriedene Kunden an der Theke [E] ab!
+            <strong>3. Skill-Schild &amp; Fracht-Synergien:</strong> Dein Hex-Aegis-Schild verbraucht beim Halten Energie und überhitzt bei 0 EN — time <strong>Perfekt-Paraden</strong> (+16 EN &amp; Konter!) oder weiche per Dash [SPACE] aus.
+            Sortiere Relikte clever im Rucksack: <strong>↑ Klon-Würfel</strong>, <strong>→ Quanten-Gyroskop</strong>, <strong>← Nova-Kondensator</strong> &amp; <strong>▲ Phasen-Splitter</strong> (nur oberste Reihe!).
           </p>
           <div style="display:flex;justify-content:flex-end;margin-top:6px">
             <button id="btn-reset-save" class="btn btn-danger">Spielstand zurücksetzen</button>
@@ -857,10 +872,14 @@ export class UIManager {
         : `
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 12px;background:rgba(56,232,212,0.09);border:1px solid rgba(56,232,212,0.38);flex-wrap:wrap">
           <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:200px">
-            <img src="/art/sprites/item_star_compass.png" alt="Astro-Barter Terminal" style="width:36px;height:36px;image-rendering:pixelated" />
+            <img src="/art/sprites/prop_salebox.png" alt="Astro-Barter Ausbau" style="width:36px;height:36px;image-rendering:pixelated" />
             <div style="font-size:12px;line-height:1.4">
-              <strong style="font-family:var(--font-pixel);font-size:11px;color:var(--accent-cyan)">ASTRO-BARTER · SHOP-AUSBAU</strong>
-              <div style="color:var(--text-muted)">Baue deinen eigenen Laden aus: schwebende Holo-Laternen, mehr Trinkgeld, höhere Verkaufserlöse &amp; geduldigere Kunden!</div>
+              <strong style="font-family:var(--font-pixel);font-size:11px;color:var(--accent-cyan)">
+                ASTRO-BARTER · STUFE ${['I', 'II', 'III'][this.state.upgrades.shopTier ?? 0] ?? 'I'}
+              </strong>
+              <div style="color:var(--text-muted)">
+                Vergrößere deinen Laden (4 → 6 → 8 Podeste &amp; Sonderangebots-Kiste), hänge Holo-Laternen auf und steigere Erlös &amp; Trinkgeld!
+              </div>
             </div>
           </div>
           <button id="btn-open-codex-from-term" class="btn" style="padding:6px 10px;font-size:9.5px">Scan-Codex öffnen</button>
@@ -965,7 +984,7 @@ export class UIManager {
           .join('');
 
         return `
-          <div class="upgrade-card">
+          <div class="upgrade-card" style="${track.key === 'shopTier' ? 'border-color:rgba(251,191,36,0.48)' : ''}">
             <div class="upgrade-left">
               <div class="inspector-icon-wrap">
                 <img class="pixel-icon" src="${track.iconUrl}" alt="${track.title}" />
@@ -985,7 +1004,7 @@ export class UIManager {
                 ${equipControls}
               </div>
             </div>
-            <button class="btn btn-primary btn-buy-upgrade" data-key="${track.key}" ${canAfford ? '' : 'disabled'}>
+            <button class="btn ${track.key === 'shopTier' ? 'btn-amber' : 'btn-primary'} btn-buy-upgrade" data-key="${track.key}" ${canAfford ? '' : 'disabled'}>
               ${isShopTerm ? 'Ausbauen' : 'Verbessern'}
             </button>
           </div>
@@ -1046,11 +1065,222 @@ export class UIManager {
         const key = btn.dataset.key as UpgradeKey;
         if (this.state.purchaseUpgrade(key)) {
           sound.playUpgrade();
+          if (key === 'shopTier') {
+            const lvl = this.state.upgrades.shopTier;
+            this.toast(
+              lvl === 1
+                ? '★ Stufe II erreicht! 6 Holo-Podeste, Sonderangebots-Kiste & 36 Truhen-Slots!'
+                : '★ Stufe III erreicht! Solaris Flaggschiff-Basar mit 8 Podesten & 48 Truhen-Slots!',
+              'good',
+            );
+          } else {
+            this.toast(
+              isShopTerm ? 'Astro-Barter erfolgreich ausgebaut!' : 'Upgrade erfolgreich fertiggestellt!',
+              'good',
+            );
+          }
+          this.openStationShopModal(shop);
+          this.renderHud();
+        }
+      });
+    });
+  }
+
+  // ==================== AUFTRAGS-PINNWAND (BOUNTY CONTRACTS) ====================
+  public openBountiesModal(): void {
+    const art = getHDArt();
+
+    const cardsHtml = this.state.bounties
+      .map((b) => {
+        const def = getItemDef(b.itemId);
+        const rarity = RARITY_META[def.rarity];
+        const owned = countItemTotal(this.state.inventory, b.itemId);
+        const ready = !b.completed && owned >= b.qty;
+
+        return `
+          <div class="upgrade-card" style="${ready ? 'border-color:rgba(52,211,153,0.6);background:rgba(16,42,42,0.45)' : b.completed ? 'opacity:0.55' : ''}">
+            <div class="upgrade-left">
+              <div class="inspector-icon-wrap">
+                <img class="pixel-icon" src="${art.itemUrls[b.itemId]}" alt="${def.name}" />
+              </div>
+              <div>
+                <div style="font-family:var(--font-pixel);font-size:11px;color:${rarity.color}">
+                  ${b.qty}× ${def.name}
+                </div>
+                <div style="font-size:12px;color:var(--text-muted)">
+                  Auftraggeber: <strong style="color:var(--text-main)">${b.clientName}</strong>
+                </div>
+                <div class="mat-list">
+                  <span class="mat-pill ${owned >= b.qty || b.completed ? 'ok' : 'missing'}">
+                    Bestand: ${owned}/${b.qty}
+                  </span>
+                  <span class="mat-pill ok" style="color:var(--accent-amber);border-color:rgba(251,191,36,0.5)">
+                    Prämie: +${b.rewardCredits} Cr (~165 %)
+                  </span>
+                </div>
+              </div>
+            </div>
+            ${
+              b.completed
+                ? `<span class="rarity-badge" style="color:var(--accent-emerald)">✓ ERLEDIGT</span>`
+                : `<button class="btn ${ready ? 'btn-amber' : ''} btn-complete-bounty" data-bid="${b.id}" ${ready ? '' : 'disabled'}>
+                    Abliefern
+                  </button>`
+            }
+          </div>
+        `;
+      })
+      .join('');
+
+    this.showModalHtml(`
+      <div class="modal-window">
+        <div class="modal-header">
+          <span class="modal-title">AUFTRAGS-PINNWAND · TAG ${this.state.day}</span>
+          <span style="font-family:var(--font-pixel);font-size:11px;color:var(--accent-amber)">${this.state.credits} CR</span>
+          <button id="modal-close-btn" class="modal-close">ESC ✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="modifier-box" style="border-left-color:var(--accent-cyan);background:rgba(56,232,212,0.08);color:#cffafe">
+            ★ Bewohner von Port Solaris zahlen <strong>+65 % Bonus-Marktwert</strong> für gezielte Lieferungen!
+            Jeden neuen Morgen (nach der Nacht-Ruhe) erscheinen 3 frische Sonderaufträge.
+          </div>
+          <div class="upgrade-list">${cardsHtml}</div>
+        </div>
+      </div>
+    `);
+
+    this.modalEl.querySelectorAll<HTMLElement>('.btn-complete-bounty').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const bid = btn.dataset.bid!;
+        const done = this.state.completeBounty(bid);
+        if (done) {
+          sound.playRegister();
           this.toast(
-            isShopTerm ? 'Astro-Barter erfolgreich ausgebaut!' : 'Upgrade erfolgreich fertiggestellt!',
+            `Auftrag für ${done.clientName} geliefert! +${done.rewardCredits} Cr erhalten!`,
             'good',
           );
-          this.openStationShopModal(shop);
+          this.openBountiesModal();
+          this.renderHud();
+        }
+      });
+    });
+  }
+
+  // ==================== SONDERANGEBOTS-KISTE (SALE-BOX, STUFE II+) ====================
+  public openSaleBoxModal(): void {
+    const art = getHDArt();
+
+    // Aggregate available inventory items
+    const counts = new Map<string, number>();
+    for (const entry of getAllAvailableShopItems(this.state.inventory)) {
+      counts.set(entry.stack.itemId, (counts.get(entry.stack.itemId) ?? 0) + entry.stack.qty);
+    }
+    const availIds = Array.from(counts.keys());
+
+    const stockedHtml =
+      this.state.saleBox.length > 0
+        ? this.state.saleBox
+            .map((s, idx) => {
+              const def = getItemDef(s.itemId);
+              const rarity = RARITY_META[def.rarity];
+              const salePrice = Math.max(10, Math.round(def.baseValue * 0.7));
+              return `
+                <div class="picker-row" style="justify-content:space-between;cursor:default">
+                  <div style="display:flex;align-items:center;gap:8px;min-width:0">
+                    <img src="${art.itemUrls[s.itemId]}" alt="${def.name}" />
+                    <div>
+                      <div style="font-family:var(--font-pixel);font-size:10.5px;color:${rarity.color}">${def.name} ×${s.qty}</div>
+                      <div style="font-size:11px;color:var(--accent-amber)">Auto-Verkauf: ${salePrice} Cr/Stk</div>
+                    </div>
+                  </div>
+                  <button class="btn btn-take-salebox" data-idx="${idx}" style="padding:4px 8px;font-size:9px">Zurück</button>
+                </div>
+              `;
+            })
+            .join('')
+        : `<div style="padding:18px;text-align:center;color:var(--text-muted);font-size:12px">
+             Die Kiste ist leer. Lege rechts überschüssige Relikte hinein!
+           </div>`;
+
+    const availHtml =
+      availIds.length > 0
+        ? availIds
+            .map((id) => {
+              const def = getItemDef(id);
+              const rarity = RARITY_META[def.rarity];
+              const total = counts.get(id) ?? 0;
+              const salePrice = Math.max(10, Math.round(def.baseValue * 0.7));
+              return `
+                <div class="picker-row" style="justify-content:space-between;cursor:default">
+                  <div style="display:flex;align-items:center;gap:8px;min-width:0">
+                    <img src="${art.itemUrls[id]}" alt="${def.name}" />
+                    <div>
+                      <div style="font-family:var(--font-pixel);font-size:10.5px;color:${rarity.color}">${def.name} (${total}×)</div>
+                      <div style="font-size:11px;color:var(--text-muted)">≈ ${salePrice} Cr/Stk (70 %)</div>
+                    </div>
+                  </div>
+                  <div style="display:flex;gap:4px">
+                    <button class="btn btn-amber btn-add-salebox" data-id="${id}" data-qty="1" style="padding:4px 8px;font-size:9px">+1</button>
+                    ${
+                      total > 1
+                        ? `<button class="btn btn-add-salebox" data-id="${id}" data-qty="${Math.min(5, total)}" style="padding:4px 7px;font-size:9px">+${Math.min(5, total)}</button>`
+                        : ''
+                    }
+                  </div>
+                </div>
+              `;
+            })
+            .join('')
+        : `<div style="padding:18px;text-align:center;color:var(--text-muted);font-size:12px">
+             Keine Relikte im Rucksack oder in der Lagertruhe.
+           </div>`;
+
+    this.showModalHtml(`
+      <div class="modal-window">
+        <div class="modal-header">
+          <span class="modal-title">SONDERANGEBOTS-KISTE (AUTO-SALE · 70 %)</span>
+          <span style="font-family:var(--font-pixel);font-size:11px;color:var(--accent-amber)">${this.state.credits} CR</span>
+          <button id="modal-close-btn" class="modal-close">ESC ✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="modifier-box">
+            Relikte in dieser Kiste verkaufen sich bei geöffnetem Laden <strong>vollautomatisch</strong> zum Schnäppchenpreis (70 % Marktwert) — perfekt für schnellen Umsatz ohne Kassen-Wartezeit!
+          </div>
+          <div class="pedestal-layout">
+            <div>
+              <div class="section-label"><span>IN DER SALE-BOX (${this.state.saleBox.length}/6 SLOTS)</span></div>
+              <div class="item-picker-list">${stockedHtml}</div>
+            </div>
+            <div>
+              <div class="section-label"><span>AUS LAGER EINLEGEN</span></div>
+              <div class="item-picker-list">${availHtml}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `);
+
+    this.modalEl.querySelectorAll<HTMLElement>('.btn-add-salebox').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id!;
+        const qty = Number(btn.dataset.qty ?? 1);
+        if (this.state.addToSaleBox(id, qty)) {
+          sound.playPickup();
+          this.openSaleBoxModal();
+          this.renderHud();
+        } else {
+          sound.playReaction('expensive');
+          this.toast('Sonderangebots-Kiste ist voll (max. 6 Stacks)!', 'warn');
+        }
+      });
+    });
+
+    this.modalEl.querySelectorAll<HTMLElement>('.btn-take-salebox').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const idx = Number(btn.dataset.idx);
+        if (this.state.takeFromSaleBox(idx)) {
+          sound.playUiClick();
+          this.openSaleBoxModal();
           this.renderHud();
         }
       });
@@ -1068,23 +1298,43 @@ export class UIManager {
     const titleColor = summary.victory ? 'var(--accent-emerald)' : 'var(--accent-coral)';
 
     const extraNotes: string[] = [];
+    if (summary.nightRun) {
+      extraNotes.push(
+        `🌙 <strong>Nacht-Expedition:</strong> Erhöhte Fundchance (+35 %) auf seltene &amp; epische Relikte war aktiv!`,
+      );
+    }
     if (summary.warpedToChest.length > 0) {
       extraNotes.push(
-        `⚡ <strong>Warp-Anker:</strong> ${summary.warpedToChest.join(', ')} direkt in deine Lagertruhe teleportiert!`,
+        `⚡ <strong>Warp-Anker (→):</strong> ${summary.warpedToChest.join(', ')} sicher in deine Lagertruhe gerettet!`,
+      );
+    }
+    if (summary.clonedItems && summary.clonedItems.length > 0) {
+      extraNotes.push(
+        `🧬 <strong>Klon-Matrix (↑):</strong> +1 ${summary.clonedItems.join(', ')} erfolgreich dupliziert!`,
+      );
+    }
+    if (summary.resonanceBonus && summary.resonanceBonus > 0) {
+      extraNotes.push(
+        `☀ <strong>Nova-Resonanz (←):</strong> +${summary.resonanceBonus} Cr Sofort-Bonus gutgeschrieben!`,
+      );
+    }
+    if (summary.cursedLost && summary.cursedLost.length > 0) {
+      extraNotes.push(
+        `⚠ <strong>Phasen-Fluch (▲):</strong> ${summary.cursedLost.join(', ')} lag nicht in der obersten Rucksack-Reihe und ist zerfallen!`,
       );
     }
     if (!summary.victory) {
       extraNotes.push(
-        'Alle mitgeführten Relikte im Expeditions-Rucksack gingen im Wrack verloren! Nutze beim nächsten Mal den Warp-Beacon [R] oder das Start-Portal zur rechtzeitigen Extraktion.',
+        'Alle ungeschützten Relikte im Expeditions-Rucksack gingen im Wrack verloren! Nutze beim nächsten Mal den Warp-Beacon [R] oder platziere dein Quanten-Gyroskop (→) links neben dem wichtigsten Relikt.',
       );
     } else if (summary.itemsSaved > 0) {
       extraNotes.push(
-        'Gehe links in deinen Shop „Astro-Barter“, um deine Beute zu verkaufen — oder besuche Schmied Kael für neue Waffen!',
+        'Gehe links in deinen Shop „Astro-Barter“, um deine Beute zu verkaufen oder Aufträge an der Pinnwand abzuliefern!',
       );
     }
 
     this.showModalHtml(`
-      <div class="modal-window" style="max-width:520px">
+      <div class="modal-window" style="max-width:540px">
         <div class="modal-header">
           <span class="modal-title" style="color:${titleColor}">${title}</span>
           <button id="modal-close-btn" class="modal-close">ESC ✕</button>
@@ -1100,7 +1350,7 @@ export class UIManager {
               <div class="val">${summary.enemiesDefeated}</div>
             </div>
             <div class="summary-stat">
-              <div style="font-size:11px;color:var(--text-muted)">Relikte extrahiert</div>
+              <div style="font-size:11px;color:var(--text-muted)">Relikte gesichert</div>
               <div class="val" style="color:var(--accent-emerald)">${summary.itemsSaved}</div>
             </div>
             <div class="summary-stat">
