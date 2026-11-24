@@ -1,6 +1,7 @@
 import { getHDArt } from '../assets/artLoader';
 import { drawGlow, drawPixelShadow } from '../assets/pixelArt';
 import { getAtlas } from '../assets/sprites';
+import { COMPANION_DEFS, MARKET_EVENT_META } from '../data/companions';
 import { getItemDef } from '../data/items';
 import { sound } from '../engine/audio';
 import { VIRTUAL_HEIGHT, VIRTUAL_WIDTH, type InputManager } from '../engine/input';
@@ -43,6 +44,9 @@ interface Customer {
   id: number;
   speciesIndex: number;
   isThief: boolean;
+  isVip: boolean;
+  stasisSlowTimer: number;
+  assistantTimer: number;
   x: number;
   y: number;
   waypoints: Array<{ x: number; y: number }>;
@@ -116,6 +120,7 @@ const WARP_GATE_POS = { x: 426, y: 152 };
 const SHOP_DOOR_POS = { x: 240, y: 218 };
 const CHECKOUT_SPOT = { x: 240, y: 192 };
 const COUNTER_GATE_POS = { x: 296, y: 134 };
+const CLERK_BOT_POS = { x: 266, y: 136 };
 
 export class ShopScene {
   private state: GameState;
@@ -141,6 +146,8 @@ export class ShopScene {
   private nextCustomerId = 1;
   private spawnTimer = 1.4;
   private saleBoxTimer = 5.5;
+  private clerkZapTarget: { x: number; y: number; timer: number } | null = null;
+  private clerkWarnedThiefIds = new Set<number>();
 
   private particles: Particle[] = [];
   private floats: FloatingText[] = [];
@@ -244,9 +251,11 @@ export class ShopScene {
     sound.playShopBell();
     if (this.daySalesCount > 0 || !manual) {
       const res = this.state.advanceTimeOfDay();
+      const evMeta = MARKET_EVENT_META[res.marketEvent];
+      const evNote = res.newDay && res.marketEvent !== 'normal' ? ` ★ Event: ${evMeta.name}!` : '';
       if (this.daySalesCount > 0) {
         const phaseNote = res.newDay
-          ? `Morgen bricht an (Tag ${res.day} · neue Aufträge!)`
+          ? `Morgen bricht an (Tag ${res.day} · neue Aufträge!)${evNote}`
           : `Nacht bricht an (+35 % seltener Loot in Sektor 1!)`;
         this.callbacks.onToast(
           `Schicht beendet: ${this.daySalesCount} Relikte für ${this.daySalesCredits} Cr! ${phaseNote}`,
@@ -255,7 +264,7 @@ export class ShopScene {
       } else {
         this.callbacks.onToast(
           res.newDay
-            ? `Ladenschluss! Tag ${res.day} beginnt mit frischen Aufträgen.`
+            ? `Ladenschluss! Tag ${res.day} beginnt mit frischen Aufträgen.${evNote}`
             : 'Ladenschluss! Die Nacht bricht an — ideal für eine Sektor-Expedition (+35 % Rar-Loot)!',
           'info',
         );
@@ -285,6 +294,10 @@ export class ShopScene {
 
   public update(dt: number, input: InputManager): void {
     this.time += dt;
+    if (this.clerkZapTarget) {
+      this.clerkZapTarget.timer -= dt;
+      if (this.clerkZapTarget.timer <= 0) this.clerkZapTarget = null;
+    }
 
     // Ambient sparks at left Shop-Ausbau console
     if (Math.random() < dt * 4.5) {
@@ -361,8 +374,10 @@ export class ShopScene {
         this.spawnTimer -= dt;
         if (this.spawnTimer <= 0 && this.customers.length < stats.maxCustomers) {
           this.spawnCustomer();
-          const tierPace = Math.max(2.6, 4.0 - this.state.upgrades.shopTier * 0.55);
-          this.spawnTimer = tierPace + Math.random() * 2.1;
+          const evPace =
+            this.state.marketEvent === 'trade_fair' || this.state.marketEvent === 'night_rush' ? 0.72 : 1.0;
+          const tierPace = Math.max(2.1, (4.0 - this.state.upgrades.shopTier * 0.55) * evPace);
+          this.spawnTimer = tierPace + Math.random() * 1.9;
         }
 
         // Automatic Bargain Sales from unlocked Sale-Box (Stufe II+) while shoppers are inside!
@@ -549,13 +564,22 @@ export class ShopScene {
   private spawnCustomer(): void {
     const hasStockedPed = this.state.pedestals.some((p) => p.itemId !== null && p.qty > 0);
     const hasActiveThief = this.customers.some((c) => c.isThief);
-    // ~20% chance to spawn a sneaky Space Thief whenever stocked pedestals exist!
-    const isThief = hasStockedPed && !hasActiveThief && Math.random() < 0.2;
+    const thiefChance = this.state.marketEvent === 'night_rush' ? 0.28 : 0.2;
+    const isThief = hasStockedPed && !hasActiveThief && Math.random() < thiefChance;
+
+    const vipChance =
+      this.state.marketEvent === 'collector_visit'
+        ? 0.48
+        : 0.14 + (this.state.upgrades.shopTier ?? 0) * 0.06;
+    const isVip = !isThief && Math.random() < vipChance;
 
     const c: Customer = {
       id: this.nextCustomerId++,
       speciesIndex: Math.floor(Math.random() * 3),
       isThief,
+      isVip,
+      stasisSlowTimer: 0,
+      assistantTimer: 0,
       x: SHOP_DOOR_POS.x + (Math.random() - 0.5) * 10,
       y: SHOP_DOOR_POS.y + 8,
       waypoints: [{ x: SHOP_DOOR_POS.x, y: 206 }],
@@ -568,10 +592,14 @@ export class ShopScene {
       carriedPrice: 0,
       emote: null,
       emoteTimer: 0,
-      patience: 26 * this.state.getStats().customerPatienceBonus,
-      maxPatience: 26 * this.state.getStats().customerPatienceBonus,
+      patience: (isVip ? 32 : 26) * this.state.getStats().customerPatienceBonus,
+      maxPatience: (isVip ? 32 : 26) * this.state.getStats().customerPatienceBonus,
     };
     this.customers.push(c);
+    if (isVip) {
+      sound.playVipChime();
+      this.spawnBurst(c.x, c.y - 6, '#fbbf24', 10);
+    }
   }
 
   private pickNextPedestal(c: Customer): PedestalSlot | null {
@@ -579,6 +607,15 @@ export class ShopScene {
       (p) => p.itemId !== null && p.qty > 0 && !c.visitedPedestals.has(p.id),
     );
     if (occupied.length === 0) return null;
+    if (c.isVip) {
+      const luxury = occupied.filter((p) => {
+        const rarity = p.itemId ? getItemDef(p.itemId).rarity : 'common';
+        return rarity === 'rare' || rarity === 'epic';
+      });
+      if (luxury.length > 0) {
+        return luxury[Math.floor(Math.random() * luxury.length)];
+      }
+    }
     return occupied[Math.floor(Math.random() * occupied.length)];
   }
 
@@ -633,8 +670,45 @@ export class ShopScene {
   }
 
   private updateCustomers(dt: number): void {
+    const stats = this.state.getStats();
+    const assistantLvl = stats.assistantLevel;
+
     for (let i = this.customers.length - 1; i >= 0; i--) {
       const c = this.customers[i];
+
+      if (c.stasisSlowTimer > 0) {
+        c.stasisSlowTimer = Math.max(0, c.stasisSlowTimer - dt);
+      }
+
+      // Security Droid MK-II early thief warning + Stasis zap beam!
+      if (assistantLvl >= 2 && c.isThief) {
+        if (c.state === 'stealing' && !this.clerkWarnedThiefIds.has(c.id)) {
+          this.clerkWarnedThiefIds.add(c.id);
+          sound.playThiefAlarm();
+          this.clerkZapTarget = { x: c.x, y: c.y - 8, timer: 0.45 };
+          this.floats.push({
+            x: CLERK_BOT_POS.x,
+            y: CLERK_BOT_POS.y - 18,
+            text: 'ALARM! DIEB!',
+            color: '#38bdf8',
+            life: 1.3,
+            maxLife: 1.3,
+          });
+          this.callbacks.onToast('🤖 Sicherheits-Droide meldet: Verdächtiger Dieb am Podest!', 'warn');
+        } else if (c.state === 'fleeing' && c.stasisSlowTimer <= 0.1) {
+          c.stasisSlowTimer = 1.8;
+          this.clerkZapTarget = { x: c.x, y: c.y - 8, timer: 0.45 };
+          this.spawnBurst(c.x, c.y - 6, '#38bdf8', 10);
+          this.floats.push({
+            x: c.x,
+            y: c.y - 26,
+            text: 'STASIS -45%',
+            color: '#38bdf8',
+            life: 1.1,
+            maxLife: 1.1,
+          });
+        }
+      }
 
       // Space Thief Tackle Check: bump or dash into a stealing/fleeing thief to recover stolen loot!
       if (c.isThief && (c.state === 'fleeing' || c.state === 'stealing')) {
@@ -652,7 +726,8 @@ export class ShopScene {
         }
       }
 
-      const speed = c.state === 'fleeing' ? 88 : c.isThief ? 62 : 54;
+      const slowFactor = c.stasisSlowTimer > 0 ? 0.55 : 1.0;
+      const speed = (c.state === 'fleeing' ? 88 : c.isThief ? 62 : 54) * slowFactor;
       const nextWp = c.waypoints[0];
       if (nextWp) {
         const dx = nextWp.x - c.x;
@@ -661,7 +736,7 @@ export class ShopScene {
         if (dist > 3) {
           c.x += (dx / dist) * speed * dt;
           c.y += (dy / dist) * speed * dt;
-          c.walkAnim += dt * (c.state === 'fleeing' ? 15 : 9);
+          c.walkAnim += dt * (c.state === 'fleeing' ? 15 * slowFactor : 9);
           continue;
         }
         c.waypoints.shift();
@@ -750,7 +825,14 @@ export class ShopScene {
 
           c.visitedPedestals.add(ped.id);
           const entry = this.state.codex[ped.itemId];
-          const evalRes = evaluatePrice(ped.itemId, ped.price, entry);
+          // Solaris Handelsmesse & VIP Collectors are more generous when judging prices!
+          const effectiveEvalPrice =
+            this.state.marketEvent === 'trade_fair'
+              ? Math.max(1, Math.round(ped.price * 0.91))
+              : c.isVip
+                ? Math.max(1, Math.round(ped.price * 0.88))
+                : ped.price;
+          const evalRes = evaluatePrice(ped.itemId, effectiveEvalPrice, entry);
           c.emote = evalRes.reaction;
           c.emoteTimer = 2.0;
           sound.playReaction(evalRes.reaction);
@@ -766,6 +848,7 @@ export class ShopScene {
             recordPriceReaction(entry, boughtPrice, evalRes.reaction, true);
             c.carriedItemId = boughtId;
             c.carriedPrice = boughtPrice;
+            c.assistantTimer = 0;
             c.state = 'to_checkout';
             const queueIdx = this.customers.filter(
               (other) => other.state === 'waiting_checkout' || other.state === 'to_checkout',
@@ -794,10 +877,20 @@ export class ShopScene {
         }
       } else if (c.state === 'to_checkout') {
         c.state = 'waiting_checkout';
+        c.assistantTimer = 0;
         c.emote = 'coin';
         c.emoteTimer = 99;
       } else if (c.state === 'waiting_checkout') {
         c.patience -= dt;
+        // Handels-Droide auto-checkout behind counter (MK-I: 2.8s, MK-II: 2.0s)!
+        if (assistantLvl >= 1) {
+          c.assistantTimer += dt;
+          const autoDelay = assistantLvl >= 2 ? 2.0 : 2.8;
+          if (c.assistantTimer >= autoDelay) {
+            this.checkoutCustomer(c, true);
+            continue;
+          }
+        }
         if (c.patience <= 0) {
           if (c.carriedItemId) {
             addItemToChest(this.state.inventory, c.carriedItemId, 1);
@@ -819,10 +912,26 @@ export class ShopScene {
   private checkoutNextCustomer(): boolean {
     const waiter = this.customers.find((c) => c.state === 'waiting_checkout');
     if (!waiter || !waiter.carriedItemId) return false;
+    return this.checkoutCustomer(waiter, false);
+  }
 
-    const tipBonus = Math.round(waiter.carriedPrice * this.state.getStats().shopTipBonus);
-    const total = waiter.carriedPrice + tipBonus;
-    const itemName = getItemDef(waiter.carriedItemId).name;
+  private checkoutCustomer(waiter: Customer, byAssistant: boolean): boolean {
+    if (!waiter.carriedItemId) return false;
+
+    const itemDef = getItemDef(waiter.carriedItemId);
+    const isRareOrEpic = itemDef.rarity === 'rare' || itemDef.rarity === 'epic';
+    const vipBonus = waiter.isVip ? Math.round(waiter.carriedPrice * (isRareOrEpic ? 0.4 : 0.2)) : 0;
+    const rawBase = waiter.carriedPrice + vipBonus;
+
+    let total: number;
+    let tipBonus = 0;
+    if (byAssistant) {
+      // 10% droid convenience fee — manual checkout still earns 100% + full tip!
+      total = Math.max(1, Math.round(rawBase * 0.9));
+    } else {
+      tipBonus = Math.round(rawBase * this.state.getStats().shopTipBonus);
+      total = rawBase + tipBonus;
+    }
 
     this.state.credits += total;
     this.state.totalEarned += total;
@@ -836,17 +945,53 @@ export class ShopScene {
     waiter.state = 'leaving';
     waiter.waypoints = this.planPath(waiter.x, waiter.y, SHOP_DOOR_POS.x, SHOP_DOOR_POS.y + 10);
 
-    sound.playRegister();
-    this.spawnBurst(CHECKOUT_SPOT.x, CHECKOUT_SPOT.y - 16, '#fbbf24', 16);
+    if (waiter.isVip) {
+      sound.playVipChime();
+    } else {
+      sound.playRegister();
+    }
+    this.spawnBurst(
+      byAssistant ? CLERK_BOT_POS.x : CHECKOUT_SPOT.x,
+      byAssistant ? CLERK_BOT_POS.y - 6 : CHECKOUT_SPOT.y - 16,
+      waiter.isVip ? '#fde047' : byAssistant ? '#38bdf8' : '#fbbf24',
+      16,
+    );
+
+    const popupText = byAssistant
+      ? `+${total} Cr (DROIDE)`
+      : vipBonus > 0
+        ? `+${total} Cr (VIP +${vipBonus})`
+        : tipBonus > 0
+          ? `+${total} Cr (+${tipBonus} Tipp)`
+          : `+${total} Cr`;
+
     this.floats.push({
-      x: CHECKOUT_SPOT.x,
-      y: CHECKOUT_SPOT.y - 26,
-      text: tipBonus > 0 ? `+${total} Cr (+${tipBonus} Tipp)` : `+${total} Cr`,
-      color: '#fde047',
-      life: 1.4,
-      maxLife: 1.4,
+      x: byAssistant ? CLERK_BOT_POS.x : CHECKOUT_SPOT.x,
+      y: byAssistant ? CLERK_BOT_POS.y - 18 : CHECKOUT_SPOT.y - 26,
+      text: popupText,
+      color: waiter.isVip ? '#fde047' : byAssistant ? '#7dd3fc' : '#fde047',
+      life: 1.5,
+      maxLife: 1.5,
     });
-    this.callbacks.onToast(`${itemName} verkauft für ${total} Cr!`, 'good');
+
+    if (waiter.isVip) {
+      this.callbacks.onToast(`★ VIP-Sammler zahlt ${total} Cr (+${vipBonus} VIP-Bonus) für ${itemDef.name}!`, 'good');
+    } else if (byAssistant) {
+      this.callbacks.onToast(`🤖 Handels-Droide kassiert ${itemDef.name} ab (+${total} Cr).`, 'info');
+    } else {
+      this.callbacks.onToast(`${itemDef.name} verkauft für ${total} Cr!`, 'good');
+    }
+
+    // Check live Companion Bot unlocks (e.g. Sammel-Bot Puck at 15 sales!)
+    const newlyUnlocked = this.state.checkCompanionUnlocks();
+    for (const cid of newlyUnlocked) {
+      sound.playCompanionUnlock();
+      this.callbacks.onToast(
+        `🤖 Begleiter freigeschaltet: ${COMPANION_DEFS[cid].name}! Im Hinterzimmer am Drohnen-Dock ausrüstbar!`,
+        'good',
+      );
+    }
+
     this.state.save();
     this.callbacks.onHudDirty();
     return true;
@@ -1080,9 +1225,18 @@ export class ShopScene {
     // Sleek retractable holographic laser filament on the baked right-side counter opening!
     this.renderCounterGate(ctx, pulse);
 
-    // 3. Depth-Sorted Dynamic Entities (Sale-Box, Pedestals, Customers, Player)
+    // 3. Depth-Sorted Dynamic Entities (Sale-Box, Clerk Droid, Pedestals, Customers, Player)
     type Drawable = { y: number; draw: () => void };
     const drawables: Drawable[] = [];
+    const assistantLvl = this.state.getStats().assistantLevel;
+
+    // Unlocked Handels-Droide hovering behind the right side of the checkout counter!
+    if (assistantLvl >= 1) {
+      drawables.push({
+        y: CLERK_BOT_POS.y,
+        draw: () => this.renderClerkDroid(ctx, assistantLvl, pulse),
+      });
+    }
 
     // Unlocked Sonderangebots-Kiste (Sale-Box, Stufe II+)
     if (this.state.getStats().hasSaleBox) {
@@ -1114,8 +1268,9 @@ export class ShopScene {
     drawables.sort((a, b) => a.y - b.y);
     for (const d of drawables) d.draw();
 
-    // 3D Perspective Occlusion: when hero stands BEHIND the counter, draw the front counter lip in front!
-    if (shopBg && this.playerY < 156 && this.playerX > 180 && this.playerX < 306) {
+    // 3D Perspective Occlusion: when hero or clerk droid is BEHIND the counter, draw front counter lip in front!
+    const heroBehind = this.playerY < 156 && this.playerX > 180 && this.playerX < 306;
+    if (shopBg && (heroBehind || assistantLvl >= 1)) {
       // Exact slice of front counter masonry & checkout console from active 960x540 tier backdrop (2x scale)
       ctx.drawImage(shopBg, 174 * 2, 150 * 2, 136 * 2, 32 * 2, 174, 150, 136, 32);
       // Re-draw any customer or Sale-Box directly in front of the counter so depth stays crisp
@@ -1127,6 +1282,22 @@ export class ShopScene {
           this.renderCustomer(ctx, c);
         }
       }
+    }
+
+    // Security Droid MK-II cyan stasis zap beam!
+    if (this.clerkZapTarget) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.85)';
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.moveTo(CLERK_BOT_POS.x, CLERK_BOT_POS.y - 6);
+      ctx.lineTo(this.clerkZapTarget.x, this.clerkZapTarget.y);
+      ctx.stroke();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 0.9;
+      ctx.stroke();
+      ctx.restore();
     }
 
     // 4. Warm Cozy Lighting Aura, Unlocked Shop Decor Lanterns & Dust Motes
@@ -1462,12 +1633,57 @@ export class ShopScene {
     }
   }
 
+  private renderClerkDroid(ctx: CanvasRenderingContext2D, level: number, pulse: number): void {
+    const art = getHDArt();
+    const x = CLERK_BOT_POS.x;
+    const y = CLERK_BOT_POS.y;
+    const bob = Math.sin(this.time * 4.4) * 2.0;
+
+    drawPixelShadow(ctx, x, y + 8, 9, 3, 0.42);
+    drawGlow(ctx, x, y - 4 + bob, 16, level >= 2 ? '#38bdf8' : '#38e8d4', 0.24 + pulse * 0.1);
+    if (art.botClerk) {
+      ctx.drawImage(art.botClerk, x - 10, y - 18 + bob, 21, 24);
+    } else {
+      ctx.fillStyle = '#38e8d4';
+      ctx.fillRect(x - 6, y - 12 + bob, 12, 12);
+    }
+    if (level >= 2) {
+      // Subtle MK-II golden security halo pip above antenna
+      ctx.fillStyle = '#fde047';
+      ctx.fillRect(x - 1, y - 20 + bob, 2, 2);
+    }
+  }
+
   private renderCustomer(ctx: CanvasRenderingContext2D, c: Customer): void {
     const art = getHDArt();
     const atlas = getAtlas();
     const walking = c.walkAnim > 0;
     const bob = walking ? Math.abs(Math.sin(c.walkAnim)) * 2.2 : Math.sin(this.time * 2.8 + c.id) * 0.5;
     const tilt = walking ? Math.sin(c.walkAnim) * (c.state === 'fleeing' ? 0.12 : 0.06) : 0;
+
+    // Golden VIP Collector aura & shimmer ring!
+    if (c.isVip) {
+      const vipPulse = 0.5 + 0.5 * Math.sin(this.time * 6 + c.id);
+      ctx.save();
+      ctx.strokeStyle = `rgba(253, 224, 71, ${0.55 + vipPulse * 0.35})`;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.ellipse(c.x, c.y + 10, 11 + vipPulse * 2, 4.5 + vipPulse, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      drawGlow(ctx, c.x, c.y - 2, 20, '#fbbf24', 0.24 + vipPulse * 0.12);
+      ctx.restore();
+    }
+
+    // Cyan stasis slow ring on zapped thieves
+    if (c.stasisSlowTimer > 0) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.85)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.ellipse(c.x, c.y + 10, 10, 4, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
 
     // Flashing red capture ring beneath fleeing Space Thief!
     if (c.isThief && c.state === 'fleeing') {
@@ -1503,6 +1719,20 @@ export class ShopScene {
     } else {
       const frames = atlas.customers[c.speciesIndex % atlas.customers.length];
       ctx.drawImage(frames[Math.floor(c.walkAnim) % 2], Math.round(c.x - 8), Math.round(c.y - 10));
+    }
+
+    // Golden VIP crown badge hovering above VIP Collector!
+    if (c.isVip) {
+      const cbob = Math.sin(this.time * 5 + c.id) * 1.2;
+      ctx.fillStyle = 'rgba(28, 20, 6, 0.92)';
+      ctx.fillRect(c.x - 12, c.y - 29 + cbob, 24, 8);
+      ctx.strokeStyle = '#fbbf24';
+      ctx.lineWidth = 0.8;
+      ctx.strokeRect(c.x - 12, c.y - 29 + cbob, 24, 8);
+      ctx.fillStyle = '#fde047';
+      ctx.font = 'bold 4.8px Silkscreen, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('★ VIP', c.x, c.y - 23 + cbob);
     }
 
     // Carried item (either buying or stolen loot!)

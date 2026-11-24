@@ -33,6 +33,7 @@ export interface HubCallbacks {
   onOpenForge: () => void;
   onOpenMedBay: () => void;
   onOpenTechLab: () => void;
+  onOpenBlackMarket: () => void;
   onEnterDungeon: () => void;
   onToast: (msg: string, tone?: 'info' | 'good' | 'warn') => void;
 }
@@ -47,6 +48,7 @@ const PLAZA_BOTTOM = 224;
 const SHOP_DOOR_POS = { x: 74, y: 132 };
 const FORGE_POS = { x: 144, y: 126 };
 const MEDBAY_POS = { x: 348, y: 126 };
+const NYX_POS = { x: 124, y: 194 };
 const TECHLAB_POS = { x: 344, y: 204 };
 const WARP_GATE_POS = { x: 416, y: 164 };
 
@@ -166,6 +168,20 @@ export class HubScene {
       });
     }
 
+    // Mysterious violet contraband motes at Nyx's Black Market stall (bottom-left plaza)
+    if (Math.random() < dt * 4.5) {
+      this.particles.push({
+        x: NYX_POS.x - 4 + (Math.random() - 0.5) * 30,
+        y: NYX_POS.y - 12 + (Math.random() - 0.5) * 10,
+        vx: (Math.random() - 0.5) * 9,
+        vy: -11 - Math.random() * 9,
+        color: Math.random() > 0.35 ? '#c084fc' : '#f472b6',
+        size: 1.4,
+        life: 0.48 + Math.random() * 0.36,
+        maxLife: 0.84,
+      });
+    }
+
     // Holo-sparks at Vex' Tech-Labor pavilion (bottom-right plaza)
     if (Math.random() < dt * 4.5) {
       this.particles.push({
@@ -239,6 +255,8 @@ export class HubScene {
     }
     // Keep clear of street lamp posts & bottom bench
     if (y > 212 && x < 178) return false;
+    // Keep clear of Nyx's Black Market stall footprint (bottom-left plaza)
+    if (x > 94 && x < 144 && y > 184 && y < 208) return false;
     // Keep clear of Vex' Tech-Labor kiosk footprint (bottom-right)
     if (x > 332 && x < 386 && y > 194 && y < 222) return false;
     return true;
@@ -247,7 +265,7 @@ export class HubScene {
   private updateStrollers(dt: number): void {
     const speed = 28;
     const spots = [
-      { x: 136, y: 176 },
+      { x: 176, y: 176 },
       { x: 240, y: 164 },
       { x: 312, y: 174 },
       { x: 240, y: 94 },
@@ -320,7 +338,21 @@ export class HubScene {
       return;
     }
 
-    // 4. Vex' Tech-Labor (Passive Combat/Loot Modules & Sector 1/2 Progression!)
+    // 4. Nyx' Schwarzmarkt-Stand (Daily rare crafting materials & relics!)
+    if (Math.hypot(this.playerX - NYX_POS.x, this.playerY - NYX_POS.y) < 38) {
+      this.activePrompt = {
+        label: "[E] Nyx' Schwarzmarkt (Seltene Teile)",
+        x: NYX_POS.x + 18,
+        y: NYX_POS.y - 34,
+      };
+      if (input.interactPressed()) {
+        sound.playUiClick();
+        this.callbacks.onOpenBlackMarket();
+      }
+      return;
+    }
+
+    // 5. Vex' Tech-Labor (Passive Combat/Loot Modules & Sector 1/2 Progression!)
     if (Math.hypot(this.playerX - TECHLAB_POS.x, this.playerY - TECHLAB_POS.y) < 38) {
       this.activePrompt = {
         label: "[E] Vex' Tech-Labor (Module & Sektor-Karte)",
@@ -334,7 +366,7 @@ export class HubScene {
       return;
     }
 
-    // 5. Warp-Gate to Sector 1 (3 Floors -> Leviathan!)
+    // 6. Warp-Gate to Sector 1 (3 Floors -> Leviathan!)
     if (Math.hypot(this.playerX - WARP_GATE_POS.x, this.playerY - WARP_GATE_POS.y) < 38) {
       this.activePrompt = {
         label:
@@ -412,11 +444,12 @@ export class HubScene {
       ctx.fillRect(s.x, s.y, isNight ? 1.8 : 1.4, isNight ? 1.8 : 1.4);
     }
 
-    // Ambient landmark glows (Forge fire, Med-Bay emerald, Tech-Labor cyan, Star Compass, Warp-Gate!)
+    // Ambient landmark glows (Forge fire, Med-Bay emerald, Nyx violet, Tech-Labor cyan, Star Compass, Warp-Gate!)
     const pulse = 0.5 + 0.5 * Math.sin(this.time * 4.2);
     const nightBoost = isNight ? 0.14 : 0;
     drawGlow(ctx, 132, 82, 38, '#fb923c', 0.24 + nightBoost + pulse * 0.1);
     drawGlow(ctx, 354, 72, 36, '#34d399', 0.22 + nightBoost + pulse * 0.08);
+    drawGlow(ctx, NYX_POS.x - 4, NYX_POS.y - 4, 34, '#c084fc', 0.24 + nightBoost + pulse * 0.1);
     drawGlow(ctx, TECHLAB_POS.x + 14, TECHLAB_POS.y - 2, 36, '#38e8d4', 0.22 + nightBoost + pulse * 0.08);
     drawGlow(ctx, 240, 166, 38, '#38e8d4', 0.16 + nightBoost * 0.7 + pulse * 0.07);
     drawGlow(
@@ -437,7 +470,7 @@ export class HubScene {
     // Subtle crisp building signage pills
     this.renderSignPills(ctx);
 
-    // Depth-sorted entities: Kael, Dr. Lyra, Vex' Tech-Labor, Strollers, Player
+    // Depth-sorted entities: Kael, Dr. Lyra, Nyx's Black Market, Vex' Tech-Labor, Strollers, Player
     type Drawable = { y: number; draw: () => void };
     const drawables: Drawable[] = [];
 
@@ -461,6 +494,29 @@ export class HubScene {
         drawPixelShadow(ctx, MEDBAY_POS.x, MEDBAY_POS.y + 4, 8, 3.2, 0.48);
         if (art.npcLyra) {
           ctx.drawImage(art.npcLyra, MEDBAY_POS.x - 12, MEDBAY_POS.y - 23 + bob, 24, 28);
+        }
+      },
+    });
+
+    // Nyx's Black Market Stall (bottom-left plaza)
+    drawables.push({
+      y: NYX_POS.y + 4,
+      draw: () => {
+        drawPixelShadow(ctx, NYX_POS.x - 4, NYX_POS.y + 9, 24, 5.5, 0.46);
+        if (art.propNyxStall) {
+          ctx.drawImage(art.propNyxStall, NYX_POS.x - 28, NYX_POS.y - 24, 48, 36);
+        }
+      },
+    });
+
+    // Schwarzmarkt-Händlerin Nyx standing beside her stall
+    drawables.push({
+      y: NYX_POS.y + 2,
+      draw: () => {
+        const bob = Math.sin(this.time * 3.1 + 2.1) * 0.6;
+        drawPixelShadow(ctx, NYX_POS.x + 26, NYX_POS.y + 6, 8, 3, 0.48);
+        if (art.npcNyx) {
+          ctx.drawImage(art.npcNyx, NYX_POS.x + 14, NYX_POS.y - 22 + bob, 24, 28);
         }
       },
     });
@@ -537,6 +593,7 @@ export class HubScene {
     const pills = [
       { text: 'SCHMIEDE', x: 144, y: 40, color: '#fb923c' },
       { text: 'MED-BAY', x: 356, y: 24, color: '#34d399' },
+      { text: 'SCHWARZMARKT', x: NYX_POS.x - 4, y: NYX_POS.y - 29, color: '#c084fc' },
       { text: 'TECH-LABOR', x: TECHLAB_POS.x + 15, y: TECHLAB_POS.y - 31, color: '#38e8d4' },
       { text: 'SEKTOR 1', x: 420, y: 94, color: '#38e8d4' },
     ];

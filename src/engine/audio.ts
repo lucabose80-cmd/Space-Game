@@ -1,9 +1,84 @@
-// Synthesized Retro-Sci-Fi SFX & gentle ambient soundscape via Web Audio API
+// Synthesized Retro-Sci-Fi SFX & Cozy Procedural Retro-Synth Soundtrack via Web Audio API
+import type { MusicTrack } from '../types';
+
+interface TrackPattern {
+  stepMs: number;
+  leadType: OscillatorType;
+  bassType: OscillatorType;
+  leadVol: number;
+  bassVol: number;
+  lead: Array<number | null>; // MIDI note or rest
+  bass: Array<number | null>;
+}
+
+// Cozy Moonlighter-inspired 16-step pentatonic / modal retro-synth motifs
+const TRACK_PATTERNS: Record<MusicTrack, TrackPattern> = {
+  shop_day: {
+    stepMs: 265,
+    leadType: 'triangle',
+    bassType: 'sine',
+    leadVol: 0.028,
+    bassVol: 0.032,
+    // Warm C major / A minor cozy shop melody
+    lead: [72, null, 76, 79, 81, null, 79, 76, 74, null, 76, 79, 76, null, 72, null],
+    bass: [48, null, 55, null, 57, null, 55, null, 53, null, 57, null, 55, null, 52, null],
+  },
+  shop_night: {
+    stepMs: 340,
+    leadType: 'sine',
+    bassType: 'sine',
+    leadVol: 0.025,
+    bassVol: 0.028,
+    // Dreamy starry night lo-fi lullaby (D dorian / Fmaj7)
+    lead: [69, null, 72, null, 76, null, 74, 72, 67, null, 69, null, 72, null, 64, null],
+    bass: [45, null, null, 52, 41, null, null, 48, 43, null, null, 50, 45, null, null, null],
+  },
+  hub: {
+    stepMs: 230,
+    leadType: 'triangle',
+    bassType: 'triangle',
+    leadVol: 0.026,
+    bassVol: 0.025,
+    // Upbeat Port Solaris promenade arpeggios (G major)
+    lead: [67, 71, 74, 79, 76, 74, 71, null, 69, 72, 76, 79, 74, null, 71, null],
+    bass: [43, null, 50, null, 48, null, 52, null, 45, null, 52, null, 50, null, 47, null],
+  },
+  dungeon: {
+    stepMs: 225,
+    leadType: 'triangle',
+    bassType: 'sawtooth',
+    leadVol: 0.024,
+    bassVol: 0.016,
+    // Mysterious sci-fi derelict pulse (E minor)
+    lead: [64, null, 67, 71, 72, null, 71, 67, 62, null, 66, 69, 67, null, 64, null],
+    bass: [40, 40, null, 47, 43, null, 40, null, 38, 38, null, 45, 43, null, 40, null],
+  },
+  boss: {
+    stepMs: 155,
+    leadType: 'square',
+    bassType: 'sawtooth',
+    leadVol: 0.022,
+    bassVol: 0.022,
+    // Driving chiptune boss battle (D minor)
+    lead: [62, 65, 69, 74, 73, 69, 65, 69, 62, 65, 70, 77, 76, 74, 70, 69],
+    bass: [38, 38, 45, 38, 41, 41, 45, 41, 36, 36, 43, 36, 40, 40, 45, 43],
+  },
+};
+
+function midiToFreq(midi: number): number {
+  return 440 * Math.pow(2, (midi - 69) / 12);
+}
 
 export class SoundEngine {
   private ctx: AudioContext | null = null;
   private muted = false;
+  private musicMuted = false;
   private noiseBuffer: AudioBuffer | null = null;
+
+  private sceneTrack: MusicTrack = 'shop_day';
+  private jukeboxOverride: MusicTrack | null = null;
+  private musicStep = 0;
+  private musicTimer: number | null = null;
 
   public setMuted(muted: boolean): void {
     this.muted = muted;
@@ -18,6 +93,49 @@ export class SoundEngine {
     return this.muted;
   }
 
+  public setMusicMuted(muted: boolean): void {
+    this.musicMuted = muted;
+  }
+
+  public isMusicMuted(): boolean {
+    return this.musicMuted;
+  }
+
+  public toggleMusicMute(): boolean {
+    this.musicMuted = !this.musicMuted;
+    if (!this.musicMuted && !this.muted) {
+      this.ensureMusicLoop();
+    }
+    return this.musicMuted;
+  }
+
+  public getActiveMusicTrack(): MusicTrack {
+    return this.jukeboxOverride ?? this.sceneTrack;
+  }
+
+  public getJukeboxOverride(): MusicTrack | null {
+    return this.jukeboxOverride;
+  }
+
+  public setJukeboxTrack(track: MusicTrack | null): void {
+    const prev = this.getActiveMusicTrack();
+    this.jukeboxOverride = track;
+    if (this.getActiveMusicTrack() !== prev) {
+      this.musicStep = 0;
+      this.restartMusicLoop();
+    }
+  }
+
+  public setMusicTrack(track: MusicTrack): void {
+    if (this.sceneTrack === track) return;
+    const prevActive = this.getActiveMusicTrack();
+    this.sceneTrack = track;
+    if (this.getActiveMusicTrack() !== prevActive) {
+      this.musicStep = 0;
+      this.restartMusicLoop();
+    }
+  }
+
   public unlock(): void {
     if (!this.ctx) {
       const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
@@ -29,6 +147,66 @@ export class SoundEngine {
     if (this.ctx && this.ctx.state === 'suspended') {
       void this.ctx.resume();
     }
+    this.ensureMusicLoop();
+  }
+
+  private ensureMusicLoop(): void {
+    if (this.musicTimer !== null || typeof window === 'undefined') return;
+    const pat = TRACK_PATTERNS[this.getActiveMusicTrack()];
+    this.musicTimer = window.setInterval(() => this.tickMusic(), pat.stepMs);
+  }
+
+  private restartMusicLoop(): void {
+    if (this.musicTimer !== null && typeof window !== 'undefined') {
+      window.clearInterval(this.musicTimer);
+      this.musicTimer = null;
+    }
+    this.ensureMusicLoop();
+  }
+
+  private tickMusic(): void {
+    if (this.muted || this.musicMuted) return;
+    if (!this.ctx || this.ctx.state !== 'running') return;
+    const pat = TRACK_PATTERNS[this.getActiveMusicTrack()];
+    const idx = this.musicStep % pat.lead.length;
+    this.musicStep = (this.musicStep + 1) % pat.lead.length;
+
+    const dur = (pat.stepMs / 1000) * 0.88;
+    const leadMidi = pat.lead[idx];
+    const bassMidi = pat.bass[idx];
+
+    if (leadMidi !== null) {
+      this.playMusicVoice(midiToFreq(leadMidi), dur, pat.leadType, pat.leadVol);
+    }
+    if (bassMidi !== null) {
+      this.playMusicVoice(midiToFreq(bassMidi), dur * 1.15, pat.bassType, pat.bassVol, 680);
+    }
+  }
+
+  private playMusicVoice(
+    freq: number,
+    duration: number,
+    type: OscillatorType,
+    volume: number,
+    lowpassFreq = 1850,
+  ): void {
+    if (!this.ctx || this.ctx.state !== 'running') return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const filter = this.ctx.createBiquadFilter();
+    const gain = this.ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, now);
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(lowpassFreq, now);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(volume, now + 0.018);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + duration + 0.03);
   }
 
   private buildNoiseBuffer(): void {
@@ -103,6 +281,56 @@ export class SoundEngine {
     if (comboStep === 2) {
       this.playTone(620, 220, 0.16, 'triangle', 0.08, 0.03);
     }
+  }
+
+  public playFistPunch(step: number): void {
+    const isFinisher = step >= 3;
+    const base = isFinisher ? 260 : 320 + step * 55;
+    this.playNoise(isFinisher ? 0.14 : 0.07, isFinisher ? 860 : 1280, isFinisher ? 0.16 : 0.1);
+    this.playTone(base, base * 0.34, isFinisher ? 0.15 : 0.08, 'triangle', isFinisher ? 0.12 : 0.08);
+    if (isFinisher) {
+      this.playTone(540, 140, 0.18, 'sawtooth', 0.09, 0.02);
+    }
+  }
+
+  public playCometSlam(): void {
+    this.playNoise(0.24, 520, 0.19);
+    this.playTone(460, 88, 0.25, 'sawtooth', 0.11);
+    this.playTone(220, 56, 0.28, 'triangle', 0.12, 0.04);
+  }
+
+  public playDiscusThrow(): void {
+    this.playNoise(0.08, 2200, 0.08);
+    this.playTone(520, 1180, 0.11, 'triangle', 0.08);
+    this.playTone(760, 1340, 0.09, 'sine', 0.06, 0.025);
+  }
+
+  public playDiscusBounce(): void {
+    this.playTone(880, 1420, 0.07, 'sine', 0.08);
+    this.playTone(660, 990, 0.06, 'triangle', 0.06, 0.02);
+  }
+
+  public playDiscusRecall(): void {
+    this.playTone(1040, 520, 0.16, 'triangle', 0.09);
+    this.playTone(680, 1320, 0.18, 'sine', 0.08, 0.05);
+  }
+
+  public playVipChime(): void {
+    this.playTone(784, 784, 0.08, 'sine', 0.09, 0);
+    this.playTone(1046, 1046, 0.1, 'triangle', 0.09, 0.07);
+    this.playTone(1318, 1568, 0.18, 'sine', 0.1, 0.14);
+  }
+
+  public playCompanionUnlock(): void {
+    this.playTone(523, 523, 0.09, 'triangle', 0.09, 0);
+    this.playTone(659, 659, 0.09, 'triangle', 0.09, 0.08);
+    this.playTone(784, 784, 0.1, 'triangle', 0.09, 0.16);
+    this.playTone(1046, 1318, 0.28, 'sine', 0.11, 0.24);
+  }
+
+  public playHaloBlock(): void {
+    this.playTone(740, 1480, 0.12, 'sine', 0.11, 0);
+    this.playTone(1110, 1660, 0.18, 'triangle', 0.09, 0.04);
   }
 
   public playBlaster(): void {

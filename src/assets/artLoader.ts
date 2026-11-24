@@ -1,5 +1,5 @@
 import { ITEMS } from '../data/items';
-import type { WeaponId } from '../types';
+import type { CompanionId, WeaponId } from '../types';
 import { flipCanvasHorizontal, makeFlashSilhouette } from './pixelArt';
 
 export interface HDArtAssets {
@@ -22,16 +22,23 @@ export interface HDArtAssets {
   npcKael: HTMLCanvasElement | null;
   npcLyra: HTMLCanvasElement | null;
   npcVex: HTMLCanvasElement | null;
+  npcNyx: HTMLCanvasElement | null;
   npcWanderer: HTMLCanvasElement | null;
 
   weapons: Record<WeaponId, HTMLCanvasElement | null>;
   weaponUrls: Record<WeaponId, string>;
+  companions: Record<CompanionId, HTMLCanvasElement | null>;
+  companionUrls: Record<CompanionId, string>;
+  botClerk: HTMLCanvasElement | null;
 
   pedestal: HTMLCanvasElement | null;
   propSaleBox: HTMLCanvasElement | null;
   propSleepPod: HTMLCanvasElement | null;
   propBackroomDoor: HTMLCanvasElement | null;
   propTechKiosk: HTMLCanvasElement | null;
+  propNyxStall: HTMLCanvasElement | null;
+  propJukebox: HTMLCanvasElement | null;
+  propBotDock: HTMLCanvasElement | null;
   propTrophyS1: HTMLCanvasElement | null;
   podIntact: HTMLCanvasElement | null;
   chestClosed: HTMLCanvasElement | null;
@@ -75,24 +82,45 @@ const art: HDArtAssets = {
   npcKael: null,
   npcLyra: null,
   npcVex: null,
+  npcNyx: null,
   npcWanderer: null,
   weapons: {
     blade: null,
     blaster: null,
     hammer: null,
     spear: null,
+    fists: null,
+    discus: null,
   },
   weaponUrls: {
     blade: '/art/sprites/weapon_blade.png',
     blaster: '/art/sprites/weapon_blaster.png',
     hammer: '/art/sprites/weapon_hammer.png',
     spear: '/art/sprites/weapon_spear.png',
+    fists: '/art/sprites/weapon_fists.png',
+    discus: '/art/sprites/weapon_discus.png',
   },
+  companions: {
+    puck: null,
+    spark: null,
+    luma: null,
+    halo: null,
+  },
+  companionUrls: {
+    puck: '/art/sprites/bot_puck.png',
+    spark: '/art/sprites/bot_spark.png',
+    luma: '/art/sprites/bot_luma.png',
+    halo: '/art/sprites/bot_halo.png',
+  },
+  botClerk: null,
   pedestal: null,
   propSaleBox: null,
   propSleepPod: null,
   propBackroomDoor: null,
   propTechKiosk: null,
+  propNyxStall: null,
+  propJukebox: null,
+  propBotDock: null,
   propTrophyS1: null,
   podIntact: null,
   chestClosed: null,
@@ -161,16 +189,27 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
     npcKaelImg,
     npcLyraImg,
     npcVexImg,
+    npcNyxImg,
     npcWandererImg,
     weaponBladeImg,
     weaponBlasterImg,
     weaponHammerImg,
     weaponSpearImg,
+    weaponFistsImg,
+    weaponDiscusImg,
+    botPuckImg,
+    botSparkImg,
+    botLumaImg,
+    botHaloImg,
+    botClerkImg,
     pedestalImg,
     saleBoxImg,
     sleepPodImg,
     backroomDoorImg,
     techKioskImg,
+    nyxStallImg,
+    jukeboxImg,
+    botDockImg,
     trophyS1Img,
     podImg,
     chestClosedImg,
@@ -201,16 +240,27 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
     loadImage('/art/sprites/npc_kael.png'),
     loadImage('/art/sprites/npc_lyra.png'),
     loadImage('/art/sprites/npc_vex.png'),
+    loadImage('/art/sprites/npc_nyx.png'),
     loadImage('/art/sprites/npc_wanderer.png'),
     loadImage('/art/sprites/weapon_blade.png'),
     loadImage('/art/sprites/weapon_blaster.png'),
     loadImage('/art/sprites/weapon_hammer.png'),
     loadImage('/art/sprites/weapon_spear.png'),
+    loadImage('/art/sprites/weapon_fists.png'),
+    loadImage('/art/sprites/weapon_discus.png'),
+    loadImage('/art/sprites/bot_puck.png'),
+    loadImage('/art/sprites/bot_spark.png'),
+    loadImage('/art/sprites/bot_luma.png'),
+    loadImage('/art/sprites/bot_halo.png'),
+    loadImage('/art/sprites/bot_clerk.png'),
     loadImage('/art/sprites/pedestal.png'),
     loadImage('/art/sprites/prop_salebox.png'),
     loadImage('/art/sprites/prop_sleep_pod.png'),
     loadImage('/art/sprites/prop_backroom_door.png'),
     loadImage('/art/sprites/prop_tech_kiosk.png'),
+    loadImage('/art/sprites/prop_nyx_stall.png'),
+    loadImage('/art/sprites/prop_jukebox.png'),
+    loadImage('/art/sprites/prop_bot_dock.png'),
     loadImage('/art/sprites/prop_trophy_s1.png'),
     loadImage('/art/sprites/pod_intact.png'),
     loadImage('/art/sprites/chest_closed.png'),
@@ -247,18 +297,30 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
   art.npcKael = imgToCanvas(npcKaelImg);
   art.npcLyra = imgToCanvas(npcLyraImg);
   art.npcVex = imgToCanvas(npcVexImg);
+  art.npcNyx = imgToCanvas(npcNyxImg);
   art.npcWanderer = imgToCanvas(npcWandererImg);
 
   art.weapons.blade = imgToCanvas(weaponBladeImg);
   art.weapons.blaster = imgToCanvas(weaponBlasterImg);
   art.weapons.hammer = imgToCanvas(weaponHammerImg);
   art.weapons.spear = imgToCanvas(weaponSpearImg);
+  art.weapons.fists = imgToCanvas(weaponFistsImg);
+  art.weapons.discus = imgToCanvas(weaponDiscusImg);
+
+  art.companions.puck = imgToCanvas(botPuckImg);
+  art.companions.spark = imgToCanvas(botSparkImg);
+  art.companions.luma = imgToCanvas(botLumaImg);
+  art.companions.halo = imgToCanvas(botHaloImg);
+  art.botClerk = imgToCanvas(botClerkImg);
 
   art.pedestal = imgToCanvas(pedestalImg);
   art.propSaleBox = imgToCanvas(saleBoxImg);
   art.propSleepPod = imgToCanvas(sleepPodImg);
   art.propBackroomDoor = imgToCanvas(backroomDoorImg);
   art.propTechKiosk = imgToCanvas(techKioskImg);
+  art.propNyxStall = imgToCanvas(nyxStallImg);
+  art.propJukebox = imgToCanvas(jukeboxImg);
+  art.propBotDock = imgToCanvas(botDockImg);
   art.propTrophyS1 = imgToCanvas(trophyS1Img);
   art.podIntact = imgToCanvas(podImg);
   art.chestClosed = imgToCanvas(chestClosedImg);

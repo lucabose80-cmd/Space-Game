@@ -1,4 +1,11 @@
 import { getHDArt } from '../assets/artLoader';
+import {
+  COMPANION_DEFS,
+  COMPANION_ORDER,
+  evaluateCompanionUnlock,
+  MARKET_EVENT_META,
+  MUSIC_TRACK_META,
+} from '../data/companions';
 import { getItemDef, ITEMS, RARITY_META } from '../data/items';
 import { UPGRADE_TRACKS, WEAPON_META } from '../data/upgrades';
 import { sound } from '../engine/audio';
@@ -19,7 +26,15 @@ import {
   takeOneFromSlot,
   type ContainerId,
 } from '../systems/inventory';
-import type { PedestalSlot, RunSummary, SceneId, UpgradeKey, WeaponId } from '../types';
+import type {
+  CompanionId,
+  MusicTrack,
+  PedestalSlot,
+  RunSummary,
+  SceneId,
+  UpgradeKey,
+  WeaponId,
+} from '../types';
 
 export interface UIHooks {
   onStartNewGame: () => void;
@@ -28,6 +43,7 @@ export interface UIHooks {
   onSwapWeapon: () => void;
   onModalStateChange: (open: boolean) => void;
   onMuteToggle: () => void;
+  onMusicToggle: () => void;
 }
 
 export class UIManager {
@@ -151,6 +167,8 @@ export class UIManager {
     const enPct = Math.max(0, Math.min(100, this.state.energy));
     const bagCount = countBackpackItems(this.state.inventory);
     const wMeta = WEAPON_META[this.state.equippedWeapon];
+    const compDef = this.state.equippedCompanion ? COMPANION_DEFS[this.state.equippedCompanion] : null;
+    const evMeta = MARKET_EVENT_META[this.state.marketEvent];
     const isNight = this.state.timeOfDay === 'night';
     const timeLabel = isNight ? `🌙 NACHT ${this.state.day}` : `☀ TAG ${this.state.day}`;
     const timeColor = isNight ? '#818cf8' : 'var(--accent-amber)';
@@ -175,15 +193,20 @@ export class UIManager {
     const hintText =
       this.currentScene === 'shop'
         ? this.shopIsOpen
-          ? 'Kunden stöbern! Geh rechts hinter den Tresen [E] & schnapp Diebe mit [SPACE]!'
-          : 'Podeste [E] · Oben links: Hinterzimmer (Bett & Truhen) · Auftrags-Pinnwand · Laden [O]'
+          ? 'Kunden stöbern! Geh rechts hinter den Tresen [E] · VIP-Sammler zahlen +40 % · Diebe fangen [SPACE]!'
+          : 'Podeste [E] · Oben links: Hinterzimmer (Bett, Truhen, Drohnen & Jukebox) · Laden [O]'
         : this.currentScene === 'backroom'
-          ? 'Privates Kapitäns-Quartier: Ruhekapsel (Tag↔Nacht), Lagertruhen, Waffen-Ständer & Sektor-1-Trophäe!'
+          ? 'Kapitäns-Quartier: Ruhekapsel (Tag↔Nacht), Drohnen-Dock (Begleiter), Sternen-Jukebox & Lagertruhen!'
           : this.currentScene === 'hub'
             ? isNight
-              ? '🌙 Nacht-Bonus aktiv: +35 % seltener & epischer Loot in Sektor 1!'
-              : 'Oben: Kael (Schmiede) & Dr. Lyra (Med-Bay) · Unten rechts: Vex (Tech-Labor) · Rechts: Sektor 1!'
+              ? '🌙 Nacht-Bonus aktiv: +35 % seltener Loot in Sektor 1 · Unten links: Nyx (Schwarzmarkt)!'
+              : 'Oben: Kael (6 Waffen) & Dr. Lyra · Unten: Nyx (Schwarzmarkt) & Vex (Tech-Labor) · Rechts: Sektor 1!'
             : `${wMeta.name} (${this.state.equippedWeapon === 'blade' ? 'Schild verbraucht EN · Perfekt-Parade!' : wMeta.secondaryLabel}) · [R] Extraktion`;
+
+    const eventPillHtml =
+      this.state.marketEvent !== 'normal' && (this.currentScene === 'shop' || this.currentScene === 'hub')
+        ? `<div style="margin-top:2px;padding:2px 6px;border:1px solid ${evMeta.color};background:rgba(15,23,42,0.85);font-family:var(--font-pixel);font-size:8px;color:${evMeta.color};text-align:center" title="${evMeta.description}">★ ${evMeta.shortBadge}</div>`
+        : '';
 
     this.hudEl.innerHTML = `
       <div class="hud-top">
@@ -214,12 +237,21 @@ export class UIManager {
             <span class="hud-credits">${this.state.credits} CR</span>
             <span class="hud-stims">STIM: ${this.state.stimCharges}/${stats.maxStimCharges}</span>
           </div>
-          <div class="hud-meta-row" style="border-top:none;padding-top:1px;margin-top:0">
+          <div class="hud-meta-row" style="border-top:none;padding-top:1px;margin-top:0;gap:8px">
             <button id="hud-weapon-chip" style="display:inline-flex;align-items:center;gap:5px;background:none;border:none;color:${wMeta.accentColor};font-family:var(--font-pixel);font-size:8.5px;cursor:pointer;pointer-events:auto;padding:0" title="Waffe wechseln [C]">
               <img src="${wMeta.iconUrl}" alt="${wMeta.name}" style="width:14px;height:14px;image-rendering:pixelated" />
               <span>${wMeta.name}${this.state.secondaryWeapon ? ' [C]' : ''}</span>
             </button>
+            ${
+              compDef
+                ? `<span style="display:inline-flex;align-items:center;gap:3px;font-family:var(--font-pixel);font-size:8px;color:${compDef.accentColor}" title="${compDef.name}: ${compDef.abilitySummary}">
+                    <img src="${compDef.iconUrl}" alt="${compDef.shortName}" style="width:12px;height:12px;image-rendering:pixelated" />
+                    <span>${compDef.shortName}</span>
+                  </span>`
+                : ''
+            }
           </div>
+          ${eventPillHtml}
         </div>
 
         <div class="hud-center">
@@ -239,8 +271,11 @@ export class UIManager {
               : ''
           }
           <button id="hud-bag-btn" class="hud-btn">[I] Fracht (${bagCount})</button>
-          <button id="hud-mute-btn" class="hud-btn" title="Ton umschalten [M]">
-            ${sound.isMuted() ? 'TON AUS' : 'TON AN'}
+          <button id="hud-music-btn" class="hud-btn" title="Musik umschalten [M]">
+            ${sound.isMusicMuted() || sound.isMuted() ? '♪ AUS' : '♪ MUSIK'}
+          </button>
+          <button id="hud-mute-btn" class="hud-btn" title="Alle Töne stumm/an">
+            ${sound.isMuted() ? 'TON AUS' : 'SFX AN'}
           </button>
         </div>
       </div>
@@ -256,11 +291,11 @@ export class UIManager {
                  <span><kbd>I</kbd>Fracht &amp; Codex</span>`
               : this.currentScene === 'backroom'
                 ? `<span><kbd>WASD</kbd>Quartier</span>
-                   <span><kbd>E</kbd>Bett / Truhen / Trophäe</span>
+                   <span><kbd>E</kbd>Bett / Drohnen / Jukebox / Truhen</span>
                    <span><kbd>I</kbd>Lager &amp; Waffen</span>`
                 : this.currentScene === 'hub'
                   ? `<span><kbd>WASD</kbd>Promenade</span>
-                     <span><kbd>E</kbd>Shops / Tech-Labor / Warp</span>
+                     <span><kbd>E</kbd>Shops / Nyx / Vex / Warp</span>
                      <span><kbd>I</kbd>Fracht &amp; Codex</span>`
                   : `<span><kbd>LMB/J</kbd>${wMeta.shortName}</span>
                      <span><kbd>RMB/K</kbd>${this.state.equippedWeapon === 'blade' ? 'Schild' : 'Spezial'}</span>
@@ -282,6 +317,10 @@ export class UIManager {
     });
     this.hudEl.querySelector('#hud-shop-toggle')?.addEventListener('click', () => {
       this.hooks.onToggleShopOpen();
+    });
+    this.hudEl.querySelector('#hud-music-btn')?.addEventListener('click', () => {
+      sound.unlock();
+      this.hooks.onMusicToggle();
     });
     this.hudEl.querySelector('#hud-mute-btn')?.addEventListener('click', () => {
       this.hooks.onMuteToggle();
@@ -372,8 +411,8 @@ export class UIManager {
       const selEntry = selStack ? this.state.codex[selStack.itemId] : null;
       const selRarity = selDef ? RARITY_META[selDef.rarity] : null;
 
-      // Active Weapon Loadout Strip (all 4 Frontier weapon classes!)
-      const unlockedList = (['blade', 'spear', 'blaster', 'hammer'] as WeaponId[]).filter(
+      // Active Weapon Loadout Strip (all 6 Frontier weapon classes!)
+      const unlockedList = (['blade', 'spear', 'fists', 'discus', 'blaster', 'hammer'] as WeaponId[]).filter(
         (id) => this.state.unlockedWeapons[id],
       );
       const weaponBarHtml = `
@@ -1032,6 +1071,8 @@ export class UIManager {
         }
 
         const canAfford = this.state.canAffordUpgrade(track.key);
+        const tierLocked =
+          track.requiresShopTier !== undefined && (this.state.upgrades.shopTier ?? 0) < track.requiresShopTier;
         const hasCredits = this.state.credits >= nextTier.creditCost;
         const matsHtml = nextTier.materials
           .map((m) => {
@@ -1042,7 +1083,7 @@ export class UIManager {
           .join('');
 
         return `
-          <div class="upgrade-card" style="${track.key === 'shopTier' ? 'border-color:rgba(251,191,36,0.48)' : ''}">
+          <div class="upgrade-card" style="${track.key === 'shopTier' ? 'border-color:rgba(251,191,36,0.48)' : tierLocked ? 'opacity:0.78' : ''}">
             <div class="upgrade-left">
               <div class="inspector-icon-wrap">
                 <img class="pixel-icon" src="${track.iconUrl}" alt="${track.title}" />
@@ -1055,15 +1096,19 @@ export class UIManager {
                 <div style="font-size:12px;color:var(--text-muted)">
                   ${nextTier.description} · <strong style="color:var(--accent-amber)">${nextTier.statLabel}</strong>
                 </div>
-                <div class="mat-list">
-                  <span class="mat-pill ${hasCredits ? 'ok' : 'missing'}">${nextTier.creditCost} Cr</span>
-                  ${matsHtml}
-                </div>
+                ${
+                  tierLocked
+                    ? `<div style="font-size:11px;color:var(--accent-coral);margin-top:4px">🔒 Benötigt zuerst: Shop-Vergrößerung Stufe II (Astro-Barter Galerie)</div>`
+                    : `<div class="mat-list">
+                        <span class="mat-pill ${hasCredits ? 'ok' : 'missing'}">${nextTier.creditCost} Cr</span>
+                        ${matsHtml}
+                      </div>`
+                }
                 ${equipControls}
               </div>
             </div>
             <button class="btn ${track.key === 'shopTier' ? 'btn-amber' : 'btn-primary'} btn-buy-upgrade" data-key="${track.key}" ${canAfford ? '' : 'disabled'}>
-              ${isShopTerm ? 'Ausbauen' : isTechLab ? 'Installieren' : 'Verbessern'}
+              ${tierLocked ? 'Gesperrt' : isShopTerm ? 'Ausbauen' : isTechLab ? 'Installieren' : 'Verbessern'}
             </button>
           </div>
         `;
@@ -1451,6 +1496,265 @@ export class UIManager {
     this.modalEl.querySelector('#btn-summary-ok')?.addEventListener('click', () => {
       sound.playUiClick();
       this.closeModal();
+    });
+  }
+
+  // ==================== NYX' SCHWARZMARKT (TÄGLICHE SCHMUGGLER-WARE) ====================
+  public openBlackMarketModal(): void {
+    const art = getHDArt();
+    if (!this.state.nyxStock || this.state.nyxStock.length === 0) {
+      this.state.nyxStock = this.state.generateNyxStock();
+    }
+
+    const cardsHtml = this.state.nyxStock
+      .map((offer) => {
+        const def = getItemDef(offer.itemId);
+        const rarity = RARITY_META[def.rarity];
+        const soldOut = offer.stock <= 0;
+        const canBuy = !soldOut && this.state.credits >= offer.price;
+        const owned = countItemTotal(this.state.inventory, offer.itemId);
+        return `
+          <div class="upgrade-card" style="border-color:${soldOut ? 'var(--border-steel)' : rarity.border};${soldOut ? 'opacity:0.55' : ''}">
+            <div class="upgrade-left">
+              <div class="inspector-icon-wrap" style="border-color:${rarity.border}">
+                <img class="pixel-icon" src="${art.itemUrls[offer.itemId]}" alt="${def.name}" />
+              </div>
+              <div>
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                  <strong style="font-family:var(--font-pixel);font-size:11px;color:${rarity.color}">${def.name}</strong>
+                  <span class="rarity-badge" style="color:${rarity.color};background:${rarity.bg};border-color:${rarity.border}">${rarity.label}</span>
+                </div>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${def.description}</div>
+                <div class="mat-list">
+                  <span class="mat-pill ${this.state.credits >= offer.price ? 'ok' : 'missing'}">${offer.price} Cr</span>
+                  <span class="mat-pill" style="color:var(--text-muted)">Vorrat: ${offer.stock}</span>
+                  <span class="mat-pill" style="color:var(--accent-cyan)">Im Besitz: ${owned}</span>
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-amber btn-nyx-buy" data-oid="${offer.id}" ${canBuy ? '' : 'disabled'}>
+              ${soldOut ? 'Ausverkauft' : 'Kaufen'}
+            </button>
+          </div>
+        `;
+      })
+      .join('');
+
+    this.showModalHtml(`
+      <div class="modal-window">
+        <div class="modal-header">
+          <span class="modal-title" style="color:#c084fc">NYX' SCHWARZMARKT · TAG ${this.state.day}</span>
+          <span style="font-family:var(--font-pixel);font-size:11px;color:var(--accent-amber)">${this.state.credits} CR</span>
+          <button id="modal-close-btn" class="modal-close">ESC ✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="npc-banner" style="border-color:rgba(192,132,252,0.45)">
+            <img src="/art/sprites/npc_nyx.png" alt="Nyx" style="width:46px;height:52px;image-rendering:pixelated" />
+            <div>
+              <div style="font-family:var(--font-pixel);font-size:11px;color:#e879f9">SCHWARZMARKT-HÄNDLERIN NYX</div>
+              <p style="font-size:12px;color:var(--text-muted);margin-top:3px">
+                „Psst… dir fehlt noch ein seltenes Schmiede- oder Modul-Teil? Mein Lager wechselt jeden Morgen — kein Nachfragen, woher es stammt.“
+              </p>
+            </div>
+          </div>
+          <div class="upgrade-list">${cardsHtml}</div>
+        </div>
+      </div>
+    `);
+
+    this.modalEl.querySelectorAll<HTMLElement>('.btn-nyx-buy').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const oid = btn.dataset.oid!;
+        const res = this.state.buyFromNyx(oid);
+        if (res.ok) {
+          sound.playRegister();
+          this.toast(`Bei Nyx gekauft: 1× ${res.itemName}!`, 'good');
+          this.openBlackMarketModal();
+          this.renderHud();
+        } else {
+          sound.playReaction('expensive');
+          this.toast(res.reason ?? 'Kauf fehlgeschlagen!', 'warn');
+        }
+      });
+    });
+  }
+
+  // ==================== DROHNEN-DOCKSTATION (FREISCHALTBARE BEGLEITER-BOTS) ====================
+  public openCompanionDockModal(): void {
+    this.state.checkCompanionUnlocks();
+    const snap = this.state.getCompanionProgressSnapshot();
+    const unlockedCount = COMPANION_ORDER.filter((id) => this.state.unlockedCompanions[id]).length;
+
+    const cardsHtml = COMPANION_ORDER.map((id) => {
+      const def = COMPANION_DEFS[id];
+      const unlocked = this.state.unlockedCompanions[id];
+      const active = this.state.equippedCompanion === id;
+      const evalInfo = evaluateCompanionUnlock(id, snap);
+      const pct = Math.round(evalInfo.ratio * 100);
+
+      return `
+        <div class="upgrade-card" style="border-color:${active ? def.accentColor : unlocked ? 'rgba(56,232,212,0.4)' : 'var(--border-steel)'};${unlocked ? '' : 'opacity:0.84'}">
+          <div class="upgrade-left">
+            <div class="inspector-icon-wrap" style="border-color:${unlocked ? def.accentColor : 'var(--border-steel)'};${unlocked ? '' : 'filter:grayscale(0.9) brightness(0.65)'}">
+              <img class="pixel-icon" src="${def.iconUrl}" alt="${def.name}" />
+            </div>
+            <div style="flex:1">
+              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                <strong style="font-family:var(--font-pixel);font-size:11px;color:${unlocked ? def.accentColor : '#94a3b8'}">${def.name}</strong>
+                <span class="rarity-badge" style="color:${unlocked ? '#4ade80' : '#94a3b8'};border-color:${unlocked ? '#4ade80' : '#475569'}">
+                  ${active ? '★ AKTIV' : unlocked ? def.role : '🔒 GESPERRT'}
+                </span>
+              </div>
+              <div style="font-size:12px;color:var(--text-main);margin-top:3px">${def.abilitySummary}</div>
+              ${
+                unlocked
+                  ? `<div style="font-size:11px;color:var(--accent-emerald);margin-top:3px">✓ Freigeschaltet — begleitet dich auf jeder Expedition in Sektor 1!</div>`
+                  : `<div style="font-size:11px;color:var(--accent-amber);margin-top:4px">Bedingung: ${def.unlockRequirement}</div>
+                     <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+                       <div style="flex:1;height:6px;background:#0f172a;border:1px solid #334155">
+                         <div style="height:100%;width:${pct}%;background:${def.accentColor}"></div>
+                       </div>
+                       <span style="font-family:var(--font-pixel);font-size:9px;color:var(--text-muted)">${evalInfo.progressText}</span>
+                     </div>`
+              }
+            </div>
+          </div>
+          ${
+            unlocked
+              ? `<button class="btn ${active ? '' : 'btn-primary'} btn-equip-companion" data-cid="${id}">
+                  ${active ? 'Ablegen' : 'Ausrüsten'}
+                </button>`
+              : `<button class="btn" disabled>Gesperrt</button>`
+          }
+        </div>
+      `;
+    }).join('');
+
+    this.showModalHtml(`
+      <div class="modal-window">
+        <div class="modal-header">
+          <span class="modal-title" style="color:#38bdf8">DROHNEN-DOCKSTATION (${unlockedCount}/4)</span>
+          <button id="modal-close-btn" class="modal-close">ESC ✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="npc-banner" style="border-color:rgba(56,189,248,0.45)">
+            <img src="/art/sprites/prop_bot_dock.png" alt="Drohnen-Dock" style="width:46px;height:44px;image-rendering:pixelated" />
+            <div>
+              <div style="font-family:var(--font-pixel);font-size:11px;color:#38bdf8">AUTONOME BEGLEITER-BOTS (FAMILIARS)</div>
+              <p style="font-size:12px;color:var(--text-muted);margin-top:3px">
+                Schalte bis zu 4 einzigartige Helfer-Drohnen durch Handels- &amp; Kampf-Meilensteine frei. Du kannst immer 1 Begleiter aktiv mit in den Sektor nehmen!
+              </p>
+            </div>
+          </div>
+          <div class="upgrade-list">${cardsHtml}</div>
+        </div>
+      </div>
+    `);
+
+    this.modalEl.querySelectorAll<HTMLElement>('.btn-equip-companion').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const cid = btn.dataset.cid as CompanionId;
+        const next: CompanionId | null = this.state.equippedCompanion === cid ? null : cid;
+        this.state.equipCompanion(next);
+        sound.playWeaponSwap();
+        this.toast(
+          next ? `${COMPANION_DEFS[next].name} aktiviert & folgt dir in Sektor 1!` : 'Begleiter-Bot im Dock geparkt.',
+          'good',
+        );
+        this.openCompanionDockModal();
+        this.renderHud();
+      });
+    });
+  }
+
+  // ==================== STERNEN-JUKEBOX (RETRO-SYNTH SOUNDTRACK) ====================
+  public openJukeboxModal(): void {
+    const override = sound.getJukeboxOverride();
+    const activeTrack = sound.getActiveMusicTrack();
+    const musicMuted = sound.isMusicMuted() || sound.isMuted();
+    const trackIds: MusicTrack[] = ['shop_day', 'shop_night', 'hub', 'dungeon', 'boss'];
+
+    const rowsHtml = trackIds
+      .map((tid) => {
+        const meta = MUSIC_TRACK_META[tid];
+        const isLockedHere = override === tid;
+        const isPlayingNow = !musicMuted && activeTrack === tid;
+        return `
+          <div class="upgrade-card" style="border-color:${isLockedHere ? meta.accent : 'var(--border-steel)'}">
+            <div class="upgrade-left">
+              <div class="inspector-icon-wrap" style="border-color:${meta.accent};color:${meta.accent};font-family:var(--font-pixel);font-size:15px">
+                ${isPlayingNow ? '♫' : '♪'}
+              </div>
+              <div>
+                <div style="font-family:var(--font-pixel);font-size:11px;color:${meta.accent}">
+                  ${meta.title} ${isPlayingNow ? '<span style="color:#4ade80;font-size:9px">● LÄUFT</span>' : ''}
+                </div>
+                <div style="font-size:12px;color:var(--text-muted)">${meta.subtitle}</div>
+              </div>
+            </div>
+            <button class="btn ${isLockedHere ? 'btn-amber' : 'btn-primary'} btn-juke-track" data-tid="${tid}">
+              ${isLockedHere ? '✓ Gewählt' : 'Abspielen'}
+            </button>
+          </div>
+        `;
+      })
+      .join('');
+
+    this.showModalHtml(`
+      <div class="modal-window" style="max-width:600px">
+        <div class="modal-header">
+          <span class="modal-title" style="color:#e879f9">♪ STERNEN-JUKEBOX</span>
+          <button id="modal-close-btn" class="modal-close">ESC ✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="npc-banner" style="border-color:rgba(232,121,249,0.45)">
+            <img src="/art/sprites/prop_jukebox.png" alt="Jukebox" style="width:42px;height:50px;image-rendering:pixelated" />
+            <div style="flex:1">
+              <div style="font-family:var(--font-pixel);font-size:11px;color:#f0abfc">RETRO-SYNTH SOUNDTRACK</div>
+              <p style="font-size:12px;color:var(--text-muted);margin-top:3px">
+                Wähle „Automatik“ für dynamische Zonen-Musik (Tag, Nacht, Promenade, Sektor &amp; Boss) oder fixiere deinen Lieblings-Track!
+              </p>
+              <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+                <button id="btn-juke-auto" class="btn ${override === null ? 'btn-amber' : ''}">
+                  ${override === null ? '✓ Automatik (Zonen-Musik)' : 'Zurück auf Automatik'}
+                </button>
+                <button id="btn-juke-mute" class="btn">
+                  ${musicMuted ? '♪ Musik einschalten' : '♪ Musik stummschalten'}
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="upgrade-list">${rowsHtml}</div>
+        </div>
+      </div>
+    `);
+
+    this.modalEl.querySelector('#btn-juke-auto')?.addEventListener('click', () => {
+      sound.unlock();
+      sound.playUiClick();
+      sound.setJukeboxTrack(null);
+      this.toast('Jukebox auf dynamische Zonen-Musik gestellt.', 'info');
+      this.openJukeboxModal();
+    });
+
+    this.modalEl.querySelector('#btn-juke-mute')?.addEventListener('click', () => {
+      sound.unlock();
+      this.hooks.onMusicToggle();
+      this.openJukeboxModal();
+    });
+
+    this.modalEl.querySelectorAll<HTMLElement>('.btn-juke-track').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const tid = btn.dataset.tid as MusicTrack;
+        sound.unlock();
+        if (sound.isMusicMuted()) {
+          this.hooks.onMusicToggle();
+        }
+        sound.setJukeboxTrack(tid);
+        sound.playUiClick();
+        this.toast(`♫ Jukebox spielt jetzt: ${MUSIC_TRACK_META[tid].title}`, 'good');
+        this.openJukeboxModal();
+      });
     });
   }
 }

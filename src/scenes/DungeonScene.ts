@@ -1,6 +1,7 @@
 import { getHDArt } from '../assets/artLoader';
 import { drawGlow, drawPixelShadow } from '../assets/pixelArt';
 import { getAtlas } from '../assets/sprites';
+import { COMPANION_DEFS } from '../data/companions';
 import { getItemDef, rollLootItem } from '../data/items';
 import { WEAPON_META } from '../data/upgrades';
 import { sound } from '../engine/audio';
@@ -79,6 +80,31 @@ interface SpearThrustFx {
   isCharge: boolean;
   life: number;
   maxLife: number;
+}
+
+interface FistBurstFx {
+  x: number;
+  y: number;
+  angle: number;
+  step: number;
+  isFinisher: boolean;
+  life: number;
+  maxLife: number;
+}
+
+interface DiscusProjectile {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  speed: number;
+  damage: number;
+  bouncesLeft: number;
+  recalling: boolean;
+  spin: number;
+  life: number;
+  hitCooldowns: Map<number, number>;
+  trail: Array<{ x: number; y: number }>;
 }
 
 interface Enemy {
@@ -271,6 +297,11 @@ export class DungeonScene {
   private lanceChargeTimer = 0;
   private lanceChargeAngle = 0;
   private lanceHitIds = new Set<number>();
+  private cometSlamTimer = 0;
+  private cometSlamAngle = 0;
+  private discusOrbitTimer = 0;
+  private discusOrbitAngle = 0;
+  private discusOrbitHitCds = new Map<number, number>();
   private invulnTimer = 0;
   private playerFlashTimer = 0;
 
@@ -298,6 +329,14 @@ export class DungeonScene {
   private swingPoseDir: 1 | -1 = 1;
   private swingPoseCombo = 0;
 
+  // Companion Bot (Familiar) live dungeon state
+  private companionX = ROOM_CENTER_X - 18;
+  private companionY = ROOM_CENTER_Y + 18;
+  private sparkFireTimer = 0.7;
+  private lumaRoomCounter = 0;
+  private haloShieldReady = false;
+  private haloChargeTimer = 0;
+
   // Warp-Beacon channel
   private warpChannel = 0;
   private readonly warpDuration = 1.25;
@@ -306,9 +345,11 @@ export class DungeonScene {
   // Room entities & FX
   private enemies: Enemy[] = [];
   private projectiles: Projectile[] = [];
+  private discs: DiscusProjectile[] = [];
   private drops: LootDrop[] = [];
   private swings: WeaponSwing[] = [];
   private thrusts: SpearThrustFx[] = [];
+  private fistBursts: FistBurstFx[] = [];
   private debrisDrops: DebrisDrop[] = [];
   private slashHits: SlashHitFx[] = [];
   private bossAfterimages: BossAfterimage[] = [];
@@ -342,12 +383,19 @@ export class DungeonScene {
     this.callbacks = callbacks;
   }
 
+  public isInBossFight(): boolean {
+    return this.currentRoom?.type === 'boss' && this.enemies.some((e) => this.isBossKind(e.kind));
+  }
+
   public startRun(): void {
     this.state.restoreFullVitals();
     this.roomsCleared = 0;
     this.enemiesDefeated = 0;
     this.maxFloorReached = 1;
     this.sector1ClearedInRun = false;
+    this.lumaRoomCounter = 0;
+    this.haloShieldReady = this.state.equippedCompanion === 'halo';
+    this.haloChargeTimer = 0;
     this.finished = false;
     this.startFloor(1, true);
   }
@@ -366,12 +414,16 @@ export class DungeonScene {
     this.dashCooldown = 0;
     this.dashTimer = 0;
     this.lanceChargeTimer = 0;
+    this.cometSlamTimer = 0;
+    this.discusOrbitTimer = 0;
     this.attackCooldown = 0;
     this.specialCooldown = 0;
     this.shieldActive = false;
     this.shieldOpenAnim = 0;
     this.shieldOverheatTimer = 0;
     this.shieldOverheatMsgCd = 0;
+    this.haloShieldReady = this.state.equippedCompanion === 'halo';
+    this.haloChargeTimer = 0;
     this.enterRoom(this.floor.startKey, null);
     this.spawnBurst(this.playerX, this.playerY, floorIndex === 3 ? '#fbbf24' : '#38e8d4', 22);
 
@@ -404,9 +456,11 @@ export class DungeonScene {
 
     this.enemies = [];
     this.projectiles = [];
+    this.discs = [];
     this.drops = [];
     this.swings = [];
     this.thrusts = [];
+    this.fistBursts = [];
     this.debrisDrops = [];
     this.slashHits = [];
     this.bossAfterimages = [];
@@ -631,7 +685,8 @@ export class DungeonScene {
       }
     } else {
       const regenRate = this.shieldOverheatTimer > 0 ? 11 : 16;
-      this.state.energy = Math.min(100, this.state.energy + regenRate * stats.energyRegenMult * dt);
+      const lumaMult = this.state.equippedCompanion === 'luma' ? 1.15 : 1.0;
+      this.state.energy = Math.min(100, this.state.energy + regenRate * stats.energyRegenMult * lumaMult * dt);
     }
     if (Math.floor(this.state.energy) !== prevEnergy) {
       this.callbacks.onHudDirty();
@@ -673,9 +728,11 @@ export class DungeonScene {
     }
 
     this.updatePlayer(dt, input);
+    this.updateCompanion(dt);
     this.updateHazardsAndDebris(dt);
     this.updateEnemies(dt);
     this.updateProjectiles(dt);
+    this.updateDiscs(dt);
     this.updateDrops(dt);
     this.updateRoomInteractions(input);
     this.updateEffects(dt);
@@ -765,6 +822,39 @@ export class DungeonScene {
     const move = input.getMoveVector();
     const weapon: WeaponId = this.state.equippedWeapon;
     const stats = this.state.getStats();
+
+    // Active Comet-Slam Lunge (Kinetik-Fäuste Secondary leaping slam!)
+    if (this.cometSlamTimer > 0) {
+      this.cometSlamTimer = Math.max(0, this.cometSlamTimer - dt);
+      const speed = 265;
+      this.moveEntityWithCollisions(
+        Math.cos(this.cometSlamAngle) * speed * dt,
+        Math.sin(this.cometSlamAngle) * speed * dt,
+      );
+      if (Math.random() < 0.85) {
+        this.afterimages.push({
+          x: this.playerX,
+          y: this.playerY,
+          facing: this.facing,
+          life: 0.16,
+          maxLife: 0.16,
+        });
+        this.particles.push({
+          x: this.playerX + (Math.random() - 0.5) * 8,
+          y: this.playerY + (Math.random() - 0.5) * 8,
+          vx: -Math.cos(this.cometSlamAngle) * 45,
+          vy: -Math.sin(this.cometSlamAngle) * 45,
+          color: Math.random() > 0.4 ? '#fbbf24' : '#38e8d4',
+          size: 2.2,
+          life: 0.22,
+          maxLife: 0.22,
+        });
+      }
+      if (this.cometSlamTimer <= 0) {
+        this.triggerCometImpact();
+      }
+      return;
+    }
 
     // Active Ion-Lance Charge (Spear Secondary piercing i-frame dash!)
     if (this.lanceChargeTimer > 0) {
@@ -976,6 +1066,10 @@ export class DungeonScene {
         this.performPlasmaSlash(aim);
       } else if (weapon === 'spear') {
         this.performSpearThrust(aim);
+      } else if (weapon === 'fists') {
+        this.performFistCombo(aim);
+      } else if (weapon === 'discus') {
+        this.performDiscusThrow(aim);
       } else if (weapon === 'blaster') {
         this.performBlasterShot(aim);
       } else {
@@ -989,6 +1083,10 @@ export class DungeonScene {
       this.lastAimAngle = aim;
       if (weapon === 'spear') {
         this.performIonLanceCharge(aim);
+      } else if (weapon === 'fists') {
+        this.performCometSlam(aim);
+      } else if (weapon === 'discus') {
+        this.performDiscusRecall();
       } else if (weapon === 'blaster') {
         this.performPiercingBeam(aim);
       } else if (weapon === 'hammer') {
@@ -1514,6 +1612,510 @@ export class DungeonScene {
       }
     }
     this.callbacks.onHudDirty();
+  }
+
+  // ==================== KINETIK-FÄUSTE (4er-SERIE + KOMETEN-SPRUNG) ====================
+  private performFistCombo(angle: number): void {
+    const stats = this.state.getStats();
+    const step = this.comboStep % 4;
+    const isFinisher = step === 3;
+    const range = isFinisher ? stats.fistsRange * 1.32 : stats.fistsRange;
+    const damage = isFinisher ? Math.round(stats.fistsDamage * 1.65) : stats.fistsDamage;
+    const duration = isFinisher ? 0.22 : 0.12;
+
+    this.orientFacing(angle);
+    this.swingPoseTimer = duration;
+    this.swingPoseMax = duration;
+    this.swingPoseAngle = angle;
+    this.swingPoseDir = step % 2 === 0 ? 1 : -1;
+    this.swingPoseCombo = isFinisher ? 2 : step % 2;
+
+    // Mobile snappy step-in punch feel!
+    const stepIn = isFinisher ? 10 : 6;
+    this.moveEntityWithCollisions(Math.cos(angle) * stepIn, Math.sin(angle) * stepIn);
+
+    sound.playFistPunch(step);
+    const punchX = this.playerX + Math.cos(angle) * (range * 0.55);
+    const punchY = this.playerY - 1 + Math.sin(angle) * (range * 0.55);
+
+    this.fistBursts.push({
+      x: punchX,
+      y: punchY,
+      angle,
+      step,
+      isFinisher,
+      life: isFinisher ? 0.22 : 0.13,
+      maxLife: isFinisher ? 0.22 : 0.13,
+    });
+
+    if (isFinisher) {
+      this.shockwaves.push({
+        x: punchX,
+        y: punchY,
+        maxRadius: range * 1.35,
+        color: '#fbbf24',
+        life: 0.22,
+        maxLife: 0.22,
+      });
+    }
+
+    for (let k = 0; k < (isFinisher ? 12 : 5); k++) {
+      const spread = (Math.random() - 0.5) * (isFinisher ? 1.5 : 0.9);
+      const sp = (isFinisher ? 62 : 42) + Math.random() * 44;
+      this.particles.push({
+        x: punchX,
+        y: punchY,
+        vx: Math.cos(angle + spread) * sp,
+        vy: Math.sin(angle + spread) * sp,
+        color: k % 2 === 0 ? '#38e8d4' : '#fbbf24',
+        size: isFinisher ? 2.1 : 1.5,
+        life: 0.18 + Math.random() * 0.12,
+        maxLife: 0.3,
+      });
+    }
+
+    let hitAny = false;
+    for (const e of [...this.enemies]) {
+      if (e.kind === 'boss' && (e.bossHeight ?? 0) > 28) continue;
+      const hitPt = this.getClosestEnemyHitPoint(e, punchX, punchY);
+      const dx = hitPt.x - this.playerX;
+      const dy = hitPt.y - this.playerY;
+      const dist = Math.hypot(dx, dy);
+      if (dist > range + hitPt.r + 4) continue;
+      const diff = Math.abs(this.normalizeAngle(Math.atan2(dy, dx) - angle));
+      if (diff <= (isFinisher ? 1.25 : 0.95) || dist < hitPt.r + 12) {
+        this.slashHits.push({
+          x: hitPt.x,
+          y: hitPt.y - 2,
+          angle: angle + (Math.random() - 0.5) * 0.6,
+          color: isFinisher ? '#fbbf24' : '#38e8d4',
+          life: 0.15,
+          maxLife: 0.15,
+        });
+        // 4th-hit uppercut breaks frontal shields!
+        this.damageEnemy(e, damage, Math.cos(angle), Math.sin(angle), isFinisher ? 175 : 70, isFinisher);
+        hitAny = true;
+      }
+    }
+
+    for (const pod of this.currentRoom.pods) {
+      if (!pod.broken && Math.hypot(pod.x - punchX, pod.y - punchY) <= range + 6) {
+        this.breakPod(pod);
+        hitAny = true;
+      }
+    }
+
+    if (hitAny) {
+      this.hitStop = isFinisher ? 0.048 : 0.018;
+      this.triggerShake(isFinisher ? 0.15 : 0.06, isFinisher ? 3.0 : 1.2);
+      this.state.energy = Math.min(100, this.state.energy + (isFinisher ? 12 : 6));
+      this.callbacks.onHudDirty();
+    }
+
+    this.attackCooldown = isFinisher ? 0.24 : 0.13;
+    this.comboStep = (step + 1) % 4;
+    this.comboResetTimer = 0.56;
+  }
+
+  private performCometSlam(angle: number): void {
+    const cost = 32;
+    if (this.state.energy < cost) {
+      this.callbacks.onToast('Zu wenig Energie für Kometen-Sprung (32 EN)!', 'warn');
+      return;
+    }
+    this.state.energy -= cost;
+    this.specialCooldown = 0.78;
+    this.attackCooldown = 0.28;
+    this.cometSlamTimer = 0.22;
+    this.cometSlamAngle = angle;
+    this.invulnTimer = Math.max(this.invulnTimer, 0.34);
+    this.orientFacing(angle);
+    sound.playDash();
+    this.spawnBurst(this.playerX, this.playerY, '#fbbf24', 10);
+    this.callbacks.onHudDirty();
+  }
+
+  private triggerCometImpact(): void {
+    const stats = this.state.getStats();
+    const dmg = Math.round(stats.fistsDamage * 2.15);
+    const maxR = 48;
+
+    sound.playCometSlam();
+    this.triggerShake(0.24, 4.2);
+    this.shockwaves.push({
+      x: this.playerX,
+      y: this.playerY,
+      maxRadius: maxR,
+      color: '#fbbf24',
+      life: 0.28,
+      maxLife: 0.28,
+    });
+    this.decals.push({
+      x: this.playerX,
+      y: this.playerY + 4,
+      r: 22,
+      color: 'rgba(251, 146, 60, 0.35)',
+      life: 2.2,
+      maxLife: 2.2,
+    });
+    this.spawnBurst(this.playerX, this.playerY, '#fbbf24', 18);
+    this.spawnBurst(this.playerX, this.playerY, '#38e8d4', 10);
+
+    for (const e of [...this.enemies]) {
+      if (e.kind === 'boss' && (e.bossHeight ?? 0) > 28) continue;
+      const hitPt = this.getClosestEnemyHitPoint(e, this.playerX, this.playerY);
+      const dx = hitPt.x - this.playerX;
+      const dy = hitPt.y - this.playerY;
+      const dist = Math.max(1, Math.hypot(dx, dy));
+      if (dist <= maxR + hitPt.r) {
+        this.damageEnemy(e, dmg, dx / dist, dy / dist, 210, true);
+      }
+    }
+    for (const pod of this.currentRoom.pods) {
+      if (!pod.broken && Math.hypot(pod.x - this.playerX, pod.y - this.playerY) <= maxR) {
+        this.breakPod(pod);
+      }
+    }
+  }
+
+  // ==================== PHASEN-DISKUS (RICOCHET + MAGNET-RÜCKRUF / ORBIT) ====================
+  private performDiscusThrow(angle: number): void {
+    if (this.discs.length >= 2) {
+      // Gently recall oldest disc if player already has 2 active discs out!
+      this.discs[0].recalling = true;
+      this.attackCooldown = 0.16;
+      return;
+    }
+
+    const stats = this.state.getStats();
+    const speed = 235;
+    this.orientFacing(angle);
+    this.swingPoseTimer = 0.16;
+    this.swingPoseMax = 0.16;
+    this.swingPoseAngle = angle;
+    this.swingPoseDir = 1;
+    this.swingPoseCombo = 0;
+
+    sound.playDiscusThrow();
+    this.discs.push({
+      x: this.playerX + Math.cos(angle) * 10,
+      y: this.playerY - 1 + Math.sin(angle) * 10,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      speed,
+      damage: stats.discusDamage,
+      bouncesLeft: stats.discusBounces,
+      recalling: false,
+      spin: 0,
+      life: 2.6,
+      hitCooldowns: new Map<number, number>(),
+      trail: [],
+    });
+    this.attackCooldown = 0.24;
+  }
+
+  private performDiscusRecall(): void {
+    const cost = 28;
+    if (this.state.energy < cost) {
+      this.callbacks.onToast('Zu wenig Energie für Phasen-Rückruf / Orbit (28 EN)!', 'warn');
+      return;
+    }
+    this.state.energy -= cost;
+    this.specialCooldown = 0.65;
+    sound.playDiscusRecall();
+
+    if (this.discs.length > 0) {
+      // Magnet-Recall: pull all active discs straight through enemies for 1.7x piercing damage!
+      for (const d of this.discs) {
+        d.recalling = true;
+        d.hitCooldowns.clear();
+        d.life = Math.max(d.life, 1.5);
+      }
+      this.shockwaves.push({
+        x: this.playerX,
+        y: this.playerY,
+        maxRadius: 34,
+        color: '#c084fc',
+        life: 0.22,
+        maxLife: 0.22,
+      });
+      this.floats.push({
+        x: this.playerX,
+        y: this.playerY - 18,
+        text: 'MAGNET-RÜCKRUF!',
+        color: '#e879f9',
+        life: 0.85,
+        maxLife: 0.85,
+      });
+    } else {
+      // Klingen-Orbit: spawn twin spinning orbital phase blades around hero for 3.2s!
+      this.discusOrbitTimer = 3.2;
+      this.discusOrbitHitCds.clear();
+      this.shockwaves.push({
+        x: this.playerX,
+        y: this.playerY,
+        maxRadius: 36,
+        color: '#c084fc',
+        life: 0.24,
+        maxLife: 0.24,
+      });
+      this.floats.push({
+        x: this.playerX,
+        y: this.playerY - 18,
+        text: 'KLINGEN-ORBIT!',
+        color: '#c084fc',
+        life: 0.85,
+        maxLife: 0.85,
+      });
+    }
+    this.callbacks.onHudDirty();
+  }
+
+  private updateDiscs(dt: number): void {
+    const stats = this.state.getStats();
+
+    // Update active Orbiting Blade Ring (when Discus secondary activated with 0 discs in flight)
+    if (this.discusOrbitTimer > 0) {
+      this.discusOrbitTimer = Math.max(0, this.discusOrbitTimer - dt);
+      this.discusOrbitAngle += dt * 7.8;
+      for (const [eid, cd] of this.discusOrbitHitCds) {
+        if (cd - dt <= 0) this.discusOrbitHitCds.delete(eid);
+        else this.discusOrbitHitCds.set(eid, cd - dt);
+      }
+      const orbitR = 26;
+      const orbitDmg = Math.round(stats.discusDamage * 0.85);
+      for (let b = 0; b < 2; b++) {
+        const a = this.discusOrbitAngle + b * Math.PI;
+        const bx = this.playerX + Math.cos(a) * orbitR;
+        const by = this.playerY - 1 + Math.sin(a) * orbitR;
+        for (const e of [...this.enemies]) {
+          if (this.discusOrbitHitCds.has(e.id)) continue;
+          if (e.kind === 'boss' && (e.bossHeight ?? 0) > 28) continue;
+          if (this.getDistanceToEnemyHitbox(e, bx, by) <= 10) {
+            this.discusOrbitHitCds.set(e.id, 0.34);
+            const len = Math.max(1, Math.hypot(e.x - this.playerX, e.y - this.playerY));
+            this.damageEnemy(e, orbitDmg, (e.x - this.playerX) / len, (e.y - this.playerY) / len, 65, false);
+            this.spawnBurst(bx, by, '#c084fc', 5);
+          }
+        }
+        for (const pod of this.currentRoom.pods) {
+          if (!pod.broken && Math.hypot(pod.x - bx, pod.y - by) <= 13) {
+            this.breakPod(pod);
+          }
+        }
+      }
+    }
+
+    // Update bouncing / recalling Phase Discs!
+    for (let i = this.discs.length - 1; i >= 0; i--) {
+      const d = this.discs[i];
+      d.life -= dt;
+      d.spin += dt * (d.recalling ? 24 : 16);
+
+      for (const [eid, cd] of d.hitCooldowns) {
+        if (cd - dt <= 0) d.hitCooldowns.delete(eid);
+        else d.hitCooldowns.set(eid, cd - dt);
+      }
+
+      d.trail.push({ x: d.x, y: d.y });
+      if (d.trail.length > 7) d.trail.shift();
+
+      if (d.recalling) {
+        const dx = this.playerX - d.x;
+        const dy = this.playerY - d.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist < 14 || d.life <= 0) {
+          this.spawnBurst(this.playerX, this.playerY, '#c084fc', 6);
+          this.discs.splice(i, 1);
+          continue;
+        }
+        const recallSpeed = 320;
+        d.vx = (dx / dist) * recallSpeed;
+        d.vy = (dy / dist) * recallSpeed;
+        d.x += d.vx * dt;
+        d.y += d.vy * dt;
+      } else {
+        let nx = d.x + d.vx * dt;
+        let ny = d.y + d.vy * dt;
+        let bounced = false;
+
+        // Room wall bounce
+        if (nx <= ROOM_LEFT + 7 || nx >= ROOM_RIGHT - 7) {
+          d.vx = -d.vx;
+          nx = Math.max(ROOM_LEFT + 8, Math.min(ROOM_RIGHT - 8, nx));
+          bounced = true;
+        }
+        if (ny <= ROOM_TOP + 7 || ny >= ROOM_BOTTOM - 7) {
+          d.vy = -d.vy;
+          ny = Math.max(ROOM_TOP + 8, Math.min(ROOM_BOTTOM - 8, ny));
+          bounced = true;
+        }
+
+        // Obstacle / pillar bounce
+        if (!bounced && this.collidesRoomObstacle(nx, ny, 5)) {
+          if (!this.collidesRoomObstacle(d.x - d.vx * dt, ny, 5)) {
+            d.vx = -d.vx;
+          } else {
+            d.vy = -d.vy;
+          }
+          nx = d.x + d.vx * dt;
+          ny = d.y + d.vy * dt;
+          bounced = true;
+        }
+
+        d.x = nx;
+        d.y = ny;
+
+        if (bounced) {
+          if (d.bouncesLeft > 0) {
+            d.bouncesLeft -= 1;
+            sound.playDiscusBounce();
+            this.spawnBurst(d.x, d.y, '#38e8d4', 6);
+            this.nudgeDiscTowardEnemy(d, -1);
+          } else {
+            d.recalling = true;
+            d.hitCooldowns.clear();
+          }
+        }
+        if (d.life <= 0.45) {
+          d.recalling = true;
+        }
+      }
+
+      // Break salvage pods
+      for (const pod of this.currentRoom.pods) {
+        if (!pod.broken && Math.hypot(pod.x - d.x, pod.y - d.y) <= 14) {
+          this.breakPod(pod);
+        }
+      }
+
+      // Enemy hit check (bounces off enemies on normal flight, pierces on Magnet-Recall!)
+      for (const e of [...this.enemies]) {
+        if (d.hitCooldowns.has(e.id)) continue;
+        if (e.kind === 'boss' && (e.bossHeight ?? 0) > 28) continue;
+        if (this.getDistanceToEnemyHitbox(e, d.x, d.y) <= 9) {
+          d.hitCooldowns.set(e.id, 0.24);
+          const len = Math.max(1, Math.hypot(d.vx, d.vy));
+          const dmg = d.recalling ? Math.round(d.damage * 1.7) : d.damage;
+          this.damageEnemy(e, dmg, d.vx / len, d.vy / len, d.recalling ? 95 : 55, d.recalling);
+          this.slashHits.push({
+            x: d.x,
+            y: d.y,
+            angle: Math.atan2(d.vy, d.vx),
+            color: d.recalling ? '#f0abfc' : '#38e8d4',
+            life: 0.14,
+            maxLife: 0.14,
+          });
+          this.state.energy = Math.min(100, this.state.energy + 4);
+          this.callbacks.onHudDirty();
+
+          if (!d.recalling) {
+            if (d.bouncesLeft > 0) {
+              d.bouncesLeft -= 1;
+              sound.playDiscusBounce();
+              this.spawnBurst(d.x, d.y, '#c084fc', 7);
+              // Ricochet toward another enemy or reflect away cleanly!
+              if (!this.nudgeDiscTowardEnemy(d, e.id)) {
+                const ang = Math.atan2(d.y - e.y, d.x - e.x) + (Math.random() - 0.5) * 0.5;
+                d.vx = Math.cos(ang) * d.speed;
+                d.vy = Math.sin(ang) * d.speed;
+              }
+            } else {
+              d.recalling = true;
+              d.hitCooldowns.clear();
+            }
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  private nudgeDiscTowardEnemy(d: DiscusProjectile, excludeId: number): boolean {
+    let best: Enemy | null = null;
+    let bestDist = 175;
+    for (const e of this.enemies) {
+      if (e.id === excludeId) continue;
+      if (e.kind === 'boss' && (e.bossHeight ?? 0) > 28) continue;
+      const dist = Math.hypot(e.x - d.x, e.y - d.y);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = e;
+      }
+    }
+    if (!best) return false;
+    const ang = Math.atan2(best.y - d.y, best.x - d.x);
+    d.vx = Math.cos(ang) * d.speed;
+    d.vy = Math.sin(ang) * d.speed;
+    return true;
+  }
+
+  // ==================== COMPANION BOTS (FREISCHALTBARE BEGLEITER / FAMILIARS) ====================
+  private updateCompanion(dt: number): void {
+    const comp = this.state.equippedCompanion;
+    if (!comp) return;
+
+    // Gentle orbital follow offset behind hero
+    const orbitX = this.playerX + Math.cos(this.time * 2.1) * 18 - (this.facing === 'right' ? 8 : this.facing === 'left' ? -8 : 0);
+    const orbitY = this.playerY - 6 + Math.sin(this.time * 2.6) * 12;
+    this.companionX += (orbitX - this.companionX) * Math.min(1, dt * 6.5);
+    this.companionY += (orbitY - this.companionY) * Math.min(1, dt * 6.5);
+
+    // Kampf-Bot Spark: fires automatic plasma darts every 1.35s at nearest enemy!
+    if (comp === 'spark' && this.enemies.length > 0) {
+      this.sparkFireTimer -= dt;
+      if (this.sparkFireTimer <= 0) {
+        let target: Enemy | null = null;
+        let bestD = 210;
+        for (const e of this.enemies) {
+          if (e.kind === 'boss' && (e.bossHeight ?? 0) > 28) continue;
+          const dist = Math.hypot(e.x - this.companionX, e.y - this.companionY);
+          if (dist < bestD) {
+            bestD = dist;
+            target = e;
+          }
+        }
+        if (target) {
+          this.sparkFireTimer = 1.35;
+          const ang = Math.atan2(target.y - this.companionY, target.x - this.companionX);
+          const dmg = 14 + this.currentFloor * 5;
+          this.projectiles.push({
+            x: this.companionX + Math.cos(ang) * 7,
+            y: this.companionY + Math.sin(ang) * 7,
+            vx: Math.cos(ang) * 245,
+            vy: Math.sin(ang) * 245,
+            fromPlayer: true,
+            damage: dmg,
+            color: '#fb7185',
+            radius: 3.5,
+            life: 1.2,
+          });
+          sound.playBlaster();
+          this.spawnBurst(this.companionX, this.companionY, '#fb7185', 4);
+        } else {
+          this.sparkFireTimer = 0.25;
+        }
+      }
+    }
+
+    // Aegis-Bot Halo: recharges golden orbital shield every 12s!
+    if (comp === 'halo' && !this.haloShieldReady) {
+      this.haloChargeTimer += dt;
+      if (this.haloChargeTimer >= 12.0) {
+        this.haloChargeTimer = 0;
+        this.haloShieldReady = true;
+        sound.playHaloBlock();
+        this.spawnBurst(this.playerX, this.playerY, '#fde047', 12);
+        this.floats.push({
+          x: this.playerX,
+          y: this.playerY - 18,
+          text: 'HALO BEREIT!',
+          color: '#fde047',
+          life: 1.0,
+          maxLife: 1.0,
+        });
+      }
+    }
   }
 
   private pointToSegmentDist(
@@ -2910,6 +3512,7 @@ export class DungeonScene {
     if (idx !== -1) this.enemies.splice(idx, 1);
 
     this.enemiesDefeated += 1;
+    this.state.totalEnemiesDefeated += 1;
     sound.playEnemyDefeat();
     const isBoss = this.isBossKind(e.kind);
     this.spawnBurst(e.x, e.y, isBoss ? '#fbbf24' : '#c084fc', isBoss ? 36 : 14);
@@ -2930,6 +3533,7 @@ export class DungeonScene {
       });
       this.floorBossDefeated = true;
       this.state.bossDefeatedCount += 1;
+      this.state.breacherDefeated = true;
       this.spawnLootDrop(e.x, e.y, 'reactor_shard');
       for (let k = 0; k < 2; k++) {
         this.spawnLootDrop(e.x, e.y, rollLootItem(2, k === 0, nightBoost, luckBonus));
@@ -2951,6 +3555,7 @@ export class DungeonScene {
       });
       this.floorBossDefeated = true;
       this.state.bossDefeatedCount += 1;
+      this.state.coreWatcherDefeated = true;
       this.spawnLootDrop(e.x, e.y, 'mk4_heart');
       this.spawnLootDrop(e.x, e.y, 'aegis_plate');
       for (let k = 0; k < 2; k++) {
@@ -2997,6 +3602,16 @@ export class DungeonScene {
       this.spawnLootDrop(e.x, e.y, rollLootItem(lootDepth, false, nightBoost, luckBonus));
     }
 
+    // Check live Companion Bot milestone unlocks (Spark / Luma / Halo)!
+    const newlyUnlocked = this.state.checkCompanionUnlocks();
+    for (const cid of newlyUnlocked) {
+      sound.playCompanionUnlock();
+      this.callbacks.onToast(
+        `🤖 Begleiter freigeschaltet: ${COMPANION_DEFS[cid].name}! Im Hinterzimmer am Drohnen-Dock ausrüstbar!`,
+        'good',
+      );
+    }
+
     if (this.enemies.length === 0 && !this.currentRoom.cleared) {
       this.currentRoom.cleared = true;
       this.roomsCleared += 1;
@@ -3025,11 +3640,61 @@ export class DungeonScene {
         });
         this.callbacks.onHudDirty();
       }
+      // Heil-Bot Luma: heals +10 HP every 2nd cleared combat room!
+      if (this.state.equippedCompanion === 'luma' && this.currentRoom.type === 'combat') {
+        this.lumaRoomCounter += 1;
+        if (this.lumaRoomCounter % 2 === 0 && this.state.hp < stats.maxHp) {
+          const lumaHeal = Math.min(stats.maxHp - this.state.hp, 10);
+          this.state.hp += lumaHeal;
+          sound.playHeal();
+          this.spawnBurst(this.companionX, this.companionY, '#34d399', 12);
+          this.floats.push({
+            x: this.playerX,
+            y: this.playerY - 24,
+            text: `+${Math.round(lumaHeal)} LUMA`,
+            color: '#6ee7b7',
+            life: 1.1,
+            maxLife: 1.1,
+          });
+          this.callbacks.onHudDirty();
+        }
+      }
     }
   }
 
   private damagePlayer(amount: number, kx: number, ky: number, attacker?: Enemy): void {
     if (this.invulnTimer > 0 || this.finished) return;
+
+    // Aegis-Bot Halo: golden orbital shield completely absorbs 1 incoming hit every 12s!
+    if (this.state.equippedCompanion === 'halo' && this.haloShieldReady) {
+      this.haloShieldReady = false;
+      this.haloChargeTimer = 0;
+      this.invulnTimer = 0.65;
+      sound.playHaloBlock();
+      this.triggerShake(0.14, 2.6);
+      this.shockwaves.push({
+        x: this.playerX,
+        y: this.playerY,
+        maxRadius: 42,
+        color: '#fde047',
+        life: 0.28,
+        maxLife: 0.28,
+      });
+      this.spawnBurst(this.playerX, this.playerY, '#fde047', 16);
+      this.floats.push({
+        x: this.playerX,
+        y: this.playerY - 20,
+        text: 'HALO-SCHILD!',
+        color: '#fde047',
+        life: 1.05,
+        maxLife: 1.05,
+      });
+      if (attacker && attacker.kind !== 'boss_leviathan') {
+        attacker.vx -= kx * 180;
+        attacker.vy -= ky * 180;
+      }
+      return;
+    }
 
     // Check Hex-Aegis Kinetic Shield block!
     let finalAmount = amount;
@@ -3284,6 +3949,10 @@ export class DungeonScene {
   }
 
   private updateDrops(dt: number): void {
+    const hasPuck = this.state.equippedCompanion === 'puck';
+    const magnetRadius = hasPuck ? 116 : 44;
+    const pullSpeed = hasPuck ? 185 : 135;
+
     for (let i = this.drops.length - 1; i >= 0; i--) {
       const d = this.drops[i];
       d.age += dt;
@@ -3293,9 +3962,9 @@ export class DungeonScene {
       d.y = Math.max(ROOM_TOP + 8, Math.min(ROOM_BOTTOM - 8, d.y + d.vy * dt));
 
       const dist = Math.hypot(this.playerX - d.x, this.playerY - d.y);
-      if (d.age > 0.22 && dist < 44 && !isBackpackFullFor(this.state.inventory, d.itemId)) {
-        d.x += ((this.playerX - d.x) / Math.max(1, dist)) * 135 * dt;
-        d.y += ((this.playerY - d.y) / Math.max(1, dist)) * 135 * dt;
+      if (d.age > 0.22 && dist < magnetRadius && !isBackpackFullFor(this.state.inventory, d.itemId)) {
+        d.x += ((this.playerX - d.x) / Math.max(1, dist)) * pullSpeed * dt;
+        d.y += ((this.playerY - d.y) / Math.max(1, dist)) * pullSpeed * dt;
       }
 
       if (d.age > 0.22 && dist < 13) {
@@ -3313,6 +3982,19 @@ export class DungeonScene {
             life: 1.0,
             maxLife: 1.0,
           });
+          if (hasPuck) {
+            const bonusCr = 8 + Math.floor(Math.random() * 8);
+            this.state.credits += bonusCr;
+            this.state.totalEarned += bonusCr;
+            this.floats.push({
+              x: this.companionX,
+              y: this.companionY - 10,
+              text: `+${bonusCr} Cr (PUCK)`,
+              color: '#fbbf24',
+              life: 1.05,
+              maxLife: 1.05,
+            });
+          }
           this.drops.splice(i, 1);
           this.callbacks.onHudDirty();
         }
@@ -3528,6 +4210,10 @@ export class DungeonScene {
     for (let i = this.thrusts.length - 1; i >= 0; i--) {
       this.thrusts[i].life -= dt;
       if (this.thrusts[i].life <= 0) this.thrusts.splice(i, 1);
+    }
+    for (let i = this.fistBursts.length - 1; i >= 0; i--) {
+      this.fistBursts[i].life -= dt;
+      if (this.fistBursts[i].life <= 0) this.fistBursts.splice(i, 1);
     }
     for (let i = this.slashHits.length - 1; i >= 0; i--) {
       this.slashHits[i].life -= dt;
@@ -3850,8 +4536,24 @@ export class DungeonScene {
       drawables.push({ y: sortY, draw: () => this.renderEnemy(ctx, e) });
     }
     drawables.push({ y: this.playerY, draw: () => this.renderPlayer(ctx) });
+    if (this.state.equippedCompanion) {
+      drawables.push({ y: this.companionY, draw: () => this.renderCompanion(ctx) });
+    }
     drawables.sort((a, b) => a.y - b.y);
     for (const d of drawables) d.draw();
+
+    // Active Aegis-Bot Halo golden orbital shield ring around hero when charged!
+    if (this.state.equippedCompanion === 'halo' && this.haloShieldReady) {
+      const hp = 0.5 + 0.5 * Math.sin(this.time * 5.2);
+      ctx.save();
+      ctx.strokeStyle = `rgba(253, 224, 71, ${0.55 + hp * 0.35})`;
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.ellipse(this.playerX, this.playerY - 1, 14 + hp * 1.5, 16 + hp * 1.5, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      drawGlow(ctx, this.playerX, this.playerY - 1, 20, '#fbbf24', 0.14 + hp * 0.08);
+      ctx.restore();
+    }
 
     // Active Boss Sweeping Reactor Laser Beams (Core-Wächter & Leviathan Twin Beams!)
     for (const e of this.enemies) {
@@ -3876,13 +4578,15 @@ export class DungeonScene {
       ctx.restore();
     }
 
-    // Hand-Crafted 2.5D Tapered Crescent Weapon Swings + Piercing Ionen-Speer Thrusts!
+    // Hand-Crafted 2.5D Tapered Crescent Weapon Swings, Ionen-Speer Thrusts, Kinetik-Fäuste & Phasen-Diskus!
     for (const s of this.swings) {
       this.renderWeaponSwing(ctx, s);
     }
     for (const tr of this.thrusts) {
       this.renderSpearThrust(ctx, tr);
     }
+    this.renderFistBursts(ctx);
+    this.renderDiscs(ctx);
 
     // Crisp X-Slash Impact Flashes on Struck Enemies!
     for (const h of this.slashHits) {
@@ -5388,17 +6092,147 @@ export class DungeonScene {
     ctx.restore();
   }
 
+  private renderCompanion(ctx: CanvasRenderingContext2D): void {
+    const compId = this.state.equippedCompanion;
+    if (!compId) return;
+    const art = getHDArt();
+    const def = COMPANION_DEFS[compId];
+    const bob = Math.sin(this.time * 5.2) * 2.2;
+
+    drawPixelShadow(ctx, this.companionX, this.companionY + 9, 5.5, 2.2, 0.36);
+    drawGlow(ctx, this.companionX, this.companionY - 2 + bob, 14, def.accentColor, 0.28);
+    const spr = art.companions[compId];
+    if (spr) {
+      ctx.drawImage(spr, this.companionX - 9, this.companionY - 12 + bob, 18, 18);
+    } else {
+      ctx.fillStyle = def.accentColor;
+      ctx.beginPath();
+      ctx.arc(this.companionX, this.companionY - 2 + bob, 5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  private renderFistBursts(ctx: CanvasRenderingContext2D): void {
+    for (const f of this.fistBursts) {
+      const t = 1 - f.life / f.maxLife;
+      const alpha = Math.max(0, 1 - t);
+      const len = (f.isFinisher ? 24 : 15) + t * (f.isFinisher ? 14 : 8);
+      const spread = f.isFinisher ? 12 : 7;
+
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.translate(f.x, f.y);
+      ctx.rotate(f.angle);
+
+      // Kinetic shockwave cone / knuckle arc
+      ctx.strokeStyle = f.isFinisher ? `rgba(251, 191, 36, ${alpha})` : `rgba(56, 232, 212, ${alpha})`;
+      ctx.lineWidth = f.isFinisher ? 3.2 : 2.2;
+      ctx.beginPath();
+      ctx.arc(0, 0, len * 0.55, -0.85, 0.85);
+      ctx.stroke();
+
+      ctx.fillStyle = f.isFinisher
+        ? `rgba(254, 240, 138, ${alpha * 0.72})`
+        : `rgba(165, 243, 252, ${alpha * 0.65})`;
+      ctx.beginPath();
+      ctx.moveTo(-4, 0);
+      ctx.lineTo(len * 0.85, -spread * (1 - t * 0.35));
+      ctx.lineTo(len, 0);
+      ctx.lineTo(len * 0.85, spread * (1 - t * 0.35));
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  private renderDiscs(ctx: CanvasRenderingContext2D): void {
+    const art = getHDArt();
+
+    // Active ricochet & recalling Phase Discs
+    for (const d of this.discs) {
+      // Glowing phase trail
+      if (d.trail.length > 1) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        for (let i = 1; i < d.trail.length; i++) {
+          const p0 = d.trail[i - 1];
+          const p1 = d.trail[i];
+          const frac = i / d.trail.length;
+          ctx.strokeStyle = d.recalling
+            ? `rgba(240, 171, 252, ${frac * 0.85})`
+            : `rgba(56, 232, 212, ${frac * 0.75})`;
+          ctx.lineWidth = 1.5 + frac * 2.5;
+          ctx.beginPath();
+          ctx.moveTo(p0.x, p0.y);
+          ctx.lineTo(p1.x, p1.y);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      drawGlow(ctx, d.x, d.y, d.recalling ? 20 : 16, d.recalling ? '#f0abfc' : '#c084fc', 0.42);
+      ctx.save();
+      ctx.translate(d.x, d.y);
+      ctx.rotate(d.spin);
+      if (art.weapons.discus) {
+        ctx.drawImage(art.weapons.discus, -8, -8, 16, 16);
+      } else {
+        ctx.strokeStyle = '#38e8d4';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, 6, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // Active Klingen-Orbit twin phase blades (Discus secondary with 0 active discs)
+    if (this.discusOrbitTimer > 0) {
+      const orbitR = 26;
+      const alpha = Math.min(1, this.discusOrbitTimer / 0.45);
+      ctx.save();
+      ctx.globalAlpha = alpha * 0.45;
+      ctx.strokeStyle = '#c084fc';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(this.playerX, this.playerY - 1, orbitR, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      for (let b = 0; b < 2; b++) {
+        const a = this.discusOrbitAngle + b * Math.PI;
+        const bx = this.playerX + Math.cos(a) * orbitR;
+        const by = this.playerY - 1 + Math.sin(a) * orbitR;
+        drawGlow(ctx, bx, by, 14, '#c084fc', 0.36 * alpha);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.translate(bx, by);
+        ctx.rotate(this.time * 18);
+        if (art.weapons.discus) {
+          ctx.drawImage(art.weapons.discus, -7, -7, 14, 14);
+        }
+        ctx.restore();
+      }
+    }
+  }
+
   private renderPlayer(ctx: CanvasRenderingContext2D): void {
     const art = getHDArt();
     const atlas = getAtlas();
-    if (this.invulnTimer > 0 && this.dashTimer <= 0 && this.lanceChargeTimer <= 0 && Math.floor(this.time * 24) % 2 === 0) {
+    if (
+      this.invulnTimer > 0 &&
+      this.dashTimer <= 0 &&
+      this.lanceChargeTimer <= 0 &&
+      this.cometSlamTimer <= 0 &&
+      Math.floor(this.time * 24) % 2 === 0
+    ) {
       return;
     }
 
     const walking = this.walkAnim > 0;
     const bob = walking ? Math.abs(Math.sin(this.walkAnim)) * 2.2 : Math.sin(this.time * 3) * 0.4;
 
-    // Dynamic Melee Body Lunge, Squash/Stretch & Lean during Blade / Spear / Hammer attacks!
+    // Dynamic Melee Body Lunge, Squash/Stretch & Lean during Blade / Spear / Fists / Hammer attacks!
     let lungeX = 0;
     let lungeY = 0;
     let scaleX = 1;
@@ -5457,7 +6291,7 @@ export class DungeonScene {
       this.drawReadyMeleeWeapon(ctx, bob);
     }
 
-    // Show equipped Puls-Blaster in hand when equipped!
+    // Show equipped Puls-Blaster, Kinetik-Fäuste, or ready Phasen-Diskus in hand!
     if (this.state.equippedWeapon === 'blaster' && art.weapons.blaster) {
       const a = this.lastAimAngle;
       const recoil = this.blasterRecoil * 3.5;
@@ -5468,6 +6302,24 @@ export class DungeonScene {
       );
       ctx.rotate(a + Math.PI / 4);
       ctx.drawImage(art.weapons.blaster, -8, -8, 16, 16);
+      ctx.restore();
+    } else if (this.state.equippedWeapon === 'fists' && art.weapons.fists) {
+      // Glowing kinetic energy gauntlets flanking hero!
+      const punchBoost = this.swingPoseTimer > 0 ? 4.5 : 0;
+      const a = this.lastAimAngle;
+      drawGlow(ctx, this.playerX + Math.cos(a) * (6 + punchBoost), this.playerY - 1 + Math.sin(a) * (6 + punchBoost), 10, '#fbbf24', 0.28);
+      ctx.save();
+      ctx.translate(this.playerX + lungeX + Math.cos(a) * (6 + punchBoost), this.playerY - 1 - bob + Math.sin(a) * (5 + punchBoost));
+      ctx.drawImage(art.weapons.fists, -7, -7, 14, 14);
+      ctx.restore();
+    } else if (this.state.equippedWeapon === 'discus' && this.discs.length < 2 && art.weapons.discus) {
+      // Hovering mini phase-discus spinning lightly beside hero's hand when ready to throw!
+      const hx = this.playerX + (this.facing === 'left' ? -10 : 10);
+      const hy = this.playerY - 2 - bob;
+      ctx.save();
+      ctx.translate(hx, hy);
+      ctx.rotate(this.time * 6);
+      ctx.drawImage(art.weapons.discus, -6, -6, 12, 12);
       ctx.restore();
     }
 

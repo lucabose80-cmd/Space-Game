@@ -1,10 +1,14 @@
+import { COMPANION_ORDER, evaluateCompanionUnlock } from '../data/companions';
 import { getItemDef, ITEMS } from '../data/items';
 import { getPlayerCombatStats, UPGRADE_TRACKS } from '../data/upgrades';
 import type {
+  BlackMarketOffer,
   BountyContract,
   CodexEntry,
+  CompanionId,
   InventoryData,
   ItemStack,
+  MarketEventId,
   PedestalSlot,
   SaveData,
   TimeOfDay,
@@ -25,7 +29,7 @@ import {
 
 const SAVE_KEY = 'starlighter_save_v2';
 const LEGACY_SAVE_KEY = 'starlighter_save_v1';
-const SAVE_VERSION = 4;
+const SAVE_VERSION = 5;
 
 export const SALE_BOX_MAX_SLOTS = 6;
 
@@ -79,6 +83,18 @@ export class GameState {
   public bossDefeatedCount = 0;
   public sector1Cleared = false;
   public deepestFloor = 1;
+  public totalEnemiesDefeated = 0;
+  public breacherDefeated = false;
+  public coreWatcherDefeated = false;
+  public unlockedCompanions: Record<CompanionId, boolean> = {
+    puck: false,
+    spark: false,
+    luma: false,
+    halo: false,
+  };
+  public equippedCompanion: CompanionId | null = null;
+  public marketEvent: MarketEventId = 'normal';
+  public nyxStock: BlackMarketOffer[] = [];
   public inventory: InventoryData = createEmptyInventory();
   public pedestals: PedestalSlot[] = [];
   public saleBox: ItemStack[] = [];
@@ -87,6 +103,8 @@ export class GameState {
   public upgrades: UpgradeLevels = {
     blade: 0,
     spear: 0,
+    fists: 0,
+    discus: 0,
     blaster: 0,
     hammer: 0,
     suit: 0,
@@ -95,6 +113,7 @@ export class GameState {
     shopTier: 0,
     shopAura: 0,
     shopScanner: 0,
+    shopAssistant: 0,
     modCrit: 0,
     modThruster: 0,
     modLuck: 0,
@@ -102,12 +121,15 @@ export class GameState {
   public unlockedWeapons: Record<WeaponId, boolean> = {
     blade: true,
     spear: false,
+    fists: false,
+    discus: false,
     blaster: false,
     hammer: false,
   };
   public equippedWeapon: WeaponId = 'blade';
   public secondaryWeapon: WeaponId | null = null;
   public muted = false;
+  public musicMuted = false;
 
   // Live run stats
   public hp = 100;
@@ -127,12 +149,26 @@ export class GameState {
     this.bossDefeatedCount = 0;
     this.sector1Cleared = false;
     this.deepestFloor = 1;
+    this.totalEnemiesDefeated = 0;
+    this.breacherDefeated = false;
+    this.coreWatcherDefeated = false;
+    // Companion Bots are NEVER unlocked at game start — earned via gameplay milestones!
+    this.unlockedCompanions = {
+      puck: false,
+      spark: false,
+      luma: false,
+      halo: false,
+    };
+    this.equippedCompanion = null;
+    this.marketEvent = 'normal';
     this.inventory = createEmptyInventory();
     this.codex = createInitialCodex();
     this.saleBox = [];
     this.upgrades = {
       blade: 0,
       spear: 0,
+      fists: 0,
+      discus: 0,
       blaster: 0,
       hammer: 0,
       suit: 0,
@@ -141,6 +177,7 @@ export class GameState {
       shopTier: 0,
       shopAura: 0,
       shopScanner: 0,
+      shopAssistant: 0,
       modCrit: 0,
       modThruster: 0,
       modLuck: 0,
@@ -148,6 +185,8 @@ export class GameState {
     this.unlockedWeapons = {
       blade: true,
       spear: false,
+      fists: false,
+      discus: false,
       blaster: false,
       hammer: false,
     };
@@ -165,11 +204,52 @@ export class GameState {
     this.markDiscovered('alien_prism');
 
     this.bounties = this.generateBounties();
+    this.nyxStock = this.generateNyxStock();
     this.restoreFullVitals();
   }
 
   public getStats() {
     return getPlayerCombatStats(this.upgrades);
+  }
+
+  public getCompanionProgressSnapshot() {
+    return {
+      totalSold: this.totalSold,
+      shopTier: this.upgrades.shopTier ?? 0,
+      totalEnemiesDefeated: this.totalEnemiesDefeated,
+      bossDefeatedCount: this.bossDefeatedCount,
+      breacherDefeated: this.breacherDefeated,
+      coreWatcherDefeated: this.coreWatcherDefeated,
+      deepestFloor: this.deepestFloor,
+      sector1Cleared: this.sector1Cleared,
+    };
+  }
+
+  /**
+   * Evaluates all 4 Companion Bot unlock gates. Returns any newly unlocked IDs
+   * so callers can display celebratory toasts & sound!
+   */
+  public checkCompanionUnlocks(persist = true): CompanionId[] {
+    const snap = this.getCompanionProgressSnapshot();
+    const newlyUnlocked: CompanionId[] = [];
+    for (const id of COMPANION_ORDER) {
+      if (this.unlockedCompanions[id]) continue;
+      if (evaluateCompanionUnlock(id, snap).unlocked) {
+        this.unlockedCompanions[id] = true;
+        newlyUnlocked.push(id);
+      }
+    }
+    if (persist && newlyUnlocked.length > 0) {
+      this.save();
+    }
+    return newlyUnlocked;
+  }
+
+  public equipCompanion(id: CompanionId | null): boolean {
+    if (id !== null && !this.unlockedCompanions[id]) return false;
+    this.equippedCompanion = id;
+    this.save();
+    return true;
   }
 
   /**
@@ -209,29 +289,107 @@ export class GameState {
     if (entry) entry.discovered = true;
   }
 
+  public rollDailyMarketEvent(): MarketEventId {
+    if (this.day <= 1) return 'normal';
+    const r = Math.random();
+    if (r < 0.28) return 'trade_fair';
+    if (r < 0.56) return 'collector_visit';
+    if (r < 0.72) return 'night_rush';
+    return 'normal';
+  }
+
   /**
    * Advances the real Moonlighter-style Day <-> Night rhythm:
    * - Day -> Night (same day, unlocks +35% Night Loot Bonus in Sector 1!)
-   * - Night -> Next Day (day + 1, refreshes market demand & bulletin board bounties!)
+   * - Night -> Next Day (day + 1, refreshes market demand, bounties, Nyx's stock & daily market event!)
    */
-  public advanceTimeOfDay(): { day: number; timeOfDay: TimeOfDay; newDay: boolean } {
+  public advanceTimeOfDay(): {
+    day: number;
+    timeOfDay: TimeOfDay;
+    newDay: boolean;
+    marketEvent: MarketEventId;
+  } {
     if (this.timeOfDay === 'day') {
       this.timeOfDay = 'night';
       this.restoreFullVitals();
       this.save();
-      return { day: this.day, timeOfDay: this.timeOfDay, newDay: false };
+      return { day: this.day, timeOfDay: this.timeOfDay, newDay: false, marketEvent: this.marketEvent };
     }
     this.timeOfDay = 'day';
     this.day += 1;
     decayDemandForNewDay(this.codex);
     this.bounties = this.generateBounties();
+    this.nyxStock = this.generateNyxStock();
+    this.marketEvent = this.rollDailyMarketEvent();
     this.restoreFullVitals();
     this.save();
-    return { day: this.day, timeOfDay: this.timeOfDay, newDay: true };
+    return { day: this.day, timeOfDay: this.timeOfDay, newDay: true, marketEvent: this.marketEvent };
   }
 
   public advanceDay(): void {
     this.advanceTimeOfDay();
+  }
+
+  // ==================== NYX' SCHWARZMARKT (TÄGLICH ROTIERENDE SELTENE TEILE) ====================
+  public generateNyxStock(): BlackMarketOffer[] {
+    const commonPool = ITEMS.filter((i) => i.rarity === 'common' || i.rarity === 'uncommon');
+    const rarePool = ITEMS.filter(
+      (i) =>
+        i.rarity === 'rare' &&
+        (i.id !== 'mk4_heart' || this.deepestFloor >= 2 || this.day >= 3),
+    );
+    const epicPool = ITEMS.filter(
+      (i) =>
+        i.rarity === 'epic' &&
+        (i.id !== 'leviathan_core' || this.sector1Cleared || this.deepestFloor >= 3),
+    );
+
+    const pickFrom = (arr: typeof ITEMS, exclude: Set<string>) => {
+      const candidates = arr.filter((i) => !exclude.has(i.id));
+      if (candidates.length === 0) return null;
+      const chosen = candidates[Math.floor(Math.random() * candidates.length)];
+      exclude.add(chosen.id);
+      return chosen;
+    };
+
+    const used = new Set<string>();
+    const chosen: Array<{ def: (typeof ITEMS)[number]; stock: number }> = [];
+
+    const c1 = pickFrom(commonPool, used);
+    if (c1) chosen.push({ def: c1, stock: 3 });
+    const r1 = pickFrom(rarePool.length > 0 ? rarePool : commonPool, used);
+    if (r1) chosen.push({ def: r1, stock: 2 });
+    const r2 = pickFrom(rarePool.length > 0 ? rarePool : commonPool, used);
+    if (r2) chosen.push({ def: r2, stock: 1 });
+    const e1 = pickFrom(epicPool.length > 0 ? epicPool : rarePool, used);
+    if (e1) chosen.push({ def: e1, stock: 1 });
+
+    return chosen.map(({ def, stock }, idx) => {
+      // Smuggler markup: ~1.55x base value (worth it when you need a missing crafting part!)
+      const markup = def.rarity === 'epic' ? 1.7 : def.rarity === 'rare' ? 1.55 : 1.4;
+      const price = Math.max(40, Math.round((def.baseValue * markup) / 5) * 5);
+      return {
+        id: `nyx_d${this.day}_${idx}_${def.id}`,
+        itemId: def.id,
+        price,
+        stock,
+      };
+    });
+  }
+
+  public buyFromNyx(offerId: string): { ok: boolean; reason?: string; itemName?: string } {
+    const offer = this.nyxStock.find((o) => o.id === offerId);
+    if (!offer || offer.stock <= 0) return { ok: false, reason: 'Ausverkauft!' };
+    if (this.credits < offer.price) return { ok: false, reason: 'Nicht genug Credits!' };
+
+    const rem = addItemAnywhere(this.inventory, offer.itemId, 1);
+    if (rem > 0) return { ok: false, reason: 'Frachtraum & Truhe voll!' };
+
+    this.credits -= offer.price;
+    offer.stock -= 1;
+    this.markDiscovered(offer.itemId);
+    this.save();
+    return { ok: true, itemName: getItemDef(offer.itemId).name };
   }
 
   // ==================== BOUNTIES / SONDERAUFTRÄGE ====================
@@ -292,6 +450,7 @@ export class GameState {
     this.credits += b.rewardCredits;
     this.totalEarned += b.rewardCredits;
     this.totalSold += b.qty;
+    this.checkCompanionUnlocks();
     this.save();
     return b;
   }
@@ -360,6 +519,7 @@ export class GameState {
     this.credits += price;
     this.totalEarned += price;
     this.totalSold += 1;
+    this.checkCompanionUnlocks();
     this.save();
     return { itemId: def.id, itemName: def.name, price };
   }
@@ -426,6 +586,9 @@ export class GameState {
     const track = UPGRADE_TRACKS.find((t) => t.key === key);
     if (!track) return false;
     if (track.weaponId && !this.unlockedWeapons[track.weaponId]) return false;
+    if (track.requiresShopTier !== undefined && (this.upgrades.shopTier ?? 0) < track.requiresShopTier) {
+      return false;
+    }
     const currentLvl = this.upgrades[key];
     const nextTier = track.tiers[currentLvl];
     if (!nextTier) return false;
@@ -451,6 +614,7 @@ export class GameState {
     if (key === 'shopTier') {
       this.syncShopCapacity();
     }
+    this.checkCompanionUnlocks();
     this.restoreFullVitals();
     this.save();
     return true;
@@ -476,6 +640,13 @@ export class GameState {
         bossDefeatedCount: this.bossDefeatedCount,
         sector1Cleared: this.sector1Cleared,
         deepestFloor: this.deepestFloor,
+        totalEnemiesDefeated: this.totalEnemiesDefeated,
+        breacherDefeated: this.breacherDefeated,
+        coreWatcherDefeated: this.coreWatcherDefeated,
+        unlockedCompanions: this.unlockedCompanions,
+        equippedCompanion: this.equippedCompanion,
+        marketEvent: this.marketEvent,
+        nyxStock: this.nyxStock,
         inventory: this.inventory,
         pedestals: this.pedestals.map((p) => ({
           id: p.id,
@@ -491,6 +662,7 @@ export class GameState {
         equippedWeapon: this.equippedWeapon,
         secondaryWeapon: this.secondaryWeapon,
         muted: this.muted,
+        musicMuted: this.musicMuted,
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
     } catch {
@@ -513,10 +685,17 @@ export class GameState {
       this.bossDefeatedCount = parsed.bossDefeatedCount ?? 0;
       this.sector1Cleared = Boolean(parsed.sector1Cleared);
       this.deepestFloor = Math.max(1, Math.min(3, parsed.deepestFloor ?? 1));
+      this.totalEnemiesDefeated = parsed.totalEnemiesDefeated ?? 0;
+      this.breacherDefeated = Boolean(parsed.breacherDefeated || this.deepestFloor >= 2 || this.bossDefeatedCount >= 1);
+      this.coreWatcherDefeated = Boolean(
+        parsed.coreWatcherDefeated || this.deepestFloor >= 3 || this.sector1Cleared,
+      );
 
       this.upgrades = {
         blade: parsed.upgrades?.blade ?? 0,
         spear: parsed.upgrades?.spear ?? 0,
+        fists: parsed.upgrades?.fists ?? 0,
+        discus: parsed.upgrades?.discus ?? 0,
         blaster: parsed.upgrades?.blaster ?? 0,
         hammer: parsed.upgrades?.hammer ?? 0,
         suit: parsed.upgrades?.suit ?? 0,
@@ -525,12 +704,30 @@ export class GameState {
         shopTier: parsed.upgrades?.shopTier ?? 0,
         shopAura: parsed.upgrades?.shopAura ?? 0,
         shopScanner: parsed.upgrades?.shopScanner ?? 0,
+        shopAssistant: parsed.upgrades?.shopAssistant ?? 0,
         modCrit: parsed.upgrades?.modCrit ?? 0,
         modThruster: parsed.upgrades?.modThruster ?? 0,
         modLuck: parsed.upgrades?.modLuck ?? 0,
       };
 
-      // Migrate v1/v2/v3 inventory cleanly up to current shopTier chest capacity (28 / 36 / 48)
+      // Companion unlocks: default all false, restore saved, then retroactively grant any already-earned milestones!
+      this.unlockedCompanions = {
+        puck: Boolean(parsed.unlockedCompanions?.puck),
+        spark: Boolean(parsed.unlockedCompanions?.spark),
+        luma: Boolean(parsed.unlockedCompanions?.luma),
+        halo: Boolean(parsed.unlockedCompanions?.halo),
+      };
+      this.checkCompanionUnlocks(false);
+      this.equippedCompanion =
+        parsed.equippedCompanion && this.unlockedCompanions[parsed.equippedCompanion]
+          ? parsed.equippedCompanion
+          : null;
+
+      const validEvents: MarketEventId[] = ['normal', 'trade_fair', 'collector_visit', 'night_rush'];
+      this.marketEvent =
+        parsed.marketEvent && validEvents.includes(parsed.marketEvent) ? parsed.marketEvent : 'normal';
+
+      // Migrate v1/v2/v3/v4 inventory cleanly up to current shopTier chest capacity (28 / 36 / 48)
       const chestCap = this.getStats().chestCapacity;
       const inv = createEmptyInventory(chestCap);
       const rawChest = parsed.inventory?.chest ?? [];
@@ -550,6 +747,8 @@ export class GameState {
       this.unlockedWeapons = {
         blade: true,
         spear: parsed.unlockedWeapons?.spear ?? false,
+        fists: parsed.unlockedWeapons?.fists ?? false,
+        discus: parsed.unlockedWeapons?.discus ?? false,
         blaster: parsed.unlockedWeapons?.blaster ?? false,
         hammer: parsed.unlockedWeapons?.hammer ?? false,
       };
@@ -564,6 +763,7 @@ export class GameState {
           ? parsed.secondaryWeapon
           : null;
       this.muted = Boolean(parsed.muted);
+      this.musicMuted = Boolean(parsed.musicMuted);
 
       const baseCodex = createInitialCodex();
       for (const item of ITEMS) {
@@ -594,6 +794,10 @@ export class GameState {
         Array.isArray(parsed.bounties) && parsed.bounties.length > 0
           ? parsed.bounties
           : this.generateBounties();
+      this.nyxStock =
+        Array.isArray(parsed.nyxStock) && parsed.nyxStock.length > 0
+          ? parsed.nyxStock
+          : this.generateNyxStock();
 
       this.restoreFullVitals();
       return true;

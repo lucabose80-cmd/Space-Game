@@ -43,6 +43,22 @@ export const WEAPON_META: Record<
     iconUrl: '/art/sprites/weapon_spear.png',
     accentColor: '#fde047',
   },
+  fists: {
+    name: 'Kinetik-Fäuste',
+    shortName: 'FÄUSTE',
+    primaryLabel: 'Blitzschnelle 4er-Schlagserie',
+    secondaryLabel: 'Kometen-Sprung (32 EN · Schildbruch)',
+    iconUrl: '/art/sprites/weapon_fists.png',
+    accentColor: '#fbbf24',
+  },
+  discus: {
+    name: 'Phasen-Diskus',
+    shortName: 'DISKUS',
+    primaryLabel: 'Abprallender Bumerang-Diskus',
+    secondaryLabel: 'Magnet-Rückruf / Klingen-Orbit (28 EN)',
+    iconUrl: '/art/sprites/weapon_discus.png',
+    accentColor: '#c084fc',
+  },
 };
 
 export const UPGRADE_TRACKS: UpgradeTrack[] = [
@@ -158,6 +174,128 @@ export const UPGRADE_TRACKS: UpgradeTrack[] = [
           { itemId: 'leviathan_core', qty: 1 },
         ],
         statLabel: 'Schaden: 56 → 74',
+      },
+    ],
+  },
+  {
+    key: 'fists',
+    shop: 'forge',
+    weaponId: 'fists',
+    title: 'Kinetik-Fäuste',
+    subtitle: 'Ultra-schnelle Nahkampf-Fäuste + Kometen-Sprung',
+    primaryDesc: 'Rasante 4er-Schlagserie — 4. Aufwärtshaken bricht Schilde!',
+    secondaryDesc: 'Kometen-Sprung mit Schockwellen-Krater (32 EN · Schildbruch)',
+    iconUrl: '/art/sprites/weapon_fists.png',
+    craftCost: {
+      creditCost: 190,
+      materials: [
+        { itemId: 'scrap_coil', qty: 2 },
+        { itemId: 'bio_gel', qty: 2 },
+      ],
+      statLabel: 'Schmieden: 14 Schaden/Schlag · 4er-Kombo · Kometen-Sprung',
+    },
+    tiers: [
+      {
+        level: 1,
+        name: 'Impuls-Knöchel MK-II',
+        description: 'Erhöht Schlagkraft der 4er-Kombo und vergrößert den Kometen-Krater.',
+        creditCost: 390,
+        materials: [{ itemId: 'plasma_cell', qty: 2 }],
+        statLabel: 'Schaden: 14 → 20 / Schlag',
+      },
+      {
+        level: 2,
+        name: 'Plasma-Schlagringe MK-III',
+        description: 'Explosive Kinetik-Entladungen beim 4. Finisher-Schlag.',
+        creditCost: 840,
+        materials: [
+          { itemId: 'reactor_shard', qty: 2 },
+          { itemId: 'drone_core', qty: 2 },
+        ],
+        statLabel: 'Schaden: 20 → 27 / Schlag',
+      },
+      {
+        level: 3,
+        name: 'Meteor-Fäuste MK-IV',
+        description: 'Brutale Nahkampf-Geschwindigkeit mit verheerendem Sprung-Aufprall.',
+        creditCost: 1520,
+        materials: [
+          { itemId: 'aegis_plate', qty: 1 },
+          { itemId: 'mk4_heart', qty: 1 },
+        ],
+        statLabel: 'Schaden: 27 → 36 / Schlag',
+      },
+      {
+        level: 4,
+        name: 'Supernova-Gauntlets MK-V',
+        description: 'Meister-Handschuhe aus Leviathan-Legierung — reine kinetische Urgewalt!',
+        creditCost: 2600,
+        materials: [
+          { itemId: 'aegis_plate', qty: 2 },
+          { itemId: 'leviathan_core', qty: 1 },
+        ],
+        statLabel: 'Schaden: 36 → 48 / Schlag',
+      },
+    ],
+  },
+  {
+    key: 'discus',
+    shop: 'forge',
+    weaponId: 'discus',
+    title: 'Phasen-Diskus',
+    subtitle: 'Abprallender Bumerang-Diskus + Magnet-Rückruf / Orbit',
+    primaryDesc: 'Prallt bis zu 4× an Wänden, Säulen & Gegnern ab (max. 2 aktiv)',
+    secondaryDesc: 'Magnet-Rückruf (1,7× Durchschuss) oder Klingen-Orbit (28 EN)',
+    iconUrl: '/art/sprites/weapon_discus.png',
+    craftCost: {
+      creditCost: 230,
+      materials: [
+        { itemId: 'alien_prism', qty: 2 },
+        { itemId: 'nav_chip', qty: 2 },
+      ],
+      statLabel: 'Schmieden: 17 Schaden · 3× Abpraller · Bumerang-Rückruf',
+    },
+    tiers: [
+      {
+        level: 1,
+        name: 'Quanten-Rand MK-II',
+        description: 'Mehr Schaden pro Abpraller und ein zusätzlicher Ricochet-Sprung!',
+        creditCost: 440,
+        materials: [{ itemId: 'alien_prism', qty: 2 }],
+        statLabel: 'Schaden: 17 → 24 · 4× Abpraller',
+      },
+      {
+        level: 2,
+        name: 'Chakram-Prisma MK-III',
+        description: 'Präzise Zielkorrektur nach jedem Abpraller trifft ganze Gegnergruppen.',
+        creditCost: 900,
+        materials: [
+          { itemId: 'star_compass', qty: 1 },
+          { itemId: 'reactor_shard', qty: 2 },
+        ],
+        statLabel: 'Schaden: 24 → 33 · 4× Abpraller',
+      },
+      {
+        level: 3,
+        name: 'Astral-Diskus MK-IV',
+        description: 'Fünf Abpraller & tödlicher Magnet-Rückruf durch ganze Reihen.',
+        creditCost: 1580,
+        materials: [
+          { itemId: 'quantum_gyro', qty: 1 },
+          { itemId: 'void_relic', qty: 1 },
+        ],
+        statLabel: 'Schaden: 33 → 45 · 5× Abpraller',
+      },
+      {
+        level: 4,
+        name: 'Singularity-Chakram MK-V',
+        description: 'Ultimativer Phasen-Diskus — beherrscht enge Korridore & Boss-Arenen!',
+        creditCost: 2680,
+        materials: [
+          { itemId: 'aegis_plate', qty: 2 },
+          { itemId: 'leviathan_core', qty: 1 },
+        ],
+        statLabel: 'Schaden: 45 → 60 · 6× Abpraller',
       },
     ],
   },
@@ -626,6 +764,40 @@ export const UPGRADE_TRACKS: UpgradeTrack[] = [
       },
     ],
   },
+  {
+    key: 'shopAssistant',
+    shop: 'shop_terminal',
+    requiresShopTier: 1,
+    title: 'Handels-Droide (Shop-Assistent)',
+    subtitle: 'Kassiert automatisch hinter dem Tresen ab & warnt vor Dieben (ab Shop-Stufe II)',
+    iconUrl: '/art/sprites/bot_clerk.png',
+    tiers: [
+      {
+        level: 1,
+        name: 'Kassen-Droide MK-I',
+        description:
+          'Schwebt hinter dem Tresen und kassiert wartende Kunden automatisch nach 2,8 Sek. ab (10 % Droiden-Gebühr — selbst kassieren lohnt 100 %!).',
+        creditCost: 620,
+        materials: [
+          { itemId: 'nav_chip', qty: 2 },
+          { itemId: 'drone_core', qty: 1 },
+        ],
+        statLabel: 'Auto-Kasse hinter Tresen (90 % Erlös)',
+      },
+      {
+        level: 2,
+        name: 'Sicherheits-Droide MK-II',
+        description:
+          'Kassiert schneller (2,0 Sek.), schlägt sofort Alarm bei Space-Dieben & bremst flüchtende Diebe mit Stasis-Puls um 45 % ab!',
+        creditCost: 1280,
+        materials: [
+          { itemId: 'reactor_shard', qty: 2 },
+          { itemId: 'aegis_plate', qty: 1 },
+        ],
+        statLabel: 'Schnell-Kasse + Dieb-Stasis (-45 % Tempo)',
+      },
+    ],
+  },
 ];
 
 export function getPlayerCombatStats(upgrades: UpgradeLevels) {
@@ -633,6 +805,11 @@ export function getPlayerCombatStats(upgrades: UpgradeLevels) {
   const bladeRanges = [31, 35, 39, 43, 47];
   const spearDamages = [22, 31, 42, 56, 74];
   const spearRanges = [46, 50, 54, 58, 62];
+  const fistsDamages = [14, 20, 27, 36, 48];
+  const fistsRanges = [25, 27, 29, 31, 34];
+  const discusDamages = [17, 24, 33, 45, 60];
+  const discusRanges = [190, 210, 230, 250, 275];
+  const discusBounceCounts = [3, 4, 4, 5, 6];
   const blasterDamages = [15, 22, 30, 42, 56];
   const blasterCooldowns = [0.29, 0.25, 0.21, 0.17, 0.145];
   const hammerDamages = [34, 46, 62, 82, 108];
@@ -654,6 +831,7 @@ export function getPlayerCombatStats(upgrades: UpgradeLevels) {
   const tier = upgrades.shopTier ?? 0;
   const aura = upgrades.shopAura ?? 0;
   const scanner = upgrades.shopScanner ?? 0;
+  const assistant = upgrades.shopAssistant ?? 0;
   const bio = upgrades.bioRegen ?? 0;
   const crit = upgrades.modCrit ?? 0;
   const thrust = upgrades.modThruster ?? 0;
@@ -664,6 +842,11 @@ export function getPlayerCombatStats(upgrades: UpgradeLevels) {
     bladeRange: bladeRanges[upgrades.blade] ?? 31,
     spearDamage: spearDamages[upgrades.spear ?? 0] ?? 22,
     spearRange: spearRanges[upgrades.spear ?? 0] ?? 46,
+    fistsDamage: fistsDamages[upgrades.fists ?? 0] ?? 14,
+    fistsRange: fistsRanges[upgrades.fists ?? 0] ?? 25,
+    discusDamage: discusDamages[upgrades.discus ?? 0] ?? 17,
+    discusRange: discusRanges[upgrades.discus ?? 0] ?? 190,
+    discusBounces: discusBounceCounts[upgrades.discus ?? 0] ?? 3,
     blasterDamage: blasterDamages[upgrades.blaster] ?? 15,
     blasterCooldown: blasterCooldowns[upgrades.blaster] ?? 0.29,
     hammerDamage: hammerDamages[upgrades.hammer] ?? 34,
@@ -679,6 +862,7 @@ export function getPlayerCombatStats(upgrades: UpgradeLevels) {
     lootLuckBonus: luckBonuses[luck] ?? 0,
     shopTipBonus: (tipBonuses[aura] ?? 0) + (scannerBonuses[scanner] ?? 0),
     customerPatienceBonus: 1 + aura * 0.25 + scanner * 0.2,
+    assistantLevel: assistant,
     pedestalCount: pedestalCounts[tier] ?? 4,
     chestCapacity: chestCaps[tier] ?? 28,
     hasSaleBox: tier >= 1,

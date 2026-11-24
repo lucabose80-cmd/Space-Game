@@ -104,9 +104,13 @@ export class TouchControls {
         ? 'SCHILD'
         : this.equippedWeapon === 'spear'
           ? 'LANZE'
-          : this.equippedWeapon === 'blaster'
-            ? 'LASER'
-            : 'SCHOCK';
+          : this.equippedWeapon === 'fists'
+            ? 'KOMET'
+            : this.equippedWeapon === 'discus'
+              ? 'RÜCKRUF'
+              : this.equippedWeapon === 'blaster'
+                ? 'LASER'
+                : 'SCHOCK';
     const secSub = this.equippedWeapon === 'blade' ? 'HALTEN' : 'SPEZIAL';
 
     let buttonsHtml = '';

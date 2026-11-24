@@ -9,6 +9,8 @@ import type { Direction, WeaponId } from '../types';
 export interface BackroomCallbacks {
   onReturnToShop: () => void;
   onOpenChest: () => void;
+  onOpenCompanionDock: () => void;
+  onOpenJukebox: () => void;
   onAdvanceTime: () => void;
   onToast: (msg: string, tone?: 'info' | 'good' | 'warn') => void;
 }
@@ -23,7 +25,9 @@ const PLAYER_RADIUS = 5.5;
 
 const SLEEP_POD_POS = { x: 106, y: 148 };
 const WEAPON_RACK_POS = { x: 106, y: 202 };
+const BOT_DOCK_POS = { x: 174, y: 122 };
 const TROPHY_PLINTH_POS = { x: 240, y: 112 };
+const JUKEBOX_POS = { x: 306, y: 122 };
 const EXIT_DOOR_POS = { x: 240, y: 224 };
 
 const CHEST_SPOTS = [
@@ -148,10 +152,20 @@ export class BackroomScene {
       px = outRack.x;
       py = outRack.y;
 
+      // Companion Bot Dock smooth circle
+      const outDock = this.pushOutCircle(px, py, BOT_DOCK_POS.x, BOT_DOCK_POS.y + 1, 10 + PLAYER_RADIUS);
+      px = outDock.x;
+      py = outDock.y;
+
       // Trophy Plinth smooth circle
       const outTrophy = this.pushOutCircle(px, py, TROPHY_PLINTH_POS.x, TROPHY_PLINTH_POS.y, 11 + PLAYER_RADIUS);
       px = outTrophy.x;
       py = outTrophy.y;
+
+      // Star-Jukebox smooth circle
+      const outJuke = this.pushOutCircle(px, py, JUKEBOX_POS.x, JUKEBOX_POS.y + 1, 10 + PLAYER_RADIUS);
+      px = outJuke.x;
+      py = outJuke.y;
 
       // Active Storage Chests (1 -> 2 -> 3 depending on Shop Tier!)
       for (const c of chests) {
@@ -231,7 +245,36 @@ export class BackroomScene {
       return;
     }
 
-    // 2. Lagertruhen (1–3 chests depending on Shop Tier!)
+    // 2. Drohnen-Dockstation (Companion Bots / Familiars!)
+    if (Math.hypot(this.playerX - BOT_DOCK_POS.x, this.playerY - BOT_DOCK_POS.y) < 28) {
+      const unlockedCount = Object.values(this.state.unlockedCompanions).filter(Boolean).length;
+      this.activePrompt = {
+        label: `[E] Drohnen-Dock (${unlockedCount}/4 Begleiter-Bots)`,
+        x: BOT_DOCK_POS.x,
+        y: BOT_DOCK_POS.y - 22,
+      };
+      if (input.interactPressed()) {
+        sound.playUiClick();
+        this.callbacks.onOpenCompanionDock();
+      }
+      return;
+    }
+
+    // 3. Sternen-Jukebox (Retro-Synth Soundtrack Player!)
+    if (Math.hypot(this.playerX - JUKEBOX_POS.x, this.playerY - JUKEBOX_POS.y) < 28) {
+      this.activePrompt = {
+        label: '[E] Sternen-Jukebox (Musik wählen)',
+        x: JUKEBOX_POS.x,
+        y: JUKEBOX_POS.y - 24,
+      };
+      if (input.interactPressed()) {
+        sound.playUiClick();
+        this.callbacks.onOpenJukebox();
+      }
+      return;
+    }
+
+    // 4. Lagertruhen (1–3 chests depending on Shop Tier!)
     const chests = this.getActiveChests();
     for (const c of chests) {
       if (Math.hypot(this.playerX - c.x, this.playerY - c.y) < 28) {
@@ -248,7 +291,7 @@ export class BackroomScene {
       }
     }
 
-    // 3. Waffen-Ständer (quick gear & loadout access)
+    // 5. Waffen-Ständer (quick gear & loadout access)
     if (Math.hypot(this.playerX - WEAPON_RACK_POS.x, this.playerY - WEAPON_RACK_POS.y) < 28) {
       this.activePrompt = {
         label: '[E] Waffen-Ständer & Ausrüstung',
@@ -262,8 +305,8 @@ export class BackroomScene {
       return;
     }
 
-    // 4. Sektor-1-Trophäen-Sockel
-    if (Math.hypot(this.playerX - TROPHY_PLINTH_POS.x, this.playerY - TROPHY_PLINTH_POS.y) < 30) {
+    // 6. Sektor-1-Trophäen-Sockel
+    if (Math.hypot(this.playerX - TROPHY_PLINTH_POS.x, this.playerY - TROPHY_PLINTH_POS.y) < 28) {
       this.activePrompt = {
         label: this.state.sector1Cleared
           ? '[E] ★ A.E.G.I.S. Leviathan Trophäe inspizieren'
@@ -288,7 +331,7 @@ export class BackroomScene {
       return;
     }
 
-    // 5. Exit Doorway back to Astro-Barter salesroom
+    // 7. Exit Doorway back to Astro-Barter salesroom
     if (Math.hypot(this.playerX - EXIT_DOOR_POS.x, this.playerY - EXIT_DOOR_POS.y) < 28) {
       this.activePrompt = {
         label: '[E] Zurück in den Verkaufsraum (Astro-Barter)',
@@ -331,9 +374,11 @@ export class BackroomScene {
       ctx.fillRect(s.x, s.y, isNight ? 1.8 : 1.4, isNight ? 1.8 : 1.4);
     }
 
-    // Cozy ambient glows (warm lamps, trophy plinth, exit door)
+    // Cozy ambient glows (warm lamps, trophy plinth, bot dock, jukebox, exit door)
     drawGlow(ctx, 108, 92, 54, '#fbbf24', 0.16 + nightBoost);
     drawGlow(ctx, 372, 92, 54, '#fbbf24', 0.16 + nightBoost);
+    drawGlow(ctx, BOT_DOCK_POS.x, BOT_DOCK_POS.y - 2, 24, '#38bdf8', 0.2 + pulse * 0.08);
+    drawGlow(ctx, JUKEBOX_POS.x, JUKEBOX_POS.y - 4, 24, '#e879f9', 0.2 + pulse * 0.1);
     drawGlow(
       ctx,
       TROPHY_PLINTH_POS.x,
@@ -355,6 +400,18 @@ export class BackroomScene {
     drawables.push({
       y: TROPHY_PLINTH_POS.y - 4,
       draw: () => this.renderTrophy(ctx, pulse),
+    });
+
+    // Companion Bot Docking Station
+    drawables.push({
+      y: BOT_DOCK_POS.y,
+      draw: () => this.renderBotDock(ctx, pulse),
+    });
+
+    // Star-Jukebox
+    drawables.push({
+      y: JUKEBOX_POS.y,
+      draw: () => this.renderJukebox(ctx, pulse),
     });
 
     // Chrono-Ruhekapsel (Sleep Pod)
@@ -410,6 +467,8 @@ export class BackroomScene {
 
     const badges = [
       { text: 'RUHEKAPSEL', x: SLEEP_POD_POS.x, y: SLEEP_POD_POS.y - 22, color: '#38e8d4' },
+      { text: 'DROHNEN', x: BOT_DOCK_POS.x, y: BOT_DOCK_POS.y - 21, color: '#38bdf8' },
+      { text: 'JUKEBOX', x: JUKEBOX_POS.x, y: JUKEBOX_POS.y - 23, color: '#e879f9' },
       { text: 'LAGERTRUHEN', x: 362, y: 118, color: '#fbbf24' },
       {
         text: this.state.sector1Cleared ? '★ LEVIATHAN' : 'TROPHÄE',
@@ -429,6 +488,66 @@ export class BackroomScene {
       ctx.strokeRect(b.x - w / 2, b.y - 5, w, 9);
       ctx.fillStyle = b.color;
       ctx.fillText(b.text, b.x, b.y + 1.5);
+    }
+  }
+
+  private renderBotDock(ctx: CanvasRenderingContext2D, pulse: number): void {
+    const art = getHDArt();
+    const x = BOT_DOCK_POS.x;
+    const y = BOT_DOCK_POS.y;
+
+    drawPixelShadow(ctx, x, y + 9, 13, 4.2, 0.48);
+    if (art.propBotDock) {
+      ctx.drawImage(art.propBotDock, x - 14, y - 16, 28, 27);
+    } else {
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(x - 10, y - 8, 20, 14);
+    }
+
+    // Hover equipped Companion Bot gently above the docking pad!
+    const activeId = this.state.equippedCompanion;
+    if (activeId) {
+      const spr = art.companions[activeId];
+      const bob = Math.sin(this.time * 4.2) * 2.2;
+      drawGlow(ctx, x, y - 8 + bob, 14, '#38e8d4', 0.25 + pulse * 0.12);
+      if (spr) {
+        ctx.drawImage(spr, x - 9, y - 18 + bob, 18, 18);
+      }
+    }
+  }
+
+  private renderJukebox(ctx: CanvasRenderingContext2D, pulse: number): void {
+    const art = getHDArt();
+    const x = JUKEBOX_POS.x;
+    const y = JUKEBOX_POS.y;
+
+    drawPixelShadow(ctx, x, y + 10, 12, 4, 0.48);
+    if (art.propJukebox) {
+      ctx.drawImage(art.propJukebox, x - 13, y - 20, 26, 31);
+    } else {
+      ctx.fillStyle = '#581c87';
+      ctx.fillRect(x - 10, y - 16, 20, 24);
+    }
+
+    // Floating cozy synth music notes when music is enabled
+    if (!sound.isMuted() && !sound.isMusicMuted()) {
+      ctx.save();
+      ctx.font = 'bold 6px Silkscreen, monospace';
+      ctx.textAlign = 'center';
+      for (let i = 0; i < 2; i++) {
+        const phase = (this.time * 0.8 + i * 0.5) % 1;
+        const nx = x + Math.sin(this.time * 3 + i * 2.4) * 7;
+        const ny = y - 16 - phase * 14;
+        ctx.globalAlpha = Math.sin(phase * Math.PI) * 0.9;
+        ctx.fillStyle = i === 0 ? '#38e8d4' : '#f0abfc';
+        ctx.fillText(i === 0 ? '♪' : '♫', nx, ny);
+      }
+      ctx.restore();
+    } else if (pulse > 0.5) {
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = 'bold 5px Silkscreen, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('MUTE', x, y - 12);
     }
   }
 
@@ -490,17 +609,17 @@ export class BackroomScene {
 
     // Sleek steel-and-oak wall weapon stand
     ctx.fillStyle = '#3f2a1d';
-    ctx.fillRect(x - 15, y - 4, 30, 12);
+    ctx.fillRect(x - 16, y - 4, 32, 12);
     ctx.fillStyle = '#5c3c28';
-    ctx.fillRect(x - 13, y - 2, 26, 8);
+    ctx.fillRect(x - 14, y - 2, 28, 8);
     ctx.strokeStyle = '#92623c';
     ctx.lineWidth = 0.8;
-    ctx.strokeRect(x - 15, y - 4, 30, 12);
+    ctx.strokeRect(x - 16, y - 4, 32, 12);
 
     // Mount all unlocked weapon sprites neatly on the rack!
-    const allWeapons: WeaponId[] = ['blade', 'spear', 'blaster', 'hammer'];
+    const allWeapons: WeaponId[] = ['blade', 'spear', 'fists', 'discus', 'blaster', 'hammer'];
     const unlocked = allWeapons.filter((w) => this.state.unlockedWeapons[w]);
-    const spacing = unlocked.length > 1 ? Math.min(8, 20 / (unlocked.length - 1)) : 0;
+    const spacing = unlocked.length > 1 ? Math.min(8, 22 / (unlocked.length - 1)) : 0;
     const startX = x - ((unlocked.length - 1) * spacing) / 2;
 
     for (let i = 0; i < unlocked.length; i++) {

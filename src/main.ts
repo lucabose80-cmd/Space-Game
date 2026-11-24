@@ -1,6 +1,7 @@
 import './style.css';
 import { preloadHDArt } from './assets/artLoader';
 import { getAtlas } from './assets/sprites';
+import { MARKET_EVENT_META } from './data/companions';
 import { sound } from './engine/audio';
 import { InputManager, VIRTUAL_HEIGHT, VIRTUAL_WIDTH } from './engine/input';
 import { BackroomScene } from './scenes/BackroomScene';
@@ -8,7 +9,7 @@ import { DungeonScene } from './scenes/DungeonScene';
 import { HubScene } from './scenes/HubScene';
 import { ShopScene } from './scenes/ShopScene';
 import { GameState } from './systems/gameState';
-import type { RunSummary, SceneId } from './types';
+import type { MusicTrack, RunSummary, SceneId } from './types';
 import { TouchControls } from './ui/TouchControls';
 import { UIManager } from './ui/UIManager';
 
@@ -55,6 +56,7 @@ class StarlighterGame {
     if (this.state.hasSave()) {
       this.state.load();
       sound.setMuted(this.state.muted);
+      sound.setMusicMuted(this.state.musicMuted);
     }
 
     this.touch = new TouchControls(this.input, {
@@ -86,20 +88,23 @@ class StarlighterGame {
         this.ui.currentScene = 'shop';
         this.shopScene.onEnter('default');
         this.ui.shopIsOpen = false;
+        this.syncMusic();
         this.ui.renderHud();
         this.syncTouch();
         this.ui.toast(
-          'Willkommen in Astro-Barter! Hinten links geht es ins Kapitäns-Quartier (Bett & Truhen), rechts nach Port Solaris!',
+          'Willkommen in Astro-Barter! Hinten links: Kapitäns-Quartier (Bett, Truhen, Drohnen & Jukebox), rechts: Port Solaris!',
           'good',
         );
       },
       onContinueGame: () => {
         this.state.load();
         sound.setMuted(this.state.muted);
+        sound.setMusicMuted(this.state.musicMuted);
         this.activeScene = 'shop';
         this.ui.currentScene = 'shop';
         this.shopScene.onEnter('default');
         this.ui.shopIsOpen = false;
+        this.syncMusic();
         this.ui.renderHud();
         this.syncTouch();
       },
@@ -128,6 +133,12 @@ class StarlighterGame {
         this.state.save();
         this.ui.renderHud();
       },
+      onMusicToggle: () => {
+        const musicMuted = sound.toggleMusicMute();
+        this.state.musicMuted = musicMuted;
+        this.state.save();
+        this.ui.renderHud();
+      },
     });
 
     this.shopScene = new ShopScene(this.state, {
@@ -148,6 +159,8 @@ class StarlighterGame {
     this.backroomScene = new BackroomScene(this.state, {
       onReturnToShop: () => this.transitionTo('shop', 'backroom'),
       onOpenChest: () => this.ui.openInventoryModal(true, 'bag'),
+      onOpenCompanionDock: () => this.ui.openCompanionDockModal(),
+      onOpenJukebox: () => this.ui.openJukeboxModal(),
       onAdvanceTime: () => this.handleAdvanceTime(),
       onToast: (msg, tone) => this.ui.toast(msg, tone),
     });
@@ -157,6 +170,7 @@ class StarlighterGame {
       onOpenForge: () => this.ui.openForgeModal(),
       onOpenMedBay: () => this.ui.openMedBayModal(),
       onOpenTechLab: () => this.ui.openTechLabModal(),
+      onOpenBlackMarket: () => this.ui.openBlackMarketModal(),
       onEnterDungeon: () => this.transitionTo('dungeon', 'hub'),
       onToast: (msg, tone) => this.ui.toast(msg, tone),
     });
@@ -172,6 +186,7 @@ class StarlighterGame {
     });
 
     this.shopScene.onEnter('default');
+    this.syncMusic();
     this.ui.showTitle();
     this.syncTouch();
 
@@ -187,17 +202,34 @@ class StarlighterGame {
     requestAnimationFrame((t) => this.loop(t));
   }
 
+  private syncMusic(): void {
+    let desired: MusicTrack;
+    if (this.activeScene === 'dungeon') {
+      desired = this.dungeonScene.isInBossFight() ? 'boss' : 'dungeon';
+    } else if (this.activeScene === 'hub') {
+      desired = 'hub';
+    } else if (this.activeScene === 'backroom') {
+      desired = 'shop_night';
+    } else {
+      desired = this.state.timeOfDay === 'night' ? 'shop_night' : 'shop_day';
+    }
+    sound.setMusicTrack(desired);
+  }
+
   private handleAdvanceTime(): void {
     if (this.transitionDir !== 0) return;
     sound.playDayTransition();
     this.transitionDir = 1;
     this.pendingTransition = () => {
       const res = this.state.advanceTimeOfDay();
+      this.syncMusic();
       this.ui.renderHud();
       this.syncTouch();
       if (res.newDay) {
+        const ev = MARKET_EVENT_META[res.marketEvent];
+        const evNote = res.marketEvent !== 'normal' ? ` · ★ Event: ${ev.name}!` : '';
         this.ui.toast(
-          `☀ Guten Morgen! Tag ${res.day} beginnt — frische Sonderaufträge an der Pinnwand!`,
+          `☀ Guten Morgen! Tag ${res.day} beginnt — frische Aufträge & Nyx-Ware!${evNote}`,
           'good',
         );
       } else {
@@ -259,6 +291,7 @@ class StarlighterGame {
         this.shopScene.onEnter(from === 'hub' ? 'hub' : from === 'backroom' ? 'backroom' : 'default');
         this.ui.shopIsOpen = false;
       }
+      this.syncMusic();
       this.ui.renderHud();
       this.syncTouch();
       if (afterSwitch) afterSwitch();
@@ -301,8 +334,8 @@ class StarlighterGame {
     }
 
     if (this.input.wasPressed('KeyM', false)) {
-      const muted = sound.toggleMute();
-      this.state.muted = muted;
+      const musicMuted = sound.toggleMusicMute();
+      this.state.musicMuted = musicMuted;
       this.state.save();
       this.ui.renderHud();
     }
@@ -342,6 +375,9 @@ class StarlighterGame {
     } else if (!this.ui.modalOpen && !this.ui.titleVisible) {
       this.dungeonScene.update(dt, this.input);
     }
+
+    // Keep retro-synth zone & boss music dynamically synced!
+    this.syncMusic();
 
     this.ctx.setTransform(RENDER_SCALE, 0, 0, RENDER_SCALE, 0, 0);
     this.ctx.imageSmoothingEnabled = false;

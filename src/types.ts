@@ -2,7 +2,20 @@ export type SceneId = 'shop' | 'backroom' | 'hub' | 'dungeon';
 
 export type TimeOfDay = 'day' | 'night';
 
-export type WeaponId = 'blade' | 'blaster' | 'hammer' | 'spear';
+export type WeaponId = 'blade' | 'blaster' | 'hammer' | 'spear' | 'fists' | 'discus';
+
+export type CompanionId = 'puck' | 'spark' | 'luma' | 'halo';
+
+export type MarketEventId = 'normal' | 'trade_fair' | 'collector_visit' | 'night_rush';
+
+export type MusicTrack = 'shop_day' | 'shop_night' | 'hub' | 'dungeon' | 'boss';
+
+export interface BlackMarketOffer {
+  id: string;
+  itemId: string;
+  price: number;
+  stock: number;
+}
 
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic';
 
@@ -81,12 +94,15 @@ export interface UpgradeLevels {
   blaster: number; // 0..4
   hammer: number; // 0..4
   spear: number; // 0..4 (Ionen-Speer!)
+  fists: number; // 0..4 (Kinetik-Fäuste!)
+  discus: number; // 0..4 (Phasen-Diskus!)
   suit: number; // 0..4
   stimpack: number; // 0..3
   bioRegen: number; // 0..3 (Dr. Lyra Med-Bay)
   shopTier: number; // 0..2 (Astro-Barter expansion: 4 -> 6 -> 8 pedestals, Sale-Box & 28/36/48 chest!)
   shopAura: number; // 0..2 (Astro-Barter Shop-Terminal: decor & tips)
   shopScanner: number; // 0..2 (Astro-Barter Shop-Terminal: checkout bonus & patience)
+  shopAssistant: number; // 0..2 (Handels-Droide hinter dem Tresen, ab Shop-Stufe II!)
   modCrit: number; // 0..3 (Vex' Tech-Labor: Ionen-Kette Crit Chance)
   modThruster: number; // 0..3 (Vex' Tech-Labor: Schub-Kondensator Speed & Dash CD)
   modLuck: number; // 0..3 (Vex' Tech-Labor: Relikt-Scanner Rare/Epic Drop Boost)
@@ -107,6 +123,7 @@ export interface UpgradeTrack {
   key: UpgradeKey;
   shop: 'forge' | 'medbay' | 'shop_terminal' | 'techlab';
   weaponId?: WeaponId;
+  requiresShopTier?: number;
   title: string;
   subtitle: string;
   primaryDesc?: string;
@@ -152,6 +169,13 @@ export interface SaveData {
   bossDefeatedCount: number;
   sector1Cleared?: boolean;
   deepestFloor?: number;
+  totalEnemiesDefeated?: number;
+  breacherDefeated?: boolean;
+  coreWatcherDefeated?: boolean;
+  unlockedCompanions?: Record<CompanionId, boolean>;
+  equippedCompanion?: CompanionId | null;
+  marketEvent?: MarketEventId;
+  nyxStock?: BlackMarketOffer[];
   inventory: InventoryData & { safeBelt?: Array<ItemStack | null> };
   pedestals: Array<{ id: number; itemId: string | null; qty: number; price: number }>;
   saleBox?: ItemStack[];
@@ -162,4 +186,5 @@ export interface SaveData {
   equippedWeapon: WeaponId;
   secondaryWeapon: WeaponId | null;
   muted: boolean;
+  musicMuted?: boolean;
 }
