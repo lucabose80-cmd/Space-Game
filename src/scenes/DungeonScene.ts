@@ -382,6 +382,36 @@ export class DungeonScene {
       const m = input.getMousePos();
       return Math.atan2(m.y - this.playerY, m.x - this.playerX);
     }
+
+    // Smart auto-aim on touch / keyboard-only: lock onto nearest enemy in range!
+    let bestDist = 175;
+    let bestAngle: number | null = null;
+    for (const e of this.enemies) {
+      const d = Math.hypot(e.x - this.playerX, e.y - this.playerY);
+      if (d < bestDist) {
+        bestDist = d;
+        bestAngle = Math.atan2(e.y - this.playerY, e.x - this.playerX);
+      }
+    }
+    if (bestAngle !== null) return bestAngle;
+
+    // If no enemies nearby, softly aim toward an intact alien pod within reach
+    let podDist = 56;
+    for (const pod of this.currentRoom.pods) {
+      if (pod.broken) continue;
+      const d = Math.hypot(pod.x - this.playerX, pod.y - this.playerY);
+      if (d < podDist) {
+        podDist = d;
+        bestAngle = Math.atan2(pod.y - this.playerY, pod.x - this.playerX);
+      }
+    }
+    if (bestAngle !== null) return bestAngle;
+
+    const mv = input.getMoveVector();
+    if (Math.hypot(mv.x, mv.y) > 0.2) {
+      return Math.atan2(mv.y, mv.x);
+    }
+
     if (this.facing === 'right') return 0;
     if (this.facing === 'down') return Math.PI / 2;
     if (this.facing === 'left') return Math.PI;

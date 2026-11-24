@@ -305,12 +305,14 @@ body {
 
 /* ==================== TITLE OVERLAY ==================== */
 #title-overlay {
-  position: absolute;
+  position: fixed;
   inset: 0;
   z-index: 40;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 12px;
+  overflow-y: auto;
   background: radial-gradient(circle at 50% 42%, rgba(15, 22, 38, 0.56), rgba(9, 13, 22, 0.88));
   backdrop-filter: blur(2px);
 }
@@ -320,10 +322,12 @@ body {
 }
 
 .title-card {
-  width: min(520px, 88%);
+  width: min(520px, 94vw);
+  max-height: 94dvh;
+  overflow-y: auto;
   background: linear-gradient(180deg, rgba(24, 32, 49, 0.96), rgba(16, 21, 34, 0.97));
   border: 2px solid var(--border-light);
-  padding: 26px 28px;
+  padding: 22px 24px;
   text-align: center;
   box-shadow:
     0 24px 56px rgba(0, 0, 0, 0.72),
@@ -340,7 +344,7 @@ body {
 
 .title-logo {
   font-family: var(--font-pixel);
-  font-size: clamp(26px, 4vw, 38px);
+  font-size: clamp(24px, 5vw, 38px);
   letter-spacing: 0.08em;
   color: var(--text-main);
   text-shadow:
@@ -350,17 +354,18 @@ body {
 }
 
 .title-sub {
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.45;
   color: var(--text-muted);
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
 .title-buttons {
   display: flex;
   justify-content: center;
-  gap: 12px;
-  margin-bottom: 18px;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
 }
 
 .btn {
@@ -371,6 +376,7 @@ body {
   background: var(--panel-elevated);
   color: var(--text-main);
   cursor: pointer;
+  touch-action: manipulation;
   transition: transform 0.1s ease, background 0.15s ease, border-color 0.15s ease;
 }
 
@@ -431,15 +437,15 @@ body {
 
 /* ==================== MODAL SYSTEM ==================== */
 #modal-layer {
-  position: absolute;
+  position: fixed;
   inset: 0;
   z-index: 35;
-  background: rgba(8, 12, 20, 0.76);
+  background: rgba(8, 12, 20, 0.8);
   backdrop-filter: blur(3px);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: 12px;
 }
 
 #modal-layer.hidden {
@@ -447,8 +453,8 @@ body {
 }
 
 .modal-window {
-  width: min(760px, 95%);
-  max-height: 92%;
+  width: min(760px, 96vw);
+  max-height: 92dvh;
   background: var(--panel-bg);
   border: 2px solid var(--border-light);
   display: flex;
@@ -855,3 +861,294 @@ body {
   color: var(--accent-cyan);
   margin-top: 3px;
 }
+
+/* ==================== MOBILE TOUCH DECK & RESPONSIVE ==================== */
+html,
+body {
+  overscroll-behavior: none;
+  -webkit-touch-callout: none;
+}
+
+#touch-deck {
+  display: none;
+}
+
+#touch-deck.hidden {
+  display: none !important;
+}
+
+body.touch-device #game-shell {
+  padding: env(safe-area-inset-top, 4px) env(safe-area-inset-right, 4px)
+    env(safe-area-inset-bottom, 4px) env(safe-area-inset-left, 4px);
+}
+
+body.touch-device .controls-bar,
+body.touch-device .hud-hint {
+  display: none;
+}
+
+/* Portrait phone: crisp 16:9 viewport on top, dedicated console touch deck cleanly below! */
+@media (orientation: portrait) {
+  body.touch-device #game-shell {
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    height: 100dvh;
+    gap: 8px;
+    padding: max(8px, env(safe-area-inset-top)) 6px max(12px, env(safe-area-inset-bottom)) 6px;
+  }
+
+  body.touch-device #viewport-frame {
+    width: 100%;
+    max-height: 52dvh;
+    flex-shrink: 0;
+  }
+
+  body.touch-device #touch-deck {
+    display: flex;
+    width: 100%;
+    flex: 1;
+    max-height: 290px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: linear-gradient(180deg, rgba(18, 25, 40, 0.92), rgba(11, 16, 28, 0.96));
+    border: 1px solid var(--border-steel);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    touch-action: none;
+  }
+}
+
+/* Landscape phone/tablet: full viewport + sleek semi-transparent floating controls in corners */
+@media (orientation: landscape) {
+  body.touch-device #game-shell {
+    height: 100dvh;
+    padding: 4px;
+  }
+
+  body.touch-device #viewport-frame {
+    width: min(100%, calc((100dvh - 8px) * 16 / 9));
+  }
+
+  body.touch-device #touch-deck {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 25;
+    pointer-events: none;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 12px max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom))
+      max(16px, env(safe-area-inset-left));
+  }
+
+  body.touch-device .touch-left,
+  body.touch-device .touch-right {
+    pointer-events: auto;
+    opacity: 0.84;
+  }
+}
+
+.touch-left,
+.touch-right {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+}
+
+/* Virtual Analog Joystick */
+.joy-base {
+  position: relative;
+  width: 118px;
+  height: 118px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(24, 34, 54, 0.72), rgba(12, 18, 30, 0.9));
+  border: 2px solid var(--border-steel);
+  box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.55);
+  touch-action: none;
+}
+
+.joy-base.active {
+  border-color: var(--accent-cyan);
+  box-shadow:
+    inset 0 0 16px rgba(0, 0, 0, 0.55),
+    0 0 18px rgba(56, 232, 212, 0.25);
+}
+
+.joy-ring {
+  position: absolute;
+  inset: 14px;
+  border-radius: 50%;
+  border: 1px dashed rgba(107, 127, 158, 0.45);
+  pointer-events: none;
+}
+
+.joy-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle at 35% 30%, #7ef6e7, #15998d 65%, #0d5e58);
+  border: 2px solid #d6fff9;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+}
+
+/* Context-Aware Tactile Action Buttons */
+.touch-pad-grid {
+  display: grid;
+  gap: 8px;
+  touch-action: none;
+}
+
+.touch-pad-grid.shop-pad {
+  grid-template-columns: repeat(2, 74px);
+  grid-template-rows: 46px 64px;
+}
+
+.touch-pad-grid.dungeon-pad {
+  grid-template-columns: repeat(3, 60px);
+  grid-template-rows: 44px 62px;
+}
+
+.tbtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border-radius: 10px;
+  font-family: var(--font-pixel);
+  font-size: 9px;
+  letter-spacing: 0.03em;
+  color: var(--text-main);
+  background: rgba(25, 34, 52, 0.92);
+  border: 2px solid var(--border-light);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+  touch-action: none;
+  cursor: pointer;
+}
+
+.tbtn small {
+  font-size: 8px;
+  opacity: 0.8;
+}
+
+.tbtn.pressed {
+  transform: scale(0.92);
+  filter: brightness(1.22);
+}
+
+.tbtn-primary {
+  background: linear-gradient(180deg, rgba(28, 170, 158, 0.92), rgba(16, 114, 106, 0.95));
+  border-color: var(--accent-cyan);
+  color: #ffffff;
+}
+
+.tbtn-cyan {
+  background: linear-gradient(180deg, rgba(14, 134, 194, 0.9), rgba(9, 88, 134, 0.94));
+  border-color: #38bdf8;
+  color: #ffffff;
+}
+
+.tbtn-amber {
+  background: linear-gradient(180deg, rgba(217, 119, 6, 0.9), rgba(154, 72, 10, 0.94));
+  border-color: var(--accent-amber);
+  color: #fffbeb;
+}
+
+.tbtn-emerald {
+  background: linear-gradient(180deg, rgba(16, 158, 108, 0.9), rgba(10, 104, 71, 0.94));
+  border-color: var(--accent-emerald);
+  color: #ecfdf5;
+}
+
+.tbtn-util {
+  background: rgba(24, 33, 50, 0.9);
+  border-color: var(--border-steel);
+  color: #cbd5e1;
+}
+
+/* Compact HUD & 1-Column Modals on Narrow Mobile Screens */
+body.touch-device #hud-shop-toggle {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  #hud-layer {
+    padding: 4px 5px;
+  }
+
+  .hud-vitals {
+    min-width: 112px;
+    padding: 3px 5px;
+    gap: 2px;
+  }
+
+  .hud-bar-label {
+    font-size: 7px;
+    width: 15px;
+  }
+
+  .hud-bar-track {
+    height: 6px;
+  }
+
+  .hud-bar-val,
+  .hud-meta-row,
+  .hud-btn,
+  .hud-location-pill {
+    font-size: 7.5px;
+  }
+
+  .hud-btn {
+    padding: 4px 6px;
+  }
+
+  .hud-actions.dungeon-offset {
+    margin-right: 52px;
+  }
+
+  .inv-layout,
+  .inv-layout.single,
+  .pedestal-layout,
+  .codex-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-header {
+    flex-wrap: wrap;
+    padding: 8px 10px;
+  }
+
+  .modal-body {
+    padding: 10px;
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .title-controls-grid {
+    grid-template-columns: 1fr;
+    font-size: 11px;
+  }
+}
+
+@media (orientation: portrait) and (max-width: 760px) {
+  body.touch-device #toast-layer {
+    position: fixed;
+    bottom: 248px;
+    width: 92vw;
+  }
+
+  body.touch-device .toast {
+    font-size: 11px;
+    padding: 5px 10px;
+    text-align: center;
+  }
+}
+
+

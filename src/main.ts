@@ -7,6 +7,7 @@ import { DungeonScene } from './scenes/DungeonScene';
 import { ShopScene } from './scenes/ShopScene';
 import { GameState } from './systems/gameState';
 import type { RunSummary, SceneId } from './types';
+import { TouchControls } from './ui/TouchControls';
 import { UIManager } from './ui/UIManager';
 
 const RENDER_SCALE = 2; // 960x540 native HD pixel-art backing buffer (2x logical 480x270)
@@ -17,6 +18,7 @@ class StarlighterGame {
   private input: InputManager;
   private state: GameState;
   private ui: UIManager;
+  private touch: TouchControls;
   private shopScene: ShopScene;
   private dungeonScene: DungeonScene;
 
@@ -52,6 +54,22 @@ class StarlighterGame {
       sound.setMuted(this.state.muted);
     }
 
+    this.touch = new TouchControls(this.input, {
+      onToggleShop: () => {
+        if (this.activeScene === 'shop') {
+          this.shopScene.toggleShopOpen();
+          this.ui.shopIsOpen = this.shopScene.shopOpen;
+          this.ui.renderHud();
+          this.syncTouch();
+        }
+      },
+      onOpenBag: () => {
+        if (!this.ui.modalOpen && !this.ui.titleVisible) {
+          this.ui.openInventoryModal(this.activeScene === 'shop', 'bag');
+        }
+      },
+    });
+
     this.ui = new UIManager(this.state, {
       onStartNewGame: () => {
         this.state.resetSave();
@@ -60,6 +78,7 @@ class StarlighterGame {
         this.shopScene.onEnter(false);
         this.ui.shopIsOpen = false;
         this.ui.renderHud();
+        this.syncTouch();
         this.ui.toast('Willkommen in Astro-Barter! Lege Relikte aus oder starte rechts eine Expedition!', 'good');
       },
       onContinueGame: () => {
@@ -70,16 +89,19 @@ class StarlighterGame {
         this.shopScene.onEnter(false);
         this.ui.shopIsOpen = false;
         this.ui.renderHud();
+        this.syncTouch();
       },
       onToggleShopOpen: () => {
         if (this.activeScene === 'shop') {
           this.shopScene.toggleShopOpen();
           this.ui.shopIsOpen = this.shopScene.shopOpen;
           this.ui.renderHud();
+          this.syncTouch();
         }
       },
       onModalStateChange: (open) => {
         this.input.locked = open;
+        this.syncTouch();
         if (!open) {
           window.focus();
           this.canvas.focus({ preventScroll: true });
@@ -102,6 +124,7 @@ class StarlighterGame {
       onHudDirty: () => {
         this.ui.shopIsOpen = this.shopScene.shopOpen;
         this.ui.renderHud();
+        this.syncTouch();
       },
     });
 
@@ -113,6 +136,7 @@ class StarlighterGame {
 
     this.shopScene.onEnter(false);
     this.ui.showTitle();
+    this.syncTouch();
 
     this.canvas.addEventListener('pointerdown', () => {
       sound.unlock();
@@ -124,6 +148,15 @@ class StarlighterGame {
 
     this.lastTime = performance.now();
     requestAnimationFrame((t) => this.loop(t));
+  }
+
+  private syncTouch(): void {
+    if (!this.touch || !this.ui) return;
+    this.touch.setState(
+      this.activeScene,
+      this.activeScene === 'shop' && this.shopScene?.shopOpen,
+      this.ui.modalOpen || this.ui.titleVisible,
+    );
   }
 
   private transitionTo(scene: SceneId, afterSwitch?: () => void): void {
@@ -140,6 +173,7 @@ class StarlighterGame {
         this.ui.shopIsOpen = false;
       }
       this.ui.renderHud();
+      this.syncTouch();
       if (afterSwitch) afterSwitch();
     };
   }

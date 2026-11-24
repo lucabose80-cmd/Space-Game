@@ -3,7 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <meta
       name="description"
       content="STARLIGHTER — Cozy Retro-Sci-Fi Action-RPG und Weltraum-Shop im Stil von Moonlighter. Plündere verlassene Raumschiffe und handle mit Alien-Relikten auf Port Solaris."
@@ -21,10 +24,11 @@
       <div id="viewport-frame">
         <canvas id="game-canvas" width="960" height="540"></canvas>
         <div id="hud-layer"></div>
-        <div id="modal-layer" class="hidden" role="dialog" aria-modal="true"></div>
         <div id="toast-layer" aria-live="polite"></div>
-        <div id="title-overlay"></div>
       </div>
+      <div id="touch-deck" class="hidden" aria-label="Touch-Steuerung"></div>
+      <div id="modal-layer" class="hidden" role="dialog" aria-modal="true"></div>
+      <div id="title-overlay"></div>
     </main>
     <script type="module" src="/src/main.ts"></script>
   </body>
