@@ -44,20 +44,20 @@ const PLAZA_RIGHT = 426;
 const PLAZA_TOP = 122;
 const PLAZA_BOTTOM = 224;
 
-// Interactive station hotspots matching public/art/hub_bg.png
+// Interactive station hotspots matching architecturally integrated public/art/hub_bg.png
 const SHOP_DOOR_POS = { x: 74, y: 132 };
 const FORGE_POS = { x: 144, y: 126 };
 const MEDBAY_POS = { x: 348, y: 126 };
-const NYX_POS = { x: 124, y: 194 };
-const TECHLAB_POS = { x: 344, y: 204 };
-const WARP_GATE_POS = { x: 416, y: 164 };
+const NYX_NPC_POS = { x: 185, y: 178 };
+const TECHLAB_NPC_POS = { x: 295, y: 178 };
+const WARP_GATE_POS = { x: 414, y: 144 };
 
 export class HubScene {
   private state: GameState;
   private callbacks: HubCallbacks;
 
   public playerX = 96;
-  public playerY = 152;
+  public playerY = 142;
   private facing: Direction = 'right';
   private walkAnim = 0;
   private dashTimer = 0;
@@ -86,18 +86,18 @@ export class HubScene {
 
     this.strollers = [
       {
-        x: 196,
-        y: 186,
-        targetX: 286,
-        targetY: 186,
+        x: 222,
+        y: 196,
+        targetX: 266,
+        targetY: 196,
         waitTimer: 1.5,
         walkAnim: 0,
         kind: 'wanderer',
       },
       {
-        x: 262,
+        x: 256,
         y: 102,
-        targetX: 218,
+        targetX: 224,
         targetY: 112,
         waitTimer: 2.0,
         walkAnim: 0,
@@ -113,12 +113,12 @@ export class HubScene {
     this.particles = [];
     if (from === 'dungeon') {
       this.playerX = 388;
-      this.playerY = 164;
+      this.playerY = 136;
       this.facing = 'left';
-      this.spawnBurst(416, 164, '#38e8d4', 18);
+      this.spawnBurst(414, 144, '#38e8d4', 18);
     } else {
       this.playerX = 96;
-      this.playerY = 148;
+      this.playerY = 138;
       this.facing = 'right';
     }
   }
@@ -158,7 +158,7 @@ export class HubScene {
     if (Math.random() < dt * 8) {
       this.particles.push({
         x: 428 + (Math.random() - 0.5) * 12,
-        y: 164 + (Math.random() - 0.5) * 36,
+        y: 148 + (Math.random() - 0.5) * 34,
         vx: -14 - Math.random() * 12,
         vy: (Math.random() - 0.5) * 10,
         color: this.state.sector1Cleared && Math.random() < 0.4 ? '#fbbf24' : '#38e8d4',
@@ -168,13 +168,13 @@ export class HubScene {
       });
     }
 
-    // Mysterious violet contraband motes at Nyx's Black Market stall (bottom-left plaza)
+    // Mysterious violet contraband motes drifting over integrated Nyx's Black Market stall
     if (Math.random() < dt * 4.5) {
       this.particles.push({
-        x: NYX_POS.x - 4 + (Math.random() - 0.5) * 30,
-        y: NYX_POS.y - 12 + (Math.random() - 0.5) * 10,
-        vx: (Math.random() - 0.5) * 9,
-        vy: -11 - Math.random() * 9,
+        x: 120 + (Math.random() - 0.5) * 62,
+        y: 186 + (Math.random() - 0.5) * 14,
+        vx: (Math.random() - 0.5) * 8,
+        vy: -10 - Math.random() * 9,
         color: Math.random() > 0.35 ? '#c084fc' : '#f472b6',
         size: 1.4,
         life: 0.48 + Math.random() * 0.36,
@@ -182,13 +182,13 @@ export class HubScene {
       });
     }
 
-    // Holo-sparks at Vex' Tech-Labor pavilion (bottom-right plaza)
+    // Cyan holo-sparks over integrated Vex's Tech-Labor pavilion
     if (Math.random() < dt * 4.5) {
       this.particles.push({
-        x: TECHLAB_POS.x + 12 + (Math.random() - 0.5) * 28,
-        y: TECHLAB_POS.y - 12 + (Math.random() - 0.5) * 10,
-        vx: (Math.random() - 0.5) * 10,
-        vy: -12 - Math.random() * 10,
+        x: 358 + (Math.random() - 0.5) * 56,
+        y: 174 + (Math.random() - 0.5) * 14,
+        vx: (Math.random() - 0.5) * 9,
+        vy: -11 - Math.random() * 10,
         color: Math.random() > 0.35 ? '#38e8d4' : '#fde047',
         size: 1.4,
         life: 0.45 + Math.random() * 0.35,
@@ -253,24 +253,22 @@ export class HubScene {
     if (x < PLAZA_LEFT || x > PLAZA_RIGHT || y < PLAZA_TOP || y > PLAZA_BOTTOM) {
       return false;
     }
-    // Keep clear of street lamp posts & bottom bench
-    if (y > 212 && x < 178) return false;
-    // Keep clear of Nyx's Black Market stall footprint (bottom-left plaza)
-    if (x > 94 && x < 144 && y > 184 && y < 208) return false;
-    // Keep clear of Vex' Tech-Labor kiosk footprint (bottom-right)
-    if (x > 332 && x < 386 && y > 194 && y < 222) return false;
+    // Keep clear of architecturally built-in Nyx's Black Market storefront (lower-left)
+    if (x > 58 && x < 178 && y > 148 && y < 238) return false;
+    // Keep clear of architecturally built-in Vex's Tech-Labor pavilion (lower-right)
+    if (x > 302 && x < 418 && y > 148 && y < 248) return false;
     return true;
   }
 
   private updateStrollers(dt: number): void {
     const speed = 28;
     const spots = [
-      { x: 176, y: 176 },
+      { x: 214, y: 174 },
       { x: 240, y: 164 },
-      { x: 312, y: 174 },
+      { x: 266, y: 174 },
       { x: 240, y: 94 },
-      { x: 196, y: 196 },
-      { x: 288, y: 196 },
+      { x: 216, y: 204 },
+      { x: 264, y: 204 },
     ];
     for (const s of this.strollers) {
       const dx = s.targetX - s.x;
@@ -297,7 +295,7 @@ export class HubScene {
     this.activePrompt = null;
 
     // 1. Astro-Barter (Your Shop)
-    if (Math.hypot(this.playerX - SHOP_DOOR_POS.x, this.playerY - SHOP_DOOR_POS.y) < 34) {
+    if (Math.hypot(this.playerX - SHOP_DOOR_POS.x, this.playerY - SHOP_DOOR_POS.y) < 30 && this.playerY <= 142) {
       this.activePrompt = {
         label: '[E] Astro-Barter betreten',
         x: SHOP_DOOR_POS.x + 18,
@@ -311,7 +309,7 @@ export class HubScene {
     }
 
     // 2. Kael's Exo-Schmiede (Weapons & Suit)
-    if (Math.hypot(this.playerX - FORGE_POS.x, this.playerY - FORGE_POS.y) < 34) {
+    if (Math.hypot(this.playerX - FORGE_POS.x, this.playerY - FORGE_POS.y) < 30 && this.playerY <= 138) {
       this.activePrompt = {
         label: "[E] Kael's Exo-Schmiede (Waffen & MK-V)",
         x: FORGE_POS.x,
@@ -325,7 +323,7 @@ export class HubScene {
     }
 
     // 3. Dr. Lyra's Med-Bay (Stimpacks & Bio-Regen)
-    if (Math.hypot(this.playerX - MEDBAY_POS.x, this.playerY - MEDBAY_POS.y) < 34) {
+    if (Math.hypot(this.playerX - MEDBAY_POS.x, this.playerY - MEDBAY_POS.y) < 30 && this.playerY <= 138) {
       this.activePrompt = {
         label: "[E] Dr. Lyra's Med-Bay",
         x: MEDBAY_POS.x,
@@ -338,12 +336,15 @@ export class HubScene {
       return;
     }
 
-    // 4. Nyx' Schwarzmarkt-Stand (Daily rare crafting materials & relics!)
-    if (Math.hypot(this.playerX - NYX_POS.x, this.playerY - NYX_POS.y) < 38) {
+    // 4. Nyx' Schwarzmarkt-Stand (accessible from beside Nyx OR right in front of the canopy!)
+    const nearNyx =
+      Math.hypot(this.playerX - NYX_NPC_POS.x, this.playerY - NYX_NPC_POS.y) < 34 ||
+      (this.playerX >= 76 && this.playerX <= 184 && this.playerY >= 139 && this.playerY <= 156);
+    if (nearNyx) {
       this.activePrompt = {
         label: "[E] Nyx' Schwarzmarkt (Seltene Teile)",
-        x: NYX_POS.x + 18,
-        y: NYX_POS.y - 34,
+        x: 152,
+        y: 148,
       };
       if (input.interactPressed()) {
         sound.playUiClick();
@@ -352,12 +353,15 @@ export class HubScene {
       return;
     }
 
-    // 5. Vex' Tech-Labor (Passive Combat/Loot Modules & Sector 1/2 Progression!)
-    if (Math.hypot(this.playerX - TECHLAB_POS.x, this.playerY - TECHLAB_POS.y) < 38) {
+    // 5. Vex' Tech-Labor (accessible from beside Vex OR along the front counter!)
+    const nearVex =
+      Math.hypot(this.playerX - TECHLAB_NPC_POS.x, this.playerY - TECHLAB_NPC_POS.y) < 34 ||
+      (this.playerX >= 298 && this.playerX <= 400 && this.playerY >= 139 && this.playerY <= 156);
+    if (nearVex) {
       this.activePrompt = {
         label: "[E] Vex' Tech-Labor (Module & Sektor-Karte)",
-        x: TECHLAB_POS.x - 16,
-        y: TECHLAB_POS.y - 34,
+        x: 332,
+        y: 148,
       };
       if (input.interactPressed()) {
         sound.playUiClick();
@@ -374,7 +378,7 @@ export class HubScene {
             ? '[E] 🌙 Nacht-Warp: Sektor 1 · Ebene I–III (+35 % Rar)'
             : '[E] Warp: Sektor 1 · Verlassene Korvette (Ebene I–III)',
         x: WARP_GATE_POS.x - 66,
-        y: WARP_GATE_POS.y - 30,
+        y: WARP_GATE_POS.y - 24,
       };
       if (input.interactPressed()) {
         const carried = countBackpackItems(this.state.inventory);
@@ -444,33 +448,34 @@ export class HubScene {
       ctx.fillRect(s.x, s.y, isNight ? 1.8 : 1.4, isNight ? 1.8 : 1.4);
     }
 
-    // Ambient landmark glows (Forge fire, Med-Bay emerald, Nyx violet, Tech-Labor cyan, Star Compass, Warp-Gate!)
+    // Ambient landmark glows matching integrated storefronts in hub_bg.png
     const pulse = 0.5 + 0.5 * Math.sin(this.time * 4.2);
     const nightBoost = isNight ? 0.14 : 0;
     drawGlow(ctx, 132, 82, 38, '#fb923c', 0.24 + nightBoost + pulse * 0.1);
     drawGlow(ctx, 354, 72, 36, '#34d399', 0.22 + nightBoost + pulse * 0.08);
-    drawGlow(ctx, NYX_POS.x - 4, NYX_POS.y - 4, 34, '#c084fc', 0.24 + nightBoost + pulse * 0.1);
-    drawGlow(ctx, TECHLAB_POS.x + 14, TECHLAB_POS.y - 2, 36, '#38e8d4', 0.22 + nightBoost + pulse * 0.08);
+    drawGlow(ctx, 120, 194, 42, '#c084fc', 0.22 + nightBoost + pulse * 0.1);
+    drawGlow(ctx, 362, 178, 42, '#38e8d4', 0.22 + nightBoost + pulse * 0.08);
     drawGlow(ctx, 240, 166, 38, '#38e8d4', 0.16 + nightBoost * 0.7 + pulse * 0.07);
     drawGlow(
       ctx,
       434,
-      160,
+      154,
       46 + pulse * 6,
       this.state.sector1Cleared ? '#fbbf24' : '#38e8d4',
       0.3 + nightBoost + pulse * 0.12,
     );
     if (isNight) {
       // Cozy street-lamp pools at night!
-      drawGlow(ctx, 84, 126, 32, '#fbbf24', 0.28);
-      drawGlow(ctx, 198, 124, 28, '#fbbf24', 0.22);
-      drawGlow(ctx, 286, 124, 28, '#fbbf24', 0.22);
+      drawGlow(ctx, 196, 100, 26, '#fbbf24', 0.24);
+      drawGlow(ctx, 288, 100, 26, '#fbbf24', 0.24);
+      drawGlow(ctx, 186, 212, 26, '#fbbf24', 0.24);
+      drawGlow(ctx, 294, 212, 26, '#fbbf24', 0.24);
     }
 
     // Subtle crisp building signage pills
     this.renderSignPills(ctx);
 
-    // Depth-sorted entities: Kael, Dr. Lyra, Nyx's Black Market, Vex' Tech-Labor, Strollers, Player
+    // Depth-sorted entities: Kael, Dr. Lyra, Nyx, Vex, Strollers, Player
     type Drawable = { y: number; draw: () => void };
     const drawables: Drawable[] = [];
 
@@ -498,48 +503,26 @@ export class HubScene {
       },
     });
 
-    // Nyx's Black Market Stall (bottom-left plaza)
+    // Schwarzmarkt-Händlerin Nyx standing beside her integrated Black Market booth
     drawables.push({
-      y: NYX_POS.y + 4,
-      draw: () => {
-        drawPixelShadow(ctx, NYX_POS.x - 4, NYX_POS.y + 9, 24, 5.5, 0.46);
-        if (art.propNyxStall) {
-          ctx.drawImage(art.propNyxStall, NYX_POS.x - 28, NYX_POS.y - 24, 48, 36);
-        }
-      },
-    });
-
-    // Schwarzmarkt-Händlerin Nyx standing beside her stall
-    drawables.push({
-      y: NYX_POS.y + 2,
+      y: NYX_NPC_POS.y,
       draw: () => {
         const bob = Math.sin(this.time * 3.1 + 2.1) * 0.6;
-        drawPixelShadow(ctx, NYX_POS.x + 26, NYX_POS.y + 6, 8, 3, 0.48);
+        drawPixelShadow(ctx, NYX_NPC_POS.x, NYX_NPC_POS.y + 9, 8, 3, 0.48);
         if (art.npcNyx) {
-          ctx.drawImage(art.npcNyx, NYX_POS.x + 14, NYX_POS.y - 22 + bob, 24, 28);
+          ctx.drawImage(art.npcNyx, NYX_NPC_POS.x - 12, NYX_NPC_POS.y - 19 + bob, 24, 28);
         }
       },
     });
 
-    // Vex' Tech-Labor Pavilion (bottom-right plaza)
+    // Ingenieurin Vex standing beside her integrated Tech-Labor pavilion
     drawables.push({
-      y: TECHLAB_POS.y + 6,
-      draw: () => {
-        drawPixelShadow(ctx, TECHLAB_POS.x + 15, TECHLAB_POS.y + 11, 24, 6, 0.45);
-        if (art.propTechKiosk) {
-          ctx.drawImage(art.propTechKiosk, TECHLAB_POS.x - 10, TECHLAB_POS.y - 26, 50, 38);
-        }
-      },
-    });
-
-    // Ingenieurin Vex standing right beside her Tech-Labor kiosk
-    drawables.push({
-      y: TECHLAB_POS.y + 2,
+      y: TECHLAB_NPC_POS.y,
       draw: () => {
         const bob = Math.sin(this.time * 3.5 + 0.8) * 0.6;
-        drawPixelShadow(ctx, TECHLAB_POS.x - 14, TECHLAB_POS.y + 7, 8, 3, 0.48);
+        drawPixelShadow(ctx, TECHLAB_NPC_POS.x, TECHLAB_NPC_POS.y + 9, 8, 3, 0.48);
         if (art.npcVex) {
-          ctx.drawImage(art.npcVex, TECHLAB_POS.x - 26, TECHLAB_POS.y - 21 + bob, 24, 28);
+          ctx.drawImage(art.npcVex, TECHLAB_NPC_POS.x - 12, TECHLAB_NPC_POS.y - 19 + bob, 24, 28);
         }
       },
     });
@@ -593,12 +576,12 @@ export class HubScene {
     const pills = [
       { text: 'SCHMIEDE', x: 144, y: 40, color: '#fb923c' },
       { text: 'MED-BAY', x: 356, y: 24, color: '#34d399' },
-      { text: 'SCHWARZMARKT', x: NYX_POS.x - 4, y: NYX_POS.y - 29, color: '#c084fc' },
-      { text: 'TECH-LABOR', x: TECHLAB_POS.x + 15, y: TECHLAB_POS.y - 31, color: '#38e8d4' },
-      { text: 'SEKTOR 1', x: 420, y: 94, color: '#38e8d4' },
+      { text: 'SCHWARZMARKT', x: 120, y: 148, color: '#c084fc' },
+      { text: 'TECH-LABOR', x: 358, y: 148, color: '#38e8d4' },
+      { text: 'SEKTOR 1', x: 420, y: 90, color: '#38e8d4' },
     ];
     if (this.state.sector1Cleared) {
-      pills.push({ text: '★ S2 SCHLÜSSEL', x: 420, y: 105, color: '#fde047' });
+      pills.push({ text: '★ S2 SCHLÜSSEL', x: 420, y: 101, color: '#fde047' });
     }
     for (const p of pills) {
       const w = Math.ceil(ctx.measureText(p.text).width) + 10;

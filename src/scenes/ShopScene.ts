@@ -113,7 +113,7 @@ const SOLID_SHAPES: SolidShape[] = [
 
 // Interactive station hotspots matching public/art/shop_bg*.png
 const WORKBENCH_POS = { x: 92, y: 164 };
-const BACKROOM_DOOR_POS = { x: 136, y: 114 };
+const BACKROOM_DOOR_POS = { x: 100, y: 116 };
 const SALE_BOX_POS = { x: 186, y: 188 };
 const BOUNTY_BOARD_POS = { x: 386, y: 118 };
 const WARP_GATE_POS = { x: 426, y: 152 };
@@ -193,8 +193,8 @@ export class ShopScene {
       this.facing = 'left';
       this.spawnBurst(426, 152, '#38e8d4', 20);
     } else if (from === 'backroom') {
-      this.playerX = BACKROOM_DOOR_POS.x;
-      this.playerY = BACKROOM_DOOR_POS.y + 18;
+      this.playerX = 104;
+      this.playerY = 128;
       this.facing = 'down';
     } else {
       this.playerX = 240;
@@ -1396,19 +1396,12 @@ export class ShopScene {
   }
 
   private renderBackroomDoor(ctx: CanvasRenderingContext2D, pulse: number): void {
-    const art = getHDArt();
+    // Arched Captain's Quarters doorway & lanterns are architecturally integrated in shop_bg*.png!
+    // Render only subtle pulsing warm lantern halos and threshold glow spilling onto the woven mat.
     const x = BACKROOM_DOOR_POS.x;
-    const y = BACKROOM_DOOR_POS.y - 12;
-    if (art.propBackroomDoor) {
-      ctx.drawImage(art.propBackroomDoor, x - 14, y - 16, 28, 28);
-    } else {
-      ctx.fillStyle = '#5c3c24';
-      ctx.fillRect(x - 10, y - 14, 20, 24);
-      ctx.fillStyle = '#fbbf24';
-      ctx.fillRect(x - 7, y - 11, 14, 18);
-    }
-    // Cozy warm doorway carpet glow spilling onto floor
-    drawGlow(ctx, x, y + 12, 16, '#fbbf24', 0.16 + pulse * 0.06);
+    drawGlow(ctx, x - 21, 76, 12, '#fbbf24', 0.22 + pulse * 0.1);
+    drawGlow(ctx, x + 21, 76, 12, '#fbbf24', 0.22 + pulse * 0.1);
+    drawGlow(ctx, x, 112, 18, '#fbbf24', 0.14 + pulse * 0.06);
   }
 
   private renderSaleBox(ctx: CanvasRenderingContext2D, pulse: number): void {
@@ -1465,9 +1458,9 @@ export class ShopScene {
     ctx.fillStyle = '#38e8d4';
     ctx.fillText('PROMENADE', gx, gy + 2);
 
-    // Subtle Astro-Barter Shop-Ausbau badge above left holographic console
-    const tx = 68;
-    const ty = 104;
+    // Subtle Astro-Barter Shop-Ausbau badge neatly over left holographic console
+    const tx = 54;
+    const ty = 148;
     ctx.fillStyle = 'rgba(12, 18, 32, 0.88)';
     ctx.fillRect(tx - 30, ty - 5, 60, 10);
     ctx.strokeStyle = '#fbbf24';
@@ -1476,9 +1469,9 @@ export class ShopScene {
     ctx.fillStyle = '#fde047';
     ctx.fillText('SHOP-AUSBAU', tx, ty + 2);
 
-    // Backroom Captain's Quarters doorway badge
+    // Backroom Captain's Quarters doorway badge neatly at arched threshold (clear of mobile HUD)
     const qx = BACKROOM_DOOR_POS.x;
-    const qy = 82;
+    const qy = 104;
     ctx.fillStyle = 'rgba(15, 22, 36, 0.92)';
     ctx.fillRect(qx - 22, qy - 5, 44, 10);
     ctx.strokeStyle = '#fbbf24';
@@ -1637,12 +1630,12 @@ export class ShopScene {
     const art = getHDArt();
     const x = CLERK_BOT_POS.x;
     const y = CLERK_BOT_POS.y;
-    const bob = Math.sin(this.time * 4.4) * 2.0;
+    const bob = Math.sin(this.time * 4.4) * 1.8;
 
-    drawPixelShadow(ctx, x, y + 8, 9, 3, 0.42);
-    drawGlow(ctx, x, y - 4 + bob, 16, level >= 2 ? '#38bdf8' : '#38e8d4', 0.24 + pulse * 0.1);
+    drawPixelShadow(ctx, x, y + 8, 10, 3.2, 0.44);
+    drawGlow(ctx, x, y - 5 + bob, 17, level >= 2 ? '#38bdf8' : '#38e8d4', 0.24 + pulse * 0.1);
     if (art.botClerk) {
-      ctx.drawImage(art.botClerk, x - 10, y - 18 + bob, 21, 24);
+      ctx.drawImage(art.botClerk, x - 11.5, y - 20 + bob, 23, 26);
     } else {
       ctx.fillStyle = '#38e8d4';
       ctx.fillRect(x - 6, y - 12 + bob, 12, 12);
@@ -1650,7 +1643,7 @@ export class ShopScene {
     if (level >= 2) {
       // Subtle MK-II golden security halo pip above antenna
       ctx.fillStyle = '#fde047';
-      ctx.fillRect(x - 1, y - 20 + bob, 2, 2);
+      ctx.fillRect(x - 1, y - 22 + bob, 2, 2);
     }
   }
 
