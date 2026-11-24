@@ -45,7 +45,9 @@ export class GameState {
     hammer: 0,
     suit: 0,
     stimpack: 0,
+    bioRegen: 0,
     shopAura: 0,
+    shopScanner: 0,
   };
   public unlockedWeapons: Record<WeaponId, boolean> = {
     blade: true,
@@ -79,7 +81,9 @@ export class GameState {
       hammer: 0,
       suit: 0,
       stimpack: 0,
+      bioRegen: 0,
       shopAura: 0,
+      shopScanner: 0,
     };
     this.unlockedWeapons = {
       blade: true,
@@ -292,7 +296,9 @@ export class GameState {
         hammer: parsed.upgrades?.hammer ?? 0,
         suit: parsed.upgrades?.suit ?? 0,
         stimpack: parsed.upgrades?.stimpack ?? 0,
+        bioRegen: parsed.upgrades?.bioRegen ?? 0,
         shopAura: parsed.upgrades?.shopAura ?? 0,
+        shopScanner: parsed.upgrades?.shopScanner ?? 0,
       };
       this.unlockedWeapons = {
         blade: true,

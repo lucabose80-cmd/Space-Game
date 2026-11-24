@@ -216,6 +216,24 @@ export class SoundEngine {
     this.playTone(460, 720, 0.06, 'triangle', 0.07);
     this.playTone(720, 920, 0.06, 'sine', 0.06, 0.045);
   }
+
+  public playBossCharge(): void {
+    this.playNoise(0.28, 720, 0.14);
+    this.playTone(180, 420, 0.22, 'sawtooth', 0.09);
+    this.playTone(110, 80, 0.25, 'square', 0.07, 0.06);
+  }
+
+  public playBossLaser(): void {
+    this.playNoise(0.45, 1400, 0.11);
+    this.playTone(320, 140, 0.5, 'sawtooth', 0.1);
+    this.playTone(620, 260, 0.45, 'triangle', 0.08, 0.05);
+  }
+
+  public playBossSlam(): void {
+    this.playNoise(0.32, 240, 0.22);
+    this.playTone(130, 32, 0.36, 'sawtooth', 0.15);
+    this.playTone(84, 28, 0.4, 'triangle', 0.13, 0.02);
+  }
 }
 
 export const sound = new SoundEngine();

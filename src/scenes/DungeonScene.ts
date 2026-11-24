@@ -27,6 +27,19 @@ import {
   type DungeonRoom,
 } from '../world/dungeonGen';
 
+type BossState =
+  | 'stalk'
+  | 'charge_windup'
+  | 'charge_dash'
+  | 'slam_jump'
+  | 'slam_air'
+  | 'slam_impact'
+  | 'laser_windup'
+  | 'laser_sweep'
+  | 'pylon_barrage'
+  | 'phase2_roar'
+  | 'stunned';
+
 interface Enemy {
   id: number;
   kind: 'slime' | 'drone' | 'turret' | 'boss';
@@ -52,6 +65,21 @@ interface Enemy {
   aimAngle: number;
   summonThreshold: number;
   anim: number;
+  // Multi-part animated boss state
+  bossState?: BossState;
+  bossStateTimer?: number;
+  bossStateMax?: number;
+  bossHeight?: number;
+  bossTargetX?: number;
+  bossTargetY?: number;
+  bossLaserAngle?: number;
+  bossLaserDir?: number;
+  bossLaserTick?: number;
+  bossOrbitAngle?: number;
+  bossPylonRadius?: number;
+  bossPhase2?: boolean;
+  bossStatusText?: string;
+  bossAfterimageTick?: number;
 }
 
 interface Projectile {
@@ -84,6 +112,25 @@ interface WeaponSwing {
   sweep: number;
   dir: 1 | -1; // clockwise vs counter-clockwise backhand!
   comboStep: number;
+  life: number;
+  maxLife: number;
+}
+
+interface SlashHitFx {
+  x: number;
+  y: number;
+  angle: number;
+  color: string;
+  life: number;
+  maxLife: number;
+}
+
+interface BossAfterimage {
+  x: number;
+  y: number;
+  height: number;
+  tilt: number;
+  enraged: boolean;
   life: number;
   maxLife: number;
 }
@@ -174,11 +221,16 @@ export class DungeonScene {
   private comboStep = 0;
   private comboResetTimer = 0;
 
-  // Active kinetic shield (Blade secondary) & blaster hold visuals
+  // Active kinetic shield (Blade secondary), melee lunge pose & blaster hold visuals
   private shieldActive = false;
   private shieldAngle = 0;
   private blasterRecoil = 0;
   private lastAimAngle = 0;
+  private swingPoseTimer = 0;
+  private swingPoseMax = 0.2;
+  private swingPoseAngle = 0;
+  private swingPoseDir: 1 | -1 = 1;
+  private swingPoseCombo = 0;
 
   // Warp-Beacon channel
   private warpChannel = 0;
@@ -190,6 +242,8 @@ export class DungeonScene {
   private projectiles: Projectile[] = [];
   private drops: LootDrop[] = [];
   private swings: WeaponSwing[] = [];
+  private slashHits: SlashHitFx[] = [];
+  private bossAfterimages: BossAfterimage[] = [];
   private beams: LaserBeamFx[] = [];
   private shockwaves: ShockwaveFx[] = [];
   private decals: FloorDecal[] = [];
@@ -251,6 +305,8 @@ export class DungeonScene {
     this.projectiles = [];
     this.drops = [];
     this.swings = [];
+    this.slashHits = [];
+    this.bossAfterimages = [];
     this.beams = [];
     this.shockwaves = [];
     this.decals = [];
@@ -378,7 +434,7 @@ export class DungeonScene {
         anim: 0,
       });
     } else {
-      const hp = Math.round(360 * baseScale);
+      const hp = Math.round(380 * baseScale);
       this.enemies.push({
         id: this.nextEnemyId++,
         kind: 'boss',
@@ -388,9 +444,9 @@ export class DungeonScene {
         vy: 0,
         hp,
         maxHp: hp,
-        radius: 15,
+        radius: 16,
         flashTimer: 0,
-        aiTimer: 1.2,
+        aiTimer: 1.0,
         phase: 0,
         subBurst: 0,
         burstDelay: 0,
@@ -402,8 +458,22 @@ export class DungeonScene {
         chargeActive: 0,
         telegraphTimer: 0,
         aimAngle: 0,
-        summonThreshold: 0.6,
+        summonThreshold: 0.5,
         anim: 0,
+        bossState: 'stalk',
+        bossStateTimer: 0.95,
+        bossStateMax: 0.95,
+        bossHeight: 0,
+        bossTargetX: x,
+        bossTargetY: y,
+        bossLaserAngle: 0,
+        bossLaserDir: 1,
+        bossLaserTick: 0,
+        bossOrbitAngle: 0,
+        bossPylonRadius: 28,
+        bossPhase2: false,
+        bossStatusText: 'AKTIV',
+        bossAfterimageTick: 0,
       });
     }
   }
@@ -443,9 +513,13 @@ export class DungeonScene {
       return;
     }
 
-    // Regenerate energy smoothly
+    // Regenerate energy smoothly (boosted by Dr. Lyra's Nano-Vitalserum!)
+    const stats = this.state.getStats();
     const prevEnergy = Math.floor(this.state.energy);
-    this.state.energy = Math.min(100, this.state.energy + (this.shieldActive ? 6 : 16) * dt);
+    this.state.energy = Math.min(
+      100,
+      this.state.energy + (this.shieldActive ? 6 : 16) * stats.energyRegenMult * dt,
+    );
     if (Math.floor(this.state.energy) !== prevEnergy) {
       this.callbacks.onHudDirty();
     }
@@ -456,6 +530,7 @@ export class DungeonScene {
     this.attackCooldown = Math.max(0, this.attackCooldown - dt);
     this.specialCooldown = Math.max(0, this.specialCooldown - dt);
     this.blasterRecoil = Math.max(0, this.blasterRecoil - dt * 5);
+    this.swingPoseTimer = Math.max(0, this.swingPoseTimer - dt);
 
     if (this.comboResetTimer > 0) {
       this.comboResetTimer -= dt;
@@ -670,13 +745,29 @@ export class DungeonScene {
   private performPlasmaSlash(angle: number): void {
     const stats = this.state.getStats();
     const isFinisher = this.comboStep === 2;
-    const radius = isFinisher ? stats.bladeRange * 1.24 : stats.bladeRange;
-    const sweep = isFinisher ? Math.PI * 1.65 : Math.PI * 0.92;
+    const radius = isFinisher ? stats.bladeRange * 1.26 : stats.bladeRange;
+    const sweep = isFinisher ? Math.PI * 1.92 : Math.PI * 1.05;
     const damage = isFinisher ? Math.round(stats.bladeDamage * 1.48) : stats.bladeDamage;
     const swingDir: 1 | -1 = this.comboStep === 1 ? -1 : 1;
+    const duration = isFinisher ? 0.28 : 0.21;
 
     this.orientFacing(angle);
-    this.moveEntityWithCollisions(Math.cos(angle) * (isFinisher ? 9 : 6), Math.sin(angle) * (isFinisher ? 9 : 6));
+    this.swingPoseTimer = duration;
+    this.swingPoseMax = duration;
+    this.swingPoseAngle = angle;
+    this.swingPoseDir = swingDir;
+    this.swingPoseCombo = this.comboStep;
+
+    if (isFinisher) {
+      this.afterimages.push({
+        x: this.playerX,
+        y: this.playerY,
+        facing: this.facing,
+        life: 0.2,
+        maxLife: 0.2,
+      });
+    }
+    this.moveEntityWithCollisions(Math.cos(angle) * (isFinisher ? 11 : 7), Math.sin(angle) * (isFinisher ? 11 : 7));
 
     sound.playSlash(this.comboStep);
     this.swings.push({
@@ -688,23 +779,50 @@ export class DungeonScene {
       sweep,
       dir: swingDir,
       comboStep: this.comboStep,
-      life: isFinisher ? 0.24 : 0.17,
-      maxLife: isFinisher ? 0.24 : 0.17,
+      life: duration,
+      maxLife: duration,
     });
 
-    // Scatter gleaming plasma sparks along the swing crescent!
-    for (let k = 0; k < (isFinisher ? 12 : 6); k++) {
-      const a = angle - sweep / 2 + Math.random() * sweep;
-      const dist = radius * (0.65 + Math.random() * 0.35);
+    // Tangential plasma sparks flying right off the sword tip along the crescent!
+    const sparkCount = isFinisher ? 18 : 9;
+    for (let k = 0; k < sparkCount; k++) {
+      const u = k / Math.max(1, sparkCount - 1);
+      const a = angle - (sweep / 2) * swingDir + sweep * swingDir * u;
+      const dist = radius * (0.72 + Math.random() * 0.34);
+      const tangAngle = a + swingDir * (Math.PI / 2);
+      const sp = 28 + Math.random() * 52;
       this.particles.push({
         x: this.playerX + Math.cos(a) * dist,
-        y: this.playerY + Math.sin(a) * dist,
-        vx: Math.cos(a) * (25 + Math.random() * 35),
-        vy: Math.sin(a) * (25 + Math.random() * 35),
-        color: isFinisher ? '#fde047' : '#38e8d4',
-        size: 1.6,
-        life: 0.22 + Math.random() * 0.15,
-        maxLife: 0.37,
+        y: this.playerY - 2 + Math.sin(a) * dist * 0.84,
+        vx: Math.cos(tangAngle) * sp + Math.cos(a) * 18,
+        vy: Math.sin(tangAngle) * sp * 0.84 + Math.sin(a) * 14,
+        color: isFinisher
+          ? k % 2 === 0
+            ? '#fde047'
+            : '#38e8d4'
+          : k % 3 === 0
+            ? '#ffffff'
+            : this.comboStep === 1
+              ? '#67e8f9'
+              : '#38e8d4',
+        size: isFinisher ? 2 : 1.6,
+        life: 0.2 + Math.random() * 0.18,
+        maxLife: 0.38,
+      });
+    }
+
+    // Boot dust puff on lunge / spin finisher
+    for (let k = 0; k < (isFinisher ? 8 : 3); k++) {
+      const a = Math.random() * Math.PI * 2;
+      this.particles.push({
+        x: this.playerX + Math.cos(a) * 5,
+        y: this.playerY + 9,
+        vx: Math.cos(a) * (isFinisher ? 34 : 16),
+        vy: Math.sin(a) * 12,
+        color: 'rgba(203, 213, 225, 0.75)',
+        size: 1.8,
+        life: 0.22,
+        maxLife: 0.22,
       });
     }
 
@@ -712,21 +830,30 @@ export class DungeonScene {
       this.shockwaves.push({
         x: this.playerX,
         y: this.playerY,
-        maxRadius: radius * 1.15,
+        maxRadius: radius * 1.18,
         color: '#fde047',
-        life: 0.22,
-        maxLife: 0.22,
+        life: 0.24,
+        maxLife: 0.24,
       });
     }
 
     let hitAny = false;
-    for (const e of this.enemies) {
+    for (const e of [...this.enemies]) {
+      if (e.kind === 'boss' && (e.bossHeight ?? 0) > 28) continue;
       const dx = e.x - this.playerX;
       const dy = e.y - this.playerY;
       const dist = Math.hypot(dx, dy);
       if (dist > radius + e.radius) continue;
       const diff = Math.abs(this.normalizeAngle(Math.atan2(dy, dx) - angle));
-      if (diff <= sweep / 2 + 0.26 || dist < e.radius + 9) {
+      if (diff <= sweep / 2 + 0.28 || dist < e.radius + 9) {
+        this.slashHits.push({
+          x: e.x,
+          y: e.y - 2,
+          angle: angle + (Math.random() - 0.5) * 0.5,
+          color: isFinisher ? '#fde047' : '#38e8d4',
+          life: 0.18,
+          maxLife: 0.18,
+        });
         this.damageEnemy(e, damage, Math.cos(angle), Math.sin(angle), isFinisher ? 165 : 105);
         hitAny = true;
       }
@@ -812,8 +939,9 @@ export class DungeonScene {
     const ey = sy + dy * maxT;
     this.beams.push({ x1: sx, y1: sy, x2: ex, y2: ey, life: 0.24, maxLife: 0.24 });
 
-    // Hit ALL enemies along beam line!
+    // Hit ALL grounded enemies along beam line!
     for (const e of [...this.enemies]) {
+      if (e.kind === 'boss' && (e.bossHeight ?? 0) > 28) continue;
       const distToLine = this.pointToSegmentDist(e.x, e.y, sx, sy, ex, ey);
       if (distToLine <= e.radius + 9) {
         this.damageEnemy(e, beamDamage, dx, dy, 120);
@@ -830,16 +958,23 @@ export class DungeonScene {
   private performHammerSwing(angle: number): void {
     const stats = this.state.getStats();
     const isHeavy = this.comboStep === 1;
-    const radius = isHeavy ? stats.hammerRange * 1.15 : stats.hammerRange;
-    const sweep = isHeavy ? Math.PI * 1.2 : Math.PI * 0.95;
+    const radius = isHeavy ? stats.hammerRange * 1.18 : stats.hammerRange;
+    const sweep = isHeavy ? Math.PI * 1.32 : Math.PI * 1.02;
     const damage = isHeavy ? Math.round(stats.hammerDamage * 1.32) : stats.hammerDamage;
     const swingDir: 1 | -1 = isHeavy ? -1 : 1;
+    const duration = isHeavy ? 0.28 : 0.24;
 
     this.orientFacing(angle);
-    this.moveEntityWithCollisions(Math.cos(angle) * 7, Math.sin(angle) * 7);
+    this.swingPoseTimer = duration;
+    this.swingPoseMax = duration;
+    this.swingPoseAngle = angle;
+    this.swingPoseDir = swingDir;
+    this.swingPoseCombo = isHeavy ? 2 : 0;
+
+    this.moveEntityWithCollisions(Math.cos(angle) * 8, Math.sin(angle) * 8);
 
     sound.playHammerSmash();
-    this.triggerShake(isHeavy ? 0.18 : 0.11, isHeavy ? 3.6 : 2.2);
+    this.triggerShake(isHeavy ? 0.2 : 0.12, isHeavy ? 3.8 : 2.4);
     this.swings.push({
       weapon: 'hammer',
       x: this.playerX,
@@ -849,33 +984,54 @@ export class DungeonScene {
       sweep,
       dir: swingDir,
       comboStep: this.comboStep,
-      life: 0.24,
-      maxLife: 0.24,
+      life: duration,
+      maxLife: duration,
     });
 
-    for (let k = 0; k < 10; k++) {
+    if (isHeavy) {
+      // Scorched floor crack decal right in front of the heavy slam!
+      this.decals.push({
+        x: this.playerX + Math.cos(angle) * (radius * 0.72),
+        y: this.playerY + Math.sin(angle) * (radius * 0.62),
+        r: 11,
+        color: 'rgba(249, 115, 22, 0.34)',
+        life: 3.5,
+        maxLife: 3.5,
+      });
+    }
+
+    for (let k = 0; k < 14; k++) {
       const a = angle - sweep / 2 + Math.random() * sweep;
       const dist = radius * (0.65 + Math.random() * 0.35);
       this.particles.push({
         x: this.playerX + Math.cos(a) * dist,
-        y: this.playerY + Math.sin(a) * dist,
-        vx: Math.cos(a) * 40,
+        y: this.playerY + Math.sin(a) * dist * 0.84,
+        vx: Math.cos(a) * 48,
         vy: Math.sin(a) * 40,
-        color: '#fb923c',
-        size: 2,
-        life: 0.26,
-        maxLife: 0.26,
+        color: k % 2 === 0 ? '#fb923c' : '#fde047',
+        size: 2.1,
+        life: 0.28,
+        maxLife: 0.28,
       });
     }
 
     let hitAny = false;
     for (const e of [...this.enemies]) {
+      if (e.kind === 'boss' && (e.bossHeight ?? 0) > 28) continue;
       const dx = e.x - this.playerX;
       const dy = e.y - this.playerY;
       const dist = Math.hypot(dx, dy);
       if (dist > radius + e.radius) continue;
       const diff = Math.abs(this.normalizeAngle(Math.atan2(dy, dx) - angle));
-      if (diff <= sweep / 2 + 0.25 || dist < e.radius + 10) {
+      if (diff <= sweep / 2 + 0.26 || dist < e.radius + 10) {
+        this.slashHits.push({
+          x: e.x,
+          y: e.y - 2,
+          angle: angle + 0.2,
+          color: '#fb923c',
+          life: 0.2,
+          maxLife: 0.2,
+        });
         this.damageEnemy(e, damage, Math.cos(angle), Math.sin(angle), isHeavy ? 210 : 165);
         hitAny = true;
       }
@@ -1150,90 +1306,508 @@ export class DungeonScene {
         this.updateBossAI(e, dt, dx, dy, nx, ny);
       }
 
+      const prevX = e.x;
+      const prevY = e.y;
+      const airborne = e.kind === 'boss' && (e.bossHeight ?? 0) > 22;
+
       const ex = Math.max(ROOM_LEFT + e.radius, Math.min(ROOM_RIGHT - e.radius, e.x + e.vx * dt));
-      if (!this.collidesRoomObstacle(ex, e.y, e.radius * 0.85) || e.kind === 'drone') {
+      if (!this.collidesRoomObstacle(ex, e.y, e.radius * 0.85) || e.kind === 'drone' || airborne) {
         e.x = ex;
       } else if (e.kind === 'turret') {
         e.moveDirX = -e.moveDirX;
       }
       const ey = Math.max(ROOM_TOP + e.radius, Math.min(ROOM_BOTTOM - e.radius, e.y + e.vy * dt));
-      if (!this.collidesRoomObstacle(e.x, ey, e.radius * 0.85) || e.kind === 'drone') {
+      if (!this.collidesRoomObstacle(e.x, ey, e.radius * 0.85) || e.kind === 'drone' || airborne) {
         e.y = ey;
       } else if (e.kind === 'turret') {
         e.moveDirY = -e.moveDirY;
       }
 
-      const pDist = Math.hypot(this.playerX - e.x, this.playerY - e.y);
-      if (pDist < e.radius + 7) {
-        const pushX = (this.playerX - e.x) / Math.max(1, pDist);
-        const pushY = (this.playerY - e.y) / Math.max(1, pDist);
-        this.damagePlayer(e.kind === 'boss' ? 22 : 12, pushX, pushY, e);
+      // Boss wall slam bounce during Rocket Charge!
+      if (e.kind === 'boss' && e.bossState === 'charge_dash') {
+        const hitWall =
+          (Math.abs(e.vx) > 20 && Math.abs(e.x - prevX) < 0.25) ||
+          (Math.abs(e.vy) > 20 && Math.abs(e.y - prevY) < 0.25);
+        if (hitWall) {
+          sound.playBossSlam();
+          this.triggerShake(0.28, 4.5);
+          this.spawnBurst(e.x, e.y, '#fbbf24', 18);
+          this.shockwaves.push({
+            x: e.x,
+            y: e.y,
+            maxRadius: 42,
+            color: '#fb923c',
+            life: 0.26,
+            maxLife: 0.26,
+          });
+          e.vx = -e.chargeDirX * 55;
+          e.vy = -e.chargeDirY * 55;
+          e.bossState = 'stunned';
+          e.bossStateTimer = 0.55;
+          e.bossStateMax = 0.55;
+          e.bossStatusText = 'ÜBERHITZT';
+        }
+      }
+
+      if (!airborne) {
+        const pDist = Math.hypot(this.playerX - e.x, this.playerY - e.y);
+        if (pDist < e.radius + 7) {
+          const pushX = (this.playerX - e.x) / Math.max(1, pDist);
+          const pushY = (this.playerY - e.y) / Math.max(1, pDist);
+          this.damagePlayer(e.kind === 'boss' ? 20 : 12, pushX, pushY, e);
+        }
       }
     }
   }
 
-  private updateBossAI(e: Enemy, dt: number, dx: number, dy: number, nx: number, ny: number): void {
-    const enraged = e.hp < e.maxHp * 0.5;
-
-    if (Math.random() < dt * 10) {
-      this.particles.push({
-        x: e.x + (Math.random() - 0.5) * 20,
-        y: e.y + (Math.random() - 0.5) * 14,
-        vx: (Math.random() - 0.5) * 14,
-        vy: -16 - Math.random() * 14,
-        color: enraged ? '#fb7185' : '#fbbf24',
-        size: 1.8,
-        life: 0.35,
-        maxLife: 0.35,
+  private getBossPylonPositions(e: Enemy): Array<{ x: number; y: number; depth: number; angle: number }> {
+    const count = e.bossPhase2 ? 4 : 3;
+    const baseAngle = e.bossOrbitAngle ?? 0;
+    const rx = e.bossPylonRadius ?? 28;
+    const ry = rx * 0.48;
+    const z = e.bossHeight ?? 0;
+    const list: Array<{ x: number; y: number; depth: number; angle: number }> = [];
+    for (let i = 0; i < count; i++) {
+      const a = baseAngle + (i / count) * Math.PI * 2;
+      list.push({
+        x: e.x + Math.cos(a) * rx,
+        y: e.y - 4 - z + Math.sin(a) * ry,
+        depth: Math.sin(a),
+        angle: a,
       });
     }
+    return list;
+  }
 
-    if (e.hp / e.maxHp <= e.summonThreshold && e.summonThreshold > 0) {
-      e.summonThreshold = e.summonThreshold > 0.4 ? 0.28 : 0;
+  private updateBossAI(e: Enemy, dt: number, dx: number, dy: number, nx: number, ny: number): void {
+    const enraged = e.hp <= e.maxHp * 0.5;
+    const state: BossState = e.bossState ?? 'stalk';
+
+    // Orbiting plasma pylons spin continuously (faster during barrage & Phase 2!)
+    const orbitSpeed =
+      state === 'pylon_barrage' ? (enraged ? 5.6 : 4.4) : enraged ? 3.1 : 2.1;
+    e.bossOrbitAngle = (e.bossOrbitAngle ?? 0) + dt * orbitSpeed;
+    const desiredRadius =
+      state === 'pylon_barrage' ? 37 : state === 'phase2_roar' ? 42 : 28;
+    e.bossPylonRadius =
+      (e.bossPylonRadius ?? 28) + (desiredRadius - (e.bossPylonRadius ?? 28)) * Math.min(1, dt * 6);
+
+    // Phase 2 dramatic Overload Transition at 50% HP!
+    if (enraged && !e.bossPhase2 && state !== 'slam_air' && state !== 'slam_jump') {
+      e.bossPhase2 = true;
+      e.bossState = 'phase2_roar';
+      e.bossStateTimer = 1.1;
+      e.bossStateMax = 1.1;
+      e.bossHeight = 0;
+      e.bossStatusText = 'KERN-ÜBERLASTUNG!';
+      e.vx = 0;
+      e.vy = 0;
       sound.playBossRoar();
-      this.spawnEnemy('slime', ROOM_CENTER_X - 74, ROOM_CENTER_Y);
-      this.spawnEnemy('drone', ROOM_CENTER_X + 74, ROOM_CENTER_Y);
-      this.spawnBurst(e.x, e.y, '#fbbf24', 18);
-    }
-
-    if (e.chargeActive > 0) {
-      e.chargeActive -= dt;
-      e.vx = e.chargeDirX * (enraged ? 225 : 190);
-      e.vy = e.chargeDirY * (enraged ? 225 : 190);
+      this.triggerShake(0.45, 5.2);
+      this.shockwaves.push({
+        x: e.x,
+        y: e.y,
+        maxRadius: 96,
+        color: '#fb7185',
+        life: 0.45,
+        maxLife: 0.45,
+      });
+      this.spawnBurst(e.x, e.y, '#fb7185', 26);
+      this.spawnEnemy('slime', ROOM_CENTER_X - 80, ROOM_CENTER_Y);
+      this.spawnEnemy('drone', ROOM_CENTER_X + 80, ROOM_CENTER_Y);
+      this.callbacks.onToast('⚠ PHASE II: Core-Wächter MK-IV im Überlastungs-Modus!', 'warn');
       return;
     }
 
-    if (e.telegraphTimer > 0) {
-      e.telegraphTimer -= dt;
-      if (e.telegraphTimer <= 0) {
-        if (e.phase % 2 === 0) {
-          const count = enraged ? 14 : 10;
-          const rot = Math.atan2(dy, dx);
-          for (let k = 0; k < count; k++) {
-            const a = rot + (k / count) * Math.PI * 2;
-            this.fireEnemyBolt(e.x, e.y, a, enraged ? 136 : 115, 16, '#fb923c');
-          }
-          sound.playBlaster();
-        } else {
-          e.chargeActive = 0.55;
-          sound.playDash();
-        }
-        e.phase += 1;
-        e.aiTimer = enraged ? 1.1 : 1.45;
+    // Continuous thruster & damaged-armor embers
+    const sparkRate = enraged ? 16 : 9;
+    if (Math.random() < dt * sparkRate) {
+      this.particles.push({
+        x: e.x + (Math.random() - 0.5) * 18,
+        y: e.y + 8 - (e.bossHeight ?? 0) + (Math.random() - 0.5) * 8,
+        vx: (Math.random() - 0.5) * 18,
+        vy: 14 + Math.random() * 18,
+        color: enraged ? (Math.random() > 0.4 ? '#fb7185' : '#fbbf24') : '#38e8d4',
+        size: 1.7,
+        life: 0.3,
+        maxLife: 0.3,
+      });
+    }
+
+    e.bossStateTimer = (e.bossStateTimer ?? 0) - dt;
+
+    if (state === 'phase2_roar') {
+      e.bossHeight = Math.sin((1 - Math.max(0, e.bossStateTimer) / 1.1) * Math.PI) * 14;
+      if (Math.random() < dt * 22) {
+        const a = Math.random() * Math.PI * 2;
+        this.particles.push({
+          x: e.x + Math.cos(a) * 16,
+          y: e.y - (e.bossHeight ?? 0) + Math.sin(a) * 12,
+          vx: Math.cos(a) * 70,
+          vy: Math.sin(a) * 70,
+          color: '#fb7185',
+          size: 2.2,
+          life: 0.3,
+          maxLife: 0.3,
+        });
+      }
+      if (e.bossStateTimer <= 0) {
+        e.bossHeight = 0;
+        e.bossState = 'stalk';
+        e.bossStateTimer = 0.55;
+        e.bossStateMax = 0.55;
+        e.bossStatusText = 'ÜBERLASTET';
       }
       return;
     }
 
-    // Active stalking drift + lateral sway
-    const sway = Math.sin(this.time * 2.1) * 32;
-    e.vx += (nx * 46 - ny * sway) * dt * 2.8;
-    e.vy += (ny * 46 + nx * sway) * dt * 2.8;
+    if (state === 'stunned') {
+      e.bossHeight = 0;
+      if (Math.random() < dt * 12) {
+        this.particles.push({
+          x: e.x + (Math.random() - 0.5) * 18,
+          y: e.y - 12,
+          vx: (Math.random() - 0.5) * 20,
+          vy: -22,
+          color: '#94a3b8',
+          size: 2,
+          life: 0.35,
+          maxLife: 0.35,
+        });
+      }
+      if (e.bossStateTimer <= 0) {
+        e.bossState = 'stalk';
+        e.bossStateTimer = enraged ? 0.65 : 0.95;
+        e.bossStateMax = e.bossStateTimer;
+        e.bossStatusText = enraged ? 'ÜBERLASTET' : 'AKTIV';
+      }
+      return;
+    }
 
-    e.aiTimer -= dt;
-    if (e.aiTimer <= 0) {
-      e.telegraphTimer = e.phase % 2 === 1 ? 0.56 : 0.44;
-      e.chargeDirX = nx;
-      e.chargeDirY = ny;
+    if (state === 'charge_windup') {
+      e.vx *= 0.2;
+      e.vy *= 0.2;
+      // Continuously refine aim for first 60% of windup, then lock lane cleanly!
+      if (e.bossStateTimer > (e.bossStateMax ?? 0.62) * 0.38) {
+        e.chargeDirX = nx;
+        e.chargeDirY = ny;
+      }
+      if (Math.random() < dt * 20) {
+        this.particles.push({
+          x: e.x - e.chargeDirX * 14 + (Math.random() - 0.5) * 10,
+          y: e.y - e.chargeDirY * 14 + (Math.random() - 0.5) * 8,
+          vx: -e.chargeDirX * 65,
+          vy: -e.chargeDirY * 65,
+          color: '#fb923c',
+          size: 2,
+          life: 0.22,
+          maxLife: 0.22,
+        });
+      }
+      if (e.bossStateTimer <= 0) {
+        sound.playBossCharge();
+        e.bossState = 'charge_dash';
+        e.bossStateTimer = enraged ? 0.58 : 0.52;
+        e.bossStateMax = e.bossStateTimer;
+        e.bossAfterimageTick = 0;
+        e.bossStatusText = 'RAKETEN-RAMME!';
+      }
+      return;
+    }
+
+    if (state === 'charge_dash') {
+      const speed = enraged ? 275 : 230;
+      e.vx = e.chargeDirX * speed;
+      e.vy = e.chargeDirY * speed;
+      e.bossAfterimageTick = (e.bossAfterimageTick ?? 0) - dt;
+      if (e.bossAfterimageTick <= 0) {
+        e.bossAfterimageTick = 0.055;
+        this.bossAfterimages.push({
+          x: e.x,
+          y: e.y,
+          height: e.bossHeight ?? 0,
+          tilt: e.chargeDirX * 0.26,
+          enraged,
+          life: 0.24,
+          maxLife: 0.24,
+        });
+      }
+      if (e.bossStateTimer <= 0) {
+        e.bossState = 'stalk';
+        e.bossStateTimer = enraged ? 0.8 : 1.1;
+        e.bossStateMax = e.bossStateTimer;
+        e.bossStatusText = enraged ? 'ÜBERLASTET' : 'AKTIV';
+      }
+      return;
+    }
+
+    if (state === 'slam_jump') {
+      const maxT = e.bossStateMax ?? 0.42;
+      const p = 1 - Math.max(0, e.bossStateTimer) / maxT;
+      e.bossHeight = Math.pow(p, 0.7) * 76;
+      e.vx *= 0.4;
+      e.vy *= 0.4;
+      if (Math.random() < dt * 26) {
+        this.particles.push({
+          x: e.x + (Math.random() - 0.5) * 14,
+          y: e.y + 10 - (e.bossHeight ?? 0),
+          vx: (Math.random() - 0.5) * 28,
+          vy: 45 + Math.random() * 35,
+          color: '#fbbf24',
+          size: 2.2,
+          life: 0.25,
+          maxLife: 0.25,
+        });
+      }
+      if (e.bossStateTimer <= 0) {
+        e.bossState = 'slam_air';
+        e.bossStateTimer = enraged ? 0.46 : 0.56;
+        e.bossStateMax = e.bossStateTimer;
+        e.bossTargetX = this.playerX;
+        e.bossTargetY = this.playerY;
+        e.bossStatusText = 'SCHWERKRAFT-STURZ!';
+      }
+      return;
+    }
+
+    if (state === 'slam_air') {
+      const maxT = e.bossStateMax ?? 0.52;
+      const p = 1 - Math.max(0, e.bossStateTimer) / maxT;
+      // Track player during first 55% of air hover, then lock landing reticle!
+      if (p < 0.55) {
+        e.bossTargetX = (e.bossTargetX ?? this.playerX) + (this.playerX - (e.bossTargetX ?? this.playerX)) * Math.min(1, dt * 6);
+        e.bossTargetY = (e.bossTargetY ?? this.playerY) + (this.playerY - (e.bossTargetY ?? this.playerY)) * Math.min(1, dt * 6);
+      }
+      const tx = Math.max(ROOM_LEFT + 26, Math.min(ROOM_RIGHT - 26, e.bossTargetX ?? ROOM_CENTER_X));
+      const ty = Math.max(ROOM_TOP + 24, Math.min(ROOM_BOTTOM - 24, e.bossTargetY ?? ROOM_CENTER_Y));
+      e.bossTargetX = tx;
+      e.bossTargetY = ty;
+      e.x += (tx - e.x) * Math.min(1, dt * 7);
+      e.y += (ty - e.y) * Math.min(1, dt * 7);
+
+      if (p > 0.72) {
+        // Rapid meteor descent!
+        const fallP = (p - 0.72) / 0.28;
+        e.bossHeight = 76 * (1 - fallP * fallP);
+      } else {
+        e.bossHeight = 76;
+      }
+
+      if (e.bossStateTimer <= 0) {
+        e.bossHeight = 0;
+        e.x = tx;
+        e.y = ty;
+        sound.playBossSlam();
+        this.triggerShake(0.36, 5.5);
+        // Scorched crater decal + double shockwave + radial embers!
+        this.decals.push({
+          x: e.x,
+          y: e.y + 8,
+          r: 22,
+          color: 'rgba(15, 23, 42, 0.55)',
+          life: 6.0,
+          maxLife: 6.0,
+        });
+        this.shockwaves.push({
+          x: e.x,
+          y: e.y + 4,
+          maxRadius: 68,
+          color: enraged ? '#fb7185' : '#fb923c',
+          life: 0.34,
+          maxLife: 0.34,
+        });
+        this.shockwaves.push({
+          x: e.x,
+          y: e.y + 4,
+          maxRadius: 42,
+          color: '#fde047',
+          life: 0.24,
+          maxLife: 0.24,
+        });
+        this.spawnBurst(e.x, e.y + 4, '#fbbf24', 24);
+        const bolts = enraged ? 10 : 8;
+        for (let k = 0; k < bolts; k++) {
+          const a = (k / bolts) * Math.PI * 2 + 0.2;
+          this.fireEnemyBolt(e.x, e.y, a, enraged ? 132 : 112, 15, '#fb923c');
+        }
+        // Slam AoE hit check
+        const distPlayer = Math.hypot(this.playerX - e.x, this.playerY - e.y);
+        if (distPlayer <= 44) {
+          const px = (this.playerX - e.x) / Math.max(1, distPlayer);
+          const py = (this.playerY - e.y) / Math.max(1, distPlayer);
+          this.damagePlayer(24, px, py, e);
+        }
+        e.bossState = 'slam_impact';
+        e.bossStateTimer = 0.42;
+        e.bossStateMax = 0.42;
+        e.bossStatusText = 'EINSCHLAG!';
+      }
+      return;
+    }
+
+    if (state === 'slam_impact') {
+      e.vx *= 0.2;
+      e.vy *= 0.2;
+      if (e.bossStateTimer <= 0) {
+        e.bossState = 'stalk';
+        e.bossStateTimer = enraged ? 0.78 : 1.05;
+        e.bossStateMax = e.bossStateTimer;
+        e.bossStatusText = enraged ? 'ÜBERLASTET' : 'AKTIV';
+      }
+      return;
+    }
+
+    if (state === 'laser_windup') {
+      e.vx *= 0.25;
+      e.vy *= 0.25;
+      e.bossHeight = 6 + Math.sin(this.time * 18) * 1.5;
+      // Spiral imploding energy motes into boss reactor core!
+      if (Math.random() < dt * 28) {
+        const a = Math.random() * Math.PI * 2;
+        this.particles.push({
+          x: e.x + Math.cos(a) * 28,
+          y: e.y - 6 + Math.sin(a) * 22,
+          vx: -Math.cos(a) * 78,
+          vy: -Math.sin(a) * 78,
+          color: enraged ? '#fb7185' : '#fde047',
+          size: 1.8,
+          life: 0.3,
+          maxLife: 0.3,
+        });
+      }
+      if (e.bossStateTimer <= 0) {
+        sound.playBossLaser();
+        this.triggerShake(0.25, 2.5);
+        e.bossState = 'laser_sweep';
+        e.bossStateTimer = enraged ? 1.25 : 1.1;
+        e.bossStateMax = e.bossStateTimer;
+        e.bossLaserTick = 0;
+        e.bossStatusText = 'KERN-LASER!';
+      }
+      return;
+    }
+
+    if (state === 'laser_sweep') {
+      e.vx *= 0.15;
+      e.vy *= 0.15;
+      e.bossHeight = 6;
+      const sweepRate = (enraged ? 2.15 : 1.75) * (e.bossLaserDir ?? 1);
+      e.bossLaserAngle = (e.bossLaserAngle ?? 0) + sweepRate * dt;
+
+      // Raycast laser to wall & damage player if intersected!
+      const lx = e.x;
+      const ly = e.y - 8;
+      const cosA = Math.cos(e.bossLaserAngle);
+      const sinA = Math.sin(e.bossLaserAngle);
+      let maxT = 320;
+      for (let t = 12; t < 320; t += 6) {
+        const px = lx + cosA * t;
+        const py = ly + sinA * t;
+        if (px < ROOM_LEFT || px > ROOM_RIGHT || py < ROOM_TOP || py > ROOM_BOTTOM) {
+          maxT = t;
+          break;
+        }
+      }
+      const exWall = lx + cosA * maxT;
+      const eyWall = ly + sinA * maxT;
+      if (Math.random() < dt * 26) {
+        this.particles.push({
+          x: exWall,
+          y: eyWall,
+          vx: -cosA * 40 + (Math.random() - 0.5) * 45,
+          vy: -sinA * 40 + (Math.random() - 0.5) * 45,
+          color: '#fde047',
+          size: 1.9,
+          life: 0.22,
+          maxLife: 0.22,
+        });
+      }
+      const distLine = this.pointToSegmentDist(this.playerX, this.playerY, lx, ly, exWall, eyWall);
+      if (distLine <= 11) {
+        this.damagePlayer(18, -sinA * (e.bossLaserDir ?? 1), cosA * (e.bossLaserDir ?? 1), e);
+      }
+
+      if (e.bossStateTimer <= 0) {
+        e.bossHeight = 0;
+        e.bossState = 'stalk';
+        e.bossStateTimer = enraged ? 0.85 : 1.15;
+        e.bossStateMax = e.bossStateTimer;
+        e.bossStatusText = enraged ? 'ÜBERLASTET' : 'AKTIV';
+      }
+      return;
+    }
+
+    if (state === 'pylon_barrage') {
+      e.bossHeight = 5 + Math.sin(this.time * 8) * 2;
+      e.vx += nx * 24 * dt;
+      e.vy += ny * 24 * dt;
+      e.burstDelay -= dt;
+      if (e.subBurst > 0 && e.burstDelay <= 0) {
+        // Fire projectiles straight out of EACH orbiting plasma pylon!
+        const pylons = this.getBossPylonPositions(e);
+        for (const py of pylons) {
+          const toPlayer = Math.atan2(this.playerY - py.y, this.playerX - py.x);
+          const aim = e.subBurst % 2 === 0 ? toPlayer : py.angle;
+          this.fireEnemyBolt(py.x, py.y, aim, enraged ? 148 : 122, 14, enraged ? '#fb7185' : '#38e8d4');
+          this.spawnBurst(py.x, py.y, enraged ? '#fb7185' : '#38e8d4', 4);
+        }
+        sound.playBlaster();
+        e.subBurst -= 1;
+        e.burstDelay = enraged ? 0.24 : 0.3;
+      }
+      if (e.bossStateTimer <= 0) {
+        e.bossHeight = 0;
+        e.bossState = 'stalk';
+        e.bossStateTimer = enraged ? 0.8 : 1.05;
+        e.bossStateMax = e.bossStateTimer;
+        e.bossStatusText = enraged ? 'ÜBERLASTET' : 'AKTIV';
+      }
+      return;
+    }
+
+    // Default 'stalk' state: active hovering pursuit + lateral weave, then launch next attack!
+    e.bossHeight = Math.max(0, (e.bossHeight ?? 0) - dt * 20);
+    const sway = Math.sin(this.time * 2.4) * 38;
+    e.vx += (nx * (enraged ? 58 : 44) - ny * sway) * dt * 3.0;
+    e.vy += (ny * (enraged ? 58 : 44) + nx * sway) * dt * 3.0;
+
+    if (e.bossStateTimer <= 0) {
+      const atk = e.phase % 4;
+      e.phase += 1;
+      if (atk === 0) {
+        // Orbital Pylon Barrage
+        e.bossState = 'pylon_barrage';
+        e.subBurst = enraged ? 4 : 3;
+        e.burstDelay = 0.35;
+        e.bossStateTimer = enraged ? 1.35 : 1.28;
+        e.bossStateMax = e.bossStateTimer;
+        e.bossStatusText = 'ORBIT-SALVE!';
+      } else if (atk === 1) {
+        // Rocket Charge Dash
+        e.bossState = 'charge_windup';
+        e.bossStateTimer = enraged ? 0.54 : 0.64;
+        e.bossStateMax = e.bossStateTimer;
+        e.chargeDirX = nx;
+        e.chargeDirY = ny;
+        e.bossStatusText = 'ANLAUF...';
+      } else if (atk === 2) {
+        // Gravity Jump Slam
+        e.bossState = 'slam_jump';
+        e.bossStateTimer = 0.4;
+        e.bossStateMax = 0.4;
+        e.bossTargetX = this.playerX;
+        e.bossTargetY = this.playerY;
+        sound.playDash();
+        e.bossStatusText = 'SPRUNG-ANGRIFF!';
+      } else {
+        // Sweeping Reactor Laser!
+        e.bossState = 'laser_windup';
+        e.bossStateTimer = enraged ? 0.65 : 0.76;
+        e.bossStateMax = e.bossStateTimer;
+        e.bossLaserDir = Math.random() > 0.5 ? 1 : -1;
+        e.bossLaserAngle = Math.atan2(dy, dx) - e.bossLaserDir * 0.95;
+        e.bossStatusText = 'LASER LÄDT...';
+      }
     }
   }
 
@@ -1261,7 +1835,7 @@ export class DungeonScene {
   private damageEnemy(e: Enemy, amount: number, kx: number, ky: number, knockForce: number): void {
     e.hp -= amount;
     e.flashTimer = 0.11;
-    const resistance = e.kind === 'boss' ? 0.16 : e.kind === 'turret' ? 0.35 : 1.0;
+    const resistance = e.kind === 'boss' ? 0.12 : e.kind === 'turret' ? 0.35 : 1.0;
     e.vx += kx * knockForce * resistance;
     e.vy += ky * knockForce * resistance;
 
@@ -1287,10 +1861,18 @@ export class DungeonScene {
 
     this.enemiesDefeated += 1;
     sound.playEnemyDefeat();
-    this.spawnBurst(e.x, e.y, e.kind === 'boss' ? '#fbbf24' : '#c084fc', e.kind === 'boss' ? 32 : 14);
+    this.spawnBurst(e.x, e.y, e.kind === 'boss' ? '#fbbf24' : '#c084fc', e.kind === 'boss' ? 36 : 14);
 
     if (e.kind === 'boss') {
-      this.triggerShake(0.45, 5);
+      this.triggerShake(0.5, 5.5);
+      this.shockwaves.push({
+        x: e.x,
+        y: e.y,
+        maxRadius: 92,
+        color: '#fbbf24',
+        life: 0.45,
+        maxLife: 0.45,
+      });
       this.bossDefeatedInRun = true;
       this.state.bossDefeatedCount += 1;
       this.spawnLootDrop(e.x, e.y, 'mk4_heart');
@@ -1312,6 +1894,23 @@ export class DungeonScene {
       sound.playDoorUnlock();
       if (this.currentRoom.type === 'combat') {
         this.spawnLootDrop(ROOM_CENTER_X, ROOM_CENTER_Y, rollLootItem(this.currentRoom.depth));
+      }
+      // Dr. Lyra's Nano-Vitalserum passive heal on room clear!
+      const stats = this.state.getStats();
+      if (stats.roomClearHeal > 0 && this.state.hp < stats.maxHp) {
+        const healed = Math.min(stats.maxHp - this.state.hp, stats.roomClearHeal);
+        this.state.hp += healed;
+        sound.playHeal();
+        this.spawnBurst(this.playerX, this.playerY, '#34d399', 12);
+        this.floats.push({
+          x: this.playerX,
+          y: this.playerY - 16,
+          text: `+${Math.round(healed)} BIO`,
+          color: '#34d399',
+          life: 1.0,
+          maxLife: 1.0,
+        });
+        this.callbacks.onHudDirty();
       }
     }
   }
@@ -1419,6 +2018,7 @@ export class DungeonScene {
       if (p.fromPlayer) {
         let consumed = false;
         for (const e of this.enemies) {
+          if (e.kind === 'boss' && (e.bossHeight ?? 0) > 28) continue;
           if (Math.hypot(e.x - p.x, e.y - p.y) < e.radius + p.radius) {
             const len = Math.max(1, Math.hypot(p.vx, p.vy));
             this.damageEnemy(e, p.damage, p.vx / len, p.vy / len, 55);
@@ -1625,6 +2225,14 @@ export class DungeonScene {
       this.swings[i].life -= dt;
       if (this.swings[i].life <= 0) this.swings.splice(i, 1);
     }
+    for (let i = this.slashHits.length - 1; i >= 0; i--) {
+      this.slashHits[i].life -= dt;
+      if (this.slashHits[i].life <= 0) this.slashHits.splice(i, 1);
+    }
+    for (let i = this.bossAfterimages.length - 1; i >= 0; i--) {
+      this.bossAfterimages[i].life -= dt;
+      if (this.bossAfterimages[i].life <= 0) this.bossAfterimages.splice(i, 1);
+    }
     for (let i = this.beams.length - 1; i >= 0; i--) {
       this.beams[i].life -= dt;
       if (this.beams[i].life <= 0) this.beams.splice(i, 1);
@@ -1681,7 +2289,7 @@ export class DungeonScene {
       ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
     }
 
-    // Floor slime decals
+    // Floor slime & crater decals
     for (const d of this.decals) {
       ctx.save();
       ctx.globalAlpha = Math.max(0, d.life / d.maxLife);
@@ -1769,7 +2377,22 @@ export class DungeonScene {
       ctx.restore();
     }
 
-    // Enemy telegraphs: Drone Laser Sightlines & Boss Charge Lanes!
+    // Glowing Rocket-Charge Boss Afterimages!
+    for (const ba of this.bossAfterimages) {
+      const alpha = (ba.life / ba.maxLife) * 0.48;
+      if (art.bossFlash) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = alpha;
+        ctx.translate(ba.x, ba.y - ba.height);
+        ctx.rotate(ba.tilt);
+        ctx.drawImage(art.bossFlash, -26, -28, 52, 50);
+        ctx.restore();
+      }
+      drawGlow(ctx, ba.x, ba.y - ba.height, 26, ba.enraged ? '#fb7185' : '#fb923c', alpha * 0.7);
+    }
+
+    // Enemy & Boss Floor Telegraphs (Drone Laser Sightlines, Boss Charge Lanes, Slam Target Reticles, Laser Aim!)
     for (const e of this.enemies) {
       if (e.kind === 'drone' && e.telegraphTimer > 0) {
         ctx.save();
@@ -1781,37 +2404,72 @@ export class DungeonScene {
         ctx.lineTo(e.x + Math.cos(e.aimAngle) * 145, e.y + Math.sin(e.aimAngle) * 145);
         ctx.stroke();
         ctx.restore();
-      } else if (e.kind === 'boss' && e.telegraphTimer > 0 && e.phase % 2 === 1) {
-        ctx.save();
-        ctx.strokeStyle = 'rgba(251, 113, 133, 0.72)';
-        ctx.lineWidth = 8;
-        ctx.setLineDash([6, 4]);
-        ctx.beginPath();
-        ctx.moveTo(e.x, e.y);
-        ctx.lineTo(e.x + e.chargeDirX * 140, e.y + e.chargeDirY * 140);
-        ctx.stroke();
-        ctx.restore();
+      } else if (e.kind === 'boss') {
+        this.renderBossFloorTelegraph(ctx, e);
       }
     }
 
-    // Depth-sorted enemies & hero
+    // Depth-sorted enemies & hero (airborne boss renders above grounded actors!)
     type Drawable = { y: number; draw: () => void };
     const drawables: Drawable[] = [];
     for (const e of this.enemies) {
-      drawables.push({ y: e.y, draw: () => this.renderEnemy(ctx, e) });
+      const sortY = e.kind === 'boss' && (e.bossHeight ?? 0) > 12 ? 999 : e.y;
+      drawables.push({ y: sortY, draw: () => this.renderEnemy(ctx, e) });
     }
     drawables.push({ y: this.playerY, draw: () => this.renderPlayer(ctx) });
     drawables.sort((a, b) => a.y - b.y);
     for (const d of drawables) d.draw();
+
+    // Active Boss Sweeping Reactor Laser Beam!
+    for (const e of this.enemies) {
+      if (e.kind === 'boss' && e.bossState === 'laser_sweep') {
+        this.renderBossLaserBeam(ctx, e);
+      }
+    }
 
     // Kinetic Shield Arc when blocking with Plasma-Klinge!
     if (this.shieldActive) {
       this.renderKineticShield(ctx);
     }
 
-    // Lush Multi-Layered Weapon Swings + Animated Held Weapon Sprite!
+    // Hand-Crafted 2.5D Tapered Crescent Weapon Swings + Ghost-Blade Trails!
     for (const s of this.swings) {
       this.renderWeaponSwing(ctx, s);
+    }
+
+    // Crisp X-Slash Impact Flashes on Struck Enemies!
+    for (const h of this.slashHits) {
+      const t = 1 - h.life / h.maxLife;
+      const alpha = Math.max(0, 1 - t);
+      const len = 11 + t * 9;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.translate(h.x, h.y);
+      ctx.rotate(h.angle);
+      for (const offset of [-0.55, 0.55]) {
+        ctx.save();
+        ctx.rotate(offset);
+        ctx.fillStyle = h.color;
+        ctx.globalAlpha = alpha * 0.85;
+        ctx.beginPath();
+        ctx.moveTo(-len, 0);
+        ctx.lineTo(0, -2.8 * (1 - t * 0.5));
+        ctx.lineTo(len, 0);
+        ctx.lineTo(0, 2.8 * (1 - t * 0.5));
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        ctx.moveTo(-len * 0.72, 0);
+        ctx.lineTo(0, -1.1);
+        ctx.lineTo(len * 0.72, 0);
+        ctx.lineTo(0, 1.1);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+      ctx.restore();
     }
 
     // Piercing Railgun Beams (Puls-Blaster Secondary!)
@@ -1843,7 +2501,7 @@ export class DungeonScene {
       ctx.restore();
     }
 
-    // Shockwave Rings (Hammer Secondary & Blade Finisher!)
+    // Shockwave Rings (Hammer Secondary, Blade Finisher & Boss Slam!)
     for (const sw of this.shockwaves) {
       const progress = 1 - sw.life / sw.maxLife;
       const r = 10 + (sw.maxRadius - 10) * progress;
@@ -1854,7 +2512,7 @@ export class DungeonScene {
       ctx.globalAlpha = alpha * 0.85;
       ctx.lineWidth = 4 * alpha + 1;
       ctx.beginPath();
-      ctx.arc(sw.x, sw.y, r, 0, Math.PI * 2);
+      ctx.ellipse(sw.x, sw.y, r, r * 0.78, 0, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
     }
@@ -1923,66 +2581,202 @@ export class DungeonScene {
     }
   }
 
+  /**
+   * Draws a razor-sharp 2.5D tapered polygon crescent ribbon (Moonlighter / Hyper Light Drifter feel)
+   * that starts needle-thin at tailAngle and swells smoothly into a cutting blade head at headAngle.
+   */
+  private drawTaperedCrescent(
+    ctx: CanvasRenderingContext2D,
+    cx: number,
+    cy: number,
+    baseRadius: number,
+    tailAngle: number,
+    headAngle: number,
+    maxThickness: number,
+    squashY: number,
+    fillStyle: string,
+  ): void {
+    const segs = 22;
+    ctx.fillStyle = fillStyle;
+    ctx.beginPath();
+    // Outer cutting edge (tail -> head)
+    for (let i = 0; i <= segs; i++) {
+      const u = i / segs;
+      const a = tailAngle + (headAngle - tailAngle) * u;
+      const taper = Math.sin(Math.pow(u, 0.68) * Math.PI);
+      const rOut = baseRadius + taper * maxThickness * 0.55;
+      const px = cx + Math.cos(a) * rOut;
+      const py = cy + Math.sin(a) * rOut * squashY;
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    // Inner trailing edge (head -> tail)
+    for (let i = segs; i >= 0; i--) {
+      const u = i / segs;
+      const a = tailAngle + (headAngle - tailAngle) * u;
+      const taper = Math.sin(Math.pow(u, 0.85) * Math.PI);
+      const rIn = Math.max(4, baseRadius - taper * maxThickness * 0.72);
+      const px = cx + Math.cos(a) * rIn;
+      const py = cy + Math.sin(a) * rIn * squashY;
+      ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+
   private renderWeaponSwing(ctx: CanvasRenderingContext2D, s: WeaponSwing): void {
     const art = getHDArt();
-    const t = 1 - s.life / s.maxLife; // 0 -> 1 over swing animation
-    const alpha = Math.max(0, 1 - t * 0.9);
-    const eased = 1 - Math.pow(1 - t, 3); // snappy whip ease-out!
+    const t = 1 - s.life / s.maxLife; // 0 -> 1 over swing
+    const alpha = Math.max(0, 1 - Math.pow(t, 1.45));
+    // Ultra-snappy whip-out curve: fast slice across front, crisp hang at follow-through!
+    const eased = 1 - Math.pow(1 - t, 3.6);
 
     const startA = s.dir === 1 ? s.angle - s.sweep / 2 : s.angle + s.sweep / 2;
     const endA = s.dir === 1 ? s.angle + s.sweep / 2 : s.angle - s.sweep / 2;
     const curA = startA + (endA - startA) * eased;
-    const trailStart = startA + (endA - startA) * Math.max(0, eased - 0.72);
-
-    const aMin = Math.min(trailStart, curA);
-    const aMax = Math.max(trailStart, curA);
+    const trailFrac = Math.max(0, eased - (s.comboStep === 2 ? 0.85 : 0.78));
+    const tailA = startA + (endA - startA) * trailFrac;
 
     const isHammer = s.weapon === 'hammer';
+    const isBackhand = s.weapon === 'blade' && s.comboStep === 1;
     const isFinisher = s.weapon === 'blade' && s.comboStep === 2;
-    const outerColor = isHammer
-      ? `rgba(249, 115, 22, ${alpha * 0.55})`
-      : isFinisher
-        ? `rgba(251, 191, 36, ${alpha * 0.6})`
-        : `rgba(20, 184, 166, ${alpha * 0.55})`;
-    const coreColor = isHammer
-      ? `rgba(253, 224, 71, ${alpha})`
-      : isFinisher
-        ? `rgba(254, 240, 138, ${alpha})`
-        : `rgba(56, 232, 212, ${alpha})`;
+    const cx = this.playerX;
+    const cy = this.playerY - 2;
+    const squashY = 0.84;
 
-    // 1. Multi-layered tapered energy smear ribbon
+    const outerGlow = isHammer
+      ? `rgba(234, 88, 12, ${alpha * 0.52})`
+      : isFinisher
+        ? `rgba(245, 158, 11, ${alpha * 0.56})`
+        : isBackhand
+          ? `rgba(56, 189, 248, ${alpha * 0.52})`
+          : `rgba(13, 148, 136, ${alpha * 0.55})`;
+
+    const midCore = isHammer
+      ? `rgba(251, 146, 60, ${alpha * 0.92})`
+      : isFinisher
+        ? `rgba(253, 224, 71, ${alpha * 0.95})`
+        : isBackhand
+          ? `rgba(103, 232, 249, ${alpha * 0.92})`
+          : `rgba(56, 232, 212, ${alpha * 0.94})`;
+
+    const edgeWhite = `rgba(255, 255, 255, ${alpha * 0.96})`;
+
+    // 1. Multi-layered 2.5D Tapered Energy Crescent Ribbon!
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = outerColor;
-    ctx.lineWidth = isHammer ? 12 : isFinisher ? 10 : 8;
-    ctx.beginPath();
-    ctx.arc(this.playerX, this.playerY, s.radius * 0.76, aMin, aMax);
-    ctx.stroke();
 
-    ctx.strokeStyle = coreColor;
-    ctx.lineWidth = isHammer ? 6 : 4.5;
-    ctx.beginPath();
-    ctx.arc(this.playerX, this.playerY, s.radius * 0.85, aMin, aMax);
-    ctx.stroke();
+    // Wide outer atmospheric energy plume
+    this.drawTaperedCrescent(
+      ctx,
+      cx,
+      cy,
+      s.radius * 0.82,
+      tailA,
+      curA,
+      isHammer ? 19 : isFinisher ? 17 : 14,
+      squashY,
+      outerGlow,
+    );
 
-    ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.95})`;
-    ctx.lineWidth = 2;
+    // Rich primary razor crescent
+    this.drawTaperedCrescent(
+      ctx,
+      cx,
+      cy,
+      s.radius * 0.88,
+      tailA + (curA - tailA) * 0.08,
+      curA,
+      isHammer ? 12 : isFinisher ? 11 : 9,
+      squashY,
+      midCore,
+    );
+
+    // Twin inner plasma streak on Combo 3 Finisher or Backhand!
+    if (isFinisher || isBackhand) {
+      this.drawTaperedCrescent(
+        ctx,
+        cx,
+        cy,
+        s.radius * 0.62,
+        tailA + (curA - tailA) * 0.14,
+        curA,
+        isFinisher ? 6.5 : 4.2,
+        squashY,
+        isFinisher ? `rgba(56, 232, 212, ${alpha * 0.85})` : `rgba(167, 243, 208, ${alpha * 0.65})`,
+      );
+    }
+
+    // Razor white-hot leading cutting edge
+    this.drawTaperedCrescent(
+      ctx,
+      cx,
+      cy,
+      s.radius * 0.96,
+      tailA + (curA - tailA) * 0.28,
+      curA,
+      isHammer ? 4.2 : 3.2,
+      squashY,
+      edgeWhite,
+    );
+
+    // Crisp kinetic speed-line arc slicing inside the ribbon
+    ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.55})`;
+    ctx.lineWidth = 0.9;
     ctx.beginPath();
-    ctx.arc(this.playerX, this.playerY, s.radius * 0.93, aMin, aMax);
+    for (let i = 0; i <= 14; i++) {
+      const u = i / 14;
+      const a = tailA + (curA - tailA) * (0.2 + u * 0.78);
+      const rLine = s.radius * 0.74;
+      const px = cx + Math.cos(a) * rLine;
+      const py = cy + Math.sin(a) * rLine * squashY;
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
     ctx.stroke();
     ctx.restore();
 
-    // 2. Visible HD Weapon Sprite rotating right around the hero's hand!
+    // 2. 3-Frame Motion-Blur Ghost Trail + Solid HD Weapon Sprite sweeping around hero's hand!
     const wepSpr = isHammer ? art.weapons.hammer : art.weapons.blade;
     if (wepSpr) {
+      const baseSize = isHammer ? 30 : isFinisher ? 28 : 25;
+      const swingReach = isHammer ? 10 : 8;
+      const velScale = 1 + Math.sin(t * Math.PI) * 0.14;
+
+      // 3 fading motion-blur afterimages trailing behind the active blade!
+      for (let g = 3; g >= 1; g--) {
+        const gFrac = Math.max(0, eased - g * 0.11);
+        const gA = startA + (endA - startA) * gFrac;
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = alpha * (0.42 - g * 0.1);
+        ctx.translate(cx + Math.cos(gA) * swingReach, cy + Math.sin(gA) * swingReach * squashY);
+        ctx.rotate(gA + Math.PI / 4);
+        ctx.drawImage(wepSpr, -baseSize * 0.18, -baseSize * 0.92, baseSize, baseSize);
+        ctx.restore();
+      }
+
+      // Main crisp weapon sprite at current blade head
       ctx.save();
-      ctx.translate(this.playerX, this.playerY);
-      // Weapon sprite points diagonally up-right (-45 deg), so offset by +PI/4!
+      ctx.translate(cx + Math.cos(curA) * swingReach, cy + Math.sin(curA) * swingReach * squashY);
       ctx.rotate(curA + Math.PI / 4);
-      const size = isHammer ? 28 : isFinisher ? 27 : 24;
-      ctx.drawImage(wepSpr, -size * 0.15, -size * 0.95, size, size);
+      ctx.scale(velScale, velScale);
+      ctx.drawImage(wepSpr, -baseSize * 0.18, -baseSize * 0.92, baseSize, baseSize);
       ctx.restore();
+
+      // Gleaming 4-point pixel star-glint right at the plasma blade tip!
+      if (t < 0.72) {
+        const tipX = cx + Math.cos(curA) * (s.radius * 0.96);
+        const tipY = cy + Math.sin(curA) * (s.radius * 0.96) * squashY;
+        const glint = (1 - t / 0.72) * (isFinisher ? 9 : 6.5);
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(tipX - glint, tipY - 0.8, glint * 2, 1.6);
+        ctx.fillRect(tipX - 0.8, tipY - glint, 1.6, glint * 2);
+        drawGlow(ctx, tipX, tipY, 14, isHammer ? '#fb923c' : isFinisher ? '#fde047' : '#38e8d4', alpha * 0.75);
+        ctx.restore();
+      }
     }
   }
 
@@ -2134,21 +2928,355 @@ export class DungeonScene {
     }
   }
 
+  private renderBossFloorTelegraph(ctx: CanvasRenderingContext2D, e: Enemy): void {
+    const state = e.bossState ?? 'stalk';
+    const pulse = 0.5 + 0.5 * Math.sin(this.time * 22);
+
+    if (state === 'charge_windup') {
+      // Glowing red Rocket-Charge corridor + scrolling warning chevrons!
+      const len = 165;
+      const angle = Math.atan2(e.chargeDirY, e.chargeDirX);
+      ctx.save();
+      ctx.translate(e.x, e.y);
+      ctx.rotate(angle);
+      ctx.fillStyle = `rgba(244, 63, 94, ${0.14 + pulse * 0.14})`;
+      ctx.fillRect(0, -14, len, 28);
+      ctx.strokeStyle = `rgba(251, 113, 133, ${0.65 + pulse * 0.3})`;
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([6, 4]);
+      ctx.strokeRect(0, -14, len, 28);
+      ctx.setLineDash([]);
+      // Animated scrolling directional chevrons inside lane
+      const shift = (this.time * 85) % 24;
+      ctx.strokeStyle = `rgba(253, 224, 71, ${0.7 + pulse * 0.3})`;
+      ctx.lineWidth = 1.6;
+      for (let x = shift; x < len - 10; x += 24) {
+        ctx.beginPath();
+        ctx.moveTo(x - 4, -6);
+        ctx.lineTo(x + 3, 0);
+        ctx.lineTo(x - 4, 6);
+        ctx.stroke();
+      }
+      ctx.restore();
+    } else if (state === 'slam_jump' || state === 'slam_air') {
+      // Pulsing Crimson Ground Target Reticle for Gravity Jump Slam!
+      const tx = e.bossTargetX ?? e.x;
+      const ty = e.bossTargetY ?? e.y;
+      const maxT = e.bossStateMax ?? 0.5;
+      const prog =
+        state === 'slam_jump'
+          ? 0.2
+          : Math.min(1, 0.2 + 0.8 * (1 - Math.max(0, e.bossStateTimer ?? 0) / maxT));
+      ctx.save();
+      ctx.fillStyle = `rgba(244, 63, 94, ${0.12 + prog * 0.2})`;
+      ctx.beginPath();
+      ctx.ellipse(tx, ty + 4, 42 * prog, 42 * prog * 0.65, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = `rgba(251, 113, 133, ${0.75 + pulse * 0.25})`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(tx, ty + 4, 42, 42 * 0.65, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Inner lock-on crosshair
+      ctx.strokeStyle = '#fde047';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(tx - 12, ty + 4);
+      ctx.lineTo(tx + 12, ty + 4);
+      ctx.moveTo(tx, ty - 5);
+      ctx.lineTo(tx, ty + 13);
+      ctx.stroke();
+      ctx.restore();
+    } else if (state === 'laser_windup') {
+      // Blinking crimson targeting beam before Reactor Laser Sweep!
+      const a = e.bossLaserAngle ?? 0;
+      const lx = e.x;
+      const ly = e.y - 8;
+      ctx.save();
+      ctx.strokeStyle = `rgba(251, 113, 133, ${0.45 + pulse * 0.5})`;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 3]);
+      ctx.beginPath();
+      ctx.moveTo(lx, ly);
+      ctx.lineTo(lx + Math.cos(a) * 260, ly + Math.sin(a) * 260);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  private renderBossLaserBeam(ctx: CanvasRenderingContext2D, e: Enemy): void {
+    const a = e.bossLaserAngle ?? 0;
+    const lx = e.x;
+    const ly = e.y - 8 - (e.bossHeight ?? 0);
+    const cosA = Math.cos(a);
+    const sinA = Math.sin(a);
+    let maxT = 320;
+    for (let t = 12; t < 320; t += 6) {
+      const px = lx + cosA * t;
+      const py = ly + sinA * t;
+      if (px < ROOM_LEFT || px > ROOM_RIGHT || py < ROOM_TOP || py > ROOM_BOTTOM) {
+        maxT = t;
+        break;
+      }
+    }
+    const ex = lx + cosA * maxT;
+    const ey = ly + sinA * maxT;
+    const flicker = 0.85 + Math.sin(this.time * 48) * 0.15;
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.lineCap = 'round';
+    // Wide blazing crimson plasma sheath
+    ctx.strokeStyle = 'rgba(244, 63, 94, 0.55)';
+    ctx.lineWidth = 17 * flicker;
+    ctx.beginPath();
+    ctx.moveTo(lx, ly);
+    ctx.lineTo(ex, ey);
+    ctx.stroke();
+
+    // Molten orange inner beam
+    ctx.strokeStyle = 'rgba(251, 146, 60, 0.92)';
+    ctx.lineWidth = 9 * flicker;
+    ctx.beginPath();
+    ctx.moveTo(lx, ly);
+    ctx.lineTo(ex, ey);
+    ctx.stroke();
+
+    // Incandescent white-gold core
+    ctx.strokeStyle = '#fffbeb';
+    ctx.lineWidth = 3.5 * flicker;
+    ctx.beginPath();
+    ctx.moveTo(lx, ly);
+    ctx.lineTo(ex, ey);
+    ctx.stroke();
+
+    // Glowing reactor muzzle & wall impact blast flare!
+    drawGlow(ctx, lx, ly, 24, '#fb7185', 0.8);
+    drawGlow(ctx, ex, ey, 22, '#fde047', 0.85);
+    ctx.restore();
+  }
+
+  private drawBossPylon(
+    ctx: CanvasRenderingContext2D,
+    px: number,
+    py: number,
+    bossX: number,
+    bossY: number,
+    enraged: boolean,
+    charging: boolean,
+  ): void {
+    const coreColor = enraged ? '#fb7185' : charging ? '#fde047' : '#38e8d4';
+    // Thin glowing energy tether linking pylon to boss reactor
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = coreColor;
+    ctx.globalAlpha = charging ? 0.55 : 0.25;
+    ctx.lineWidth = charging ? 1.5 : 0.9;
+    ctx.beginPath();
+    ctx.moveTo(bossX, bossY);
+    ctx.lineTo(px, py);
+    ctx.stroke();
+    ctx.restore();
+
+    // Armored diamond satellite pylon
+    drawGlow(ctx, px, py, charging ? 16 : 11, coreColor, charging ? 0.65 : 0.35);
+    ctx.fillStyle = '#1e293b';
+    ctx.beginPath();
+    ctx.moveTo(px, py - 6.5);
+    ctx.lineTo(px + 5, py);
+    ctx.lineTo(px, py + 6.5);
+    ctx.lineTo(px - 5, py);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+
+    // Glowing inner plasma crystal
+    ctx.fillStyle = coreColor;
+    ctx.beginPath();
+    ctx.moveTo(px, py - 3.6);
+    ctx.lineTo(px + 2.8, py);
+    ctx.lineTo(px, py + 3.6);
+    ctx.lineTo(px - 2.8, py);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(px - 1, py - 1, 2, 2);
+  }
+
+  private renderAnimatedBoss(ctx: CanvasRenderingContext2D, e: Enemy): void {
+    const art = getHDArt();
+    const atlas = getAtlas();
+    const frame = Math.floor(e.anim) % 2;
+    const state = e.bossState ?? 'stalk';
+    const enraged = Boolean(e.bossPhase2);
+    const z = e.bossHeight ?? 0;
+
+    // Ground shadow shrinks naturally as Boss rockets high into the air!
+    const shadowScale = Math.max(0.32, 1 - z / 115);
+    drawPixelShadow(ctx, e.x, e.y + 18, 23 * shadowScale, 7.5 * shadowScale, 0.58 * shadowScale);
+
+    // State-driven mechanical body squash/stretch, recoil shudder & banking tilt!
+    const hover =
+      state === 'slam_jump' || state === 'slam_air' || state === 'slam_impact'
+        ? 0
+        : Math.sin(this.time * (enraged ? 6.5 : 4.2)) * 2.6;
+
+    let scaleX = 1;
+    let scaleY = 1;
+    let tilt = Math.max(-0.18, Math.min(0.18, e.vx * 0.0014));
+    let jitterX = 0;
+    let jitterY = 0;
+
+    if (state === 'charge_windup') {
+      scaleX = 1.2;
+      scaleY = 0.8;
+      jitterX = (Math.random() - 0.5) * 2.4;
+      jitterY = (Math.random() - 0.5) * 1.4;
+    } else if (state === 'charge_dash') {
+      scaleX = 1.15;
+      scaleY = 0.88;
+      tilt = e.chargeDirX * 0.25;
+    } else if (state === 'slam_jump') {
+      scaleX = 0.84;
+      scaleY = 1.24;
+    } else if (state === 'slam_air') {
+      scaleX = 1.06;
+      scaleY = 1.06;
+      tilt = Math.sin(this.time * 16) * 0.06;
+    } else if (state === 'slam_impact') {
+      const p = 1 - Math.max(0, e.bossStateTimer ?? 0) / (e.bossStateMax ?? 0.42);
+      const bounce = Math.max(0, 1 - p * 2.4);
+      scaleX = 1 + bounce * 0.34;
+      scaleY = 1 - bounce * 0.3;
+    } else if (state === 'laser_windup' || state === 'phase2_roar') {
+      jitterX = (Math.random() - 0.5) * 2.6;
+      jitterY = (Math.random() - 0.5) * 2.2;
+      scaleX = 1 + Math.sin(this.time * 30) * 0.06;
+      scaleY = 1 - Math.sin(this.time * 30) * 0.05;
+    } else if (state === 'stunned') {
+      tilt = Math.sin(this.time * 18) * 0.14;
+      scaleX = 1.06;
+      scaleY = 0.94;
+    }
+
+    const bodyX = e.x + jitterX;
+    const bodyY = e.y - z + hover + jitterY;
+    const pylons = this.getBossPylonPositions(e);
+    const pylonCharging = state === 'pylon_barrage' || state === 'phase2_roar';
+
+    // 1. Back-orbiting 3D plasma pylons (drawn behind boss chassis)
+    for (const py of pylons) {
+      if (py.depth < 0) {
+        this.drawBossPylon(ctx, py.x, py.y, bodyX, bodyY - 4, enraged, pylonCharging);
+      }
+    }
+
+    // 2. Animated Plasma Thruster Flames under chassis & Rocket-Charge Jet Cone!
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const jetFlicker = 0.75 + Math.sin(this.time * 42) * 0.25;
+    const jetLen = state === 'slam_jump' ? 24 * jetFlicker : state === 'stalk' ? 10 * jetFlicker : 14 * jetFlicker;
+    const jetColor = enraged ? '#fb7185' : '#38e8d4';
+    for (const ox of [-10, 10]) {
+      ctx.fillStyle = jetColor;
+      ctx.globalAlpha = 0.75;
+      ctx.beginPath();
+      ctx.moveTo(bodyX + ox - 3.5, bodyY + 13);
+      ctx.lineTo(bodyX + ox + 3.5, bodyY + 13);
+      ctx.lineTo(bodyX + ox, bodyY + 13 + jetLen);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.globalAlpha = 0.9;
+      ctx.beginPath();
+      ctx.moveTo(bodyX + ox - 1.5, bodyY + 13);
+      ctx.lineTo(bodyX + ox + 1.5, bodyY + 13);
+      ctx.lineTo(bodyX + ox, bodyY + 13 + jetLen * 0.55);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Massive horizontal rocket booster flame during Rocket Charge Dash!
+    if (state === 'charge_dash') {
+      const ca = Math.atan2(-e.chargeDirY, -e.chargeDirX);
+      ctx.save();
+      ctx.translate(bodyX, bodyY);
+      ctx.rotate(ca);
+      ctx.fillStyle = '#f97316';
+      ctx.globalAlpha = 0.85;
+      ctx.beginPath();
+      ctx.moveTo(12, -11);
+      ctx.lineTo(12, 11);
+      ctx.lineTo(44 * jetFlicker, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#fef08a';
+      ctx.globalAlpha = 0.95;
+      ctx.beginPath();
+      ctx.moveTo(12, -5);
+      ctx.lineTo(12, 5);
+      ctx.lineTo(28 * jetFlicker, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+    ctx.restore();
+
+    // 3. Main Boss Chassis Sprite with Mechanical Squash/Stretch & Tilt!
+    const spr = e.flashTimer > 0 ? art.bossFlash ?? atlas.bossFlash : art.boss ?? atlas.boss[frame];
+    ctx.save();
+    ctx.translate(bodyX, bodyY + 16);
+    ctx.rotate(tilt);
+    ctx.scale(scaleX, scaleY);
+    if (art.boss) {
+      ctx.drawImage(spr, -27, -45, 54, 52);
+    } else {
+      ctx.drawImage(spr, -14, -29);
+    }
+    ctx.restore();
+
+    // 4. Pulsing Chest Reactor Core Glow Overlay (changes color with attack & Phase 2!)
+    const corePulse = 0.5 + 0.5 * Math.sin(this.time * (enraged ? 14 : 7));
+    const coreColor =
+      state === 'laser_windup' || state === 'laser_sweep' || enraged
+        ? '#fb7185'
+        : state === 'charge_windup' || state === 'charge_dash'
+          ? '#fb923c'
+          : '#fbbf24';
+    const coreR = state === 'laser_windup' || state === 'laser_sweep' ? 28 + corePulse * 8 : 18 + corePulse * 5;
+    drawGlow(ctx, bodyX, bodyY - 6, coreR, coreColor, 0.45 + corePulse * 0.25);
+
+    // Hot glowing center core dot right on the chest reactor
+    if (state === 'laser_windup' || state === 'laser_sweep' || enraged) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = '#ffffff';
+      ctx.globalAlpha = 0.65 + corePulse * 0.35;
+      ctx.beginPath();
+      ctx.arc(bodyX, bodyY - 6, state === 'laser_windup' ? 4.5 + corePulse * 2 : 3.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // 5. Front-orbiting 3D plasma pylons (drawn IN FRONT of boss chassis!)
+    for (const py of pylons) {
+      if (py.depth >= 0) {
+        this.drawBossPylon(ctx, py.x, py.y, bodyX, bodyY - 4, enraged, pylonCharging);
+      }
+    }
+  }
+
   private renderEnemy(ctx: CanvasRenderingContext2D, e: Enemy): void {
     const art = getHDArt();
     const atlas = getAtlas();
     const frame = Math.floor(e.anim) % 2;
 
     if (e.kind === 'boss') {
-      const hover = Math.sin(this.time * 3.5) * 2.2;
-      drawPixelShadow(ctx, e.x, e.y + 18, 22, 7, 0.55);
-      const spr = e.flashTimer > 0 ? art.bossFlash ?? atlas.bossFlash : art.boss ?? atlas.boss[frame];
-      if (art.boss) {
-        ctx.drawImage(spr, e.x - 26, e.y - 28 + hover, 52, 50);
-      } else {
-        ctx.drawImage(spr, Math.round(e.x - 14), Math.round(e.y - 13));
-      }
-      drawGlow(ctx, e.x, e.y + hover, 34, e.telegraphTimer > 0 ? '#fb7185' : '#fb923c', 0.42);
+      this.renderAnimatedBoss(ctx, e);
       return;
     }
 
@@ -2218,6 +3346,46 @@ export class DungeonScene {
     ctx.fillRect(e.x - 9, e.y - 15, 18 * pct, 1.2);
   }
 
+  private drawReadyMeleeWeapon(ctx: CanvasRenderingContext2D, bob: number): void {
+    const art = getHDArt();
+    const wep = this.state.equippedWeapon;
+    if (wep === 'blaster' || this.swings.length > 0) return;
+    const spr = wep === 'hammer' ? art.weapons.hammer : art.weapons.blade;
+    if (!spr) return;
+
+    const idleBreath = Math.sin(this.time * 4.2) * 0.06;
+    const walkSwing = this.walkAnim > 0 ? Math.sin(this.walkAnim) * 0.14 : 0;
+    const size = wep === 'hammer' ? 21 : 19;
+
+    let ox = 8;
+    let oy = -2;
+    let rot = -0.35 + idleBreath + walkSwing;
+    if (this.shieldActive) {
+      // Brace blade defensively right behind the Kinetic Shield!
+      ox = Math.cos(this.shieldAngle) * 7;
+      oy = -2 + Math.sin(this.shieldAngle) * 6;
+      rot = this.shieldAngle + Math.PI * 0.72;
+    } else if (this.facing === 'left') {
+      ox = -8;
+      oy = -2;
+      rot = -Math.PI * 0.72 - idleBreath - walkSwing;
+    } else if (this.facing === 'up') {
+      ox = 7;
+      oy = -5;
+      rot = -0.65 + idleBreath;
+    } else if (this.facing === 'down') {
+      ox = 8;
+      oy = 0;
+      rot = 0.28 + idleBreath + walkSwing;
+    }
+
+    ctx.save();
+    ctx.translate(this.playerX + ox, this.playerY + oy - bob * 0.65);
+    ctx.rotate(rot + Math.PI / 4);
+    ctx.drawImage(spr, -size * 0.22, -size * 0.82, size, size);
+    ctx.restore();
+  }
+
   private renderPlayer(ctx: CanvasRenderingContext2D): void {
     const art = getHDArt();
     const atlas = getAtlas();
@@ -2227,9 +3395,32 @@ export class DungeonScene {
 
     const walking = this.walkAnim > 0;
     const bob = walking ? Math.abs(Math.sin(this.walkAnim)) * 2.2 : Math.sin(this.time * 3) * 0.4;
-    const tilt = walking ? Math.sin(this.walkAnim) * 0.05 : 0;
 
-    drawPixelShadow(ctx, this.playerX, this.playerY + 11, 8, 3.2, 0.5);
+    // Dynamic Melee Body Lunge, Squash/Stretch & Lean during Blade / Hammer Swings!
+    let lungeX = 0;
+    let lungeY = 0;
+    let scaleX = 1;
+    let scaleY = 1;
+    let tilt = walking ? Math.sin(this.walkAnim) * 0.05 : 0;
+    if (this.swingPoseTimer > 0) {
+      const p = 1 - this.swingPoseTimer / Math.max(0.05, this.swingPoseMax);
+      const pulse = Math.sin(p * Math.PI);
+      lungeX = Math.cos(this.swingPoseAngle) * pulse * 4.2;
+      lungeY = Math.sin(this.swingPoseAngle) * pulse * 3.2;
+      scaleX = 1 + pulse * 0.14;
+      scaleY = 1 - pulse * 0.1;
+      tilt +=
+        this.swingPoseCombo === 2
+          ? Math.sin(p * Math.PI * 2) * 0.24
+          : this.swingPoseDir * pulse * 0.22;
+    }
+
+    drawPixelShadow(ctx, this.playerX + lungeX * 0.5, this.playerY + 11, 8, 3.2, 0.5);
+
+    // Draw ready weapon BEHIND hero when facing up!
+    if (this.facing === 'up') {
+      this.drawReadyMeleeWeapon(ctx, bob);
+    }
 
     const hdSpr =
       this.playerFlashTimer > 0
@@ -2244,8 +3435,9 @@ export class DungeonScene {
 
     if (hdSpr) {
       ctx.save();
-      ctx.translate(this.playerX, this.playerY + 10 - bob);
+      ctx.translate(this.playerX + lungeX, this.playerY + 10 - bob + lungeY);
       ctx.rotate(tilt);
+      ctx.scale(scaleX, scaleY);
       ctx.drawImage(hdSpr, -12, -26, 24, 28);
       ctx.restore();
     } else {
@@ -2258,7 +3450,12 @@ export class DungeonScene {
       ctx.drawImage(spr, Math.round(this.playerX - 8), Math.round(this.playerY - 10));
     }
 
-    // Show equipped Puls-Blaster in hand when firing / equipped!
+    // Draw ready melee weapon IN FRONT of hero when facing down / left / right!
+    if (this.facing !== 'up') {
+      this.drawReadyMeleeWeapon(ctx, bob);
+    }
+
+    // Show equipped Puls-Blaster in hand when equipped!
     if (this.state.equippedWeapon === 'blaster' && art.weapons.blaster) {
       const a = this.lastAimAngle;
       const recoil = this.blasterRecoil * 3.5;
@@ -2319,27 +3516,36 @@ export class DungeonScene {
     if (!boss) return;
 
     const pct = Math.max(0, boss.hp / boss.maxHp);
-    const bw = 220;
+    const enraged = Boolean(boss.bossPhase2);
+    const bw = 232;
     const bx = (VIRTUAL_WIDTH - bw) / 2;
-    const by = VIRTUAL_HEIGHT - 26;
+    const by = VIRTUAL_HEIGHT - 27;
 
-    ctx.fillStyle = 'rgba(12, 16, 26, 0.92)';
-    ctx.fillRect(bx - 4, by - 11, bw + 8, 19);
-    ctx.strokeStyle = '#fb923c';
-    ctx.lineWidth = 0.8;
-    ctx.strokeRect(bx - 3.5, by - 10.5, bw + 7, 18);
+    ctx.fillStyle = 'rgba(12, 16, 26, 0.94)';
+    ctx.fillRect(bx - 5, by - 12, bw + 10, 21);
+    ctx.strokeStyle = enraged ? '#fb7185' : '#fb923c';
+    ctx.lineWidth = 0.9;
+    ctx.strokeRect(bx - 4.5, by - 11.5, bw + 9, 20);
 
-    ctx.fillStyle = '#fde047';
-    ctx.font = 'bold 5.5px Silkscreen, monospace';
+    const status = boss.bossStatusText ? ` · ${boss.bossStatusText}` : '';
+    const title = enraged
+      ? `CORE-WÄCHTER MK-IV [PHASE II]${status}`
+      : `CORE-WÄCHTER MK-IV${status}`;
+    ctx.fillStyle = enraged ? '#fda4af' : '#fde047';
+    ctx.font = 'bold 5.2px Silkscreen, monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('CORE-WÄCHTER MK-IV', VIRTUAL_WIDTH / 2, by - 3);
+    ctx.fillText(title, VIRTUAL_WIDTH / 2, by - 3.5);
 
     ctx.fillStyle = '#2a1822';
-    ctx.fillRect(bx, by, bw, 5);
-    ctx.fillStyle = '#f97316';
-    ctx.fillRect(bx, by, bw * pct, 5);
-    ctx.fillStyle = '#fde047';
-    ctx.fillRect(bx, by, bw * pct, 1.2);
+    ctx.fillRect(bx, by, bw, 5.5);
+    ctx.fillStyle = enraged ? '#e11d48' : '#f97316';
+    ctx.fillRect(bx, by, bw * pct, 5.5);
+    ctx.fillStyle = enraged ? '#fda4af' : '#fde047';
+    ctx.fillRect(bx, by, bw * pct, 1.3);
+
+    // Phase-2 threshold notch at 50%
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(bx + bw * 0.5 - 0.5, by - 0.5, 1, 6.5);
   }
 
   private renderPrompt(ctx: CanvasRenderingContext2D, text: string, x: number, y: number): void {

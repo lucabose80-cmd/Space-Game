@@ -64,7 +64,9 @@ export interface UpgradeLevels {
   hammer: number; // 0..3
   suit: number; // 0..3
   stimpack: number; // 0..3
-  shopAura: number; // 0..2
+  bioRegen: number; // 0..3 (Dr. Lyra Med-Bay: room-clear heal & faster energy regen)
+  shopAura: number; // 0..2 (Astro-Barter Shop-Terminal: decor & tips)
+  shopScanner: number; // 0..2 (Astro-Barter Shop-Terminal: checkout speed & fair-price bonus)
 }
 
 export type UpgradeKey = keyof UpgradeLevels;
@@ -80,7 +82,7 @@ export interface UpgradeTier {
 
 export interface UpgradeTrack {
   key: UpgradeKey;
-  shop: 'forge' | 'medbay';
+  shop: 'forge' | 'medbay' | 'shop_terminal';
   weaponId?: WeaponId;
   title: string;
   subtitle: string;

@@ -79,7 +79,7 @@ const SOLID_RECTS = [
 ];
 
 // Interactive station hotspots matching public/art/shop_bg.png
-const WORKBENCH_POS = { x: 96, y: 150 };
+const WORKBENCH_POS = { x: 92, y: 164 };
 const CHEST_POS = { x: 336, y: 118 };
 const WARP_GATE_POS = { x: 426, y: 152 };
 const SHOP_DOOR_POS = { x: 240, y: 218 };
@@ -592,11 +592,11 @@ export class ShopScene {
       return;
     }
 
-    // 3. Scan-Codex & Markt-Terminal (left holographic station inside shop)
-    if (Math.hypot(this.playerX - WORKBENCH_POS.x, this.playerY - WORKBENCH_POS.y) < 34) {
+    // 3. Astro-Barter Shop-Terminal (Shop-Ausbau, Deko & Scan-Codex)
+    if (Math.hypot(this.playerX - WORKBENCH_POS.x, this.playerY - WORKBENCH_POS.y) < 42) {
       this.activePrompt = {
-        label: '[E] Scan-Codex & Preise',
-        x: WORKBENCH_POS.x + 10,
+        label: '[E] Shop-Ausbau & Deko',
+        x: WORKBENCH_POS.x + 12,
         y: WORKBENCH_POS.y - 26,
       };
       if (input.interactPressed()) {
@@ -738,10 +738,53 @@ export class ShopScene {
     drawables.sort((a, b) => a.y - b.y);
     for (const d of drawables) d.draw();
 
-    // 4. Warm Cozy Lighting Aura & Floating Dust Motes (enhanced by Shop-Atmosphäre upgrade!)
-    const auraLevel = this.state.upgrades.shopAura;
+    // 4. Warm Cozy Lighting Aura, Unlocked Shop Decor Lanterns & Dust Motes
+    const auraLevel = this.state.upgrades.shopAura ?? 0;
+    const scannerLevel = this.state.upgrades.shopScanner ?? 0;
     drawGlow(ctx, 118, 92, 54, '#fbbf24', 0.11 + auraLevel * 0.06);
     drawGlow(ctx, 368, 92, 54, '#fbbf24', 0.11 + auraLevel * 0.06);
+
+    if (auraLevel >= 1) {
+      // Visible floating warm Holo-Lanterns flanking the shop!
+      const lanterns = [
+        { x: 158, y: 112, phase: 0 },
+        { x: 322, y: 112, phase: 1.8 },
+      ];
+      for (const l of lanterns) {
+        const bob = Math.sin(this.time * 3.1 + l.phase) * 2.2;
+        drawGlow(ctx, l.x, l.y + bob, 24, '#fbbf24', 0.34);
+        ctx.fillStyle = '#475569';
+        ctx.fillRect(l.x - 3, l.y - 5 + bob, 6, 2);
+        ctx.fillStyle = '#f59e0b';
+        ctx.fillRect(l.x - 3.5, l.y - 3 + bob, 7, 7);
+        ctx.fillStyle = '#fef3c7';
+        ctx.fillRect(l.x - 2, l.y - 1.5 + bob, 4, 4);
+      }
+    }
+    if (auraLevel >= 2) {
+      // VIP Star-Lounge orbiting golden crystal ornaments
+      const crystals = [
+        { x: 118, y: 118, phase: 0.7 },
+        { x: 368, y: 118, phase: 2.5 },
+      ];
+      for (const cr of crystals) {
+        const bob = Math.sin(this.time * 4 + cr.phase) * 2.5;
+        drawGlow(ctx, cr.x, cr.y + bob, 20, '#38e8d4', 0.32);
+        ctx.fillStyle = '#38e8d4';
+        ctx.beginPath();
+        ctx.moveTo(cr.x, cr.y - 5 + bob);
+        ctx.lineTo(cr.x + 3.5, cr.y + bob);
+        ctx.lineTo(cr.x, cr.y + 5 + bob);
+        ctx.lineTo(cr.x - 3.5, cr.y + bob);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(cr.x - 0.8, cr.y - 2 + bob, 1.6, 2);
+      }
+    }
+    if (scannerLevel >= 1) {
+      drawGlow(ctx, 240, 152, 26, '#34d399', 0.16 + pulse * 0.08);
+    }
 
     for (const m of this.dustMotes) {
       const mx = m.x + Math.sin(this.time * 0.7 + m.phase) * 8;
@@ -812,6 +855,17 @@ export class ShopScene {
     ctx.strokeRect(gx - 28, gy - 5, 56, 10);
     ctx.fillStyle = '#38e8d4';
     ctx.fillText('PROMENADE', gx, gy + 2);
+
+    // Subtle Astro-Barter Shop-Ausbau badge above left holographic console
+    const tx = 68;
+    const ty = 104;
+    ctx.fillStyle = 'rgba(12, 18, 32, 0.88)';
+    ctx.fillRect(tx - 30, ty - 5, 60, 10);
+    ctx.strokeStyle = '#fbbf24';
+    ctx.lineWidth = 0.8;
+    ctx.strokeRect(tx - 30, ty - 5, 60, 10);
+    ctx.fillStyle = '#fde047';
+    ctx.fillText('SHOP-AUSBAU', tx, ty + 2);
   }
 
   private renderPedestal(ctx: CanvasRenderingContext2D, p: PedestalSlot): void {

@@ -127,7 +127,7 @@ class StarlighterGame {
 
     this.shopScene = new ShopScene(this.state, {
       onOpenPedestal: (ped) => this.ui.openPedestalModal(ped),
-      onOpenWorkbench: () => this.ui.openInventoryModal(true, 'codex'),
+      onOpenWorkbench: () => this.ui.openShopUpgradeModal(),
       onOpenChest: () => this.ui.openInventoryModal(true, 'bag'),
       onEnterDungeon: () => this.transitionTo('hub', 'shop'),
       onToast: (msg, tone) => this.ui.toast(msg, tone),

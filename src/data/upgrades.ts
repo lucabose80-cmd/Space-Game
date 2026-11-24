@@ -221,7 +221,7 @@ export const UPGRADE_TRACKS: UpgradeTrack[] = [
     ],
   },
 
-  // ==================== DR. LYRA'S MED-BAY & BOUTIQUE ====================
+  // ==================== DR. LYRA'S MED-BAY (MEDIZIN & BIO-FORSCHUNG) ====================
   {
     key: 'stimpack',
     shop: 'medbay',
@@ -259,30 +259,102 @@ export const UPGRADE_TRACKS: UpgradeTrack[] = [
     ],
   },
   {
-    key: 'shopAura',
+    key: 'bioRegen',
     shop: 'medbay',
+    title: 'Nano-Vitalserum',
+    subtitle: 'Raum-Heilung & schnellere Energie-Regeneration',
+    iconUrl: '/art/sprites/item_cryo_amber.png',
+    tiers: [
+      {
+        level: 1,
+        name: 'Zell-Booster MK-I',
+        description: 'Heilt nach jedem gesäuberten Raum automatisch HP und beschleunigt Energie-Regen.',
+        creditCost: 220,
+        materials: [
+          { itemId: 'bio_gel', qty: 2 },
+          { itemId: 'scrap_coil', qty: 1 },
+        ],
+        statLabel: '+12 HP/Raum · +25 % EN-Regen',
+      },
+      {
+        level: 2,
+        name: 'Bio-Symbiont MK-II',
+        description: 'Starke Regeneration nach Kämpfen für längere Tiefen-Expeditionen.',
+        creditCost: 560,
+        materials: [
+          { itemId: 'bio_gel', qty: 3 },
+          { itemId: 'plasma_cell', qty: 2 },
+        ],
+        statLabel: '+24 HP/Raum · +50 % EN-Regen',
+      },
+      {
+        level: 3,
+        name: 'Phönix-Serum MK-III',
+        description: 'Meisterhafte Medizin von Dr. Lyra: massive Selbstheilung & Energie-Fluss.',
+        creditCost: 1180,
+        materials: [
+          { itemId: 'cryo_amber', qty: 1 },
+          { itemId: 'void_relic', qty: 1 },
+        ],
+        statLabel: '+38 HP/Raum · +80 % EN-Regen',
+      },
+    ],
+  },
+
+  // ==================== ASTRO-BARTER SHOP-TERMINAL (EIGENER LADENAUSBAU) ====================
+  {
+    key: 'shopAura',
+    shop: 'shop_terminal',
     title: 'Shop-Atmosphäre & Deko',
-    subtitle: 'Gemütliches Licht & mehr Kunden-Trinkgeld',
+    subtitle: 'Schwebende Holo-Laternen, mehr Kunden & Trinkgeld',
     iconUrl: '/art/sprites/item_star_compass.png',
     tiers: [
       {
         level: 1,
         name: 'Warme Holo-Laternen',
-        description: 'Gemütliches Licht lockt mehr Kunden und bringt +10 % Trinkgeld.',
-        creditCost: 300,
+        description: 'Schmückt Astro-Barter mit schwebenden Laternen, lockt mehr Kunden & +10 % Trinkgeld.',
+        creditCost: 260,
         materials: [{ itemId: 'alien_prism', qty: 1 }],
-        statLabel: 'Trinkgeld: +10 %',
+        statLabel: 'Deko +10 % Trinkgeld',
       },
       {
         level: 2,
         name: 'VIP-Sternen-Lounge',
-        description: 'Legendärer Ruf auf Port Solaris: +20 % Trinkgeld & mehr Geduld.',
-        creditCost: 820,
+        description: 'Edles Frontier-Ambiente: goldene Holo-Kristalle, +20 % Trinkgeld & viel mehr Geduld.',
+        creditCost: 780,
         materials: [
           { itemId: 'star_compass', qty: 1 },
           { itemId: 'void_relic', qty: 1 },
         ],
-        statLabel: 'Trinkgeld: +20 %',
+        statLabel: 'VIP-Deko +20 % Trinkgeld',
+      },
+    ],
+  },
+  {
+    key: 'shopScanner',
+    shop: 'shop_terminal',
+    title: 'Kassen- & Preis-Terminal',
+    subtitle: 'Höherer Verkaufserlös & geduldigere Käufer',
+    iconUrl: '/art/sprites/item_nav_chip.png',
+    tiers: [
+      {
+        level: 1,
+        name: 'Holo-Kassen-Assistent',
+        description: 'Elegante Waren-Präsentation erhöht Verkaufspreis-Boni bei fairem Preis um +8 %.',
+        creditCost: 210,
+        materials: [{ itemId: 'nav_chip', qty: 2 }],
+        statLabel: '+8 % Erlös · +20 % Geduld',
+      },
+      {
+        level: 2,
+        name: 'Galaktisches Handels-Netz',
+        description: 'Wohlhabende Händler besuchen Astro-Barter: +16 % Bonus-Erlös an der Kasse.',
+        creditCost: 640,
+        materials: [
+          { itemId: 'drone_core', qty: 2 },
+          { itemId: 'star_compass', qty: 1 },
+        ],
+        statLabel: '+16 % Erlös · +40 % Geduld',
       },
     ],
   },
@@ -298,7 +370,14 @@ export function getPlayerCombatStats(upgrades: UpgradeLevels) {
   const maxHps = [100, 140, 185, 240];
   const stimCharges = [2, 3, 4, 5];
   const stimHeals = [40, 55, 75, 100];
+  const roomClearHeals = [0, 12, 24, 38];
+  const energyRegenMults = [1.0, 1.25, 1.5, 1.8];
   const tipBonuses = [0, 0.1, 0.2];
+  const scannerBonuses = [0, 0.08, 0.16];
+
+  const aura = upgrades.shopAura ?? 0;
+  const scanner = upgrades.shopScanner ?? 0;
+  const bio = upgrades.bioRegen ?? 0;
 
   return {
     bladeDamage: bladeDamages[upgrades.blade] ?? 20,
@@ -310,7 +389,9 @@ export function getPlayerCombatStats(upgrades: UpgradeLevels) {
     maxHp: maxHps[upgrades.suit] ?? 100,
     maxStimCharges: stimCharges[upgrades.stimpack] ?? 2,
     stimHeal: stimHeals[upgrades.stimpack] ?? 40,
-    shopTipBonus: tipBonuses[upgrades.shopAura] ?? 0,
-    customerPatienceBonus: 1 + upgrades.shopAura * 0.25,
+    roomClearHeal: roomClearHeals[bio] ?? 0,
+    energyRegenMult: energyRegenMults[bio] ?? 1.0,
+    shopTipBonus: (tipBonuses[aura] ?? 0) + (scannerBonuses[scanner] ?? 0),
+    customerPatienceBonus: 1 + aura * 0.25 + scanner * 0.2,
   };
 }

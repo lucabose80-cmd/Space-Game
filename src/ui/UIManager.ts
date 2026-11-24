@@ -818,14 +818,21 @@ export class UIManager {
     this.openStationShopModal('forge');
   }
 
-  // ==================== DR. LYRA'S MED-BAY (STIMPACKS & DECOR) ====================
+  // ==================== DR. LYRA'S MED-BAY (STIMPACKS & BIO-SERUM) ====================
   public openMedBayModal(): void {
     this.openStationShopModal('medbay');
   }
 
-  private openStationShopModal(shop: 'forge' | 'medbay'): void {
+  // ==================== ASTRO-BARTER SHOP-TERMINAL (SHOP-AUSBAU & DEKO) ====================
+  public openShopUpgradeModal(): void {
+    this.openStationShopModal('shop_terminal');
+  }
+
+  private openStationShopModal(shop: 'forge' | 'medbay' | 'shop_terminal'): void {
     const tracks = UPGRADE_TRACKS.filter((t) => t.shop === shop);
     const isForge = shop === 'forge';
+    const isMedBay = shop === 'medbay';
+    const isShopTerm = shop === 'shop_terminal';
 
     const npcBanner = isForge
       ? `
@@ -837,13 +844,26 @@ export class UIManager {
           </div>
         </div>
       `
-      : `
+      : isMedBay
+        ? `
         <div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.4)">
           <img src="/art/sprites/npc_lyra.png" alt="Dr. Lyra" style="width:40px;height:46px;image-rendering:pixelated" />
           <div style="font-size:12px;line-height:1.4">
-            <strong style="font-family:var(--font-pixel);font-size:11px;color:#34d399">DR. LYRA · MED-BAY &amp; BOUTIQUE</strong>
-            <div style="color:var(--text-muted)">„Deine Vitalwerte sind wieder bei 100 %! Verbessere hier deine Med-Stimpacks oder statte Astro-Barter für spendablere Kunden aus.“</div>
+            <strong style="font-family:var(--font-pixel);font-size:11px;color:#34d399">DR. LYRA · MED-BAY &amp; BIO-LABOR</strong>
+            <div style="color:var(--text-muted)">„Deine Vitalwerte sind wieder bei 100 %! Verbessere hier deine Med-Stimpacks oder lass dir ein Nano-Vitalserum für automatische Raum-Heilung &amp; Energie-Regen injizieren.“</div>
           </div>
+        </div>
+      `
+        : `
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 12px;background:rgba(56,232,212,0.09);border:1px solid rgba(56,232,212,0.38);flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:200px">
+            <img src="/art/sprites/item_star_compass.png" alt="Astro-Barter Terminal" style="width:36px;height:36px;image-rendering:pixelated" />
+            <div style="font-size:12px;line-height:1.4">
+              <strong style="font-family:var(--font-pixel);font-size:11px;color:var(--accent-cyan)">ASTRO-BARTER · SHOP-AUSBAU</strong>
+              <div style="color:var(--text-muted)">Baue deinen eigenen Laden aus: schwebende Holo-Laternen, mehr Trinkgeld, höhere Verkaufserlöse &amp; geduldigere Kunden!</div>
+            </div>
+          </div>
+          <button id="btn-open-codex-from-term" class="btn" style="padding:6px 10px;font-size:9.5px">Scan-Codex öffnen</button>
         </div>
       `;
 
@@ -891,7 +911,7 @@ export class UIManager {
         }
 
         // Unlocked Weapon or Standard Track Card
-        const curLvl = this.state.upgrades[track.key];
+        const curLvl = this.state.upgrades[track.key] ?? 0;
         const nextTier = track.tiers[curLvl];
         const pips = track.tiers
           .map((_, idx) => `<span class="pip ${idx < curLvl ? 'filled' : ''}"></span>`)
@@ -966,17 +986,23 @@ export class UIManager {
               </div>
             </div>
             <button class="btn btn-primary btn-buy-upgrade" data-key="${track.key}" ${canAfford ? '' : 'disabled'}>
-              Verbessern
+              ${isShopTerm ? 'Ausbauen' : 'Verbessern'}
             </button>
           </div>
         `;
       })
       .join('');
 
+    const modalTitle = isForge
+      ? "KAEL'S EXO-SCHMIEDE"
+      : isMedBay
+        ? "DR. LYRA'S MED-BAY"
+        : 'ASTRO-BARTER · SHOP-AUSBAU';
+
     this.showModalHtml(`
       <div class="modal-window">
         <div class="modal-header">
-          <span class="modal-title">${isForge ? "KAEL'S EXO-SCHMIEDE" : "DR. LYRA'S MED-BAY"}</span>
+          <span class="modal-title">${modalTitle}</span>
           <span style="font-family:var(--font-pixel);font-size:11px;color:var(--accent-amber)">${this.state.credits} CR</span>
           <button id="modal-close-btn" class="modal-close">ESC ✕</button>
         </div>
@@ -986,6 +1012,11 @@ export class UIManager {
         </div>
       </div>
     `);
+
+    this.modalEl.querySelector('#btn-open-codex-from-term')?.addEventListener('click', () => {
+      sound.playUiClick();
+      this.openInventoryModal(true, 'codex');
+    });
 
     this.modalEl.querySelectorAll<HTMLElement>('.btn-craft-weapon').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -1015,7 +1046,10 @@ export class UIManager {
         const key = btn.dataset.key as UpgradeKey;
         if (this.state.purchaseUpgrade(key)) {
           sound.playUpgrade();
-          this.toast('Upgrade erfolgreich fertiggestellt!', 'good');
+          this.toast(
+            isShopTerm ? 'Astro-Barter erfolgreich ausgebaut!' : 'Upgrade erfolgreich fertiggestellt!',
+            'good',
+          );
           this.openStationShopModal(shop);
           this.renderHud();
         }
