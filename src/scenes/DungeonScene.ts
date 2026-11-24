@@ -24,6 +24,7 @@ import {
   ROOM_RIGHT,
   ROOM_TOP,
   roomKey,
+  type ChasmRect,
   type DoorSide,
   type DungeonFloor,
   type DungeonRoom,
@@ -309,6 +310,11 @@ export class DungeonScene {
 
   public playerX = ROOM_CENTER_X;
   public playerY = ROOM_CENTER_Y;
+  private lastSafeX = ROOM_CENTER_X;
+  private lastSafeY = ROOM_CENTER_Y;
+  private pitFallTimer = 0;
+  private pitFallDuration = 0.46;
+  private pitFallSecretRoomKey: string | null = null;
   private facing: Direction = 'down';
   private walkAnim = 0;
 
@@ -524,6 +530,9 @@ export class DungeonScene {
     this.shockwaves = [];
     this.decals = [];
     this.afterimages = [];
+    this.pitFallTimer = 0;
+    this.pitFallSecretRoomKey = null;
+    this.activePrompt = null;
     this.roomFade = 0.22;
 
     if (enteredFrom === 'north') {
@@ -547,6 +556,8 @@ export class DungeonScene {
       this.playerY = ROOM_CENTER_Y + 24;
       this.facing = 'up';
     }
+    this.lastSafeX = this.playerX;
+    this.lastSafeY = this.playerY;
 
     if (!room.cleared) {
       for (const sp of room.spawns) {
@@ -572,6 +583,70 @@ export class DungeonScene {
         }
       }
     }
+  }
+
+  private enterSecretRoom(secretKey: string, returnX: number, returnY: number): void {
+    const secretRoom = this.floor.rooms.get(secretKey);
+    if (!secretRoom) return;
+    secretRoom.secretReturnX = returnX;
+    secretRoom.secretReturnY = returnY;
+    this.currentRoom = secretRoom;
+    const firstVisit = !secretRoom.visited;
+    secretRoom.visited = true;
+
+    this.enemies = [];
+    this.projectiles = [];
+    this.discs = [];
+    this.drops = [];
+    this.swings = [];
+    this.thrusts = [];
+    this.fistBursts = [];
+    this.debrisDrops = [];
+    this.slashHits = [];
+    this.bossAfterimages = [];
+    this.beams = [];
+    this.shockwaves = [];
+    this.decals = [];
+    this.afterimages = [];
+    this.pitFallTimer = 0;
+    this.pitFallSecretRoomKey = null;
+    this.roomFade = 0.28;
+
+    this.playerX = ROOM_CENTER_X;
+    this.playerY = ROOM_CENTER_Y + 26;
+    this.lastSafeX = this.playerX;
+    this.lastSafeY = this.playerY;
+    this.facing = 'up';
+    this.invulnTimer = 0.6;
+    this.spawnBurst(this.playerX, this.playerY, '#fde047', 22);
+    this.spawnBurst(this.playerX, this.playerY, this.currentSector === 2 ? '#e879f9' : '#38e8d4', 16);
+
+    if (firstVisit) {
+      this.callbacks.onToast(
+        '★ GEHEIMER ABGRUND ENTDECKT! Du landest in einer verborgenen Schatzkammer mit seltener Beute!',
+        'good',
+      );
+    } else {
+      this.callbacks.onToast('★ Zurück in der geheimen Schatzkammer!', 'info');
+    }
+    this.callbacks.onHudDirty();
+  }
+
+  private exitSecretRoom(): void {
+    const parentKey = this.currentRoom.secretParentKey;
+    if (!parentKey) return;
+    const rx = this.currentRoom.secretReturnX ?? ROOM_CENTER_X;
+    const ry = this.currentRoom.secretReturnY ?? ROOM_CENTER_Y;
+    sound.playWarp();
+    this.enterRoom(parentKey, null);
+    this.playerX = rx;
+    this.playerY = ry;
+    this.lastSafeX = rx;
+    this.lastSafeY = ry;
+    this.invulnTimer = 0.9;
+    this.spawnBurst(rx, ry, '#38e8d4', 18);
+    this.callbacks.onToast('Mit dem Grav-Seil sicher zurück nach oben gezogen!', 'info');
+    this.callbacks.onHudDirty();
   }
 
   private isBossKind(kind: Enemy['kind']): boolean {
@@ -957,6 +1032,43 @@ export class DungeonScene {
   }
 
   private updatePlayer(dt: number, input: InputManager): void {
+    // Active pit-fall tumble animation (normal abyss damage/respawn OR secret underground vault descent!)
+    if (this.pitFallTimer > 0) {
+      this.pitFallTimer -= dt;
+      this.shieldActive = false;
+      if (this.pitFallTimer <= 0) {
+        this.pitFallTimer = 0;
+        const secretKey = this.pitFallSecretRoomKey;
+        this.pitFallSecretRoomKey = null;
+        if (secretKey) {
+          this.enterSecretRoom(secretKey, this.lastSafeX, this.lastSafeY);
+        } else {
+          const fallDmg = 14;
+          this.state.hp = Math.max(0, this.state.hp - fallDmg);
+          this.playerFlashTimer = 0.22;
+          this.invulnTimer = 1.05;
+          this.triggerShake(0.24, 3.6);
+          sound.playPlayerHurt();
+          this.playerX = this.lastSafeX;
+          this.playerY = this.lastSafeY;
+          this.spawnBurst(this.playerX, this.playerY, '#fb7185', 12);
+          this.floats.push({
+            x: this.playerX,
+            y: this.playerY - 16,
+            text: `ABGESTÜRZT! -${fallDmg}`,
+            color: '#fb7185',
+            life: 1.0,
+            maxLife: 1.0,
+          });
+          this.callbacks.onHudDirty();
+          if (this.state.hp <= 0) {
+            this.triggerDefeat();
+          }
+        }
+      }
+      return;
+    }
+
     const move = input.getMoveVector();
     const weapon: WeaponId = this.state.equippedWeapon;
     const stats = this.state.getStats();
@@ -1194,6 +1306,37 @@ export class DungeonScene {
     }
 
     this.moveEntityWithCollisions(vx * dt, vy * dt);
+
+    // Chasm / Pit check: Jetpack-Dash, Spear Charge & Comet-Slam fly cleanly OVER narrow gaps!
+    // Walking in (or running out of dash over a wide abyss) triggers a fall — or drops into a Secret Pit Vault!
+    const isAirborne = this.dashTimer > 0 || this.lanceChargeTimer > 0 || this.cometSlamTimer > 0;
+    if (!isAirborne) {
+      const chasm = this.getChasmAt(this.playerX, this.playerY + 4, -3);
+      if (chasm) {
+        this.shieldActive = false;
+        this.warpChannel = 0;
+        if (chasm.secret) {
+          chasm.secretVisited = true;
+          this.pitFallDuration = 0.42;
+          this.pitFallTimer = this.pitFallDuration;
+          this.pitFallSecretRoomKey = `secret:${this.currentRoom.key}`;
+          sound.playSecretChime();
+          this.spawnBurst(this.playerX, this.playerY, '#fde047', 16);
+          this.spawnBurst(this.playerX, this.playerY, '#e879f9', 10);
+        } else {
+          this.pitFallDuration = 0.46;
+          this.pitFallTimer = this.pitFallDuration;
+          this.pitFallSecretRoomKey = null;
+          sound.playPitFall();
+          this.spawnBurst(this.playerX, this.playerY + 2, '#94a3b8', 10);
+        }
+        return;
+      }
+      if (!this.getChasmAt(this.playerX, this.playerY + 4, 6)) {
+        this.lastSafeX = this.playerX;
+        this.lastSafeY = this.playerY;
+      }
+    }
 
     // Primary Attack based on SINGLE equipped weapon!
     if (input.primaryPressed() && this.attackCooldown <= 0 && this.dashTimer <= 0) {
@@ -2286,6 +2429,26 @@ export class DungeonScene {
     return false;
   }
 
+  private getChasmAt(x: number, y: number, margin = 0): ChasmRect | null {
+    const chasms = this.currentRoom?.chasms;
+    if (!chasms) return null;
+    for (const ch of chasms) {
+      if (
+        x + margin > ch.x &&
+        x - margin < ch.x + ch.w &&
+        y + margin > ch.y &&
+        y - margin < ch.y + ch.h
+      ) {
+        return ch;
+      }
+    }
+    return null;
+  }
+
+  private collidesRoomChasm(x: number, y: number, r: number): boolean {
+    return this.getChasmAt(x, y, r) !== null;
+  }
+
   private checkDoorTransition(): void {
     const r = this.currentRoom;
     const doorHalf = 18;
@@ -2974,13 +3137,21 @@ export class DungeonScene {
 
       if (e.kind !== 'boss_leviathan') {
         const ex = Math.max(ROOM_LEFT + e.radius, Math.min(ROOM_RIGHT - e.radius, e.x + e.vx * dt));
-        if (!this.collidesRoomObstacle(ex, e.y, e.radius * 0.85) || hovers) {
+        if (
+          (!this.collidesRoomObstacle(ex, e.y, e.radius * 0.85) &&
+            !this.collidesRoomChasm(ex, e.y, e.radius * 0.7)) ||
+          hovers
+        ) {
           e.x = ex;
         } else if (e.kind === 'turret' || e.kind === 'spore_spitter') {
           e.moveDirX = -e.moveDirX;
         }
         const ey = Math.max(ROOM_TOP + e.radius, Math.min(ROOM_BOTTOM - e.radius, e.y + e.vy * dt));
-        if (!this.collidesRoomObstacle(e.x, ey, e.radius * 0.85) || hovers) {
+        if (
+          (!this.collidesRoomObstacle(e.x, ey, e.radius * 0.85) &&
+            !this.collidesRoomChasm(e.x, ey, e.radius * 0.7)) ||
+          hovers
+        ) {
           e.y = ey;
         } else if (e.kind === 'turret' || e.kind === 'spore_spitter') {
           e.moveDirY = -e.moveDirY;
@@ -4823,11 +4994,17 @@ export class DungeonScene {
   }
 
   private spawnLootDrop(x: number, y: number, itemId: string): void {
+    let sx = x;
+    let sy = y;
+    if (this.collidesRoomChasm(sx, sy, 6) || this.collidesRoomObstacle(sx, sy, 6)) {
+      sx = this.lastSafeX;
+      sy = this.lastSafeY;
+    }
     const a = Math.random() * Math.PI * 2;
-    const sp = 28 + Math.random() * 44;
+    const sp = 24 + Math.random() * 34;
     this.drops.push({
-      x,
-      y,
+      x: sx,
+      y: sy,
       vx: Math.cos(a) * sp,
       vy: Math.sin(a) * sp,
       itemId,
@@ -5022,6 +5199,22 @@ export class DungeonScene {
   private updateRoomInteractions(input: InputManager): void {
     this.activePrompt = null;
 
+    if (this.currentRoom.type === 'secret') {
+      const rx = ROOM_CENTER_X;
+      const ry = ROOM_BOTTOM - 28;
+      if (Math.hypot(this.playerX - rx, this.playerY - ry) < 28) {
+        this.activePrompt = {
+          label: '[E] Grav-Seil: Zurück nach oben',
+          x: rx,
+          y: ry - 22,
+        };
+        if (input.interactPressed()) {
+          this.exitSecretRoom();
+        }
+        return;
+      }
+    }
+
     if (this.currentRoom.type === 'start') {
       if (Math.hypot(this.playerX - ROOM_CENTER_X, this.playerY - (ROOM_CENTER_Y - 12)) < 28) {
         this.activePrompt = {
@@ -5138,30 +5331,47 @@ export class DungeonScene {
         const remaining = chest.slots
           ? chest.slots.reduce((acc, s) => acc + (s ? s.qty : 0), 0)
           : 0;
+        const chestTitle = chest.secret ? '★ Geheime Schatztruhe' : 'Relikt-Truhe';
         this.activePrompt = {
           label: !chest.opened
-            ? '[E] Relikt-Truhe öffnen'
+            ? `[E] ${chestTitle} öffnen`
             : remaining > 0
-              ? `[E] Relikt-Truhe durchsuchen (${remaining} übrig)`
-              : '[E] Relikt-Truhe (Leer · Ablegen möglich)',
+              ? `[E] ${chestTitle} durchsuchen (${remaining} übrig)`
+              : `[E] ${chestTitle} (Leer · Ablegen möglich)`,
           x: chest.x,
           y: chest.y - 20,
         };
         if (input.interactPressed()) {
           if (!chest.opened) {
             chest.opened = true;
-            sound.playUpgrade();
+            if (chest.secret) sound.playSecretChime();
+            else sound.playUpgrade();
             const nightBoost = this.state.timeOfDay === 'night';
             const luckBonus = this.state.getStats().lootLuckBonus;
             const d = Math.min(3, 1 + this.currentFloor);
             const sec = this.currentSector;
             const slots: Array<{ itemId: string; qty: number } | null> = new Array(8).fill(null);
-            const rolled: string[] = [
-              rollLootItem(d, true, nightBoost, luckBonus, sec),
-              rollLootItem(d, true, nightBoost, luckBonus, sec),
-              rollLootItem(d, false, nightBoost, luckBonus, sec),
-              rollLootItem(d, Math.random() < 0.55, nightBoost, luckBonus, sec),
-            ];
+            const rolled: string[] = chest.secret
+              ? [
+                  // Moonlighter Secret Vault Chest: 5 guaranteed high-value sector relics & rare crafting parts!
+                  sec === 2
+                    ? Math.random() < 0.5
+                      ? 'prism_matrix'
+                      : 'amethyst_core'
+                    : Math.random() < 0.5
+                      ? 'aegis_plate'
+                      : 'reactor_shard',
+                  rollLootItem(3, true, true, luckBonus + 0.25, sec),
+                  rollLootItem(3, true, true, luckBonus + 0.2, sec),
+                  rollLootItem(Math.min(3, d + 1), true, nightBoost, luckBonus + 0.15, sec),
+                  rollLootItem(d, true, nightBoost, luckBonus, sec),
+                ]
+              : [
+                  rollLootItem(d, true, nightBoost, luckBonus, sec),
+                  rollLootItem(d, true, nightBoost, luckBonus, sec),
+                  rollLootItem(d, false, nightBoost, luckBonus, sec),
+                  rollLootItem(d, Math.random() < 0.55, nightBoost, luckBonus, sec),
+                ];
             if (this.state.equippedCompanion === 'puck' && Math.random() < 0.25) {
               rolled.push(rollLootItem(d, true, nightBoost, luckBonus, sec));
               this.floats.push({
@@ -5184,7 +5394,7 @@ export class DungeonScene {
               }
             }
             chest.slots = slots;
-            this.spawnBurst(chest.x, chest.y, sec === 2 ? '#e879f9' : '#fbbf24', 20);
+            this.spawnBurst(chest.x, chest.y, chest.secret ? '#fde047' : sec === 2 ? '#e879f9' : '#fbbf24', chest.secret ? 28 : 20);
           } else {
             sound.playUiClick();
           }
@@ -5370,6 +5580,16 @@ export class DungeonScene {
     if (this.state.timeOfDay === 'night') {
       ctx.fillStyle = 'rgba(15, 23, 54, 0.16)';
       ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+    }
+
+    // Subterranean Moonlighter Secret Vault ambiance & Grav-Rope exit shaft!
+    if (this.currentRoom.type === 'secret') {
+      this.renderSecretVaultOverlay(ctx);
+    }
+
+    // Integrated Abyssal Chasms & Pits (including subtle sparkling Secret Pit!)
+    if (this.currentRoom.chasms && this.currentRoom.chasms.length > 0) {
+      this.renderChasms(ctx);
     }
 
     // Floor slime & crater decals
@@ -6355,39 +6575,324 @@ export class DungeonScene {
     drawGlow(ctx, x, y, 32, color, 0.4);
   }
 
+  private renderSecretVaultOverlay(ctx: CanvasRenderingContext2D): void {
+    const isS2 = this.currentSector === 2;
+    const pulse = 0.5 + 0.5 * Math.sin(this.time * 3.4);
+    const accent = isS2 ? '#e879f9' : '#fde047';
+
+    // Moody subterranean chamber vignette
+    ctx.save();
+    ctx.fillStyle = isS2 ? 'rgba(10, 4, 24, 0.34)' : 'rgba(6, 10, 22, 0.36)';
+    ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+
+    // Etched ancient floor sanctuary rune circle around the Secret Treasure Chest
+    const cx = ROOM_CENTER_X;
+    const cy = ROOM_CENTER_Y - 12;
+    ctx.strokeStyle = isS2
+      ? `rgba(232, 121, 249, ${0.32 + pulse * 0.18})`
+      : `rgba(253, 224, 71, ${0.32 + pulse * 0.18})`;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 42, 28, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 32, 21, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    drawGlow(ctx, cx, cy, 52, accent, 0.22 + pulse * 0.08);
+
+    // Glowing Grav-Rope Return Pad & focused escape light shaft (cleanly below the chest!)
+    const rx = ROOM_CENTER_X;
+    const ry = ROOM_BOTTOM - 28;
+    this.renderWarpPad(ctx, rx, ry, '#38e8d4');
+    const shaftTop = ry - 36;
+    const shaftGrad = ctx.createLinearGradient(rx, ry, rx, shaftTop);
+    shaftGrad.addColorStop(0, 'rgba(56, 232, 212, 0.34)');
+    shaftGrad.addColorStop(0.65, 'rgba(56, 232, 212, 0.14)');
+    shaftGrad.addColorStop(1, 'rgba(56, 232, 212, 0)');
+    ctx.fillStyle = shaftGrad;
+    ctx.fillRect(rx - 7, shaftTop, 14, ry - shaftTop);
+
+    // Shimmering Grav-Rope tether rising cleanly into the escape beam
+    ctx.strokeStyle = 'rgba(165, 243, 252, 0.88)';
+    ctx.lineWidth = 1.4;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(rx, ry);
+    ctx.lineTo(rx, shaftTop + 4);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.font = 'bold 4.8px Silkscreen, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#67e8f9';
+    ctx.fillText('▲ GRAV-SEIL', rx, ry + 20);
+    ctx.fillStyle = accent;
+    ctx.fillText('★ GEHEIME SCHATZKAMMER', cx, ROOM_TOP + 14);
+    ctx.restore();
+  }
+
+  private renderChasms(ctx: CanvasRenderingContext2D): void {
+    const isS2 = this.currentSector === 2;
+    for (let idx = 0; idx < this.currentRoom.chasms.length; idx++) {
+      const ch = this.currentRoom.chasms[idx];
+      const { x, y, w, h } = ch;
+      const cliffH = Math.min(12, Math.max(7, Math.floor(h * 0.34)));
+
+      ctx.save();
+      // 1. Integrated beveled floor rim with subtle fractured pixel notches (fuses pit into tile floor)
+      ctx.fillStyle = isS2 ? '#120b24' : '#0f1624';
+      ctx.fillRect(x - 3, y - 3, w + 6, h + 6);
+      ctx.fillStyle = isS2 ? '#3d2c6e' : '#3d4f69';
+      ctx.fillRect(x - 2, y - 2, w + 4, h + 4);
+      ctx.fillStyle = isS2 ? '#231845' : '#1f2a3d';
+      ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
+
+      // Subtle rim highlight along bottom & right lip catching overhead room light
+      ctx.fillStyle = isS2 ? '#6d4db5' : '#617999';
+      ctx.fillRect(x - 1, y + h + 1, w + 2, 1);
+      ctx.fillRect(x + w + 1, y - 1, 1, h + 2);
+
+      // Corner hazard rivets (S1) or mini lip crystals (S2)
+      if (isS2) {
+        ctx.fillStyle = '#a855f7';
+        ctx.fillRect(x - 2, y - 2, 3, 2);
+        ctx.fillRect(x + w - 1, y + h, 3, 2);
+        ctx.fillStyle = '#38e8d4';
+        ctx.fillRect(x + w - 1, y - 2, 3, 2);
+        ctx.fillRect(x - 2, y + h, 3, 2);
+      } else {
+        ctx.fillStyle = '#d97706';
+        ctx.fillRect(x - 2, y - 2, 4, 2);
+        ctx.fillRect(x + w - 2, y - 2, 4, 2);
+        ctx.fillRect(x - 2, y + h, 4, 2);
+        ctx.fillRect(x + w - 2, y + h, 4, 2);
+      }
+
+      // 2. Deep cosmic void abyss interior
+      ctx.fillStyle = isS2 ? '#070314' : '#050812';
+      ctx.fillRect(x, y, w, h);
+
+      // 3. 3D North Vertical Cliff Face (gives true depth drop-off!)
+      const cliffGrad = ctx.createLinearGradient(x, y, x, y + cliffH);
+      if (isS2) {
+        cliffGrad.addColorStop(0, '#27194f');
+        cliffGrad.addColorStop(0.6, '#140c2e');
+        cliffGrad.addColorStop(1, '#070314');
+      } else {
+        cliffGrad.addColorStop(0, '#232f42');
+        cliffGrad.addColorStop(0.6, '#121a28');
+        cliffGrad.addColorStop(1, '#050812');
+      }
+      ctx.fillStyle = cliffGrad;
+      ctx.fillRect(x, y, w, cliffH);
+
+      // Side inner depth walls (left & right shadow edges)
+      ctx.fillStyle = isS2 ? 'rgba(34, 21, 68, 0.72)' : 'rgba(24, 34, 52, 0.72)';
+      ctx.fillRect(x, y, 3, h);
+      ctx.fillRect(x + w - 3, y, 3, h);
+
+      // Organic pixel-stepped floor edge overhangs along top & bottom lip
+      for (let fx = x + 10; fx < x + w - 10; fx += 20) {
+        const notchW = 4 + ((fx + idx * 3) % 4);
+        ctx.fillStyle = isS2 ? '#362663' : '#35465e';
+        ctx.fillRect(fx, y - 1, notchW, 2);
+        ctx.fillStyle = isS2 ? '#4c3685' : '#4a5f7d';
+        ctx.fillRect(fx + 5, y + h - 1, notchW - 1, 2);
+      }
+
+      if (isS2) {
+        // Hanging amethyst & cyan crystal stalactites jutting down the cavern cliff face
+        for (let sx = x + 6; sx < x + w - 6; sx += 14) {
+          const stH = 4 + ((sx * 7 + idx * 5) % 6);
+          ctx.fillStyle = (sx + idx) % 2 === 0 ? '#5b21b6' : '#0e7490';
+          ctx.fillRect(sx, y, 3, stH);
+          ctx.fillStyle = (sx + idx) % 2 === 0 ? '#c084fc' : '#38e8d4';
+          ctx.fillRect(sx + 1, y, 1, Math.max(2, stH - 2));
+        }
+      } else {
+        // Exposed hull steel deck struts & recessed pipes along the vertical hull shaft
+        for (let sx = x + 8; sx < x + w - 6; sx += 16) {
+          ctx.fillStyle = '#334155';
+          ctx.fillRect(sx, y, 3, cliffH - 1);
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(sx + 1, y + 2, 1, cliffH - 3);
+        }
+        ctx.fillStyle = '#1e3a4c';
+        ctx.fillRect(x + 2, y + 3, w - 4, 2);
+      }
+
+      // Faint deep-space stars / abyssal dust far below
+      const starCount = Math.max(2, Math.floor((w * h) / 720));
+      for (let s = 0; s < starCount; s++) {
+        const seed = (idx + 1) * 97 + s * 53 + this.currentRoom.tileSeed;
+        const px = x + 5 + (seed % Math.max(4, w - 10));
+        const py = y + cliffH + 2 + ((seed * 3) % Math.max(4, h - cliffH - 5));
+        const a = 0.12 + 0.16 * Math.sin(this.time * 1.8 + s * 2.1 + idx);
+        ctx.fillStyle = isS2
+          ? `rgba(192, 132, 252, ${Math.max(0.04, a)})`
+          : `rgba(148, 163, 184, ${Math.max(0.04, a)})`;
+        ctx.fillRect(px, py, 1, 1);
+      }
+
+      // 4. MOONLIGHTER SECRET SPARKLING PIT TELL!
+      // Almost invisible at a glance: a brief, soft golden-cyan starlight glint flickers deep inside every ~3.4s!
+      if (ch.secret) {
+        const cx = x + w * 0.5;
+        const cy = y + cliffH + (h - cliffH) * 0.55;
+        if (ch.secretVisited) {
+          const p = 0.35 + 0.25 * Math.sin(this.time * 3.2);
+          ctx.strokeStyle = `rgba(253, 224, 71, ${p})`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(cx, cy - 4);
+          ctx.lineTo(cx + 4, cy);
+          ctx.lineTo(cx, cy + 4);
+          ctx.lineTo(cx - 4, cy);
+          ctx.closePath();
+          ctx.stroke();
+        } else {
+          // Subtle Moonlighter tell: fleeting delicate twinkle lasting ~0.72s out of every 3.4s!
+          const cycle = (this.time + idx * 0.7) % 3.4;
+          if (cycle < 0.72) {
+            const flash = Math.sin((cycle / 0.72) * Math.PI);
+            const alpha = flash * 0.56;
+            const ox = Math.sin(Math.floor(this.time / 3.4) * 1.9) * Math.min(10, w * 0.18);
+            const sx = cx + ox;
+            const sy = cy;
+            ctx.fillStyle = `rgba(254, 240, 138, ${alpha})`;
+            ctx.fillRect(sx - 2.5, sy - 0.5, 5, 1);
+            ctx.fillRect(sx - 0.5, sy - 2.5, 1, 5);
+            ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 1.1})`;
+            ctx.fillRect(sx - 0.7, sy - 0.7, 1.4, 1.4);
+            drawGlow(ctx, sx, sy, 9, '#fde047', alpha * 0.28);
+          }
+        }
+      }
+      ctx.restore();
+    }
+  }
+
   private renderObstacle(ctx: CanvasRenderingContext2D, ob: DungeonRoom['obstacles'][number]): void {
     const atlas = getAtlas();
+    const isS2 = this.currentSector === 2;
+    const { x, y, w, h } = ob;
+
     if (ob.kind === 'crate') {
-      drawPixelShadow(ctx, ob.x + ob.w / 2, ob.y + ob.h + 1, ob.w / 2, 3, 0.4);
-      ctx.drawImage(atlas.props.crate, ob.x, ob.y, ob.w, ob.h);
+      drawPixelShadow(ctx, x + w / 2, y + h + 1, w / 2, 3, 0.42);
+      ctx.drawImage(atlas.props.crate, x, y, w, h);
       return;
     }
 
-    ctx.fillStyle = 'rgba(10, 14, 24, 0.72)';
-    ctx.fillRect(ob.x - 1, ob.y + 3, ob.w + 2, ob.h);
-    ctx.fillStyle = '#1e2738';
-    ctx.fillRect(ob.x, ob.y, ob.w, ob.h);
-    ctx.fillStyle = '#475569';
-    ctx.fillRect(ob.x + 1, ob.y + 1, ob.w - 2, ob.h - 4);
-    ctx.fillStyle = '#64748b';
-    ctx.fillRect(ob.x + 2, ob.y + 2, ob.w - 4, 4);
-    ctx.fillStyle = '#94a3b8';
-    ctx.fillRect(ob.x + 3, ob.y + 3, 2, 2);
-    ctx.fillRect(ob.x + ob.w - 5, ob.y + 3, 2, 2);
-    ctx.fillRect(ob.x + 3, ob.y + ob.h - 7, 2, 2);
-    ctx.fillRect(ob.x + ob.w - 5, ob.y + ob.h - 7, 2, 2);
+    if (ob.kind === 'crystal_spire' || (isS2 && ob.kind === 'pillar')) {
+      // Sector 2 Organic Pixel-Stepped Amethyst & Turquoise Crystal Outcrop (matches dungeon_bg_s2.png wall crystals!)
+      const cx = Math.round(x + w * 0.5);
+      const by = Math.round(y + h);
+      drawPixelShadow(ctx, cx, by - 1, w * 0.56, 4.5, 0.56);
+
+      // Irregular stepped dark cavern stone boulder base (no square box!)
+      ctx.fillStyle = '#120a26';
+      ctx.fillRect(cx - 11, by - 9, 22, 8);
+      ctx.fillRect(cx - 9, by - 11, 18, 11);
+      ctx.fillStyle = '#261a4a';
+      ctx.fillRect(cx - 10, by - 8, 20, 6);
+      ctx.fillRect(cx - 8, by - 10, 16, 8);
+      ctx.fillStyle = '#3a296e';
+      ctx.fillRect(cx - 8, by - 9, 14, 3);
+
+      // Helper to draw a crisp pixel-stepped crystal prism with dark outline & specular facet
+      const drawPixelCrystal = (
+        px: number,
+        baseY: number,
+        cw: number,
+        ch: number,
+        dark: string,
+        mid: string,
+        bright: string,
+      ) => {
+        const half = Math.floor(cw / 2);
+        // Dark pixel outline
+        ctx.fillStyle = '#120a26';
+        ctx.fillRect(px - half - 1, baseY - ch + 3, cw + 2, ch - 2);
+        ctx.fillRect(px - Math.max(1, half - 1) - 1, baseY - ch + 1, Math.max(2, cw - 2) + 2, 3);
+        ctx.fillRect(px - 1, baseY - ch - 1, 2, 3);
+        // Shadow body
+        ctx.fillStyle = dark;
+        ctx.fillRect(px - half, baseY - ch + 3, cw, ch - 3);
+        ctx.fillRect(px - Math.max(1, half - 1), baseY - ch + 1, Math.max(2, cw - 2), 3);
+        // Lit left facet
+        ctx.fillStyle = mid;
+        ctx.fillRect(px - half, baseY - ch + 3, Math.max(1, half), ch - 4);
+        ctx.fillRect(px - Math.max(1, half - 1), baseY - ch + 1, Math.max(1, half - 1), 2);
+        // Specular crystal glint ridge
+        ctx.fillStyle = bright;
+        ctx.fillRect(px - Math.max(0, half - 1), baseY - ch + 2, 1, Math.max(3, ch - 6));
+        ctx.fillRect(px, baseY - ch, 1, 2);
+      };
+
+      // Left turquoise crystal shard
+      drawPixelCrystal(cx - 6, by - 6, 6, 13, '#0e7490', '#22d3ee', '#cffafe');
+      // Right amethyst crystal shard
+      drawPixelCrystal(cx + 6, by - 6, 6, 11, '#6b21a8', '#a855f7', '#e9d5ff');
+      // Tall center amethyst-violet spire
+      drawPixelCrystal(cx, by - 6, 8, 19, '#581c87', '#c084fc', '#fae8ff');
+
+      // Subtle glowing rune fracture on stone base
+      ctx.fillStyle = '#38e8d4';
+      ctx.fillRect(cx - 5, by - 4, 3, 1);
+      ctx.fillStyle = '#e879f9';
+      ctx.fillRect(cx + 2, by - 3, 3, 1);
+      drawGlow(ctx, cx, by - 12, 20, '#c084fc', 0.24);
+      return;
+    }
+
+    // Grounded recessed floor contact shadow & architectural flange
+    ctx.fillStyle = 'rgba(6, 9, 18, 0.74)';
+    ctx.fillRect(x - 2, y + 3, w + 4, h + 1);
+
+    // Sector 1 / Universal Integrated Architectural Bulkhead, Pillar, or Energy Conduit
+    ctx.fillStyle = isS2 ? '#1a1233' : '#182233';
+    ctx.fillRect(x - 1, y + h - 4, w + 2, 5);
+    ctx.fillStyle = isS2 ? '#251a4a' : '#253247';
+    ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = isS2 ? '#3c2c70' : '#3c4e69';
+    ctx.fillRect(x + 1, y + 1, w - 2, h - 5);
+    // Beveled metallic top cap catching room lights
+    ctx.fillStyle = isS2 ? '#59429e' : '#586f8f';
+    ctx.fillRect(x + 2, y + 1, w - 4, 4);
+    ctx.fillStyle = isS2 ? '#8064c9' : '#7b95b8';
+    ctx.fillRect(x + 3, y + 2, w - 6, 1.2);
+    // Recessed rivets
+    ctx.fillStyle = isS2 ? '#a78bfa' : '#94a3b8';
+    ctx.fillRect(x + 3, y + 3, 1.5, 1.5);
+    ctx.fillRect(x + w - 4.5, y + 3, 1.5, 1.5);
+    ctx.fillRect(x + 3, y + h - 7, 1.5, 1.5);
+    ctx.fillRect(x + w - 4.5, y + h - 7, 1.5, 1.5);
 
     if (ob.kind === 'conduit') {
-      ctx.fillStyle = '#0f2938';
-      ctx.fillRect(ob.x + 5, ob.y + Math.floor(ob.h / 2) - 4, ob.w - 10, 7);
-      ctx.fillStyle = '#38e8d4';
-      ctx.fillRect(ob.x + 6, ob.y + Math.floor(ob.h / 2) - 2, ob.w - 12, 3);
+      const glowCol = isS2 ? '#e879f9' : '#38e8d4';
+      ctx.fillStyle = isS2 ? '#1b0d30' : '#0d2536';
+      ctx.fillRect(x + 4, y + Math.floor(h / 2) - 4, w - 8, 8);
+      ctx.fillStyle = glowCol;
+      ctx.fillRect(x + 6, y + Math.floor(h / 2) - 2, w - 12, 3.5);
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(ob.x + 8, ob.y + Math.floor(ob.h / 2) - 1, ob.w - 16, 1);
-      drawGlow(ctx, ob.x + ob.w / 2, ob.y + ob.h / 2, 22, '#38e8d4', 0.3);
+      ctx.fillRect(x + 8, y + Math.floor(h / 2) - 1, w - 16, 1.2);
+      drawGlow(ctx, x + w / 2, y + h / 2, 24, glowCol, 0.34);
+    } else if (ob.kind === 'bulkhead_wall') {
+      // Integrated starship deck barrier with recessed ventilation louver & amber caution stripe!
+      ctx.fillStyle = '#1d283a';
+      ctx.fillRect(x + 4, y + 7, w - 8, h - 13);
+      ctx.fillStyle = '#2d3c54';
+      for (let vy = y + 8; vy < y + h - 7; vy += 3) {
+        ctx.fillRect(x + 5, vy, w - 10, 1.2);
+      }
+      ctx.fillStyle = '#d97706';
+      ctx.fillRect(x + 2, y + h - 5, 5, 1.5);
+      ctx.fillRect(x + w - 7, y + h - 5, 5, 1.5);
     } else {
-      ctx.fillStyle = '#334155';
-      ctx.fillRect(ob.x + 5, ob.y + 8, ob.w - 10, ob.h - 14);
+      ctx.fillStyle = isS2 ? '#291c52' : '#2b394f';
+      ctx.fillRect(x + 5, y + 7, w - 10, h - 13);
+      ctx.fillStyle = isS2 ? '#a855f7' : '#38e8d4';
+      ctx.fillRect(x + Math.floor(w / 2) - 2, y + Math.floor(h / 2) - 2, 4, 2);
     }
   }
 
@@ -7670,6 +8175,23 @@ export class DungeonScene {
       return;
     }
 
+    // Dramatic Moonlighter pit-fall shrink & tumble animation into the abyss!
+    if (this.pitFallTimer > 0) {
+      const prog = 1 - Math.max(0, this.pitFallTimer / Math.max(0.05, this.pitFallDuration));
+      const fallScale = Math.max(0.08, 1 - prog * 0.88);
+      const fallSpr = art.heroDown;
+      if (fallSpr) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0.12, 1 - prog * 0.85);
+        ctx.translate(this.playerX, this.playerY + prog * 14);
+        ctx.rotate(prog * 5.2);
+        ctx.scale(fallScale, fallScale);
+        ctx.drawImage(fallSpr, -12, -16, 24, 28);
+        ctx.restore();
+      }
+      return;
+    }
+
     const walking = this.walkAnim > 0;
     const bob = walking ? Math.abs(Math.sin(this.walkAnim)) * 2.2 : Math.sin(this.time * 3) * 0.4;
 
@@ -7692,7 +8214,11 @@ export class DungeonScene {
           : this.swingPoseDir * pulse * 0.22;
     }
 
-    drawPixelShadow(ctx, this.playerX + lungeX * 0.5, this.playerY + 11, 8, 3.2, 0.5);
+    // Hide shadow while dashing/leaping right over a chasm so the jump reads clearly!
+    const overChasm = this.getChasmAt(this.playerX, this.playerY + 4, -2) !== null;
+    if (!overChasm) {
+      drawPixelShadow(ctx, this.playerX + lungeX * 0.5, this.playerY + 11, 8, 3.2, 0.5);
+    }
 
     // Draw ready weapon BEHIND hero when facing up!
     if (this.facing === 'up') {
@@ -7809,11 +8335,20 @@ export class DungeonScene {
 
     ctx.fillStyle = 'rgba(10, 15, 26, 0.88)';
     ctx.fillRect(cx - 22, cy - 17, 44, 34);
-    ctx.strokeStyle = '#475569';
+    ctx.strokeStyle = this.currentRoom.type === 'secret' ? '#fde047' : '#475569';
     ctx.lineWidth = 0.8;
     ctx.strokeRect(cx - 21.5, cy - 16.5, 43, 33);
 
+    if (this.currentRoom.type === 'secret') {
+      ctx.fillStyle = '#fde047';
+      ctx.font = 'bold 5px Silkscreen, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('★ GEHEIM', cx, cy + 2);
+      return;
+    }
+
     for (const room of this.floor.rooms.values()) {
+      if (room.type === 'secret') continue;
       const adjVisited =
         room.visited ||
         this.floor.rooms.get(roomKey(room.gx + 1, room.gy))?.visited ||

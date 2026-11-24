@@ -504,6 +504,19 @@ export class SoundEngine {
     this.playTone(523, 659, 0.22, 'triangle', 0.07, 0.12);
     this.playTone(659, 784, 0.28, 'sine', 0.06, 0.24);
   }
+
+  public playPitFall(): void {
+    this.playTone(460, 110, 0.36, 'triangle', 0.12, 0);
+    this.playTone(320, 75, 0.38, 'sine', 0.09, 0.05);
+    this.playNoise(0.14, 420, 0.12);
+  }
+
+  public playSecretChime(): void {
+    this.playTone(659.25, 659.25, 0.14, 'triangle', 0.09, 0);
+    this.playTone(830.61, 830.61, 0.14, 'triangle', 0.09, 0.09);
+    this.playTone(987.77, 987.77, 0.16, 'sine', 0.09, 0.18);
+    this.playTone(1318.51, 1318.51, 0.32, 'sine', 0.11, 0.28);
+  }
 }
 
 export const sound = new SoundEngine();

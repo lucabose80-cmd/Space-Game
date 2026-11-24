@@ -1,6 +1,6 @@
 import type { ItemStack } from '../types';
 
-export type RoomType = 'start' | 'combat' | 'treasure' | 'boss';
+export type RoomType = 'start' | 'combat' | 'treasure' | 'boss' | 'secret';
 
 export type DoorSide = 'north' | 'south' | 'east' | 'west';
 
@@ -9,8 +9,27 @@ export interface ObstacleRect {
   y: number;
   w: number;
   h: number;
-  kind: 'pillar' | 'conduit' | 'crate';
+  kind: 'pillar' | 'conduit' | 'crate' | 'crystal_spire' | 'bulkhead_wall';
 }
+
+export interface ChasmRect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** True if falling into this chasm drops the player into a Moonlighter-style Secret Underground Vault! */
+  secret?: boolean;
+  secretVisited?: boolean;
+}
+
+export type RoomLayoutStyle =
+  | 'open_pillars'
+  | 'twin_conduits'
+  | 'center_chasm'
+  | 'cross_bridges'
+  | 'dash_gorge'
+  | 'flanking_trenches'
+  | 'stepping_stones';
 
 export interface DestructiblePod {
   id: number;
@@ -25,6 +44,7 @@ export interface RoomChest {
   y: number;
   opened: boolean;
   rare: boolean;
+  secret?: boolean;
   slots?: Array<ItemStack | null>;
 }
 
@@ -67,10 +87,12 @@ export interface DungeonRoom {
   gy: number;
   depth: number;
   type: RoomType;
+  layoutStyle?: RoomLayoutStyle;
   doors: Record<DoorSide, boolean>;
   visited: boolean;
   cleared: boolean;
   obstacles: ObstacleRect[];
+  chasms: ChasmRect[];
   pods: DestructiblePod[];
   hazards: HazardVent[];
   hasHealStation?: boolean;
@@ -78,6 +100,10 @@ export interface DungeonRoom {
   chest: RoomChest | null;
   spawns: EnemySpawn[];
   tileSeed: number;
+  /** For 'secret' subterranean rooms: key & safe return coords of the room above */
+  secretParentKey?: string;
+  secretReturnX?: number;
+  secretReturnY?: number;
 }
 
 export interface DungeonFloor {
@@ -206,6 +232,36 @@ export function generateSectorFloor(
   const rooms = new Map<string, DungeonRoom>();
   let podCounter = 1;
 
+  // Shuffled Moonlighter room layout deck so each floor has high visual & tactical variety!
+  const layoutDeck: RoomLayoutStyle[] = [
+    'center_chasm',
+    'dash_gorge',
+    'cross_bridges',
+    'flanking_trenches',
+    'stepping_stones',
+    'open_pillars',
+    'twin_conduits',
+  ];
+  for (let i = layoutDeck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [layoutDeck[i], layoutDeck[j]] = [layoutDeck[j], layoutDeck[i]];
+  }
+  let layoutIdx = 0;
+
+  const hitsAnyRect = (
+    rects: Array<{ x: number; y: number; w: number; h: number }>,
+    x: number,
+    y: number,
+    pad: number,
+  ): boolean => {
+    for (const r of rects) {
+      if (x + pad > r.x && x - pad < r.x + r.w && y + pad > r.y && y - pad < r.y + r.h) {
+        return true;
+      }
+    }
+    return false;
+  };
+
   for (const c of coords) {
     const key = roomKey(c.gx, c.gy);
     const depth = depthMap.get(key) ?? 1;
@@ -226,11 +282,15 @@ export function generateSectorFloor(
     };
 
     const obstacles: ObstacleRect[] = [];
+    const chasms: ChasmRect[] = [];
     const pods: DestructiblePod[] = [];
     const hazards: HazardVent[] = [];
     const spawns: EnemySpawn[] = [];
     let chest: RoomChest | null = null;
     let hasHealStation = false;
+    let layoutStyle: RoomLayoutStyle | undefined;
+
+    const archKind: ObstacleRect['kind'] = sector === 2 ? 'crystal_spire' : 'bulkhead_wall';
 
     if (type === 'start') {
       pods.push(
@@ -242,24 +302,35 @@ export function generateSectorFloor(
       }
     } else if (type === 'treasure') {
       chest = { x: ROOM_CENTER_X, y: ROOM_CENTER_Y - 6, opened: false, rare: true };
+      if (Math.random() < 0.5) {
+        // Dramatic Moonlighter Treasure Shrine flanked by two abyssal rifts!
+        chasms.push(
+          { x: ROOM_LEFT + 34, y: ROOM_TOP + 20, w: 56, h: 32 },
+          { x: ROOM_RIGHT - 90, y: ROOM_BOTTOM - 52, w: 56, h: 32 },
+        );
+        obstacles.push(
+          { x: ROOM_RIGHT - 56, y: ROOM_TOP + 22, w: 22, h: 22, kind: archKind },
+          { x: ROOM_LEFT + 34, y: ROOM_BOTTOM - 44, w: 22, h: 22, kind: archKind },
+        );
+      } else {
+        obstacles.push(
+          { x: ROOM_LEFT + 34, y: ROOM_TOP + 20, w: 22, h: 22, kind: archKind },
+          { x: ROOM_RIGHT - 56, y: ROOM_TOP + 20, w: 22, h: 22, kind: archKind },
+          { x: ROOM_LEFT + 34, y: ROOM_BOTTOM - 42, w: 22, h: 22, kind: archKind },
+          { x: ROOM_RIGHT - 56, y: ROOM_BOTTOM - 42, w: 22, h: 22, kind: archKind },
+        );
+      }
       pods.push(
         { id: podCounter++, x: ROOM_CENTER_X - 54, y: ROOM_CENTER_Y - 24, hp: 1, broken: false },
         { id: podCounter++, x: ROOM_CENTER_X + 54, y: ROOM_CENTER_Y - 24, hp: 1, broken: false },
         { id: podCounter++, x: ROOM_CENTER_X - 54, y: ROOM_CENTER_Y + 24, hp: 1, broken: false },
         { id: podCounter++, x: ROOM_CENTER_X + 54, y: ROOM_CENTER_Y + 24, hp: 1, broken: false },
       );
-      obstacles.push(
-        { x: ROOM_LEFT + 34, y: ROOM_TOP + 20, w: 22, h: 22, kind: 'pillar' },
-        { x: ROOM_RIGHT - 56, y: ROOM_TOP + 20, w: 22, h: 22, kind: 'pillar' },
-        { x: ROOM_LEFT + 34, y: ROOM_BOTTOM - 42, w: 22, h: 22, kind: 'pillar' },
-        { x: ROOM_RIGHT - 56, y: ROOM_BOTTOM - 42, w: 22, h: 22, kind: 'pillar' },
-      );
     } else if (type === 'boss') {
       if (floorIndex === 3) {
-        // Wide-open grand Arena for Sector 1 Leviathan or Sector 2 PRISMA-ARCHON!
         obstacles.push(
-          { x: ROOM_LEFT + 34, y: ROOM_BOTTOM - 48, w: 20, h: 20, kind: 'pillar' },
-          { x: ROOM_RIGHT - 54, y: ROOM_BOTTOM - 48, w: 20, h: 20, kind: 'pillar' },
+          { x: ROOM_LEFT + 34, y: ROOM_BOTTOM - 48, w: 20, h: 20, kind: archKind },
+          { x: ROOM_RIGHT - 54, y: ROOM_BOTTOM - 48, w: 20, h: 20, kind: archKind },
         );
         spawns.push({
           kind: sector === 2 ? 'boss_prisma_archon' : 'boss_leviathan',
@@ -268,10 +339,10 @@ export function generateSectorFloor(
         });
       } else if (floorIndex === 1) {
         obstacles.push(
-          { x: ROOM_LEFT + 50, y: ROOM_TOP + 30, w: 20, h: 20, kind: 'crate' },
-          { x: ROOM_RIGHT - 70, y: ROOM_TOP + 30, w: 20, h: 20, kind: 'crate' },
-          { x: ROOM_LEFT + 50, y: ROOM_BOTTOM - 50, w: 20, h: 20, kind: 'crate' },
-          { x: ROOM_RIGHT - 70, y: ROOM_BOTTOM - 50, w: 20, h: 20, kind: 'crate' },
+          { x: ROOM_LEFT + 50, y: ROOM_TOP + 30, w: 20, h: 20, kind: sector === 2 ? 'crystal_spire' : 'crate' },
+          { x: ROOM_RIGHT - 70, y: ROOM_TOP + 30, w: 20, h: 20, kind: sector === 2 ? 'crystal_spire' : 'crate' },
+          { x: ROOM_LEFT + 50, y: ROOM_BOTTOM - 50, w: 20, h: 20, kind: sector === 2 ? 'crystal_spire' : 'crate' },
+          { x: ROOM_RIGHT - 70, y: ROOM_BOTTOM - 50, w: 20, h: 20, kind: sector === 2 ? 'crystal_spire' : 'crate' },
         );
         spawns.push({
           kind: sector === 2 ? 'boss_quartz_golem' : 'boss_breacher',
@@ -280,10 +351,10 @@ export function generateSectorFloor(
         });
       } else {
         obstacles.push(
-          { x: ROOM_LEFT + 48, y: ROOM_TOP + 28, w: 22, h: 22, kind: 'pillar' },
-          { x: ROOM_RIGHT - 70, y: ROOM_TOP + 28, w: 22, h: 22, kind: 'pillar' },
-          { x: ROOM_LEFT + 48, y: ROOM_BOTTOM - 50, w: 22, h: 22, kind: 'pillar' },
-          { x: ROOM_RIGHT - 70, y: ROOM_BOTTOM - 50, w: 22, h: 22, kind: 'pillar' },
+          { x: ROOM_LEFT + 48, y: ROOM_TOP + 28, w: 22, h: 22, kind: archKind },
+          { x: ROOM_RIGHT - 70, y: ROOM_TOP + 28, w: 22, h: 22, kind: archKind },
+          { x: ROOM_LEFT + 48, y: ROOM_BOTTOM - 50, w: 22, h: 22, kind: archKind },
+          { x: ROOM_RIGHT - 70, y: ROOM_BOTTOM - 50, w: 22, h: 22, kind: archKind },
         );
         spawns.push({
           kind: sector === 2 ? 'boss_prism_weaver' : 'boss',
@@ -292,51 +363,124 @@ export function generateSectorFloor(
         });
       }
     } else {
-      const pattern = Math.floor(Math.random() * 3);
-      if (pattern === 0) {
+      // Pick next unique Moonlighter combat layout from shuffled deck!
+      layoutStyle = layoutDeck[layoutIdx % layoutDeck.length];
+      layoutIdx++;
+
+      if (layoutStyle === 'center_chasm') {
+        // Dramatic central rift (36px tall — Jetpack-Dashable vertically!) + 4 framing spires/bulkheads
+        chasms.push({ x: ROOM_CENTER_X - 44, y: ROOM_CENTER_Y - 18, w: 88, h: 36 });
         obstacles.push(
-          { x: ROOM_CENTER_X - 66, y: ROOM_CENTER_Y - 30, w: 22, h: 22, kind: 'pillar' },
-          { x: ROOM_CENTER_X + 44, y: ROOM_CENTER_Y - 30, w: 22, h: 22, kind: 'pillar' },
-          { x: ROOM_CENTER_X - 66, y: ROOM_CENTER_Y + 12, w: 22, h: 22, kind: 'pillar' },
-          { x: ROOM_CENTER_X + 44, y: ROOM_CENTER_Y + 12, w: 22, h: 22, kind: 'pillar' },
+          { x: ROOM_CENTER_X - 96, y: ROOM_CENTER_Y - 40, w: 22, h: 22, kind: archKind },
+          { x: ROOM_CENTER_X + 74, y: ROOM_CENTER_Y - 40, w: 22, h: 22, kind: archKind },
+          { x: ROOM_CENTER_X - 96, y: ROOM_CENTER_Y + 20, w: 22, h: 22, kind: archKind },
+          { x: ROOM_CENTER_X + 74, y: ROOM_CENTER_Y + 20, w: 22, h: 22, kind: archKind },
         );
-      } else if (pattern === 1) {
+      } else if (layoutStyle === 'dash_gorge') {
+        // Vertical chasm gorge (34px wide — Jetpack-Dashable!) split by a central walkway bridge, with generous N/S door aprons!
+        chasms.push(
+          { x: ROOM_CENTER_X - 17, y: ROOM_TOP + 28, w: 34, h: 38 },
+          { x: ROOM_CENTER_X - 17, y: ROOM_BOTTOM - 66, w: 34, h: 38 },
+        );
         obstacles.push(
-          { x: ROOM_CENTER_X - 18, y: ROOM_CENTER_Y - 14, w: 36, h: 28, kind: 'conduit' },
-          { x: ROOM_LEFT + 42, y: ROOM_TOP + 22, w: 20, h: 20, kind: 'crate' },
-          { x: ROOM_RIGHT - 62, y: ROOM_BOTTOM - 42, w: 20, h: 20, kind: 'crate' },
+          { x: ROOM_LEFT + 54, y: ROOM_CENTER_Y - 12, w: 22, h: 24, kind: 'conduit' },
+          { x: ROOM_RIGHT - 76, y: ROOM_CENTER_Y - 12, w: 22, h: 24, kind: 'conduit' },
+        );
+      } else if (layoutStyle === 'cross_bridges') {
+        // Iconic Moonlighter 4-quadrant abyssal catwalk room! All 4 doors connect cleanly via the '+' bridges!
+        chasms.push(
+          { x: ROOM_LEFT + 38, y: ROOM_TOP + 18, w: 88, h: 38 },
+          { x: ROOM_RIGHT - 126, y: ROOM_TOP + 18, w: 88, h: 38 },
+          { x: ROOM_LEFT + 38, y: ROOM_BOTTOM - 56, w: 88, h: 38 },
+          { x: ROOM_RIGHT - 126, y: ROOM_BOTTOM - 56, w: 88, h: 38 },
+        );
+        obstacles.push({
+          x: ROOM_CENTER_X - 12,
+          y: ROOM_CENTER_Y - 12,
+          w: 24,
+          h: 24,
+          kind: 'conduit',
+        });
+      } else if (layoutStyle === 'flanking_trenches') {
+        // Diagonal abyssal trenches + integrated central cover walls!
+        chasms.push(
+          { x: ROOM_LEFT + 30, y: ROOM_TOP + 14, w: 86, h: 34 },
+          { x: ROOM_RIGHT - 116, y: ROOM_BOTTOM - 48, w: 86, h: 34 },
+        );
+        obstacles.push(
+          { x: ROOM_CENTER_X - 38, y: ROOM_CENTER_Y - 12, w: 26, h: 24, kind: archKind },
+          { x: ROOM_CENTER_X + 12, y: ROOM_CENTER_Y - 12, w: 26, h: 24, kind: archKind },
+          { x: ROOM_RIGHT - 64, y: ROOM_TOP + 20, w: 22, h: 22, kind: 'pillar' },
+          { x: ROOM_LEFT + 42, y: ROOM_BOTTOM - 42, w: 22, h: 22, kind: 'pillar' },
+        );
+      } else if (layoutStyle === 'stepping_stones') {
+        // Twin dashable horizontal rifts (30px tall) with central causeway — dash across or funnel foes!
+        chasms.push(
+          { x: ROOM_LEFT + 42, y: ROOM_CENTER_Y - 48, w: 96, h: 30 },
+          { x: ROOM_RIGHT - 138, y: ROOM_CENTER_Y - 48, w: 96, h: 30 },
+          { x: ROOM_LEFT + 42, y: ROOM_CENTER_Y + 18, w: 96, h: 30 },
+          { x: ROOM_RIGHT - 138, y: ROOM_CENTER_Y + 18, w: 96, h: 30 },
+        );
+      } else if (layoutStyle === 'open_pillars') {
+        // Rich architectural bulkhead / crystal cover room (no chasms — crisp Ricochet & gunfight arena!)
+        obstacles.push(
+          { x: ROOM_CENTER_X - 78, y: ROOM_CENTER_Y - 36, w: 34, h: 18, kind: archKind },
+          { x: ROOM_CENTER_X + 44, y: ROOM_CENTER_Y - 36, w: 34, h: 18, kind: archKind },
+          { x: ROOM_CENTER_X - 78, y: ROOM_CENTER_Y + 18, w: 34, h: 18, kind: archKind },
+          { x: ROOM_CENTER_X + 44, y: ROOM_CENTER_Y + 18, w: 34, h: 18, kind: archKind },
+          { x: ROOM_CENTER_X - 13, y: ROOM_CENTER_Y - 13, w: 26, h: 26, kind: 'conduit' },
         );
       } else {
+        // 'twin_conduits': Integrated reactor conduits + two asymmetric abyssal corner pits!
         obstacles.push(
-          { x: ROOM_CENTER_X - 58, y: ROOM_CENTER_Y - 12, w: 24, h: 24, kind: 'conduit' },
-          { x: ROOM_CENTER_X + 34, y: ROOM_CENTER_Y - 12, w: 24, h: 24, kind: 'conduit' },
+          { x: ROOM_CENTER_X - 62, y: ROOM_CENTER_Y - 13, w: 26, h: 26, kind: 'conduit' },
+          { x: ROOM_CENTER_X + 36, y: ROOM_CENTER_Y - 13, w: 26, h: 26, kind: 'conduit' },
+        );
+        chasms.push(
+          { x: ROOM_RIGHT - 90, y: ROOM_TOP + 16, w: 54, h: 34 },
+          { x: ROOM_LEFT + 36, y: ROOM_BOTTOM - 50, w: 54, h: 34 },
         );
       }
 
-      // Steam / Plasma Hazard Vents on Floor II & III combat rooms!
+      // Steam / Plasma Hazard Vents on Floor II & III combat rooms (never inside obstacles or chasms!)
       if (floorIndex >= 2) {
-        hazards.push({
-          x: ROOM_CENTER_X - (pattern === 1 ? 76 : 0),
-          y: ROOM_CENTER_Y + (pattern === 1 ? 0 : -44),
-          r: 15,
-          phase: Math.random() * 4.2,
-        });
-        if (floorIndex === 3 || Math.random() < 0.65) {
-          hazards.push({
-            x: ROOM_CENTER_X + (pattern === 1 ? 76 : 0),
-            y: ROOM_CENTER_Y + (pattern === 1 ? 0 : 44),
-            r: 15,
-            phase: 2.1 + Math.random() * 2.0,
-          });
+        const ventCandidates = [
+          { x: ROOM_CENTER_X - 74, y: ROOM_CENTER_Y },
+          { x: ROOM_CENTER_X + 74, y: ROOM_CENTER_Y },
+          { x: ROOM_CENTER_X, y: ROOM_CENTER_Y - 46 },
+          { x: ROOM_CENTER_X, y: ROOM_CENTER_Y + 46 },
+        ];
+        let placedVents = 0;
+        const maxVents = floorIndex === 3 ? 2 : Math.random() < 0.65 ? 2 : 1;
+        for (const vc of ventCandidates) {
+          if (placedVents >= maxVents) break;
+          if (!hitsAnyRect(obstacles, vc.x, vc.y, 18) && !hitsAnyRect(chasms, vc.x, vc.y, 16)) {
+            hazards.push({
+              x: vc.x,
+              y: vc.y,
+              r: 14,
+              phase: placedVents * 2.1 + Math.random() * 1.8,
+            });
+            placedVents++;
+          }
         }
       }
 
-      pods.push(
-        { id: podCounter++, x: ROOM_LEFT + 26, y: ROOM_TOP + 22, hp: 1, broken: false },
-        { id: podCounter++, x: ROOM_RIGHT - 26, y: ROOM_BOTTOM - 22, hp: 1, broken: false },
-      );
-      if (Math.random() < 0.65) {
-        pods.push({ id: podCounter++, x: ROOM_RIGHT - 26, y: ROOM_TOP + 22, hp: 1, broken: false });
+      // Destructible Pods placed safely on solid floor corners!
+      const podCandidates = [
+        { x: ROOM_LEFT + 22, y: ROOM_TOP + 18 },
+        { x: ROOM_RIGHT - 22, y: ROOM_BOTTOM - 18 },
+        { x: ROOM_RIGHT - 22, y: ROOM_TOP + 18 },
+        { x: ROOM_LEFT + 22, y: ROOM_BOTTOM - 18 },
+      ];
+      let placedPods = 0;
+      const desiredPods = Math.random() < 0.65 ? 3 : 2;
+      for (const pc of podCandidates) {
+        if (placedPods >= desiredPods) break;
+        if (!hitsAnyRect(obstacles, pc.x, pc.y, 12) && !hitsAnyRect(chasms, pc.x, pc.y, 12)) {
+          pods.push({ id: podCounter++, x: pc.x, y: pc.y, hp: 1, broken: false });
+          placedPods++;
+        }
       }
 
       const baseCount = floorIndex === 1 ? 2 : floorIndex === 2 ? 3 : 4;
@@ -344,14 +488,27 @@ export function generateSectorFloor(
         6,
         baseCount + Math.floor(depth * 0.75) + (Math.random() < 0.35 ? 1 : 0),
       );
-      const candidateSpots: Array<{ x: number; y: number }> = [
-        { x: ROOM_CENTER_X - 88, y: ROOM_CENTER_Y - 40 },
-        { x: ROOM_CENTER_X + 88, y: ROOM_CENTER_Y - 40 },
-        { x: ROOM_CENTER_X - 88, y: ROOM_CENTER_Y + 40 },
-        { x: ROOM_CENTER_X + 88, y: ROOM_CENTER_Y + 40 },
+      const rawSpots: Array<{ x: number; y: number }> = [
+        { x: ROOM_CENTER_X - 88, y: ROOM_CENTER_Y - 42 },
+        { x: ROOM_CENTER_X + 88, y: ROOM_CENTER_Y - 42 },
+        { x: ROOM_CENTER_X - 88, y: ROOM_CENTER_Y + 42 },
+        { x: ROOM_CENTER_X + 88, y: ROOM_CENTER_Y + 42 },
         { x: ROOM_CENTER_X, y: ROOM_CENTER_Y - 48 },
         { x: ROOM_CENTER_X, y: ROOM_CENTER_Y + 48 },
+        { x: ROOM_CENTER_X - 118, y: ROOM_CENTER_Y },
+        { x: ROOM_CENTER_X + 118, y: ROOM_CENTER_Y },
+        { x: ROOM_CENTER_X - 50, y: ROOM_CENTER_Y },
+        { x: ROOM_CENTER_X + 50, y: ROOM_CENTER_Y },
+        { x: ROOM_LEFT + 34, y: ROOM_CENTER_Y - 44 },
+        { x: ROOM_RIGHT - 34, y: ROOM_CENTER_Y + 44 },
       ];
+      // Filter spots guaranteed clear of obstacles and chasms!
+      const candidateSpots = rawSpots.filter(
+        (s) => !hitsAnyRect(obstacles, s.x, s.y, 14) && !hitsAnyRect(chasms, s.x, s.y, 14),
+      );
+      if (candidateSpots.length === 0) {
+        candidateSpots.push({ x: ROOM_CENTER_X, y: ROOM_CENTER_Y });
+      }
       for (let i = candidateSpots.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [candidateSpots[i], candidateSpots[j]] = [candidateSpots[j], candidateSpots[i]];
@@ -363,17 +520,14 @@ export function generateSectorFloor(
         let kind: EnemySpawn['kind'] = sector === 2 ? 'crystal_crawler' : 'slime';
         if (sector === 2) {
           if (floorIndex === 1) {
-            // Sektor 2 · Ebene I (Quarz-Kaverne): Kristall-Krabbler & Prisma-Drohne
             kind = r > 0.48 ? 'prism_drone' : 'crystal_crawler';
           } else if (floorIndex === 2) {
-            // Sektor 2 · Ebene II (Resonanz-Ader): Splitter-Schütze (neu!) & Äther-Krabbler (Variante!)
             if (i === 0) kind = Math.random() < 0.52 ? 'shard_sniper' : 'void_crawler';
             else if (r > 0.68) kind = 'shard_sniper';
-            else if (r > 0.40) kind = 'void_crawler';
+            else if (r > 0.4) kind = 'void_crawler';
             else if (r > 0.18) kind = 'prism_drone';
             else kind = 'crystal_crawler';
           } else {
-            // Sektor 2 · Ebene III (Herz des Nebels): Resonanz-Wächter (neu!) + Elite-Mix
             if (i === 0) kind = 'resonance_warden';
             else if (i === 1) kind = Math.random() < 0.55 ? 'shard_sniper' : 'void_crawler';
             else if (r > 0.72) kind = 'resonance_warden';
@@ -382,25 +536,22 @@ export function generateSectorFloor(
             else kind = 'prism_drone';
           }
         } else if (floorIndex === 1) {
-          // Floor I (Frachtdeck): Classic Corvette Patrol
           if (depth >= 2 && r > 0.74) kind = 'turret';
           else if (r > 0.44) kind = 'drone';
           else kind = 'slime';
         } else if (floorIndex === 2) {
-          // Floor II (Maschinen-Deck): Schild-Drohne, Sporen-Spucker & neue Blitz-Drohne (Variante!)
           if (i === 0) kind = Math.random() < 0.45 ? 'drone_arc' : Math.random() < 0.55 ? 'shield_drone' : 'spore_spitter';
           else if (r > 0.74) kind = 'drone_arc';
-          else if (r > 0.50) kind = 'spore_spitter';
+          else if (r > 0.5) kind = 'spore_spitter';
           else if (r > 0.28) kind = 'shield_drone';
           else if (r > 0.14) kind = 'turret';
           else kind = 'drone';
         } else {
-          // Floor III (Reaktor-Kern): Neuer Phasen-Stalker & glühender Magma-Slime + Elite-Mix!
           if (i === 0) kind = 'phase_stalker';
           else if (i === 1) kind = Math.random() < 0.62 ? 'slime_magma' : 'drone_arc';
           else if (r > 0.74) kind = 'phase_stalker';
-          else if (r > 0.50) kind = 'slime_magma';
-          else if (r > 0.30) kind = 'drone_arc';
+          else if (r > 0.5) kind = 'slime_magma';
+          else if (r > 0.3) kind = 'drone_arc';
           else if (r > 0.14) kind = 'shield_drone';
           else kind = 'spore_spitter';
         }
@@ -414,10 +565,12 @@ export function generateSectorFloor(
       gy: c.gy,
       depth,
       type,
+      layoutStyle,
       doors,
       visited: type === 'start',
       cleared: type === 'start' || type === 'treasure',
       obstacles,
+      chasms,
       pods,
       hazards,
       hasHealStation,
@@ -425,6 +578,56 @@ export function generateSectorFloor(
       chest,
       spawns,
       tileSeed: Math.floor(Math.random() * 10000),
+    });
+  }
+
+  // ==================== MOONLIGHTER SECRET SPARKLING PIT ====================
+  // Designate 1 rare chasm on this floor as a Secret Pit leading down to a Hidden Underground Treasure Chamber!
+  const pitRooms = [...rooms.values()].filter(
+    (r) => (r.type === 'combat' || r.type === 'treasure') && r.chasms.length > 0,
+  );
+  if (pitRooms.length > 0) {
+    const parent = pitRooms[Math.floor(Math.random() * pitRooms.length)];
+    const chosenChasm = parent.chasms[Math.floor(Math.random() * parent.chasms.length)];
+    chosenChasm.secret = true;
+    chosenChasm.secretVisited = false;
+
+    const secretKey = `secret:${parent.key}`;
+    const secretArchKind: ObstacleRect['kind'] = sector === 2 ? 'crystal_spire' : 'pillar';
+    rooms.set(secretKey, {
+      key: secretKey,
+      gx: parent.gx,
+      gy: parent.gy,
+      depth: parent.depth + 1,
+      type: 'secret',
+      doors: { north: false, south: false, east: false, west: false },
+      visited: false,
+      cleared: true,
+      obstacles: [
+        { x: ROOM_LEFT + 44, y: ROOM_TOP + 26, w: 22, h: 22, kind: secretArchKind },
+        { x: ROOM_RIGHT - 66, y: ROOM_TOP + 26, w: 22, h: 22, kind: secretArchKind },
+        { x: ROOM_LEFT + 44, y: ROOM_BOTTOM - 52, w: 22, h: 22, kind: secretArchKind },
+        { x: ROOM_RIGHT - 66, y: ROOM_BOTTOM - 52, w: 22, h: 22, kind: secretArchKind },
+      ],
+      chasms: [],
+      pods: [
+        { id: podCounter++, x: ROOM_CENTER_X - 66, y: ROOM_CENTER_Y - 12, hp: 1, broken: false },
+        { id: podCounter++, x: ROOM_CENTER_X + 66, y: ROOM_CENTER_Y - 12, hp: 1, broken: false },
+        { id: podCounter++, x: ROOM_CENTER_X, y: ROOM_TOP + 34, hp: 1, broken: false },
+      ],
+      hazards: [],
+      chest: {
+        x: ROOM_CENTER_X,
+        y: ROOM_CENTER_Y - 14,
+        opened: false,
+        rare: true,
+        secret: true,
+      },
+      spawns: [],
+      tileSeed: Math.floor(Math.random() * 10000),
+      secretParentKey: parent.key,
+      secretReturnX: ROOM_CENTER_X,
+      secretReturnY: ROOM_CENTER_Y,
     });
   }
 
