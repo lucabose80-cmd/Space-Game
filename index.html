@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="STARLIGHTER — Cozy Retro-Sci-Fi Action-RPG und Weltraum-Shop im Stil von Moonlighter. Plündere verlassene Raumschiffe und handle mit Alien-Relikten auf Port Solaris."
+    />
+    <title>STARLIGHTER — Space-Shop &amp; Drift-Sektor Action-RPG</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Silkscreen:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <main id="game-shell" aria-label="STARLIGHTER Spielfläche">
+      <div id="viewport-frame">
+        <canvas id="game-canvas" width="480" height="270"></canvas>
+        <div id="hud-layer"></div>
+        <div id="modal-layer" class="hidden" role="dialog" aria-modal="true"></div>
+        <div id="toast-layer" aria-live="polite"></div>
+        <div id="title-overlay"></div>
+      </div>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
