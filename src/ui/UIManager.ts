@@ -1,6 +1,6 @@
 import { getHDArt } from '../assets/artLoader';
 import { getItemDef, ITEMS, RARITY_META } from '../data/items';
-import { UPGRADE_TRACKS } from '../data/upgrades';
+import { UPGRADE_TRACKS, WEAPON_META } from '../data/upgrades';
 import { sound } from '../engine/audio';
 import {
   getDemandLabel,
@@ -12,18 +12,20 @@ import {
   addItemAnywhere,
   countBackpackItems,
   countItemTotal,
+  depositAllCargoToChest,
   getAllAvailableShopItems,
   quickTransferSlot,
   swapOrMergeSlots,
   takeOneFromSlot,
   type ContainerId,
 } from '../systems/inventory';
-import type { PedestalSlot, RunSummary, SceneId, UpgradeKey } from '../types';
+import type { PedestalSlot, RunSummary, SceneId, UpgradeKey, WeaponId } from '../types';
 
 export interface UIHooks {
   onStartNewGame: () => void;
   onContinueGame: () => void;
   onToggleShopOpen: () => void;
+  onSwapWeapon: () => void;
   onModalStateChange: (open: boolean) => void;
   onMuteToggle: () => void;
 }
@@ -79,8 +81,8 @@ export class UIManager {
         <div class="title-kicker">PORT SOLARIS · ASTRO-BARTER</div>
         <h1 class="title-logo">STARLIGHTER</h1>
         <p class="title-sub">
-          Führe bei Tag deinen gemütlichen Relikt-Shop auf einer Frontier-Raumstation –
-          und plündere in den Drift-Sektoren verlassene Korvetten nach seltener Alien-Technologie.
+          Führe deinen Relikt-Shop auf Port Solaris, schmiede neue Waffen bei Kael und plündere
+          verlassene Raumschiff-Wracks — aber Vorsicht: Deine Beute ist nur bei Extraktion sicher!
         </p>
         <div class="title-buttons">
           ${
@@ -93,14 +95,14 @@ export class UIManager {
           </button>
         </div>
         <div class="title-controls-grid">
-          <div><strong>WASD</strong> Bewegen</div>
+          <div><strong>WASD / Stick</strong> Bewegen</div>
           <div><strong>SPACE</strong> Jetpack-Dash</div>
-          <div><strong>LMB / J</strong> Plasma-Klinge</div>
-          <div><strong>RMB / K</strong> Puls-Blaster</div>
+          <div><strong>LMB / J</strong> Aktive Waffe</div>
+          <div><strong>RMB / K</strong> Schild / Spezial</div>
+          <div><strong>C</strong> Waffe wechseln</div>
           <div><strong>E</strong> Interagieren / Kasse</div>
           <div><strong>I / TAB</strong> Fracht &amp; Codex</div>
-          <div><strong>Q</strong> Stimpack (Heilen)</div>
-          <div><strong>R halten</strong> Warp-Beacon</div>
+          <div><strong>R halten</strong> Extraktion (Warp)</div>
         </div>
       </div>
     `;
@@ -147,20 +149,23 @@ export class UIManager {
     const hpPct = Math.max(0, Math.min(100, (this.state.hp / stats.maxHp) * 100));
     const enPct = Math.max(0, Math.min(100, this.state.energy));
     const bagCount = countBackpackItems(this.state.inventory);
+    const wMeta = WEAPON_META[this.state.equippedWeapon];
 
     const locationText =
       this.currentScene === 'shop'
-        ? this.shopIsOpen
-          ? `TAG ${this.state.day} · ASTRO-BARTER (OFFEN)`
-          : `TAG ${this.state.day} · ASTRO-BARTER`
-        : `SEKTOR 1 · VERLASSENE KORVETTE`;
+        ? `TAG ${this.state.day} · ASTRO-BARTER`
+        : this.currentScene === 'hub'
+          ? `TAG ${this.state.day} · PORT SOLARIS`
+          : `SEKTOR 1 · VERLASSENE KORVETTE`;
 
     const hintText =
       this.currentScene === 'shop'
         ? this.shopIsOpen
-          ? 'Kunden stöbern! Bediene wartende Käufer an der Kasse mit [E].'
-          : 'Podeste [E] bestücken & Laden öffnen [O] — oder rechts ins Warp-Gate zu Sektor 1!'
-        : 'Sammle Relikte, finde Schatzraum & Boss — halte [R] für Warp-Beacon (20 Cr).';
+          ? 'Kunden stöbern! Bediene Käufer an der Kasse [E].'
+          : 'Podeste [E] bestücken & Laden öffnen [O] — oder rechts zur Promenade Port Solaris!'
+        : this.currentScene === 'hub'
+          ? 'Links: Astro-Barter · Oben: Kael (Schmiede) & Dr. Lyra (Med-Bay) · Rechts: Sektor 1!'
+          : `${wMeta.name} (${wMeta.secondaryLabel}) · Extrahiere Beute mit [R]!`;
 
     this.hudEl.innerHTML = `
       <div class="hud-top">
@@ -168,7 +173,7 @@ export class UIManager {
           ${
             this.currentScene === 'shop'
               ? `<div style="display:flex;justify-content:space-between;font-family:var(--font-pixel);font-size:9px;color:${this.shopIsOpen ? 'var(--accent-emerald)' : 'var(--accent-amber)'};margin-bottom:1px">
-                  <span>TAG ${this.state.day} · PORT SOLARIS</span>
+                  <span>TAG ${this.state.day} · SHOP</span>
                   <span>${this.shopIsOpen ? 'OFFEN' : 'ZU'}</span>
                 </div>`
               : ''
@@ -189,13 +194,19 @@ export class UIManager {
           </div>
           <div class="hud-meta-row">
             <span class="hud-credits">${this.state.credits} CR</span>
-            <span class="hud-stims">STIM [Q]: ${this.state.stimCharges}/${stats.maxStimCharges}</span>
+            <span class="hud-stims">STIM: ${this.state.stimCharges}/${stats.maxStimCharges}</span>
+          </div>
+          <div class="hud-meta-row" style="border-top:none;padding-top:1px;margin-top:0">
+            <button id="hud-weapon-chip" style="display:inline-flex;align-items:center;gap:5px;background:none;border:none;color:${wMeta.accentColor};font-family:var(--font-pixel);font-size:8.5px;cursor:pointer;pointer-events:auto;padding:0" title="Waffe wechseln [C]">
+              <img src="${wMeta.iconUrl}" alt="${wMeta.name}" style="width:14px;height:14px;image-rendering:pixelated" />
+              <span>${wMeta.name}${this.state.secondaryWeapon ? ' [C]' : ''}</span>
+            </button>
           </div>
         </div>
 
         <div class="hud-center">
           ${
-            this.currentScene === 'dungeon'
+            this.currentScene !== 'shop'
               ? `<div class="hud-location-pill">${locationText}</div>`
               : ''
           }
@@ -222,13 +233,17 @@ export class UIManager {
             this.currentScene === 'shop'
               ? `<span><kbd>WASD</kbd>Gehen</span>
                  <span><kbd>E</kbd>Interagieren</span>
-                 <span><kbd>O</kbd>Laden öffnen</span>
+                 <span><kbd>O</kbd>Laden</span>
                  <span><kbd>I</kbd>Fracht &amp; Codex</span>`
-              : `<span><kbd>LMB/J</kbd>Plasma-Klinge</span>
-                 <span><kbd>RMB/K</kbd>Blaster</span>
-                 <span><kbd>SPACE</kbd>Dash</span>
-                 <span><kbd>Q</kbd>Heilen</span>
-                 <span><kbd>R</kbd>Warp (20 Cr)</span>`
+              : this.currentScene === 'hub'
+                ? `<span><kbd>WASD</kbd>Promenade</span>
+                   <span><kbd>E</kbd>Shops / Warp-Gate</span>
+                   <span><kbd>I</kbd>Fracht &amp; Codex</span>`
+                : `<span><kbd>LMB/J</kbd>${wMeta.shortName}</span>
+                   <span><kbd>RMB/K</kbd>${this.state.equippedWeapon === 'blade' ? 'Schild' : 'Spezial'}</span>
+                   <span><kbd>C</kbd>Wechseln</span>
+                   <span><kbd>SPACE</kbd>Dash</span>
+                   <span><kbd>R</kbd>Extraktion</span>`
           }
         </div>
         <div class="hud-hint">${hintText}</div>
@@ -244,6 +259,9 @@ export class UIManager {
     });
     this.hudEl.querySelector('#hud-mute-btn')?.addEventListener('click', () => {
       this.hooks.onMuteToggle();
+    });
+    this.hudEl.querySelector('#hud-weapon-chip')?.addEventListener('click', () => {
+      this.hooks.onSwapWeapon();
     });
   }
 
@@ -280,7 +298,7 @@ export class UIManager {
   private renderInventoryModal(): void {
     const art = getHDArt();
 
-    const renderSlot = (container: ContainerId, index: number, isSafe = false): string => {
+    const renderSlot = (container: ContainerId, index: number): string => {
       const stack = this.state.inventory[container][index];
       const isSelected =
         this.selectedSlot?.container === container && this.selectedSlot?.index === index;
@@ -304,7 +322,7 @@ export class UIManager {
         title = `${def.name} (x${stack.qty})`;
       }
       return `
-        <button class="inv-slot ${isSafe ? 'safe' : ''} ${isSelected ? 'selected' : ''}"
+        <button class="inv-slot ${container === 'chest' ? 'safe' : ''} ${isSelected ? 'selected' : ''}"
           data-container="${container}" data-index="${index}" title="${title}">
           ${inner}
         </button>
@@ -320,6 +338,32 @@ export class UIManager {
       const selDef = selStack ? getItemDef(selStack.itemId) : null;
       const selEntry = selStack ? this.state.codex[selStack.itemId] : null;
       const selRarity = selDef ? RARITY_META[selDef.rarity] : null;
+
+      // Active Weapon Loadout Strip
+      const unlockedList = (['blade', 'blaster', 'hammer'] as WeaponId[]).filter(
+        (id) => this.state.unlockedWeapons[id],
+      );
+      const weaponBarHtml = `
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:8px 10px;background:var(--panel-bg-soft);border:1px solid var(--border-steel)">
+          <span style="font-family:var(--font-pixel);font-size:10px;color:var(--text-muted)">AUSGERÜSTETE WAFFE:</span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            ${unlockedList
+              .map((wid) => {
+                const m = WEAPON_META[wid];
+                const isMain = this.state.equippedWeapon === wid;
+                const isSec = this.state.secondaryWeapon === wid;
+                return `
+                  <button class="btn btn-equip-bag" data-wid="${wid}" style="padding:5px 10px;font-size:9.5px;display:inline-flex;align-items:center;gap:5px;border-color:${isMain ? m.accentColor : isSec ? '#64748b' : 'var(--border-steel)'}">
+                    <img src="${m.iconUrl}" alt="${m.name}" style="width:16px;height:16px;image-rendering:pixelated" />
+                    <span>${m.name}</span>
+                    ${isMain ? '<span style="color:var(--accent-emerald)">(AKTIV)</span>' : isSec ? '<span style="color:var(--text-muted)">(2.)</span>' : ''}
+                  </button>
+                `;
+              })
+              .join('')}
+          </div>
+        </div>
+      `;
 
       const inspectorHtml =
         selDef && selStack && selEntry && selRarity
@@ -337,11 +381,7 @@ export class UIManager {
               </div>
             </div>
             <p style="font-size:12px;color:var(--text-muted);line-height:1.4">${selDef.description}</p>
-            ${
-              selDef.modifierLabel
-                ? `<div class="modifier-box">⚡ ${selDef.modifierLabel}</div>`
-                : ''
-            }
+            ${selDef.modifierLabel ? `<div class="modifier-box">⚡ ${selDef.modifierLabel}</div>` : ''}
             <div style="font-size:11px;color:var(--text-muted)">
               ${
                 selEntry.maxFairPrice !== null
@@ -349,23 +389,19 @@ export class UIManager {
                   : 'Preis noch unbekannt — teste ihn im Shop!'
               }
             </div>
-            <button id="btn-quick-transfer" class="btn" style="margin-top:auto">
-              ${
-                this.selectedSlot?.container === 'chest'
-                  ? 'In Rucksack verschieben'
-                  : this.chestMode
-                    ? 'In Lagertruhe lagern'
-                    : this.selectedSlot?.container === 'cargo'
-                      ? 'In Gürtel sichern'
-                      : 'In Frachtraum legen'
-              }
-            </button>
+            ${
+              this.chestMode
+                ? `<button id="btn-quick-transfer" class="btn" style="margin-top:auto">
+                    ${this.selectedSlot?.container === 'chest' ? 'In Rucksack nehmen' : 'In Lagertruhe sichern'}
+                  </button>`
+                : ''
+            }
           </div>
         `
           : `
           <div class="inspector-box" style="justify-content:center;align-items:center;text-align:center;color:var(--text-muted);font-size:12px">
-            <p>Klicke auf einen Slot, um ein Relikt auszuwählen oder mit einem anderen Slot zu tauschen.</p>
-            <p style="margin-top:6px;color:var(--accent-emerald)">Tipp: Die 5 grünen Gürtel-Slots bleiben bei einer Niederlage sicher erhalten!</p>
+            <p>Klicke auf einen Slot, um Relikte anzuzeigen oder umzusortieren.</p>
+            <p style="margin-top:6px;color:var(--accent-coral)">⚠ Rucksack-Beute geht bei 0 HP komplett verloren — nur durch Extraktion [R] oder in der Shop-Lagertruhe sicher!</p>
           </div>
         `;
 
@@ -374,7 +410,7 @@ export class UIManager {
           <div>
             <div class="section-label">
               <span>LAGERTRUHE (28 SLOTS)</span>
-              <span style="color:var(--accent-cyan)">Sicher im Shop</span>
+              <span class="safe-tag">✓ Immer sicher im Shop</span>
             </div>
             <div class="slot-grid chest-grid">
               ${this.state.inventory.chest.map((_, i) => renderSlot('chest', i)).join('')}
@@ -385,22 +421,21 @@ export class UIManager {
         : inspectorHtml;
 
       bodyHtml = `
+        ${weaponBarHtml}
         <div class="inv-layout ${this.chestMode ? '' : 'single'}">
           <div>
             <div class="section-label">
-              <span>SICHERHEITS-GÜRTEL (5 SLOTS)</span>
-              <span class="safe-tag">✓ Sicher bei Tod</span>
+              <span>EXPEDITIONS-RUCKSACK (20 SLOTS)</span>
+              <span style="color:var(--accent-coral)">⚠ Verlust bei Tod</span>
             </div>
             <div class="slot-grid">
-              ${this.state.inventory.safeBelt.map((_, i) => renderSlot('safeBelt', i, true)).join('')}
+              ${this.state.inventory.cargo.map((_, i) => renderSlot('cargo', i)).join('')}
             </div>
-            <div class="section-label">
-              <span>FRACHTRAUM (15 SLOTS)</span>
-              <span style="color:var(--accent-coral)">Verlust bei 0 HP</span>
-            </div>
-            <div class="slot-grid">
-              ${this.state.inventory.cargo.map((_, i) => renderSlot('cargo', i, false)).join('')}
-            </div>
+            ${
+              this.chestMode && countBackpackItems(this.state.inventory) > 0
+                ? `<button id="btn-deposit-all" class="btn btn-primary" style="width:100%">Alle Beute in Lagertruhe sichern</button>`
+                : ''
+            }
           </div>
           ${rightColumn}
         </div>
@@ -453,17 +488,16 @@ export class UIManager {
         <div class="inspector-box" style="gap:10px">
           <div style="font-family:var(--font-pixel);font-size:12px;color:var(--accent-cyan)">SO SPIELST DU STARLIGHTER</div>
           <p style="font-size:13px;line-height:1.5;color:var(--text-muted)">
-            <strong>1. Expedition (Sektor 1):</strong> Gehe rechts im Shop durch das leuchtende Warp-Gate in die <em>Verlassene Korvette</em>.
-            Kämpfe mit <strong>Plasma-Klinge (LMB / J)</strong>, <strong>Puls-Blaster (RMB / K)</strong> und <strong>Jetpack-Dash (SPACE)</strong>.
-            Zerstöre goldene Frachtkapseln, finde den Schatzraum und besiege den <strong>Core-Wächter MK-IV</strong>.
+            <strong>1. Port Solaris (Promenade):</strong> Verlasse deinen Shop rechts, um die Raumstation zu erkunden!
+            Besuche <strong>Schmied Kael</strong> (oben links), um neue Waffen (<em>Puls-Blaster</em>, <em>Grav-Hammer</em>) zu schmieden &amp; auszurüsten,
+            und <strong>Dr. Lyra's Med-Bay</strong> (oben rechts) für Stimpacks &amp; Shop-Deko.
           </p>
           <p style="font-size:13px;line-height:1.5;color:var(--text-muted)">
-            <strong>2. Sicher zurückkehren:</strong> Halte jederzeit <strong>[R]</strong> für den Warp-Beacon (20 Cr) oder nutze das Start-/Sieges-Portal gratis.
-            Bei 0 HP wirst du not-teleportiert und verlierst den Frachtraum – nur deine <strong>5 grünen Gürtel-Slots</strong> bleiben sicher!
+            <strong>2. Ein-Waffen-Kampf &amp; Extraktion:</strong> Du führst immer eine aktive Waffe (Wechsel mit <strong>[C]</strong>, sobald du eine 2. Waffe schmiedest).
+            Bei <strong>0 HP</strong> verlierst du <strong>alle Relikte im Expeditions-Rucksack</strong> — extrahiere rechtzeitig über das Start-Portal oder halte <strong>[R]</strong> für den Warp-Beacon (20 Cr)!
           </p>
           <p style="font-size:13px;line-height:1.5;color:var(--text-muted)">
-            <strong>3. Space-Shop (Astro-Barter):</strong> Lege Relikte auf die 4 Holo-Podeste [E], wähle einen Preis und öffne den Laden [O].
-            Beobachte die Kunden-Reaktionen und kassiere Käufer an der Theke mit [E] ab! Investiere Credits &amp; Relikte an der <strong>Exo-Werkbank</strong> links.
+            <strong>3. Space-Shop (Astro-Barter):</strong> Lege geborgene Relikte aus deiner Truhe auf die 4 Holo-Podeste [E], setze Preise, öffne den Laden [O] und kassiere zufriedene Kunden an der Theke [E] ab!
           </p>
           <div style="display:flex;justify-content:flex-end;margin-top:6px">
             <button id="btn-reset-save" class="btn btn-danger">Spielstand zurücksetzen</button>
@@ -475,7 +509,7 @@ export class UIManager {
     this.showModalHtml(`
       <div class="modal-window">
         <div class="modal-header">
-          <span class="modal-title">${this.chestMode ? 'LAGERTRUHE &amp; FRACHT' : 'CARGO-RUCKSACK'}</span>
+          <span class="modal-title">${this.chestMode ? 'LAGERTRUHE &amp; RUCKSACK' : 'EXPEDITIONS-RUCKSACK'}</span>
           <div class="modal-tabs">
             <button class="tab-btn ${this.activeInvTab === 'bag' ? 'active' : ''}" data-tab="bag">Fracht</button>
             <button class="tab-btn ${this.activeInvTab === 'codex' ? 'active' : ''}" data-tab="codex">Scan-Codex</button>
@@ -487,7 +521,6 @@ export class UIManager {
       </div>
     `);
 
-    // Bind tabs
     this.modalEl.querySelectorAll<HTMLElement>('.tab-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         sound.playUiClick();
@@ -496,7 +529,16 @@ export class UIManager {
       });
     });
 
-    // Bind slot clicks
+    this.modalEl.querySelectorAll<HTMLElement>('.btn-equip-bag').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const wid = btn.dataset.wid as WeaponId;
+        this.state.equipWeapon(wid, 'primary');
+        sound.playWeaponSwap();
+        this.renderInventoryModal();
+        this.renderHud();
+      });
+    });
+
     this.modalEl.querySelectorAll<HTMLElement>('.inv-slot').forEach((el) => {
       el.addEventListener('click', () => {
         const container = el.dataset.container as ContainerId;
@@ -541,6 +583,17 @@ export class UIManager {
       this.renderInventoryModal();
     });
 
+    this.modalEl.querySelector('#btn-deposit-all')?.addEventListener('click', () => {
+      const moved = depositAllCargoToChest(this.state.inventory);
+      if (moved > 0) {
+        sound.playPickup();
+        this.state.save();
+        this.toast(`${moved} Relikte sicher in der Lagertruhe verstaut!`, 'good');
+        this.renderInventoryModal();
+        this.renderHud();
+      }
+    });
+
     this.modalEl.querySelector('#btn-reset-save')?.addEventListener('click', () => {
       this.state.resetSave();
       this.closeModal();
@@ -579,7 +632,6 @@ export class UIManager {
     if (!ped) return;
     const art = getHDArt();
 
-    // Aggregate counts by itemId across backpack + chest (plus whatever is already on this pedestal)
     const counts = new Map<string, number>();
     for (const entry of getAllAvailableShopItems(this.state.inventory)) {
       counts.set(entry.stack.itemId, (counts.get(entry.stack.itemId) ?? 0) + entry.stack.qty);
@@ -613,7 +665,7 @@ export class UIManager {
             })
             .join('')
         : `<div style="padding:18px;text-align:center;color:var(--text-muted);font-size:12px">
-             Keine Relikte im Inventar oder in der Truhe. Starte rechts eine Expedition in Sektor 1!
+             Keine Relikte im Lager. Gehe rechts über Port Solaris nach Sektor 1!
            </div>`;
 
     const demand = selCodex ? getDemandLabel(getDemandLevel(selCodex)) : null;
@@ -656,11 +708,7 @@ export class UIManager {
 
           <div style="display:flex;gap:8px;margin-top:auto">
             <button id="btn-apply-pedestal" class="btn btn-amber" style="flex:1">Auf Podest legen</button>
-            ${
-              ped.itemId
-                ? `<button id="btn-clear-pedestal" class="btn btn-danger">Leeren</button>`
-                : ''
-            }
+            ${ped.itemId ? `<button id="btn-clear-pedestal" class="btn btn-danger">Leeren</button>` : ''}
           </div>
         </div>
       `
@@ -732,16 +780,14 @@ export class UIManager {
     this.modalEl.querySelector('#btn-apply-pedestal')?.addEventListener('click', () => {
       if (!this.pickedItemId || this.pickedQty <= 0) return;
 
-      // Return previous pedestal contents to inventory first
       if (ped.itemId && ped.qty > 0) {
         addItemAnywhere(this.state.inventory, ped.itemId, ped.qty);
         ped.itemId = null;
         ped.qty = 0;
       }
 
-      // Pull desired quantity from inventory (cargo -> chest -> safeBelt)
       let taken = 0;
-      const order: ContainerId[] = ['cargo', 'chest', 'safeBelt'];
+      const order: ContainerId[] = ['cargo', 'chest'];
       for (const c of order) {
         const list = this.state.inventory[c];
         for (let i = 0; i < list.length && taken < this.pickedQty; i++) {
@@ -767,97 +813,210 @@ export class UIManager {
     });
   }
 
-  // ==================== EXO-WERKBANK UPGRADE MODAL ====================
-  public openWorkbenchModal(): void {
-    const art = getHDArt();
+  // ==================== KAEL'S EXO-SCHMIEDE (WEAPONS & SUIT) ====================
+  public openForgeModal(): void {
+    this.openStationShopModal('forge');
+  }
 
-    const cardsHtml = UPGRADE_TRACKS.map((track) => {
-      const curLvl = this.state.upgrades[track.key];
-      const nextTier = track.tiers[curLvl];
-      const pips = track.tiers
-        .map((_, idx) => `<span class="pip ${idx < curLvl ? 'filled' : ''}"></span>`)
-        .join('');
+  // ==================== DR. LYRA'S MED-BAY (STIMPACKS & DECOR) ====================
+  public openMedBayModal(): void {
+    this.openStationShopModal('medbay');
+  }
 
-      if (!nextTier) {
+  private openStationShopModal(shop: 'forge' | 'medbay'): void {
+    const tracks = UPGRADE_TRACKS.filter((t) => t.shop === shop);
+    const isForge = shop === 'forge';
+
+    const npcBanner = isForge
+      ? `
+        <div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:rgba(249,115,22,0.1);border:1px solid rgba(251,146,60,0.4)">
+          <img src="/art/sprites/npc_kael.png" alt="Schmied Kael" style="width:42px;height:46px;image-rendering:pixelated" />
+          <div style="font-size:12px;line-height:1.4">
+            <strong style="font-family:var(--font-pixel);font-size:11px;color:#fbbf24">SCHMIED KAEL</strong>
+            <div style="color:var(--text-muted)">„Bring mir Relikte aus den Wracks, dann schmiede ich dir echte Frontier-Waffen! Du kannst jederzeit zwischen deinen geschmiedeten Waffen wechseln.“</div>
+          </div>
+        </div>
+      `
+      : `
+        <div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.4)">
+          <img src="/art/sprites/npc_lyra.png" alt="Dr. Lyra" style="width:40px;height:46px;image-rendering:pixelated" />
+          <div style="font-size:12px;line-height:1.4">
+            <strong style="font-family:var(--font-pixel);font-size:11px;color:#34d399">DR. LYRA · MED-BAY &amp; BOUTIQUE</strong>
+            <div style="color:var(--text-muted)">„Deine Vitalwerte sind wieder bei 100 %! Verbessere hier deine Med-Stimpacks oder statte Astro-Barter für spendablere Kunden aus.“</div>
+          </div>
+        </div>
+      `;
+
+    const cardsHtml = tracks
+      .map((track) => {
+        const wid = track.weaponId;
+        const isLockedWeapon = wid ? !this.state.unlockedWeapons[wid] : false;
+
+        // Uncrafted Weapon Card (e.g. Puls-Blaster or Grav-Hammer!)
+        if (isLockedWeapon && wid && track.craftCost) {
+          const canCraft = this.state.canCraftWeapon(wid);
+          const hasCr = this.state.credits >= track.craftCost.creditCost;
+          const matsHtml = track.craftCost.materials
+            .map((m) => {
+              const def = getItemDef(m.itemId);
+              const owned = countItemTotal(this.state.inventory, m.itemId);
+              return `<span class="mat-pill ${owned >= m.qty ? 'ok' : 'missing'}">${def.name}: ${owned}/${m.qty}</span>`;
+            })
+            .join('');
+
+          return `
+            <div class="upgrade-card" style="border-color:rgba(251,191,36,0.45)">
+              <div class="upgrade-left">
+                <div class="inspector-icon-wrap">
+                  <img class="pixel-icon" src="${track.iconUrl}" alt="${track.title}" />
+                </div>
+                <div>
+                  <div style="font-family:var(--font-pixel);font-size:11px;color:var(--accent-amber)">
+                    NEUE WAFFE: ${track.title}
+                  </div>
+                  <div style="font-size:12px;color:var(--text-muted)">
+                    ${track.primaryDesc ?? ''} · <span style="color:var(--accent-cyan)">${track.secondaryDesc ?? ''}</span>
+                  </div>
+                  <div class="mat-list">
+                    <span class="mat-pill ${hasCr ? 'ok' : 'missing'}">${track.craftCost.creditCost} Cr</span>
+                    ${matsHtml}
+                  </div>
+                </div>
+              </div>
+              <button class="btn btn-amber btn-craft-weapon" data-wid="${wid}" ${canCraft ? '' : 'disabled'}>
+                Schmieden
+              </button>
+            </div>
+          `;
+        }
+
+        // Unlocked Weapon or Standard Track Card
+        const curLvl = this.state.upgrades[track.key];
+        const nextTier = track.tiers[curLvl];
+        const pips = track.tiers
+          .map((_, idx) => `<span class="pip ${idx < curLvl ? 'filled' : ''}"></span>`)
+          .join('');
+
+        const equipControls = wid
+          ? (() => {
+              const isMain = this.state.equippedWeapon === wid;
+              const isSec = this.state.secondaryWeapon === wid;
+              return `
+                <div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap">
+                  <button class="btn btn-equip-forge" data-wid="${wid}" data-slot="primary" style="padding:4px 8px;font-size:9px;${isMain ? 'border-color:var(--accent-emerald);color:var(--accent-emerald)' : ''}" ${isMain ? 'disabled' : ''}>
+                    ${isMain ? '✓ Hauptwaffe' : 'Als Hauptwaffe'}
+                  </button>
+                  <button class="btn btn-equip-forge" data-wid="${wid}" data-slot="secondary" style="padding:4px 8px;font-size:9px;${isSec ? 'border-color:var(--accent-cyan);color:var(--accent-cyan)' : ''}" ${isSec || isMain ? 'disabled' : ''}>
+                    ${isSec ? '✓ 2. Slot [C]' : 'In 2. Slot [C]'}
+                  </button>
+                </div>
+              `;
+            })()
+          : '';
+
+        if (!nextTier) {
+          return `
+            <div class="upgrade-card">
+              <div class="upgrade-left">
+                <div class="inspector-icon-wrap">
+                  <img class="pixel-icon" src="${track.iconUrl}" alt="${track.title}" />
+                </div>
+                <div>
+                  <div style="font-family:var(--font-pixel);font-size:11px;color:var(--accent-emerald)">
+                    ${track.title} <span class="upgrade-pips">${pips}</span>
+                  </div>
+                  <div style="font-size:12px;color:var(--text-muted)">Maximal aufgerüstet!</div>
+                  ${equipControls}
+                </div>
+              </div>
+              <span class="rarity-badge" style="color:var(--accent-emerald)">MAX</span>
+            </div>
+          `;
+        }
+
+        const canAfford = this.state.canAffordUpgrade(track.key);
+        const hasCredits = this.state.credits >= nextTier.creditCost;
+        const matsHtml = nextTier.materials
+          .map((m) => {
+            const def = getItemDef(m.itemId);
+            const owned = countItemTotal(this.state.inventory, m.itemId);
+            return `<span class="mat-pill ${owned >= m.qty ? 'ok' : 'missing'}">${def.name}: ${owned}/${m.qty}</span>`;
+          })
+          .join('');
+
         return `
           <div class="upgrade-card">
             <div class="upgrade-left">
               <div class="inspector-icon-wrap">
-                <img class="pixel-icon" src="${art.itemUrls[track.iconItemId]}" alt="${track.title}" />
+                <img class="pixel-icon" src="${track.iconUrl}" alt="${track.title}" />
               </div>
               <div>
-                <div style="font-family:var(--font-pixel);font-size:11px;color:var(--accent-emerald)">
-                  ${track.title} <span class="upgrade-pips">${pips}</span>
+                <div style="font-family:var(--font-pixel);font-size:11px;color:#fff">
+                  ${track.title}: <span style="color:var(--accent-cyan)">${nextTier.name}</span>
+                  <span class="upgrade-pips">${pips}</span>
                 </div>
-                <div style="font-size:12px;color:var(--text-muted)">Maximal aufgerüstet!</div>
+                <div style="font-size:12px;color:var(--text-muted)">
+                  ${nextTier.description} · <strong style="color:var(--accent-amber)">${nextTier.statLabel}</strong>
+                </div>
+                <div class="mat-list">
+                  <span class="mat-pill ${hasCredits ? 'ok' : 'missing'}">${nextTier.creditCost} Cr</span>
+                  ${matsHtml}
+                </div>
+                ${equipControls}
               </div>
             </div>
-            <span class="rarity-badge" style="color:var(--accent-emerald)">MAX</span>
+            <button class="btn btn-primary btn-buy-upgrade" data-key="${track.key}" ${canAfford ? '' : 'disabled'}>
+              Verbessern
+            </button>
           </div>
         `;
-      }
-
-      const canAfford = this.state.canAffordUpgrade(track.key);
-      const hasCredits = this.state.credits >= nextTier.creditCost;
-
-      const matsHtml = nextTier.materials
-        .map((m) => {
-          const def = getItemDef(m.itemId);
-          const owned = countItemTotal(this.state.inventory, m.itemId);
-          const ok = owned >= m.qty;
-          return `
-            <span class="mat-pill ${ok ? 'ok' : 'missing'}">
-              ${def.name}: ${owned}/${m.qty}
-            </span>
-          `;
-        })
-        .join('');
-
-      return `
-        <div class="upgrade-card">
-          <div class="upgrade-left">
-            <div class="inspector-icon-wrap">
-              <img class="pixel-icon" src="${art.itemUrls[track.iconItemId]}" alt="${track.title}" />
-            </div>
-            <div>
-              <div style="font-family:var(--font-pixel);font-size:11px;color:#fff">
-                ${track.title}: <span style="color:var(--accent-cyan)">${nextTier.name}</span>
-                <span class="upgrade-pips">${pips}</span>
-              </div>
-              <div style="font-size:12px;color:var(--text-muted)">${nextTier.description} · <strong style="color:var(--accent-amber)">${nextTier.statLabel}</strong></div>
-              <div class="mat-list">
-                <span class="mat-pill ${hasCredits ? 'ok' : 'missing'}">${nextTier.creditCost} Cr</span>
-                ${matsHtml}
-              </div>
-            </div>
-          </div>
-          <button class="btn btn-primary btn-buy-upgrade" data-key="${track.key}" ${canAfford ? '' : 'disabled'}>
-            Aufrüsten
-          </button>
-        </div>
-      `;
-    }).join('');
+      })
+      .join('');
 
     this.showModalHtml(`
       <div class="modal-window">
         <div class="modal-header">
-          <span class="modal-title">EXO-WERKBANK · AUSRÜSTUNG &amp; SHOP-UPGRADES</span>
+          <span class="modal-title">${isForge ? "KAEL'S EXO-SCHMIEDE" : "DR. LYRA'S MED-BAY"}</span>
           <span style="font-family:var(--font-pixel);font-size:11px;color:var(--accent-amber)">${this.state.credits} CR</span>
           <button id="modal-close-btn" class="modal-close">ESC ✕</button>
         </div>
         <div class="modal-body">
+          ${npcBanner}
           <div class="upgrade-list">${cardsHtml}</div>
         </div>
       </div>
     `);
+
+    this.modalEl.querySelectorAll<HTMLElement>('.btn-craft-weapon').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const wid = btn.dataset.wid as WeaponId;
+        if (this.state.craftWeapon(wid)) {
+          sound.playUpgrade();
+          this.toast(`${WEAPON_META[wid].name} geschmiedet! Wechsle jederzeit mit [C].`, 'good');
+          this.openStationShopModal(shop);
+          this.renderHud();
+        }
+      });
+    });
+
+    this.modalEl.querySelectorAll<HTMLElement>('.btn-equip-forge').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const wid = btn.dataset.wid as WeaponId;
+        const slot = btn.dataset.slot as 'primary' | 'secondary';
+        this.state.equipWeapon(wid, slot);
+        sound.playWeaponSwap();
+        this.openStationShopModal(shop);
+        this.renderHud();
+      });
+    });
 
     this.modalEl.querySelectorAll<HTMLElement>('.btn-buy-upgrade').forEach((btn) => {
       btn.addEventListener('click', () => {
         const key = btn.dataset.key as UpgradeKey;
         if (this.state.purchaseUpgrade(key)) {
           sound.playUpgrade();
-          this.toast('Upgrade erfolgreich geschmiedet!', 'good');
-          this.openWorkbenchModal();
+          this.toast('Upgrade erfolgreich fertiggestellt!', 'good');
+          this.openStationShopModal(shop);
           this.renderHud();
         }
       });
@@ -868,10 +1027,10 @@ export class UIManager {
   public openRunSummaryModal(summary: RunSummary): void {
     const title =
       summary.reason === 'boss_victory'
-        ? 'TRIUMPHALE RÜCKKEHR!'
+        ? 'TRIUMPHALE EXTRAKTION!'
         : summary.victory
-          ? 'WARP ERFOLGREICH!'
-          : 'NOT-TELEPORT AUSGELÖST';
+          ? 'EXTRAKTION ERFOLGREICH!'
+          : 'IM WRACK GEFALLEN (0 HP)';
     const titleColor = summary.victory ? 'var(--accent-emerald)' : 'var(--accent-coral)';
 
     const extraNotes: string[] = [];
@@ -880,14 +1039,13 @@ export class UIManager {
         `⚡ <strong>Warp-Anker:</strong> ${summary.warpedToChest.join(', ')} direkt in deine Lagertruhe teleportiert!`,
       );
     }
-    if (summary.shatteredItems.length > 0) {
-      extraNotes.push(
-        `💥 <strong>Zerbrechlich:</strong> ${summary.shatteredItems.join(', ')} ist beim Not-Teleport zerbrochen.`,
-      );
-    }
     if (!summary.victory) {
       extraNotes.push(
-        'Dein Frachtraum ging verloren, aber die geschützten Gürtel-Slots blieben sicher erhalten.',
+        'Alle mitgeführten Relikte im Expeditions-Rucksack gingen im Wrack verloren! Nutze beim nächsten Mal den Warp-Beacon [R] oder das Start-Portal zur rechtzeitigen Extraktion.',
+      );
+    } else if (summary.itemsSaved > 0) {
+      extraNotes.push(
+        'Gehe links in deinen Shop „Astro-Barter“, um deine Beute zu verkaufen — oder besuche Schmied Kael für neue Waffen!',
       );
     }
 
@@ -908,11 +1066,11 @@ export class UIManager {
               <div class="val">${summary.enemiesDefeated}</div>
             </div>
             <div class="summary-stat">
-              <div style="font-size:11px;color:var(--text-muted)">Relikte geborgen</div>
+              <div style="font-size:11px;color:var(--text-muted)">Relikte extrahiert</div>
               <div class="val" style="color:var(--accent-emerald)">${summary.itemsSaved}</div>
             </div>
             <div class="summary-stat">
-              <div style="font-size:11px;color:var(--text-muted)">Fracht verloren</div>
+              <div style="font-size:11px;color:var(--text-muted)">Beute verloren</div>
               <div class="val" style="color:${summary.itemsLost > 0 ? 'var(--accent-coral)' : 'var(--text-muted)'}">${summary.itemsLost}</div>
             </div>
           </div>
@@ -921,7 +1079,7 @@ export class UIManager {
               ? `<div class="modifier-box" style="display:flex;flex-direction:column;gap:5px">${extraNotes.map((n) => `<div>${n}</div>`).join('')}</div>`
               : ''
           }
-          <button id="btn-summary-ok" class="btn btn-primary" style="width:100%">Zurück in den Space-Shop</button>
+          <button id="btn-summary-ok" class="btn btn-primary" style="width:100%">Weiter auf Port Solaris</button>
         </div>
       </div>
     `);

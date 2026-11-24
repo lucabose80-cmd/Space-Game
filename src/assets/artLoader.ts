@@ -1,9 +1,11 @@
 import { ITEMS } from '../data/items';
+import type { WeaponId } from '../types';
 import { flipCanvasHorizontal, makeFlashSilhouette } from './pixelArt';
 
 export interface HDArtAssets {
   loaded: boolean;
   shopBg: HTMLImageElement | null;
+  hubBg: HTMLImageElement | null;
   dungeonBg: HTMLImageElement | null;
 
   heroDown: HTMLCanvasElement | null;
@@ -13,6 +15,12 @@ export interface HDArtAssets {
   heroFlash: HTMLCanvasElement | null;
 
   customers: HTMLCanvasElement[];
+  npcKael: HTMLCanvasElement | null;
+  npcLyra: HTMLCanvasElement | null;
+  npcWanderer: HTMLCanvasElement | null;
+
+  weapons: Record<WeaponId, HTMLCanvasElement | null>;
+  weaponUrls: Record<WeaponId, string>;
 
   pedestal: HTMLCanvasElement | null;
   podIntact: HTMLCanvasElement | null;
@@ -36,6 +44,7 @@ export interface HDArtAssets {
 const art: HDArtAssets = {
   loaded: false,
   shopBg: null,
+  hubBg: null,
   dungeonBg: null,
   heroDown: null,
   heroUp: null,
@@ -43,6 +52,19 @@ const art: HDArtAssets = {
   heroLeft: null,
   heroFlash: null,
   customers: [],
+  npcKael: null,
+  npcLyra: null,
+  npcWanderer: null,
+  weapons: {
+    blade: null,
+    blaster: null,
+    hammer: null,
+  },
+  weaponUrls: {
+    blade: '/art/sprites/weapon_blade.png',
+    blaster: '/art/sprites/weapon_blaster.png',
+    hammer: '/art/sprites/weapon_hammer.png',
+  },
   pedestal: null,
   podIntact: null,
   chestClosed: null,
@@ -90,6 +112,7 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
 
   const [
     shopBg,
+    hubBg,
     dungeonBg,
     heroDownImg,
     heroUpImg,
@@ -97,6 +120,12 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
     custHornedImg,
     custAstroImg,
     custGreenImg,
+    npcKaelImg,
+    npcLyraImg,
+    npcWandererImg,
+    weaponBladeImg,
+    weaponBlasterImg,
+    weaponHammerImg,
     pedestalImg,
     podImg,
     chestClosedImg,
@@ -109,6 +138,7 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
     ...itemImgs
   ] = await Promise.all([
     loadImage('/art/shop_bg.png'),
+    loadImage('/art/hub_bg.png'),
     loadImage('/art/dungeon_bg.png'),
     loadImage('/art/sprites/hero_down.png'),
     loadImage('/art/sprites/hero_up.png'),
@@ -116,6 +146,12 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
     loadImage('/art/sprites/cust_horned.png'),
     loadImage('/art/sprites/cust_astro.png'),
     loadImage('/art/sprites/cust_green.png'),
+    loadImage('/art/sprites/npc_kael.png'),
+    loadImage('/art/sprites/npc_lyra.png'),
+    loadImage('/art/sprites/npc_wanderer.png'),
+    loadImage('/art/sprites/weapon_blade.png'),
+    loadImage('/art/sprites/weapon_blaster.png'),
+    loadImage('/art/sprites/weapon_hammer.png'),
     loadImage('/art/sprites/pedestal.png'),
     loadImage('/art/sprites/pod_intact.png'),
     loadImage('/art/sprites/chest_closed.png'),
@@ -129,6 +165,7 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
   ]);
 
   art.shopBg = shopBg;
+  art.hubBg = hubBg;
   art.dungeonBg = dungeonBg;
 
   art.heroDown = imgToCanvas(heroDownImg);
@@ -137,10 +174,17 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
   art.heroLeft = art.heroRight ? flipCanvasHorizontal(art.heroRight) : null;
   art.heroFlash = art.heroDown ? makeFlashSilhouette(art.heroDown, '#ffffff') : null;
 
-  const custCanvases = [custAstroImg, custHornedImg, custGreenImg]
+  art.customers = [custAstroImg, custHornedImg, custGreenImg]
     .map(imgToCanvas)
     .filter((c): c is HTMLCanvasElement => c !== null);
-  art.customers = custCanvases;
+
+  art.npcKael = imgToCanvas(npcKaelImg);
+  art.npcLyra = imgToCanvas(npcLyraImg);
+  art.npcWanderer = imgToCanvas(npcWandererImg);
+
+  art.weapons.blade = imgToCanvas(weaponBladeImg);
+  art.weapons.blaster = imgToCanvas(weaponBlasterImg);
+  art.weapons.hammer = imgToCanvas(weaponHammerImg);
 
   art.pedestal = imgToCanvas(pedestalImg);
   art.podIntact = imgToCanvas(podImg);

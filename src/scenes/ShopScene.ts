@@ -592,10 +592,10 @@ export class ShopScene {
       return;
     }
 
-    // 3. Exo-Werkbank (left glowing station)
+    // 3. Scan-Codex & Markt-Terminal (left holographic station inside shop)
     if (Math.hypot(this.playerX - WORKBENCH_POS.x, this.playerY - WORKBENCH_POS.y) < 34) {
       this.activePrompt = {
-        label: '[E] Exo-Werkbank (Upgrades)',
+        label: '[E] Scan-Codex & Preise',
         x: WORKBENCH_POS.x + 10,
         y: WORKBENCH_POS.y - 26,
       };
@@ -620,18 +620,18 @@ export class ShopScene {
       return;
     }
 
-    // 5. Warp-Gate to Sector 1 (right wall portal)
+    // 5. Exit Airlock to Port Solaris Promenade (Schmiede, Med-Bay & Warp-Gate!)
     if (Math.hypot(this.playerX - WARP_GATE_POS.x, this.playerY - WARP_GATE_POS.y) < 36) {
       this.activePrompt = {
-        label: '[E] Warp: Verlassene Korvette',
-        x: WARP_GATE_POS.x - 42,
+        label: '[E] Port Solaris (Shops & Sektor)',
+        x: WARP_GATE_POS.x - 46,
         y: WARP_GATE_POS.y - 28,
       };
       if (input.interactPressed()) {
         if (this.shopOpen) {
           this.closeShop(true);
         }
-        sound.playWarp();
+        sound.playUiClick();
         this.callbacks.onEnterDungeon();
       }
       return;
@@ -802,16 +802,16 @@ export class ShopScene {
     ctx.textAlign = 'center';
     ctx.fillText(this.shopOpen ? 'OFFEN' : 'ZU [E]', dx, dy + 2);
 
-    // Subtle Warp-Gate label
-    const gx = 420;
+    // Subtle Port Solaris Promenade exit badge
+    const gx = 412;
     const gy = 114;
     ctx.fillStyle = 'rgba(12, 18, 32, 0.88)';
-    ctx.fillRect(gx - 22, gy - 5, 44, 10);
+    ctx.fillRect(gx - 28, gy - 5, 56, 10);
     ctx.strokeStyle = '#38e8d4';
     ctx.lineWidth = 0.8;
-    ctx.strokeRect(gx - 22, gy - 5, 44, 10);
+    ctx.strokeRect(gx - 28, gy - 5, 56, 10);
     ctx.fillStyle = '#38e8d4';
-    ctx.fillText('SEKTOR 1', gx, gy + 2);
+    ctx.fillText('PROMENADE', gx, gy + 2);
   }
 
   private renderPedestal(ctx: CanvasRenderingContext2D, p: PedestalSlot): void {

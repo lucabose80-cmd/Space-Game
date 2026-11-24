@@ -2,6 +2,7 @@ import { getHDArt } from '../assets/artLoader';
 import { drawGlow, drawPixelShadow } from '../assets/pixelArt';
 import { getAtlas } from '../assets/sprites';
 import { getItemDef, rollLootItem } from '../data/items';
+import { WEAPON_META } from '../data/upgrades';
 import { sound } from '../engine/audio';
 import { VIRTUAL_HEIGHT, VIRTUAL_WIDTH, type InputManager } from '../engine/input';
 import type { GameState } from '../systems/gameState';
@@ -11,7 +12,7 @@ import {
   processDefeatPenalty,
   processSafeReturnEffects,
 } from '../systems/inventory';
-import type { Direction, RunSummary } from '../types';
+import type { Direction, RunSummary, WeaponId } from '../types';
 import {
   generateSector1Dungeon,
   ROOM_BOTTOM,
@@ -39,10 +40,16 @@ interface Enemy {
   flashTimer: number;
   aiTimer: number;
   phase: number;
+  subBurst: number;
+  burstDelay: number;
+  moveDirX: number;
+  moveDirY: number;
+  scurryTimer: number;
   chargeDirX: number;
   chargeDirY: number;
   chargeActive: number;
   telegraphTimer: number;
+  aimAngle: number;
   summonThreshold: number;
   anim: number;
 }
@@ -68,13 +75,42 @@ interface LootDrop {
   age: number;
 }
 
-interface SlashArc {
+interface WeaponSwing {
+  weapon: 'blade' | 'hammer';
   x: number;
   y: number;
   angle: number;
   radius: number;
   sweep: number;
+  dir: 1 | -1; // clockwise vs counter-clockwise backhand!
   comboStep: number;
+  life: number;
+  maxLife: number;
+}
+
+interface LaserBeamFx {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  life: number;
+  maxLife: number;
+}
+
+interface ShockwaveFx {
+  x: number;
+  y: number;
+  maxRadius: number;
+  color: string;
+  life: number;
+  maxLife: number;
+}
+
+interface FloorDecal {
+  x: number;
+  y: number;
+  r: number;
+  color: string;
   life: number;
   maxLife: number;
 }
@@ -108,7 +144,7 @@ interface FloatingNum {
 }
 
 export interface DungeonCallbacks {
-  onReturnToShop: (summary: RunSummary) => void;
+  onReturnToHub: (summary: RunSummary) => void;
   onToast: (msg: string, tone?: 'info' | 'good' | 'warn') => void;
   onHudDirty: () => void;
 }
@@ -125,7 +161,7 @@ export class DungeonScene {
   private facing: Direction = 'down';
   private walkAnim = 0;
 
-  // Combat state
+  // Combat & Single-Equipped-Weapon state
   private dashTimer = 0;
   private dashCooldown = 0;
   private dashVx = 0;
@@ -133,21 +169,30 @@ export class DungeonScene {
   private invulnTimer = 0;
   private playerFlashTimer = 0;
 
-  private meleeCooldown = 0;
+  private attackCooldown = 0;
+  private specialCooldown = 0;
   private comboStep = 0;
   private comboResetTimer = 0;
-  private blasterCooldown = 0;
+
+  // Active kinetic shield (Blade secondary) & blaster hold visuals
+  private shieldActive = false;
+  private shieldAngle = 0;
+  private blasterRecoil = 0;
+  private lastAimAngle = 0;
 
   // Warp-Beacon channel
   private warpChannel = 0;
   private readonly warpDuration = 1.25;
   private readonly warpCost = 20;
 
-  // Room entities
+  // Room entities & FX
   private enemies: Enemy[] = [];
   private projectiles: Projectile[] = [];
   private drops: LootDrop[] = [];
-  private slashes: SlashArc[] = [];
+  private swings: WeaponSwing[] = [];
+  private beams: LaserBeamFx[] = [];
+  private shockwaves: ShockwaveFx[] = [];
+  private decals: FloorDecal[] = [];
   private afterimages: Afterimage[] = [];
   private particles: Particle[] = [];
   private floats: FloatingNum[] = [];
@@ -184,12 +229,13 @@ export class DungeonScene {
     this.invulnTimer = 0.5;
     this.dashCooldown = 0;
     this.dashTimer = 0;
-    this.meleeCooldown = 0;
-    this.blasterCooldown = 0;
+    this.attackCooldown = 0;
+    this.specialCooldown = 0;
+    this.shieldActive = false;
     this.enterRoom(this.floor.startKey, null);
     this.spawnBurst(this.playerX, this.playerY, '#38e8d4', 20);
     this.callbacks.onToast(
-      'Sektor 1: Verlassene Korvette — Finde den Schatzraum & den Core-Wächter MK-IV!',
+      'Sektor 1: Verlassene Korvette — Beute bleibt nur bei Extraktion [R] sicher!',
       'info',
     );
     this.callbacks.onHudDirty();
@@ -204,7 +250,10 @@ export class DungeonScene {
     this.enemies = [];
     this.projectiles = [];
     this.drops = [];
-    this.slashes = [];
+    this.swings = [];
+    this.beams = [];
+    this.shockwaves = [];
+    this.decals = [];
     this.afterimages = [];
     this.roomFade = 0.22;
 
@@ -230,7 +279,6 @@ export class DungeonScene {
       this.facing = 'up';
     }
 
-    // Spawn enemies if room is not yet cleared
     if (!room.cleared) {
       for (const sp of room.spawns) {
         this.spawnEnemy(sp.kind, sp.x, sp.y);
@@ -244,53 +292,9 @@ export class DungeonScene {
   }
 
   private spawnEnemy(kind: Enemy['kind'], x: number, y: number): void {
-    const baseScale = 1 + this.state.bossDefeatedCount * 0.12;
+    const baseScale = 1 + this.state.bossDefeatedCount * 0.14;
     if (kind === 'slime') {
-      const hp = Math.round(38 * baseScale);
-      this.enemies.push({
-        id: this.nextEnemyId++,
-        kind,
-        x,
-        y,
-        vx: 0,
-        vy: 0,
-        hp,
-        maxHp: hp,
-        radius: 7,
-        flashTimer: 0,
-        aiTimer: 0.6 + Math.random() * 0.7,
-        phase: 0,
-        chargeDirX: 0,
-        chargeDirY: 0,
-        chargeActive: 0,
-        telegraphTimer: 0,
-        summonThreshold: 0,
-        anim: Math.random() * 5,
-      });
-    } else if (kind === 'drone') {
-      const hp = Math.round(46 * baseScale);
-      this.enemies.push({
-        id: this.nextEnemyId++,
-        kind,
-        x,
-        y,
-        vx: 0,
-        vy: 0,
-        hp,
-        maxHp: hp,
-        radius: 7,
-        flashTimer: 0,
-        aiTimer: 1.0 + Math.random() * 0.8,
-        phase: Math.random() * Math.PI * 2,
-        chargeDirX: 0,
-        chargeDirY: 0,
-        chargeActive: 0,
-        telegraphTimer: 0,
-        summonThreshold: 0,
-        anim: 0,
-      });
-    } else if (kind === 'turret') {
-      const hp = Math.round(62 * baseScale);
+      const hp = Math.round(48 * baseScale);
       this.enemies.push({
         id: this.nextEnemyId++,
         kind,
@@ -302,18 +306,79 @@ export class DungeonScene {
         maxHp: hp,
         radius: 8,
         flashTimer: 0,
-        aiTimer: 1.4 + Math.random() * 0.6,
+        aiTimer: 0.35 + Math.random() * 0.35,
         phase: 0,
+        subBurst: 0,
+        burstDelay: 0,
+        moveDirX: 0,
+        moveDirY: 0,
+        scurryTimer: 0,
         chargeDirX: 0,
         chargeDirY: 0,
         chargeActive: 0,
         telegraphTimer: 0,
+        aimAngle: 0,
+        summonThreshold: 0,
+        anim: Math.random() * 5,
+      });
+    } else if (kind === 'drone') {
+      const hp = Math.round(54 * baseScale);
+      this.enemies.push({
+        id: this.nextEnemyId++,
+        kind,
+        x,
+        y,
+        vx: 0,
+        vy: 0,
+        hp,
+        maxHp: hp,
+        radius: 8,
+        flashTimer: 0,
+        aiTimer: 0.9 + Math.random() * 0.6,
+        phase: Math.random() * Math.PI * 2,
+        subBurst: 0,
+        burstDelay: 0,
+        moveDirX: Math.random() > 0.5 ? 1 : -1,
+        moveDirY: 0,
+        scurryTimer: 0,
+        chargeDirX: 0,
+        chargeDirY: 0,
+        chargeActive: 0,
+        telegraphTimer: 0,
+        aimAngle: 0,
+        summonThreshold: 0,
+        anim: 0,
+      });
+    } else if (kind === 'turret') {
+      const hp = Math.round(68 * baseScale);
+      this.enemies.push({
+        id: this.nextEnemyId++,
+        kind,
+        x,
+        y,
+        vx: 0,
+        vy: 0,
+        hp,
+        maxHp: hp,
+        radius: 9,
+        flashTimer: 0,
+        aiTimer: 0.9 + Math.random() * 0.5,
+        phase: 0,
+        subBurst: 0,
+        burstDelay: 0,
+        moveDirX: 0,
+        moveDirY: 0,
+        scurryTimer: 0.8 + Math.random() * 0.4,
+        chargeDirX: 0,
+        chargeDirY: 0,
+        chargeActive: 0,
+        telegraphTimer: 0,
+        aimAngle: 0,
         summonThreshold: 0,
         anim: 0,
       });
     } else {
-      // BOSS: Core-Wächter MK-IV
-      const hp = Math.round(340 * baseScale);
+      const hp = Math.round(360 * baseScale);
       this.enemies.push({
         id: this.nextEnemyId++,
         kind: 'boss',
@@ -323,17 +388,43 @@ export class DungeonScene {
         vy: 0,
         hp,
         maxHp: hp,
-        radius: 14,
+        radius: 15,
         flashTimer: 0,
-        aiTimer: 1.4,
+        aiTimer: 1.2,
         phase: 0,
+        subBurst: 0,
+        burstDelay: 0,
+        moveDirX: 0,
+        moveDirY: 0,
+        scurryTimer: 0,
         chargeDirX: 0,
         chargeDirY: 0,
         chargeActive: 0,
         telegraphTimer: 0,
+        aimAngle: 0,
         summonThreshold: 0.6,
         anim: 0,
       });
+    }
+  }
+
+  public swapWeapon(): void {
+    if (this.state.swapEquippedWeapons()) {
+      this.shieldActive = false;
+      this.comboStep = 0;
+      sound.playWeaponSwap();
+      const meta = WEAPON_META[this.state.equippedWeapon];
+      this.floats.push({
+        x: this.playerX,
+        y: this.playerY - 18,
+        text: meta.name,
+        color: meta.accentColor,
+        life: 0.95,
+        maxLife: 0.95,
+      });
+      this.callbacks.onHudDirty();
+    } else {
+      this.callbacks.onToast('Schmiede eine zweite Waffe bei Kael auf Port Solaris zum Wechseln!', 'info');
     }
   }
 
@@ -352,9 +443,9 @@ export class DungeonScene {
       return;
     }
 
-    // Regenerate energy
+    // Regenerate energy smoothly
     const prevEnergy = Math.floor(this.state.energy);
-    this.state.energy = Math.min(100, this.state.energy + 18 * dt);
+    this.state.energy = Math.min(100, this.state.energy + (this.shieldActive ? 6 : 16) * dt);
     if (Math.floor(this.state.energy) !== prevEnergy) {
       this.callbacks.onHudDirty();
     }
@@ -362,11 +453,18 @@ export class DungeonScene {
     this.invulnTimer = Math.max(0, this.invulnTimer - dt);
     this.playerFlashTimer = Math.max(0, this.playerFlashTimer - dt);
     this.dashCooldown = Math.max(0, this.dashCooldown - dt);
-    this.meleeCooldown = Math.max(0, this.meleeCooldown - dt);
-    this.blasterCooldown = Math.max(0, this.blasterCooldown - dt);
+    this.attackCooldown = Math.max(0, this.attackCooldown - dt);
+    this.specialCooldown = Math.max(0, this.specialCooldown - dt);
+    this.blasterRecoil = Math.max(0, this.blasterRecoil - dt * 5);
+
     if (this.comboResetTimer > 0) {
       this.comboResetTimer -= dt;
       if (this.comboResetTimer <= 0) this.comboStep = 0;
+    }
+
+    // Quick weapon swap with 'C'
+    if (input.wasPressed('KeyC')) {
+      this.swapWeapon();
     }
 
     this.updatePlayer(dt, input);
@@ -395,7 +493,6 @@ export class DungeonScene {
     }
     if (bestAngle !== null) return bestAngle;
 
-    // If no enemies nearby, softly aim toward an intact alien pod within reach
     let podDist = 56;
     for (const pod of this.currentRoom.pods) {
       if (pod.broken) continue;
@@ -420,11 +517,13 @@ export class DungeonScene {
 
   private updatePlayer(dt: number, input: InputManager): void {
     const move = input.getMoveVector();
+    const weapon: WeaponId = this.state.equippedWeapon;
 
-    // Warp-Beacon channeling (hold R when safe or even in combat!)
+    // Warp-Beacon channeling (hold R)
     if (input.warpHeld() && this.dashTimer <= 0) {
+      this.shieldActive = false;
       this.warpChannel += dt;
-      if (Math.random() < dt * 16) {
+      if (Math.random() < dt * 18) {
         const a = Math.random() * Math.PI * 2;
         this.particles.push({
           x: this.playerX + Math.cos(a) * 16,
@@ -469,8 +568,17 @@ export class DungeonScene {
       }
     }
 
+    // Blade Secondary: Hold RMB / K for Kinetic Energy Shield!
+    this.shieldActive =
+      weapon === 'blade' && input.secondaryHeld() && this.dashTimer <= 0 && this.attackCooldown <= 0.05;
+    if (this.shieldActive) {
+      this.shieldAngle = this.getAimAngle(input);
+      this.orientFacing(this.shieldAngle);
+    }
+
     // Jetpack Dash (Space)
     if (input.dashPressed() && this.dashCooldown <= 0) {
+      this.shieldActive = false;
       let dx = move.x;
       let dy = move.y;
       if (dx === 0 && dy === 0) {
@@ -481,14 +589,15 @@ export class DungeonScene {
       this.dashTimer = 0.19;
       this.dashCooldown = 0.54;
       this.invulnTimer = Math.max(this.invulnTimer, 0.28);
-      this.dashVx = dx * 255;
-      this.dashVy = dy * 255;
+      this.dashVx = dx * 258;
+      this.dashVy = dy * 258;
       sound.playDash();
       this.spawnBurst(this.playerX, this.playerY + 4, '#fb923c', 8);
     }
 
-    let vx = move.x * 108;
-    let vy = move.y * 108;
+    const baseSpeed = this.shieldActive ? 54 : 108;
+    let vx = move.x * baseSpeed;
+    let vy = move.y * baseSpeed;
 
     if (this.dashTimer > 0) {
       this.dashTimer -= dt;
@@ -506,11 +615,13 @@ export class DungeonScene {
     }
 
     if (Math.abs(vx) > 1 || Math.abs(vy) > 1) {
-      this.walkAnim += dt * 10;
-      if (Math.abs(vx) > Math.abs(vy)) {
-        this.facing = vx > 0 ? 'right' : 'left';
-      } else {
-        this.facing = vy > 0 ? 'down' : 'up';
+      this.walkAnim += dt * (this.shieldActive ? 6 : 10);
+      if (!this.shieldActive) {
+        if (Math.abs(vx) > Math.abs(vy)) {
+          this.facing = vx > 0 ? 'right' : 'left';
+        } else {
+          this.facing = vy > 0 ? 'down' : 'up';
+        }
       }
     } else {
       this.walkAnim = 0;
@@ -518,19 +629,41 @@ export class DungeonScene {
 
     this.moveEntityWithCollisions(vx * dt, vy * dt);
 
-    // Primary Melee: Plasma-Klinge (3-Hit Combo!)
-    if (input.primaryPressed() && this.meleeCooldown <= 0 && this.dashTimer <= 0) {
-      this.performPlasmaSlash(this.getAimAngle(input));
+    // Primary Attack based on SINGLE equipped weapon!
+    if (input.primaryPressed() && this.attackCooldown <= 0 && this.dashTimer <= 0) {
+      this.shieldActive = false;
+      const aim = this.getAimAngle(input);
+      this.lastAimAngle = aim;
+      if (weapon === 'blade') {
+        this.performPlasmaSlash(aim);
+      } else if (weapon === 'blaster') {
+        this.performBlasterShot(aim);
+      } else {
+        this.performHammerSwing(aim);
+      }
     }
 
-    // Secondary Ranged: Puls-Blaster
-    if ((input.secondaryPressed() || input.secondaryHeld()) && this.blasterCooldown <= 0 && this.dashTimer <= 0) {
-      this.performBlasterShot(this.getAimAngle(input));
+    // Secondary Special Ability based on equipped weapon!
+    if (input.secondaryPressed() && this.specialCooldown <= 0 && this.dashTimer <= 0) {
+      const aim = this.getAimAngle(input);
+      this.lastAimAngle = aim;
+      if (weapon === 'blaster') {
+        this.performPiercingBeam(aim);
+      } else if (weapon === 'hammer') {
+        this.performGravShockwave();
+      }
     }
 
-    // Check walking through OPEN airlock doors!
     if (this.currentRoom.cleared) {
       this.checkDoorTransition();
+    }
+  }
+
+  private orientFacing(angle: number): void {
+    if (Math.abs(Math.cos(angle)) > Math.abs(Math.sin(angle))) {
+      this.facing = Math.cos(angle) > 0 ? 'right' : 'left';
+    } else {
+      this.facing = Math.sin(angle) > 0 ? 'down' : 'up';
     }
   }
 
@@ -538,32 +671,54 @@ export class DungeonScene {
     const stats = this.state.getStats();
     const isFinisher = this.comboStep === 2;
     const radius = isFinisher ? stats.bladeRange * 1.24 : stats.bladeRange;
-    const sweep = isFinisher ? Math.PI * 1.45 : Math.PI * 0.78;
-    const damage = isFinisher ? Math.round(stats.bladeDamage * 1.45) : stats.bladeDamage;
+    const sweep = isFinisher ? Math.PI * 1.65 : Math.PI * 0.92;
+    const damage = isFinisher ? Math.round(stats.bladeDamage * 1.48) : stats.bladeDamage;
+    const swingDir: 1 | -1 = this.comboStep === 1 ? -1 : 1;
 
-    // Orient facing toward attack
-    if (Math.abs(Math.cos(angle)) > Math.abs(Math.sin(angle))) {
-      this.facing = Math.cos(angle) > 0 ? 'right' : 'left';
-    } else {
-      this.facing = Math.sin(angle) > 0 ? 'down' : 'up';
-    }
-
-    // Slight forward lunge
-    this.moveEntityWithCollisions(Math.cos(angle) * 6, Math.sin(angle) * 6);
+    this.orientFacing(angle);
+    this.moveEntityWithCollisions(Math.cos(angle) * (isFinisher ? 9 : 6), Math.sin(angle) * (isFinisher ? 9 : 6));
 
     sound.playSlash(this.comboStep);
-    this.slashes.push({
+    this.swings.push({
+      weapon: 'blade',
       x: this.playerX,
       y: this.playerY,
       angle,
       radius,
       sweep,
+      dir: swingDir,
       comboStep: this.comboStep,
-      life: isFinisher ? 0.2 : 0.14,
-      maxLife: isFinisher ? 0.2 : 0.14,
+      life: isFinisher ? 0.24 : 0.17,
+      maxLife: isFinisher ? 0.24 : 0.17,
     });
 
-    // Hit enemies in arc
+    // Scatter gleaming plasma sparks along the swing crescent!
+    for (let k = 0; k < (isFinisher ? 12 : 6); k++) {
+      const a = angle - sweep / 2 + Math.random() * sweep;
+      const dist = radius * (0.65 + Math.random() * 0.35);
+      this.particles.push({
+        x: this.playerX + Math.cos(a) * dist,
+        y: this.playerY + Math.sin(a) * dist,
+        vx: Math.cos(a) * (25 + Math.random() * 35),
+        vy: Math.sin(a) * (25 + Math.random() * 35),
+        color: isFinisher ? '#fde047' : '#38e8d4',
+        size: 1.6,
+        life: 0.22 + Math.random() * 0.15,
+        maxLife: 0.37,
+      });
+    }
+
+    if (isFinisher) {
+      this.shockwaves.push({
+        x: this.playerX,
+        y: this.playerY,
+        maxRadius: radius * 1.15,
+        color: '#fde047',
+        life: 0.22,
+        maxLife: 0.22,
+      });
+    }
+
     let hitAny = false;
     for (const e of this.enemies) {
       const dx = e.x - this.playerX;
@@ -571,55 +726,233 @@ export class DungeonScene {
       const dist = Math.hypot(dx, dy);
       if (dist > radius + e.radius) continue;
       const diff = Math.abs(this.normalizeAngle(Math.atan2(dy, dx) - angle));
-      if (diff <= sweep / 2 + 0.24 || dist < e.radius + 8) {
-        this.damageEnemy(e, damage, Math.cos(angle), Math.sin(angle), isFinisher ? 150 : 95);
+      if (diff <= sweep / 2 + 0.26 || dist < e.radius + 9) {
+        this.damageEnemy(e, damage, Math.cos(angle), Math.sin(angle), isFinisher ? 165 : 105);
         hitAny = true;
       }
     }
 
-    // Hit destructible Frachtkapseln
     for (const pod of this.currentRoom.pods) {
       if (pod.broken) continue;
-      const dist = Math.hypot(pod.x - this.playerX, pod.y - this.playerY);
-      if (dist <= radius + 10) {
+      if (Math.hypot(pod.x - this.playerX, pod.y - this.playerY) <= radius + 10) {
         this.breakPod(pod);
         hitAny = true;
       }
     }
 
     if (hitAny) {
-      this.hitStop = isFinisher ? 0.05 : 0.025;
-      this.triggerShake(isFinisher ? 0.16 : 0.09, isFinisher ? 3.2 : 1.6);
+      this.hitStop = isFinisher ? 0.055 : 0.028;
+      this.triggerShake(isFinisher ? 0.16 : 0.09, isFinisher ? 3.2 : 1.7);
       this.state.energy = Math.min(100, this.state.energy + 10);
       this.callbacks.onHudDirty();
     }
 
-    this.meleeCooldown = isFinisher ? 0.34 : 0.2;
+    this.attackCooldown = isFinisher ? 0.34 : 0.2;
     this.comboStep = (this.comboStep + 1) % 3;
-    this.comboResetTimer = 0.62;
+    this.comboResetTimer = 0.64;
   }
 
   private performBlasterShot(angle: number): void {
     const stats = this.state.getStats();
-    if (this.state.energy < stats.blasterEnergyCost) return;
-
-    this.state.energy -= stats.blasterEnergyCost;
-    this.blasterCooldown = stats.blasterCooldown;
+    this.orientFacing(angle);
+    this.attackCooldown = stats.blasterCooldown;
+    this.blasterRecoil = 1.0;
     sound.playBlaster();
 
-    const speed = 260 + this.state.upgrades.blaster * 22;
+    const mx = this.playerX + Math.cos(angle) * 12;
+    const my = this.playerY + Math.sin(angle) * 12;
+    this.spawnBurst(mx, my, '#38bdf8', 5);
+
+    const speed = 275 + this.state.upgrades.blaster * 22;
     this.projectiles.push({
-      x: this.playerX + Math.cos(angle) * 9,
-      y: this.playerY + Math.sin(angle) * 9,
+      x: mx,
+      y: my,
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed,
       fromPlayer: true,
       damage: stats.blasterDamage,
-      color: '#38e8d4',
+      color: '#38bdf8',
       radius: 3.5,
-      life: 1.4,
+      life: 1.45,
     });
+  }
+
+  private performPiercingBeam(angle: number): void {
+    const cost = 38;
+    if (this.state.energy < cost) {
+      this.callbacks.onToast('Zu wenig Energie für Durchschuss-Laser (38 EN)!', 'warn');
+      return;
+    }
+    this.state.energy -= cost;
+    this.specialCooldown = 0.65;
+    this.attackCooldown = 0.32;
+    this.blasterRecoil = 1.4;
+    this.orientFacing(angle);
+    sound.playRailBeam();
+    this.triggerShake(0.18, 3.0);
+
+    const stats = this.state.getStats();
+    const beamDamage = Math.round(stats.blasterDamage * 2.25);
+    const sx = this.playerX + Math.cos(angle) * 10;
+    const sy = this.playerY + Math.sin(angle) * 10;
+    const dx = Math.cos(angle);
+    const dy = Math.sin(angle);
+
+    // Raycast to room boundary
+    let maxT = 360;
+    for (let t = 8; t < 360; t += 6) {
+      const px = sx + dx * t;
+      const py = sy + dy * t;
+      if (px < ROOM_LEFT || px > ROOM_RIGHT || py < ROOM_TOP || py > ROOM_BOTTOM) {
+        maxT = t;
+        break;
+      }
+    }
+    const ex = sx + dx * maxT;
+    const ey = sy + dy * maxT;
+    this.beams.push({ x1: sx, y1: sy, x2: ex, y2: ey, life: 0.24, maxLife: 0.24 });
+
+    // Hit ALL enemies along beam line!
+    for (const e of [...this.enemies]) {
+      const distToLine = this.pointToSegmentDist(e.x, e.y, sx, sy, ex, ey);
+      if (distToLine <= e.radius + 9) {
+        this.damageEnemy(e, beamDamage, dx, dy, 120);
+      }
+    }
+    for (const pod of this.currentRoom.pods) {
+      if (!pod.broken && this.pointToSegmentDist(pod.x, pod.y, sx, sy, ex, ey) <= 13) {
+        this.breakPod(pod);
+      }
+    }
     this.callbacks.onHudDirty();
+  }
+
+  private performHammerSwing(angle: number): void {
+    const stats = this.state.getStats();
+    const isHeavy = this.comboStep === 1;
+    const radius = isHeavy ? stats.hammerRange * 1.15 : stats.hammerRange;
+    const sweep = isHeavy ? Math.PI * 1.2 : Math.PI * 0.95;
+    const damage = isHeavy ? Math.round(stats.hammerDamage * 1.32) : stats.hammerDamage;
+    const swingDir: 1 | -1 = isHeavy ? -1 : 1;
+
+    this.orientFacing(angle);
+    this.moveEntityWithCollisions(Math.cos(angle) * 7, Math.sin(angle) * 7);
+
+    sound.playHammerSmash();
+    this.triggerShake(isHeavy ? 0.18 : 0.11, isHeavy ? 3.6 : 2.2);
+    this.swings.push({
+      weapon: 'hammer',
+      x: this.playerX,
+      y: this.playerY,
+      angle,
+      radius,
+      sweep,
+      dir: swingDir,
+      comboStep: this.comboStep,
+      life: 0.24,
+      maxLife: 0.24,
+    });
+
+    for (let k = 0; k < 10; k++) {
+      const a = angle - sweep / 2 + Math.random() * sweep;
+      const dist = radius * (0.65 + Math.random() * 0.35);
+      this.particles.push({
+        x: this.playerX + Math.cos(a) * dist,
+        y: this.playerY + Math.sin(a) * dist,
+        vx: Math.cos(a) * 40,
+        vy: Math.sin(a) * 40,
+        color: '#fb923c',
+        size: 2,
+        life: 0.26,
+        maxLife: 0.26,
+      });
+    }
+
+    let hitAny = false;
+    for (const e of [...this.enemies]) {
+      const dx = e.x - this.playerX;
+      const dy = e.y - this.playerY;
+      const dist = Math.hypot(dx, dy);
+      if (dist > radius + e.radius) continue;
+      const diff = Math.abs(this.normalizeAngle(Math.atan2(dy, dx) - angle));
+      if (diff <= sweep / 2 + 0.25 || dist < e.radius + 10) {
+        this.damageEnemy(e, damage, Math.cos(angle), Math.sin(angle), isHeavy ? 210 : 165);
+        hitAny = true;
+      }
+    }
+    for (const pod of this.currentRoom.pods) {
+      if (!pod.broken && Math.hypot(pod.x - this.playerX, pod.y - this.playerY) <= radius + 12) {
+        this.breakPod(pod);
+        hitAny = true;
+      }
+    }
+
+    if (hitAny) {
+      this.hitStop = 0.055;
+      this.state.energy = Math.min(100, this.state.energy + 14);
+      this.callbacks.onHudDirty();
+    }
+
+    this.attackCooldown = isHeavy ? 0.5 : 0.38;
+    this.comboStep = (this.comboStep + 1) % 2;
+    this.comboResetTimer = 0.85;
+  }
+
+  private performGravShockwave(): void {
+    const cost = 42;
+    if (this.state.energy < cost) {
+      this.callbacks.onToast('Zu wenig Energie für Grav-Schockwelle (42 EN)!', 'warn');
+      return;
+    }
+    this.state.energy -= cost;
+    this.specialCooldown = 0.85;
+    this.attackCooldown = 0.4;
+    const stats = this.state.getStats();
+    const dmg = Math.round(stats.hammerDamage * 1.45);
+    const maxR = 66;
+
+    sound.playHammerSmash();
+    this.triggerShake(0.28, 4.5);
+    this.shockwaves.push({
+      x: this.playerX,
+      y: this.playerY,
+      maxRadius: maxR,
+      color: '#fb923c',
+      life: 0.32,
+      maxLife: 0.32,
+    });
+    this.spawnBurst(this.playerX, this.playerY, '#fbbf24', 22);
+
+    for (const e of [...this.enemies]) {
+      const dx = e.x - this.playerX;
+      const dy = e.y - this.playerY;
+      const dist = Math.max(1, Math.hypot(dx, dy));
+      if (dist <= maxR + e.radius) {
+        this.damageEnemy(e, dmg, dx / dist, dy / dist, 230);
+      }
+    }
+    for (const pod of this.currentRoom.pods) {
+      if (!pod.broken && Math.hypot(pod.x - this.playerX, pod.y - this.playerY) <= maxR) {
+        this.breakPod(pod);
+      }
+    }
+    this.callbacks.onHudDirty();
+  }
+
+  private pointToSegmentDist(
+    px: number,
+    py: number,
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+  ): number {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const lenSq = dx * dx + dy * dy;
+    if (lenSq === 0) return Math.hypot(px - x1, py - y1);
+    const t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / lenSq));
+    return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
   }
 
   private moveEntityWithCollisions(dx: number, dy: number): void {
@@ -658,15 +991,15 @@ export class DungeonScene {
     }
   }
 
+  // ==================== LIVELY, DYNAMIC ENEMY AI ====================
   private updateEnemies(dt: number): void {
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i];
-      e.anim += dt * 6;
+      e.anim += dt * 7.5;
       e.flashTimer = Math.max(0, e.flashTimer - dt);
 
-      // Apply knockback decay
-      e.vx *= Math.pow(0.02, dt);
-      e.vy *= Math.pow(0.02, dt);
+      e.vx *= Math.pow(0.03, dt);
+      e.vy *= Math.pow(0.03, dt);
 
       const dx = this.playerX - e.x;
       const dy = this.playerY - e.y;
@@ -675,107 +1008,198 @@ export class DungeonScene {
       const ny = dy / dist;
 
       if (e.kind === 'slime') {
-        e.aiTimer -= dt;
-        if (e.aiTimer <= 0) {
-          // Hop lunge toward player
-          e.vx += nx * 125;
-          e.vy += ny * 125;
-          e.aiTimer = 1.05 + Math.random() * 0.45;
-        }
-      } else if (e.kind === 'drone') {
-        e.phase += dt * 1.6;
-        // Orbit around ~85px from player
-        const desiredDist = 88;
-        const radial = dist > desiredDist ? 1 : dist < 58 ? -1 : 0;
-        const tx = -ny * Math.sin(e.phase) * 34 + nx * radial * 46;
-        const ty = nx * Math.sin(e.phase) * 34 + ny * radial * 46;
-        e.vx += tx * dt * 4;
-        e.vy += ty * dt * 4;
-
-        e.aiTimer -= dt;
+        // Energetic continuous bouncing hops + slime trail + telegraphed pounce every 3rd hop!
         if (e.telegraphTimer > 0) {
           e.telegraphTimer -= dt;
           if (e.telegraphTimer <= 0) {
-            this.fireEnemyBolt(e.x, e.y, Math.atan2(dy, dx), 155, 14, '#e879f9');
-            e.aiTimer = 1.7 + Math.random() * 0.6;
+            // Fast pounce lunge!
+            e.vx += e.chargeDirX * 195;
+            e.vy += e.chargeDirY * 195;
+            this.spawnBurst(e.x, e.y + 4, '#c084fc', 5);
+            e.aiTimer = 0.72;
           }
-        } else if (e.aiTimer <= 0) {
-          e.telegraphTimer = 0.42;
+        } else {
+          e.aiTimer -= dt;
+          if (e.aiTimer <= 0) {
+            e.phase += 1;
+            if (e.phase % 3 === 0 && dist < 130) {
+              // Wind-up crouch before pounce
+              e.telegraphTimer = 0.36;
+              e.chargeDirX = nx;
+              e.chargeDirY = ny;
+            } else {
+              // Bouncy zig-zag hop toward player
+              const jitter = (Math.random() - 0.5) * 0.65;
+              const hopAngle = Math.atan2(dy, dx) + jitter;
+              e.vx += Math.cos(hopAngle) * 112;
+              e.vy += Math.sin(hopAngle) * 112;
+              this.decals.push({
+                x: e.x,
+                y: e.y + 7,
+                r: 4 + Math.random() * 2,
+                color: 'rgba(168, 85, 247, 0.35)',
+                life: 2.2,
+                maxLife: 2.2,
+              });
+              e.aiTimer = 0.56 + Math.random() * 0.22;
+            }
+          }
+        }
+      } else if (e.kind === 'drone') {
+        // Agile orbiting strafe + laser lock sightline + rapid 2-bolt burst + tactical side-dash!
+        e.phase += dt * 2.2;
+        const desiredDist = 86;
+        const radial = dist > desiredDist + 12 ? 1 : dist < 56 ? -1 : 0;
+        const strafe = e.moveDirX;
+        const tx = -ny * strafe * 62 + nx * radial * 54;
+        const ty = nx * strafe * 62 + ny * radial * 54;
+        e.vx += tx * dt * 4.5;
+        e.vy += ty * dt * 4.5;
+
+        // Subtle cyan thruster exhaust
+        if (Math.random() < dt * 10) {
+          this.particles.push({
+            x: e.x,
+            y: e.y + 4,
+            vx: -e.vx * 0.25,
+            vy: 12,
+            color: '#38e8d4',
+            size: 1.4,
+            life: 0.22,
+            maxLife: 0.22,
+          });
+        }
+
+        if (e.subBurst > 0) {
+          e.burstDelay -= dt;
+          if (e.burstDelay <= 0) {
+            this.fireEnemyBolt(e.x, e.y, e.aimAngle + (Math.random() - 0.5) * 0.08, 162, 13, '#e879f9');
+            e.subBurst -= 1;
+            e.burstDelay = 0.16;
+            if (e.subBurst === 0) {
+              // Immediate agile side-dash reposition!
+              e.moveDirX = -e.moveDirX;
+              e.vx += -ny * e.moveDirX * 145;
+              e.vy += nx * e.moveDirX * 145;
+              e.aiTimer = 1.45 + Math.random() * 0.5;
+            }
+          }
+        } else if (e.telegraphTimer > 0) {
+          e.telegraphTimer -= dt;
+          e.aimAngle = Math.atan2(dy, dx);
+          if (e.telegraphTimer <= 0) {
+            e.subBurst = 2;
+            e.burstDelay = 0;
+          }
+        } else {
+          e.aiTimer -= dt;
+          if (e.aiTimer <= 0) {
+            e.telegraphTimer = 0.46;
+            e.aimAngle = Math.atan2(dy, dx);
+          }
         }
       } else if (e.kind === 'turret') {
-        e.vx *= 0.2;
-        e.vy *= 0.2;
-        e.aiTimer -= dt;
-        if (e.telegraphTimer > 0) {
+        // Mobile Scurry-Turret: scurries briskly to flank -> plants & fires 3-bolt fan -> repositions!
+        if (e.scurryTimer > 0) {
+          e.scurryTimer -= dt;
+          if (e.moveDirX === 0 && e.moveDirY === 0) {
+            const perp = Math.random() > 0.5 ? 1 : -1;
+            const a = Math.atan2(dy, dx) + perp * (0.75 + Math.random() * 0.6);
+            e.moveDirX = Math.cos(a);
+            e.moveDirY = Math.sin(a);
+          }
+          e.vx = e.moveDirX * 72;
+          e.vy = e.moveDirY * 72;
+          if (Math.random() < dt * 8) {
+            this.particles.push({
+              x: e.x,
+              y: e.y + 8,
+              vx: -e.vx * 0.2,
+              vy: -6,
+              color: '#94a3b8',
+              size: 1.5,
+              life: 0.25,
+              maxLife: 0.25,
+            });
+          }
+          if (e.scurryTimer <= 0) {
+            e.moveDirX = 0;
+            e.moveDirY = 0;
+            e.aiTimer = 0.45;
+          }
+        } else if (e.telegraphTimer > 0) {
+          e.vx *= 0.2;
+          e.vy *= 0.2;
           e.telegraphTimer -= dt;
           if (e.telegraphTimer <= 0) {
             const baseAngle = Math.atan2(dy, dx);
             for (const offset of [-0.28, 0, 0.28]) {
-              this.fireEnemyBolt(e.x, e.y, baseAngle + offset, 138, 15, '#fb923c');
+              this.fireEnemyBolt(e.x, e.y, baseAngle + offset, 142, 15, '#fb923c');
             }
-            e.aiTimer = 2.1 + Math.random() * 0.5;
+            this.spawnBurst(e.x, e.y, '#fbbf24', 6);
+            // Scurry immediately after firing!
+            e.scurryTimer = 0.95 + Math.random() * 0.45;
           }
-        } else if (e.aiTimer <= 0) {
-          e.telegraphTimer = 0.55;
+        } else {
+          e.aiTimer -= dt;
+          if (e.aiTimer <= 0) {
+            e.telegraphTimer = 0.52;
+          }
         }
       } else if (e.kind === 'boss') {
-        this.updateBossAI(e, dt, dx, dy, dist, nx, ny);
+        this.updateBossAI(e, dt, dx, dy, nx, ny);
       }
 
-      // Move enemy safely inside room
       const ex = Math.max(ROOM_LEFT + e.radius, Math.min(ROOM_RIGHT - e.radius, e.x + e.vx * dt));
       if (!this.collidesRoomObstacle(ex, e.y, e.radius * 0.85) || e.kind === 'drone') {
         e.x = ex;
+      } else if (e.kind === 'turret') {
+        e.moveDirX = -e.moveDirX;
       }
       const ey = Math.max(ROOM_TOP + e.radius, Math.min(ROOM_BOTTOM - e.radius, e.y + e.vy * dt));
       if (!this.collidesRoomObstacle(e.x, ey, e.radius * 0.85) || e.kind === 'drone') {
         e.y = ey;
+      } else if (e.kind === 'turret') {
+        e.moveDirY = -e.moveDirY;
       }
 
-      // Contact damage to player
       const pDist = Math.hypot(this.playerX - e.x, this.playerY - e.y);
-      if (pDist < e.radius + 6) {
-        this.damagePlayer(e.kind === 'boss' ? 22 : 12, (this.playerX - e.x) / Math.max(1, pDist), (this.playerY - e.y) / Math.max(1, pDist));
+      if (pDist < e.radius + 7) {
+        const pushX = (this.playerX - e.x) / Math.max(1, pDist);
+        const pushY = (this.playerY - e.y) / Math.max(1, pDist);
+        this.damagePlayer(e.kind === 'boss' ? 22 : 12, pushX, pushY, e);
       }
     }
   }
 
-  private updateBossAI(
-    e: Enemy,
-    dt: number,
-    dx: number,
-    dy: number,
-    _dist: number,
-    nx: number,
-    ny: number,
-  ): void {
+  private updateBossAI(e: Enemy, dt: number, dx: number, dy: number, nx: number, ny: number): void {
     const enraged = e.hp < e.maxHp * 0.5;
 
-    // Minion call at 60% & 28% HP
+    if (Math.random() < dt * 10) {
+      this.particles.push({
+        x: e.x + (Math.random() - 0.5) * 20,
+        y: e.y + (Math.random() - 0.5) * 14,
+        vx: (Math.random() - 0.5) * 14,
+        vy: -16 - Math.random() * 14,
+        color: enraged ? '#fb7185' : '#fbbf24',
+        size: 1.8,
+        life: 0.35,
+        maxLife: 0.35,
+      });
+    }
+
     if (e.hp / e.maxHp <= e.summonThreshold && e.summonThreshold > 0) {
       e.summonThreshold = e.summonThreshold > 0.4 ? 0.28 : 0;
       sound.playBossRoar();
-      this.spawnEnemy('slime', ROOM_CENTER_X - 80, ROOM_CENTER_Y);
-      this.spawnEnemy('drone', ROOM_CENTER_X + 80, ROOM_CENTER_Y);
+      this.spawnEnemy('slime', ROOM_CENTER_X - 74, ROOM_CENTER_Y);
+      this.spawnEnemy('drone', ROOM_CENTER_X + 74, ROOM_CENTER_Y);
       this.spawnBurst(e.x, e.y, '#fbbf24', 18);
     }
 
     if (e.chargeActive > 0) {
       e.chargeActive -= dt;
-      e.vx = e.chargeDirX * (enraged ? 220 : 185);
-      e.vy = e.chargeDirY * (enraged ? 220 : 185);
-      if (Math.random() < 0.6) {
-        this.particles.push({
-          x: e.x,
-          y: e.y,
-          vx: -e.chargeDirX * 30,
-          vy: -e.chargeDirY * 30,
-          color: '#fb923c',
-          size: 2.5,
-          life: 0.25,
-          maxLife: 0.25,
-        });
-      }
+      e.vx = e.chargeDirX * (enraged ? 225 : 190);
+      e.vy = e.chargeDirY * (enraged ? 225 : 190);
       return;
     }
 
@@ -783,32 +1207,31 @@ export class DungeonScene {
       e.telegraphTimer -= dt;
       if (e.telegraphTimer <= 0) {
         if (e.phase % 2 === 0) {
-          // Radial plasma ring burst
           const count = enraged ? 14 : 10;
           const rot = Math.atan2(dy, dx);
           for (let k = 0; k < count; k++) {
             const a = rot + (k / count) * Math.PI * 2;
-            this.fireEnemyBolt(e.x, e.y, a, enraged ? 132 : 112, 16, '#fb923c');
+            this.fireEnemyBolt(e.x, e.y, a, enraged ? 136 : 115, 16, '#fb923c');
           }
           sound.playBlaster();
         } else {
-          // Dash charge along locked telegraph direction
           e.chargeActive = 0.55;
           sound.playDash();
         }
         e.phase += 1;
-        e.aiTimer = enraged ? 1.15 : 1.55;
+        e.aiTimer = enraged ? 1.1 : 1.45;
       }
       return;
     }
 
-    // Gentle hover drift toward player
-    e.vx += nx * 36 * dt * 2.5;
-    e.vy += ny * 36 * dt * 2.5;
+    // Active stalking drift + lateral sway
+    const sway = Math.sin(this.time * 2.1) * 32;
+    e.vx += (nx * 46 - ny * sway) * dt * 2.8;
+    e.vy += (ny * 46 + nx * sway) * dt * 2.8;
 
     e.aiTimer -= dt;
     if (e.aiTimer <= 0) {
-      e.telegraphTimer = e.phase % 2 === 1 ? 0.58 : 0.45;
+      e.telegraphTimer = e.phase % 2 === 1 ? 0.56 : 0.44;
       e.chargeDirX = nx;
       e.chargeDirY = ny;
     }
@@ -838,7 +1261,7 @@ export class DungeonScene {
   private damageEnemy(e: Enemy, amount: number, kx: number, ky: number, knockForce: number): void {
     e.hp -= amount;
     e.flashTimer = 0.11;
-    const resistance = e.kind === 'boss' ? 0.18 : e.kind === 'turret' ? 0.1 : 1.0;
+    const resistance = e.kind === 'boss' ? 0.16 : e.kind === 'turret' ? 0.35 : 1.0;
     e.vx += kx * knockForce * resistance;
     e.vy += ky * knockForce * resistance;
 
@@ -870,7 +1293,6 @@ export class DungeonScene {
       this.triggerShake(0.45, 5);
       this.bossDefeatedInRun = true;
       this.state.bossDefeatedCount += 1;
-      // Guaranteed Boss Heart + 3 rare/uncommon relics!
       this.spawnLootDrop(e.x, e.y, 'mk4_heart');
       for (let k = 0; k < 3; k++) {
         this.spawnLootDrop(e.x, e.y, rollLootItem(2, k === 0));
@@ -880,44 +1302,71 @@ export class DungeonScene {
         'good',
       );
       this.state.save();
-    } else {
-      // Generous Moonlighter-style loot drop chance (78%)
-      if (Math.random() < 0.78) {
-        this.spawnLootDrop(e.x, e.y, rollLootItem(this.currentRoom.depth));
-      }
+    } else if (Math.random() < 0.8) {
+      this.spawnLootDrop(e.x, e.y, rollLootItem(this.currentRoom.depth));
     }
 
-    // Check if room is now cleared!
     if (this.enemies.length === 0 && !this.currentRoom.cleared) {
       this.currentRoom.cleared = true;
       this.roomsCleared += 1;
       sound.playDoorUnlock();
       if (this.currentRoom.type === 'combat') {
-        // Bonus loot orb on room clear
         this.spawnLootDrop(ROOM_CENTER_X, ROOM_CENTER_Y, rollLootItem(this.currentRoom.depth));
       }
     }
   }
 
-  private damagePlayer(amount: number, kx: number, ky: number): void {
+  private damagePlayer(amount: number, kx: number, ky: number, attacker?: Enemy): void {
     if (this.invulnTimer > 0 || this.finished) return;
-    this.state.hp = Math.max(0, this.state.hp - amount);
-    this.invulnTimer = 0.75;
-    this.playerFlashTimer = 0.16;
-    this.warpChannel = 0;
-    this.moveEntityWithCollisions(kx * 12, ky * 12);
 
-    sound.playPlayerHurt();
-    this.triggerShake(0.2, 3.5);
-    this.spawnBurst(this.playerX, this.playerY, '#fb7185', 10);
-    this.floats.push({
-      x: this.playerX,
-      y: this.playerY - 14,
-      text: `-${amount}`,
-      color: '#fb7185',
-      life: 0.85,
-      maxLife: 0.85,
-    });
+    // Check Kinetic Energy Shield block!
+    let finalAmount = amount;
+    if (this.shieldActive) {
+      const incomingAngle = Math.atan2(-ky, -kx);
+      const diff = Math.abs(this.normalizeAngle(incomingAngle - this.shieldAngle));
+      if (diff <= Math.PI * 0.6) {
+        finalAmount = Math.max(2, Math.round(amount * 0.25));
+        sound.playShieldBlock();
+        this.spawnBurst(
+          this.playerX + Math.cos(this.shieldAngle) * 11,
+          this.playerY + Math.sin(this.shieldAngle) * 11,
+          '#38e8d4',
+          10,
+        );
+        if (attacker) {
+          attacker.vx -= kx * 140;
+          attacker.vy -= ky * 140;
+        }
+        this.floats.push({
+          x: this.playerX,
+          y: this.playerY - 16,
+          text: `BLOCK -${finalAmount}`,
+          color: '#38e8d4',
+          life: 0.75,
+          maxLife: 0.75,
+        });
+      }
+    }
+
+    this.state.hp = Math.max(0, this.state.hp - finalAmount);
+    this.invulnTimer = 0.72;
+    this.playerFlashTimer = 0.15;
+    this.warpChannel = 0;
+    this.moveEntityWithCollisions(kx * 10, ky * 10);
+
+    if (finalAmount === amount) {
+      sound.playPlayerHurt();
+      this.triggerShake(0.2, 3.5);
+      this.spawnBurst(this.playerX, this.playerY, '#fb7185', 10);
+      this.floats.push({
+        x: this.playerX,
+        y: this.playerY - 14,
+        text: `-${finalAmount}`,
+        color: '#fb7185',
+        life: 0.85,
+        maxLife: 0.85,
+      });
+    }
     this.callbacks.onHudDirty();
 
     if (this.state.hp <= 0) {
@@ -929,7 +1378,7 @@ export class DungeonScene {
     pod.broken = true;
     sound.playHit();
     this.spawnBurst(pod.x, pod.y, '#fbbf24', 10);
-    if (Math.random() < 0.65) {
+    if (Math.random() < 0.68) {
       this.spawnLootDrop(pod.x, pod.y, rollLootItem(this.currentRoom.depth));
     }
   }
@@ -990,6 +1439,27 @@ export class DungeonScene {
           this.projectiles.splice(i, 1);
         }
       } else {
+        // Check Kinetic Shield full projectile block!
+        if (this.shieldActive && Math.hypot(this.playerX - p.x, this.playerY - p.y) < 15 + p.radius) {
+          const toBolt = Math.atan2(p.y - this.playerY, p.x - this.playerX);
+          if (Math.abs(this.normalizeAngle(toBolt - this.shieldAngle)) <= Math.PI * 0.58) {
+            sound.playShieldBlock();
+            this.spawnBurst(p.x, p.y, '#38e8d4', 10);
+            this.state.energy = Math.min(100, this.state.energy + 6);
+            this.floats.push({
+              x: p.x,
+              y: p.y - 8,
+              text: 'PARADE!',
+              color: '#38e8d4',
+              life: 0.65,
+              maxLife: 0.65,
+            });
+            this.projectiles.splice(i, 1);
+            this.callbacks.onHudDirty();
+            continue;
+          }
+        }
+
         if (Math.hypot(this.playerX - p.x, this.playerY - p.y) < 7 + p.radius) {
           const len = Math.max(1, Math.hypot(p.vx, p.vy));
           this.damagePlayer(p.damage, p.vx / len, p.vy / len);
@@ -1009,7 +1479,6 @@ export class DungeonScene {
       d.y = Math.max(ROOM_TOP + 8, Math.min(ROOM_BOTTOM - 8, d.y + d.vy * dt));
 
       const dist = Math.hypot(this.playerX - d.x, this.playerY - d.y);
-      // Gentle magnetic pull when close and backpack has space
       if (d.age > 0.22 && dist < 44 && !isBackpackFullFor(this.state.inventory, d.itemId)) {
         d.x += ((this.playerX - d.x) / Math.max(1, dist)) * 135 * dt;
         d.y += ((this.playerY - d.y) / Math.max(1, dist)) * 135 * dt;
@@ -1040,11 +1509,10 @@ export class DungeonScene {
   private updateRoomInteractions(input: InputManager): void {
     this.activePrompt = null;
 
-    // 1. Start Room Free Exit Warp Pad
     if (this.currentRoom.type === 'start') {
       if (Math.hypot(this.playerX - ROOM_CENTER_X, this.playerY - (ROOM_CENTER_Y - 12)) < 28) {
         this.activePrompt = {
-          label: '[E] Zurück zu Port Solaris (Gratis)',
+          label: '[E] Extraktion: Port Solaris (Gratis)',
           x: ROOM_CENTER_X,
           y: ROOM_CENTER_Y - 32,
         };
@@ -1055,11 +1523,10 @@ export class DungeonScene {
       }
     }
 
-    // 2. Boss Victory Portal
     if (this.currentRoom.type === 'boss' && this.bossDefeatedInRun) {
       if (Math.hypot(this.playerX - ROOM_CENTER_X, this.playerY - ROOM_CENTER_Y) < 30) {
         this.activePrompt = {
-          label: '[E] Sieges-Warp nach Port Solaris!',
+          label: '[E] Sieges-Extraktion: Port Solaris!',
           x: ROOM_CENTER_X,
           y: ROOM_CENTER_Y - 26,
         };
@@ -1070,7 +1537,6 @@ export class DungeonScene {
       }
     }
 
-    // 3. Ancient Treasure Chest
     const chest = this.currentRoom.chest;
     if (chest && !chest.opened) {
       if (Math.hypot(this.playerX - chest.x, this.playerY - chest.y) < 28) {
@@ -1083,7 +1549,6 @@ export class DungeonScene {
           chest.opened = true;
           sound.playUpgrade();
           this.spawnBurst(chest.x, chest.y, '#fbbf24', 20);
-          // Drop 3 shiny relics, at least 2 rare/epic!
           this.spawnLootDrop(chest.x, chest.y, rollLootItem(2, true));
           this.spawnLootDrop(chest.x, chest.y, rollLootItem(2, true));
           this.spawnLootDrop(chest.x, chest.y, rollLootItem(2, false));
@@ -1103,7 +1568,7 @@ export class DungeonScene {
     sound.playWarp();
     const res = processSafeReturnEffects(this.state.inventory);
     this.state.save();
-    this.callbacks.onReturnToShop({
+    this.callbacks.onReturnToHub({
       victory: true,
       reason,
       roomsCleared: this.roomsCleared,
@@ -1121,7 +1586,7 @@ export class DungeonScene {
     sound.playWarp();
     const res = processDefeatPenalty(this.state.inventory);
     this.state.save();
-    this.callbacks.onReturnToShop({
+    this.callbacks.onReturnToHub({
       victory: false,
       reason: 'defeat',
       roomsCleared: this.roomsCleared,
@@ -1156,9 +1621,21 @@ export class DungeonScene {
   }
 
   private updateEffects(dt: number): void {
-    for (let i = this.slashes.length - 1; i >= 0; i--) {
-      this.slashes[i].life -= dt;
-      if (this.slashes[i].life <= 0) this.slashes.splice(i, 1);
+    for (let i = this.swings.length - 1; i >= 0; i--) {
+      this.swings[i].life -= dt;
+      if (this.swings[i].life <= 0) this.swings.splice(i, 1);
+    }
+    for (let i = this.beams.length - 1; i >= 0; i--) {
+      this.beams[i].life -= dt;
+      if (this.beams[i].life <= 0) this.beams.splice(i, 1);
+    }
+    for (let i = this.shockwaves.length - 1; i >= 0; i--) {
+      this.shockwaves[i].life -= dt;
+      if (this.shockwaves[i].life <= 0) this.shockwaves.splice(i, 1);
+    }
+    for (let i = this.decals.length - 1; i >= 0; i--) {
+      this.decals[i].life -= dt;
+      if (this.decals[i].life <= 0) this.decals.splice(i, 1);
     }
     for (let i = this.afterimages.length - 1; i >= 0; i--) {
       this.afterimages[i].life -= dt;
@@ -1185,6 +1662,7 @@ export class DungeonScene {
     return a;
   }
 
+  // ==================== HD RENDERING ====================
   public render(ctx: CanvasRenderingContext2D, input: InputManager): void {
     const art = getHDArt();
     const atlas = getAtlas();
@@ -1196,7 +1674,6 @@ export class DungeonScene {
       ctx.translate(sx, sy);
     }
 
-    // 1. High-craft Moonlighter Derelict Starship Room Backdrop (960x540 rendered 1:1!)
     if (art.dungeonBg) {
       ctx.drawImage(art.dungeonBg, 0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
     } else {
@@ -1204,7 +1681,18 @@ export class DungeonScene {
       ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
     }
 
-    // Subtle ambient bioluminescent spores floating in the derelict room
+    // Floor slime decals
+    for (const d of this.decals) {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, d.life / d.maxLife);
+      ctx.fillStyle = d.color;
+      ctx.beginPath();
+      ctx.ellipse(d.x, d.y, d.r, d.r * 0.55, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Ambient bioluminescent spores
     for (let s = 0; s < 10; s++) {
       const sx = ROOM_LEFT + ((s * 73 + this.currentRoom.tileSeed) % (ROOM_RIGHT - ROOM_LEFT));
       const sy =
@@ -1215,22 +1703,18 @@ export class DungeonScene {
       ctx.fillRect(sx + Math.sin(this.time + s) * 4, sy, 1.5, 1.5);
     }
 
-    // 2. Active Airlock Doors (red laser bars when locked / glowing cyan energy when open!)
     this.renderDoors(ctx);
 
-    // 3. Start Room Warp Pad OR Boss Victory Portal
     if (this.currentRoom.type === 'start') {
       this.renderWarpPad(ctx, ROOM_CENTER_X, ROOM_CENTER_Y - 12, '#38e8d4');
     } else if (this.currentRoom.type === 'boss' && this.bossDefeatedInRun) {
       this.renderWarpPad(ctx, ROOM_CENTER_X, ROOM_CENTER_Y, '#fbbf24');
     }
 
-    // 4. Obstacles (pillars, conduits, crates)
     for (const ob of this.currentRoom.obstacles) {
       this.renderObstacle(ctx, ob);
     }
 
-    // 5. Destructible Golden Alien Frachtkapseln
     for (const pod of this.currentRoom.pods) {
       if (!pod.broken) {
         drawPixelShadow(ctx, pod.x, pod.y + 9, 9, 3.5, 0.48);
@@ -1245,7 +1729,6 @@ export class DungeonScene {
       }
     }
 
-    // 6. Ornate Ancient Treasure Chest
     if (this.currentRoom.chest) {
       const ch = this.currentRoom.chest;
       drawPixelShadow(ctx, ch.x, ch.y + 10, 14, 4.5, 0.5);
@@ -1264,7 +1747,6 @@ export class DungeonScene {
       }
     }
 
-    // 7. HD Glowing Loot Drops
     for (const d of this.drops) {
       const def = getItemDef(d.itemId);
       const bob = Math.sin(this.time * 5 + d.x) * 2.2;
@@ -1276,7 +1758,6 @@ export class DungeonScene {
       }
     }
 
-    // 8. Jetpack Dash Afterimages
     for (const a of this.afterimages) {
       ctx.save();
       ctx.globalAlpha = (a.life / a.maxLife) * 0.45;
@@ -1288,9 +1769,19 @@ export class DungeonScene {
       ctx.restore();
     }
 
-    // 9. Boss Charge Telegraph Lane
+    // Enemy telegraphs: Drone Laser Sightlines & Boss Charge Lanes!
     for (const e of this.enemies) {
-      if (e.kind === 'boss' && e.telegraphTimer > 0 && e.phase % 2 === 1) {
+      if (e.kind === 'drone' && e.telegraphTimer > 0) {
+        ctx.save();
+        ctx.strokeStyle = `rgba(251, 113, 133, ${0.4 + 0.4 * Math.sin(this.time * 36)})`;
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([4, 3]);
+        ctx.beginPath();
+        ctx.moveTo(e.x, e.y);
+        ctx.lineTo(e.x + Math.cos(e.aimAngle) * 145, e.y + Math.sin(e.aimAngle) * 145);
+        ctx.stroke();
+        ctx.restore();
+      } else if (e.kind === 'boss' && e.telegraphTimer > 0 && e.phase % 2 === 1) {
         ctx.save();
         ctx.strokeStyle = 'rgba(251, 113, 133, 0.72)';
         ctx.lineWidth = 8;
@@ -1303,7 +1794,7 @@ export class DungeonScene {
       }
     }
 
-    // 10. Depth-Sorted Enemies & Player
+    // Depth-sorted enemies & hero
     type Drawable = { y: number; draw: () => void };
     const drawables: Drawable[] = [];
     for (const e of this.enemies) {
@@ -1313,25 +1804,61 @@ export class DungeonScene {
     drawables.sort((a, b) => a.y - b.y);
     for (const d of drawables) d.draw();
 
-    // 11. Plasma Blade Slash Arcs
-    for (const s of this.slashes) {
-      const alpha = s.life / s.maxLife;
+    // Kinetic Shield Arc when blocking with Plasma-Klinge!
+    if (this.shieldActive) {
+      this.renderKineticShield(ctx);
+    }
+
+    // Lush Multi-Layered Weapon Swings + Animated Held Weapon Sprite!
+    for (const s of this.swings) {
+      this.renderWeaponSwing(ctx, s);
+    }
+
+    // Piercing Railgun Beams (Puls-Blaster Secondary!)
+    for (const b of this.beams) {
+      const alpha = b.life / b.maxLife;
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
-      ctx.strokeStyle = s.comboStep === 2 ? `rgba(253, 224, 71, ${alpha})` : `rgba(56, 232, 212, ${alpha})`;
-      ctx.lineWidth = s.comboStep === 2 ? 7 : 5;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = `rgba(56, 189, 248, ${alpha * 0.55})`;
+      ctx.lineWidth = 11 * alpha + 3;
       ctx.beginPath();
-      ctx.arc(s.x, s.y, s.radius * 0.85, s.angle - s.sweep / 2, s.angle + s.sweep / 2);
+      ctx.moveTo(b.x1, b.y1);
+      ctx.lineTo(b.x2, b.y2);
       ctx.stroke();
-      ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.9})`;
+
+      ctx.strokeStyle = `rgba(56, 232, 212, ${alpha})`;
+      ctx.lineWidth = 5 * alpha + 1.5;
+      ctx.beginPath();
+      ctx.moveTo(b.x1, b.y1);
+      ctx.lineTo(b.x2, b.y2);
+      ctx.stroke();
+
+      ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(s.x, s.y, s.radius * 0.92, s.angle - s.sweep / 2, s.angle + s.sweep / 2);
+      ctx.moveTo(b.x1, b.y1);
+      ctx.lineTo(b.x2, b.y2);
       ctx.stroke();
       ctx.restore();
     }
 
-    // 12. Projectiles
+    // Shockwave Rings (Hammer Secondary & Blade Finisher!)
+    for (const sw of this.shockwaves) {
+      const progress = 1 - sw.life / sw.maxLife;
+      const r = 10 + (sw.maxRadius - 10) * progress;
+      const alpha = 1 - progress;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = sw.color;
+      ctx.globalAlpha = alpha * 0.85;
+      ctx.lineWidth = 4 * alpha + 1;
+      ctx.beginPath();
+      ctx.arc(sw.x, sw.y, r, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
     for (const p of this.projectiles) {
       drawGlow(ctx, p.x, p.y, 12, p.color, 0.55);
       ctx.fillStyle = p.color;
@@ -1342,7 +1869,6 @@ export class DungeonScene {
       ctx.fillRect(p.x - 1, p.y - 1, 2, 2);
     }
 
-    // 13. Particles
     for (const p of this.particles) {
       ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
       ctx.fillStyle = p.color;
@@ -1350,7 +1876,6 @@ export class DungeonScene {
     }
     ctx.globalAlpha = 1;
 
-    // 14. Warp-Beacon Channel Ring
     if (this.warpChannel > 0.05) {
       const pct = Math.min(1, this.warpChannel / this.warpDuration);
       ctx.save();
@@ -1363,7 +1888,6 @@ export class DungeonScene {
       ctx.restore();
     }
 
-    // 15. Floating Damage & Loot Numbers
     ctx.font = 'bold 6.5px Silkscreen, monospace';
     ctx.textAlign = 'center';
     for (const f of this.floats) {
@@ -1375,7 +1899,6 @@ export class DungeonScene {
     }
     ctx.globalAlpha = 1;
 
-    // 16. Mouse Aim Reticle
     if (input.isMouseActive() && !input.locked) {
       const m = input.getMousePos();
       ctx.strokeStyle = 'rgba(56, 232, 212, 0.8)';
@@ -1387,7 +1910,6 @@ export class DungeonScene {
 
     ctx.restore();
 
-    // Unshaken overlays
     this.renderMinimap(ctx);
     this.renderBossBar(ctx);
 
@@ -1399,6 +1921,106 @@ export class DungeonScene {
       ctx.fillStyle = `rgba(10, 14, 24, ${Math.min(1, this.roomFade / 0.22)})`;
       ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
     }
+  }
+
+  private renderWeaponSwing(ctx: CanvasRenderingContext2D, s: WeaponSwing): void {
+    const art = getHDArt();
+    const t = 1 - s.life / s.maxLife; // 0 -> 1 over swing animation
+    const alpha = Math.max(0, 1 - t * 0.9);
+    const eased = 1 - Math.pow(1 - t, 3); // snappy whip ease-out!
+
+    const startA = s.dir === 1 ? s.angle - s.sweep / 2 : s.angle + s.sweep / 2;
+    const endA = s.dir === 1 ? s.angle + s.sweep / 2 : s.angle - s.sweep / 2;
+    const curA = startA + (endA - startA) * eased;
+    const trailStart = startA + (endA - startA) * Math.max(0, eased - 0.72);
+
+    const aMin = Math.min(trailStart, curA);
+    const aMax = Math.max(trailStart, curA);
+
+    const isHammer = s.weapon === 'hammer';
+    const isFinisher = s.weapon === 'blade' && s.comboStep === 2;
+    const outerColor = isHammer
+      ? `rgba(249, 115, 22, ${alpha * 0.55})`
+      : isFinisher
+        ? `rgba(251, 191, 36, ${alpha * 0.6})`
+        : `rgba(20, 184, 166, ${alpha * 0.55})`;
+    const coreColor = isHammer
+      ? `rgba(253, 224, 71, ${alpha})`
+      : isFinisher
+        ? `rgba(254, 240, 138, ${alpha})`
+        : `rgba(56, 232, 212, ${alpha})`;
+
+    // 1. Multi-layered tapered energy smear ribbon
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = outerColor;
+    ctx.lineWidth = isHammer ? 12 : isFinisher ? 10 : 8;
+    ctx.beginPath();
+    ctx.arc(this.playerX, this.playerY, s.radius * 0.76, aMin, aMax);
+    ctx.stroke();
+
+    ctx.strokeStyle = coreColor;
+    ctx.lineWidth = isHammer ? 6 : 4.5;
+    ctx.beginPath();
+    ctx.arc(this.playerX, this.playerY, s.radius * 0.85, aMin, aMax);
+    ctx.stroke();
+
+    ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.95})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(this.playerX, this.playerY, s.radius * 0.93, aMin, aMax);
+    ctx.stroke();
+    ctx.restore();
+
+    // 2. Visible HD Weapon Sprite rotating right around the hero's hand!
+    const wepSpr = isHammer ? art.weapons.hammer : art.weapons.blade;
+    if (wepSpr) {
+      ctx.save();
+      ctx.translate(this.playerX, this.playerY);
+      // Weapon sprite points diagonally up-right (-45 deg), so offset by +PI/4!
+      ctx.rotate(curA + Math.PI / 4);
+      const size = isHammer ? 28 : isFinisher ? 27 : 24;
+      ctx.drawImage(wepSpr, -size * 0.15, -size * 0.95, size, size);
+      ctx.restore();
+    }
+  }
+
+  private renderKineticShield(ctx: CanvasRenderingContext2D): void {
+    const pulse = 0.5 + 0.5 * Math.sin(this.time * 12);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = `rgba(56, 232, 212, ${0.7 + pulse * 0.25})`;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(
+      this.playerX,
+      this.playerY,
+      15,
+      this.shieldAngle - Math.PI * 0.44,
+      this.shieldAngle + Math.PI * 0.44,
+    );
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(
+      this.playerX,
+      this.playerY,
+      16,
+      this.shieldAngle - Math.PI * 0.36,
+      this.shieldAngle + Math.PI * 0.36,
+    );
+    ctx.stroke();
+    drawGlow(
+      ctx,
+      this.playerX + Math.cos(this.shieldAngle) * 14,
+      this.playerY + Math.sin(this.shieldAngle) * 14,
+      16,
+      '#38e8d4',
+      0.32,
+    );
+    ctx.restore();
   }
 
   private renderDoors(ctx: CanvasRenderingContext2D): void {
@@ -1518,7 +2140,7 @@ export class DungeonScene {
     const frame = Math.floor(e.anim) % 2;
 
     if (e.kind === 'boss') {
-      const hover = Math.sin(this.time * 3.5) * 2;
+      const hover = Math.sin(this.time * 3.5) * 2.2;
       drawPixelShadow(ctx, e.x, e.y + 18, 22, 7, 0.55);
       const spr = e.flashTimer > 0 ? art.bossFlash ?? atlas.bossFlash : art.boss ?? atlas.boss[frame];
       if (art.boss) {
@@ -1533,29 +2155,39 @@ export class DungeonScene {
     drawPixelShadow(ctx, e.x, e.y + 9, 8.5, 3.2, 0.48);
 
     if (e.kind === 'slime') {
-      const squish = Math.sin(e.anim * 1.4) * 0.1;
+      const speed = Math.hypot(e.vx, e.vy);
+      const crouch = e.telegraphTimer > 0 ? 0.24 : Math.sin(e.anim * 1.6) * 0.12;
+      const hopLift = Math.min(5, speed * 0.045);
       const spr = e.flashTimer > 0 ? art.slimeFlash ?? atlas.slimeFlash : art.slime ?? atlas.slime[frame];
       if (art.slime) {
         ctx.save();
-        ctx.translate(e.x, e.y + 9);
-        ctx.scale(1 + squish, 1 - squish);
+        ctx.translate(e.x, e.y + 9 - hopLift);
+        ctx.scale(1 + crouch, 1 - crouch);
         ctx.drawImage(spr, -11, -20, 22, 21);
         ctx.restore();
       } else {
         ctx.drawImage(spr, Math.round(e.x - 8), Math.round(e.y - 8));
       }
-      drawGlow(ctx, e.x, e.y, 14, '#c084fc', 0.22);
+      drawGlow(ctx, e.x, e.y, 16, e.telegraphTimer > 0 ? '#f472b6' : '#c084fc', e.telegraphTimer > 0 ? 0.45 : 0.22);
     } else if (e.kind === 'drone') {
-      const hover = Math.sin(this.time * 6 + e.id) * 2.4;
+      const hover = Math.sin(this.time * 6.5 + e.id) * 2.6;
+      const bank = Math.max(-0.22, Math.min(0.22, e.vx * 0.0025));
       const spr = e.flashTimer > 0 ? art.droneFlash ?? atlas.droneFlash : art.drone ?? atlas.drone[0];
       if (art.drone) {
-        ctx.drawImage(spr, e.x - 11, e.y - 12 + hover, 22, 22);
+        ctx.save();
+        ctx.translate(e.x, e.y + hover);
+        ctx.rotate(bank);
+        ctx.drawImage(spr, -11, -12, 22, 22);
+        ctx.restore();
       } else {
         ctx.drawImage(spr, Math.round(e.x - 8), Math.round(e.y - 9 + hover));
       }
       if (e.telegraphTimer > 0) drawGlow(ctx, e.x, e.y + hover, 18, '#fb7185', 0.55);
       else drawGlow(ctx, e.x, e.y + hover, 13, '#38e8d4', 0.22);
     } else {
+      const scurrying = e.scurryTimer > 0;
+      const bob = scurrying ? Math.abs(Math.sin(this.time * 22 + e.id)) * 2.2 : 0;
+      const tilt = scurrying ? Math.sin(this.time * 22 + e.id) * 0.08 : 0;
       const spr =
         e.flashTimer > 0
           ? art.turretFlash ?? atlas.turretFlash
@@ -1563,7 +2195,11 @@ export class DungeonScene {
             ? art.turret1 ?? atlas.turret[1]
             : art.turret0 ?? atlas.turret[0];
       if (art.turret0) {
-        ctx.drawImage(spr, e.x - 12, e.y - 13, 24, 24);
+        ctx.save();
+        ctx.translate(e.x, e.y - bob);
+        ctx.rotate(tilt);
+        ctx.drawImage(spr, -12, -13, 24, 24);
+        ctx.restore();
       } else {
         ctx.drawImage(spr, Math.round(e.x - 8), Math.round(e.y - 8));
       }
@@ -1595,15 +2231,16 @@ export class DungeonScene {
 
     drawPixelShadow(ctx, this.playerX, this.playerY + 11, 8, 3.2, 0.5);
 
-    const hdSpr = this.playerFlashTimer > 0
-      ? art.heroFlash
-      : this.facing === 'up'
-        ? art.heroUp
-        : this.facing === 'right'
-          ? art.heroRight
-          : this.facing === 'left'
-            ? art.heroLeft
-            : art.heroDown;
+    const hdSpr =
+      this.playerFlashTimer > 0
+        ? art.heroFlash
+        : this.facing === 'up'
+          ? art.heroUp
+          : this.facing === 'right'
+            ? art.heroRight
+            : this.facing === 'left'
+              ? art.heroLeft
+              : art.heroDown;
 
     if (hdSpr) {
       ctx.save();
@@ -1620,7 +2257,22 @@ export class DungeonScene {
       if (this.playerFlashTimer > 0) spr = atlas.heroFlash;
       ctx.drawImage(spr, Math.round(this.playerX - 8), Math.round(this.playerY - 10));
     }
-    drawGlow(ctx, this.playerX, this.playerY, 22, '#38e8d4', 0.16);
+
+    // Show equipped Puls-Blaster in hand when firing / equipped!
+    if (this.state.equippedWeapon === 'blaster' && art.weapons.blaster) {
+      const a = this.lastAimAngle;
+      const recoil = this.blasterRecoil * 3.5;
+      ctx.save();
+      ctx.translate(
+        this.playerX + Math.cos(a) * (8 - recoil),
+        this.playerY - 1 + Math.sin(a) * (8 - recoil),
+      );
+      ctx.rotate(a + Math.PI / 4);
+      ctx.drawImage(art.weapons.blaster, -8, -8, 16, 16);
+      ctx.restore();
+    }
+
+    drawGlow(ctx, this.playerX, this.playerY, 22, WEAPON_META[this.state.equippedWeapon].accentColor, 0.14);
   }
 
   private renderMinimap(ctx: CanvasRenderingContext2D): void {

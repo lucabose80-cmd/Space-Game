@@ -1,15 +1,13 @@
 import { getItemDef } from '../data/items';
 import type { InventoryData, ItemStack } from '../types';
 
-export type ContainerId = 'safeBelt' | 'cargo' | 'chest';
+export type ContainerId = 'cargo' | 'chest';
 
-export const SAFE_BELT_SIZE = 5;
-export const CARGO_SIZE = 15;
+export const CARGO_SIZE = 20;
 export const CHEST_SIZE = 28;
 
 export function createEmptyInventory(): InventoryData {
   return {
-    safeBelt: Array.from({ length: SAFE_BELT_SIZE }, () => null),
     cargo: Array.from({ length: CARGO_SIZE }, () => null),
     chest: Array.from({ length: CHEST_SIZE }, () => null),
   };
@@ -19,7 +17,6 @@ function tryAddToSlots(slots: Array<ItemStack | null>, itemId: string, qty: numb
   const def = getItemDef(itemId);
   let remaining = qty;
 
-  // 1. Stack onto existing partial stacks
   for (let i = 0; i < slots.length && remaining > 0; i++) {
     const slot = slots[i];
     if (slot && slot.itemId === itemId && slot.qty < def.maxStack) {
@@ -29,7 +26,6 @@ function tryAddToSlots(slots: Array<ItemStack | null>, itemId: string, qty: numb
     }
   }
 
-  // 2. Fill empty slots
   for (let i = 0; i < slots.length && remaining > 0; i++) {
     if (slots[i] === null) {
       const add = Math.min(remaining, def.maxStack);
@@ -42,15 +38,11 @@ function tryAddToSlots(slots: Array<ItemStack | null>, itemId: string, qty: numb
 }
 
 /**
- * Adds item to player backpack (safeBelt first for convenience, then cargo).
- * Returns leftover quantity that could not fit.
+ * Adds dungeon/expedition loot directly into the 20-slot Expedition Backpack (cargo).
+ * Only secured upon extraction!
  */
 export function addItemToBackpack(inv: InventoryData, itemId: string, qty = 1): number {
-  let rem = tryAddToSlots(inv.safeBelt, itemId, qty);
-  if (rem > 0) {
-    rem = tryAddToSlots(inv.cargo, itemId, rem);
-  }
-  return rem;
+  return tryAddToSlots(inv.cargo, itemId, qty);
 }
 
 export function addItemToChest(inv: InventoryData, itemId: string, qty = 1): number {
@@ -58,16 +50,16 @@ export function addItemToChest(inv: InventoryData, itemId: string, qty = 1): num
 }
 
 export function addItemAnywhere(inv: InventoryData, itemId: string, qty = 1): number {
-  let rem = addItemToBackpack(inv, itemId, qty);
+  let rem = addItemToChest(inv, itemId, qty);
   if (rem > 0) {
-    rem = addItemToChest(inv, itemId, rem);
+    rem = addItemToBackpack(inv, itemId, rem);
   }
   return rem;
 }
 
 export function countItemTotal(inv: InventoryData, itemId: string): number {
   let total = 0;
-  for (const list of [inv.safeBelt, inv.cargo, inv.chest]) {
+  for (const list of [inv.cargo, inv.chest]) {
     for (const s of list) {
       if (s && s.itemId === itemId) total += s.qty;
     }
@@ -77,21 +69,17 @@ export function countItemTotal(inv: InventoryData, itemId: string): number {
 
 export function countBackpackItems(inv: InventoryData): number {
   let total = 0;
-  for (const list of [inv.safeBelt, inv.cargo]) {
-    for (const s of list) {
-      if (s) total += s.qty;
-    }
+  for (const s of inv.cargo) {
+    if (s) total += s.qty;
   }
   return total;
 }
 
 export function isBackpackFullFor(inv: InventoryData, itemId: string): boolean {
   const def = getItemDef(itemId);
-  for (const list of [inv.safeBelt, inv.cargo]) {
-    for (const s of list) {
-      if (s === null) return false;
-      if (s.itemId === itemId && s.qty < def.maxStack) return false;
-    }
+  for (const s of inv.cargo) {
+    if (s === null) return false;
+    if (s.itemId === itemId && s.qty < def.maxStack) return false;
   }
   return true;
 }
@@ -99,8 +87,7 @@ export function isBackpackFullFor(inv: InventoryData, itemId: string): boolean {
 export function consumeItemTotal(inv: InventoryData, itemId: string, qty: number): boolean {
   if (countItemTotal(inv, itemId) < qty) return false;
   let rem = qty;
-  // Prefer consuming from cargo, then chest, then safeBelt
-  for (const list of [inv.cargo, inv.chest, inv.safeBelt]) {
+  for (const list of [inv.cargo, inv.chest]) {
     for (let i = 0; i < list.length && rem > 0; i++) {
       const slot = list[i];
       if (slot && slot.itemId === itemId) {
@@ -163,6 +150,7 @@ export function quickTransferSlot(
   index: number,
   chestAvailable: boolean,
 ): boolean {
+  if (!chestAvailable) return false;
   const srcList = inv[fromContainer];
   const slot = srcList[index];
   if (!slot) return false;
@@ -174,66 +162,73 @@ export function quickTransferSlot(
     return true;
   }
 
-  if (chestAvailable) {
-    const rem = addItemToChest(inv, slot.itemId, slot.qty);
-    if (rem === 0) srcList[index] = null;
-    else slot.qty = rem;
-    return true;
-  }
-
-  // Otherwise toggle between cargo and safeBelt
-  const target = fromContainer === 'cargo' ? inv.safeBelt : inv.cargo;
-  const rem = tryAddToSlots(target, slot.itemId, slot.qty);
+  const rem = addItemToChest(inv, slot.itemId, slot.qty);
   if (rem === 0) srcList[index] = null;
   else slot.qty = rem;
   return true;
 }
 
 /**
- * Processes Moonlighter-style Cargo Modifiers upon returning safely via Warp/Boss.
- * - warp_anchor: sends the slot immediately to the right in the same row directly to the shop chest!
+ * Moves all cargo items cleanly into the Shop Storage Chest (handy 1-click button!).
+ */
+export function depositAllCargoToChest(inv: InventoryData): number {
+  let moved = 0;
+  for (let i = 0; i < inv.cargo.length; i++) {
+    const s = inv.cargo[i];
+    if (!s) continue;
+    const rem = addItemToChest(inv, s.itemId, s.qty);
+    moved += s.qty - rem;
+    if (rem === 0) inv.cargo[i] = null;
+    else s.qty = rem;
+  }
+  return moved;
+}
+
+/**
+ * Safe extraction (Start Warp Pad, Warp-Beacon [R], or Boss Victory):
+ * - All carried backpack loot is secured!
+ * - Any 'warp_anchor' relic teleports its right-neighbor slot straight into the Shop Chest!
  */
 export function processSafeReturnEffects(inv: InventoryData): {
   warpedToChest: string[];
   savedCount: number;
 } {
   const warpedToChest: string[] = [];
+  let warpedCount = 0;
+  const cols = 5;
 
-  const checkGrid = (slots: Array<ItemStack | null>, cols: number) => {
-    for (let i = 0; i < slots.length; i++) {
-      const s = slots[i];
-      if (!s) continue;
-      if (getItemDef(s.itemId).modifier === 'warp_anchor') {
-        const col = i % cols;
-        if (col < cols - 1) {
-          const rightIdx = i + 1;
-          const neighbor = slots[rightIdx];
-          if (neighbor) {
-            const rem = addItemToChest(inv, neighbor.itemId, neighbor.qty);
-            if (rem < neighbor.qty) {
-              warpedToChest.push(getItemDef(neighbor.itemId).name);
-            }
-            if (rem === 0) slots[rightIdx] = null;
-            else neighbor.qty = rem;
+  for (let i = 0; i < inv.cargo.length; i++) {
+    const s = inv.cargo[i];
+    if (!s) continue;
+    if (getItemDef(s.itemId).modifier === 'warp_anchor') {
+      const col = i % cols;
+      if (col < cols - 1) {
+        const rightIdx = i + 1;
+        const neighbor = inv.cargo[rightIdx];
+        if (neighbor) {
+          const rem = addItemToChest(inv, neighbor.itemId, neighbor.qty);
+          const moved = neighbor.qty - rem;
+          if (moved > 0) {
+            warpedCount += moved;
+            warpedToChest.push(getItemDef(neighbor.itemId).name);
           }
+          if (rem === 0) inv.cargo[rightIdx] = null;
+          else neighbor.qty = rem;
         }
       }
     }
-  };
-
-  checkGrid(inv.safeBelt, 5);
-  checkGrid(inv.cargo, 5);
+  }
 
   return {
     warpedToChest,
-    savedCount: countBackpackItems(inv),
+    savedCount: countBackpackItems(inv) + warpedCount,
   };
 }
 
 /**
- * Processes defeat penalty:
- * - All 15 cargo slots are lost (unless a warp_anchor in safeBelt saves a right neighbor first? Keep clear: cargo lost!).
- * - All 5 safeBelt slots are kept, EXCEPT items with modifier === 'fragile' which shatter!
+ * Moonlighter-style Extraction Defeat Penalty:
+ * - Falling at 0 HP in the dungeon loses ALL carried expedition backpack items!
+ * - Only items previously stored in your Shop Storage Chest remain safe!
  */
 export function processDefeatPenalty(inv: InventoryData): {
   itemsLost: number;
@@ -247,22 +242,16 @@ export function processDefeatPenalty(inv: InventoryData): {
     const s = inv.cargo[i];
     if (s) {
       itemsLost += s.qty;
+      if (getItemDef(s.itemId).modifier === 'fragile') {
+        shatteredItems.push(getItemDef(s.itemId).name);
+      }
       inv.cargo[i] = null;
-    }
-  }
-
-  for (let i = 0; i < inv.safeBelt.length; i++) {
-    const s = inv.safeBelt[i];
-    if (s && getItemDef(s.itemId).modifier === 'fragile') {
-      itemsLost += s.qty;
-      shatteredItems.push(getItemDef(s.itemId).name);
-      inv.safeBelt[i] = null;
     }
   }
 
   return {
     itemsLost,
-    itemsSaved: countBackpackItems(inv),
+    itemsSaved: 0,
     shatteredItems,
   };
 }
@@ -273,7 +262,7 @@ export function getAllAvailableShopItems(inv: InventoryData): Array<{
   stack: ItemStack;
 }> {
   const result: Array<{ container: ContainerId; index: number; stack: ItemStack }> = [];
-  const containers: ContainerId[] = ['safeBelt', 'cargo', 'chest'];
+  const containers: ContainerId[] = ['cargo', 'chest'];
   for (const c of containers) {
     const list = inv[c];
     for (let i = 0; i < list.length; i++) {

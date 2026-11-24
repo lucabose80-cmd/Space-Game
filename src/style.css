@@ -1073,6 +1073,22 @@ body.touch-device .hud-hint {
   color: #cbd5e1;
 }
 
+.touch-right-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tbtn-swap-strip {
+  width: 100%;
+  height: 28px;
+  border-radius: 7px;
+  font-size: 8.5px;
+  background: rgba(20, 32, 52, 0.92);
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+}
+
 /* Compact HUD & 1-Column Modals on Narrow Mobile Screens */
 body.touch-device #hud-shop-toggle {
   display: none;
@@ -1084,14 +1100,14 @@ body.touch-device #hud-shop-toggle {
   }
 
   .hud-vitals {
-    min-width: 112px;
+    min-width: 108px;
     padding: 3px 5px;
     gap: 2px;
   }
 
   .hud-bar-label {
     font-size: 7px;
-    width: 15px;
+    width: 14px;
   }
 
   .hud-bar-track {
@@ -1102,15 +1118,30 @@ body.touch-device #hud-shop-toggle {
   .hud-meta-row,
   .hud-btn,
   .hud-location-pill {
-    font-size: 7.5px;
+    font-size: 7px;
   }
 
   .hud-btn {
-    padding: 4px 6px;
+    padding: 4px 5px;
+    white-space: nowrap;
+  }
+
+  .hud-actions {
+    gap: 4px;
+    flex-shrink: 0;
   }
 
   .hud-actions.dungeon-offset {
-    margin-right: 52px;
+    margin-right: 48px;
+  }
+
+  #hud-weapon-chip {
+    white-space: nowrap;
+    font-size: 7px !important;
+  }
+
+  .hud-center {
+    display: none;
   }
 
   .inv-layout,
@@ -1140,7 +1171,7 @@ body.touch-device #hud-shop-toggle {
 @media (orientation: portrait) and (max-width: 760px) {
   body.touch-device #toast-layer {
     position: fixed;
-    bottom: 248px;
+    bottom: 306px;
     width: 92vw;
   }
 

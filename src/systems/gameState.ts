@@ -7,17 +7,21 @@ import type {
   SaveData,
   UpgradeKey,
   UpgradeLevels,
+  WeaponId,
 } from '../types';
 import { createInitialCodex, decayDemandForNewDay } from './economy';
 import {
-  addItemToBackpack,
+  addItemToChest,
+  CARGO_SIZE,
+  CHEST_SIZE,
   consumeItemTotal,
   countItemTotal,
   createEmptyInventory,
 } from './inventory';
 
-const SAVE_KEY = 'starlighter_save_v1';
-const SAVE_VERSION = 1;
+const SAVE_KEY = 'starlighter_save_v2';
+const LEGACY_SAVE_KEY = 'starlighter_save_v1';
+const SAVE_VERSION = 2;
 
 export const SHOP_PEDESTAL_COORDS: Array<{ id: number; x: number; y: number }> = [
   { id: 0, x: 132, y: 152 },
@@ -38,13 +42,21 @@ export class GameState {
   public upgrades: UpgradeLevels = {
     blade: 0,
     blaster: 0,
+    hammer: 0,
     suit: 0,
     stimpack: 0,
     shopAura: 0,
   };
+  public unlockedWeapons: Record<WeaponId, boolean> = {
+    blade: true,
+    blaster: false,
+    hammer: false,
+  };
+  public equippedWeapon: WeaponId = 'blade';
+  public secondaryWeapon: WeaponId | null = null;
   public muted = false;
 
-  // Live run stats (refreshed on entering dungeon / healed in shop)
+  // Live run stats
   public hp = 100;
   public energy = 100;
   public stimCharges = 2;
@@ -64,10 +76,19 @@ export class GameState {
     this.upgrades = {
       blade: 0,
       blaster: 0,
+      hammer: 0,
       suit: 0,
       stimpack: 0,
       shopAura: 0,
     };
+    this.unlockedWeapons = {
+      blade: true,
+      blaster: false,
+      hammer: false,
+    };
+    this.equippedWeapon = 'blade';
+    this.secondaryWeapon = null;
+
     this.pedestals = SHOP_PEDESTAL_COORDS.map((c) => ({
       id: c.id,
       x: c.x,
@@ -77,10 +98,10 @@ export class GameState {
       price: 0,
     }));
 
-    // Starter salvage so player can immediately test the Shop OR dive straight into Sector 1!
-    addItemToBackpack(this.inventory, 'scrap_coil', 2);
-    addItemToBackpack(this.inventory, 'bio_gel', 2);
-    addItemToBackpack(this.inventory, 'alien_prism', 1);
+    // Starter salvage stored safely in your Shop Chest so your Expedition Backpack starts clean!
+    addItemToChest(this.inventory, 'scrap_coil', 2);
+    addItemToChest(this.inventory, 'bio_gel', 2);
+    addItemToChest(this.inventory, 'alien_prism', 1);
     this.markDiscovered('scrap_coil');
     this.markDiscovered('bio_gel');
     this.markDiscovered('alien_prism');
@@ -110,9 +131,68 @@ export class GameState {
     this.save();
   }
 
+  public swapEquippedWeapons(): boolean {
+    if (!this.secondaryWeapon) return false;
+    const prev = this.equippedWeapon;
+    this.equippedWeapon = this.secondaryWeapon;
+    this.secondaryWeapon = prev;
+    this.save();
+    return true;
+  }
+
+  public equipWeapon(weaponId: WeaponId, slot: 'primary' | 'secondary' = 'primary'): void {
+    if (!this.unlockedWeapons[weaponId]) return;
+    if (slot === 'primary') {
+      if (this.secondaryWeapon === weaponId) {
+        this.secondaryWeapon = this.equippedWeapon;
+      }
+      this.equippedWeapon = weaponId;
+    } else {
+      if (this.equippedWeapon === weaponId) {
+        if (this.secondaryWeapon) {
+          this.equippedWeapon = this.secondaryWeapon;
+          this.secondaryWeapon = weaponId;
+        }
+      } else {
+        this.secondaryWeapon = weaponId;
+      }
+    }
+    this.save();
+  }
+
+  public canCraftWeapon(weaponId: WeaponId): boolean {
+    if (this.unlockedWeapons[weaponId]) return false;
+    const track = UPGRADE_TRACKS.find((t) => t.weaponId === weaponId);
+    if (!track?.craftCost) return false;
+    if (this.credits < track.craftCost.creditCost) return false;
+    for (const mat of track.craftCost.materials) {
+      if (countItemTotal(this.inventory, mat.itemId) < mat.qty) return false;
+    }
+    return true;
+  }
+
+  public craftWeapon(weaponId: WeaponId): boolean {
+    if (!this.canCraftWeapon(weaponId)) return false;
+    const track = UPGRADE_TRACKS.find((t) => t.weaponId === weaponId);
+    if (!track?.craftCost) return false;
+
+    this.credits -= track.craftCost.creditCost;
+    for (const mat of track.craftCost.materials) {
+      consumeItemTotal(this.inventory, mat.itemId, mat.qty);
+    }
+    this.unlockedWeapons[weaponId] = true;
+    // Automatically place newly forged weapon in secondary slot if empty so player can test right away!
+    if (!this.secondaryWeapon) {
+      this.secondaryWeapon = weaponId;
+    }
+    this.save();
+    return true;
+  }
+
   public canAffordUpgrade(key: UpgradeKey): boolean {
     const track = UPGRADE_TRACKS.find((t) => t.key === key);
     if (!track) return false;
+    if (track.weaponId && !this.unlockedWeapons[track.weaponId]) return false;
     const currentLvl = this.upgrades[key];
     const nextTier = track.tiers[currentLvl];
     if (!nextTier) return false;
@@ -142,7 +222,7 @@ export class GameState {
 
   public hasSave(): boolean {
     try {
-      return localStorage.getItem(SAVE_KEY) !== null;
+      return localStorage.getItem(SAVE_KEY) !== null || localStorage.getItem(LEGACY_SAVE_KEY) !== null;
     } catch {
       return false;
     }
@@ -166,34 +246,69 @@ export class GameState {
         })),
         codex: this.codex,
         upgrades: this.upgrades,
+        unlockedWeapons: this.unlockedWeapons,
+        equippedWeapon: this.equippedWeapon,
+        secondaryWeapon: this.secondaryWeapon,
         muted: this.muted,
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
     } catch {
-      // Ignore storage quota / privacy errors
+      // Ignore storage errors
     }
   }
 
   public load(): boolean {
     try {
-      const raw = localStorage.getItem(SAVE_KEY);
+      const raw = localStorage.getItem(SAVE_KEY) ?? localStorage.getItem(LEGACY_SAVE_KEY);
       if (!raw) return false;
-      const parsed = JSON.parse(raw) as SaveData;
-      if (!parsed || parsed.version !== SAVE_VERSION) return false;
+      const parsed = JSON.parse(raw) as Partial<SaveData>;
+      if (!parsed) return false;
 
       this.day = parsed.day ?? 1;
       this.credits = parsed.credits ?? 120;
       this.totalEarned = parsed.totalEarned ?? 0;
       this.totalSold = parsed.totalSold ?? 0;
       this.bossDefeatedCount = parsed.bossDefeatedCount ?? 0;
-      this.inventory = parsed.inventory ?? createEmptyInventory();
+
+      // Migrate v1 safeBelt + 15 cargo -> v2 20-slot cargo + 28-slot chest cleanly
+      const inv = createEmptyInventory();
+      const rawChest = parsed.inventory?.chest ?? [];
+      for (let i = 0; i < Math.min(CHEST_SIZE, rawChest.length); i++) {
+        inv.chest[i] = rawChest[i] ?? null;
+      }
+      const rawBelt = parsed.inventory?.safeBelt ?? [];
+      for (const s of rawBelt) {
+        if (s) addItemToChest(inv, s.itemId, s.qty);
+      }
+      const rawCargo = parsed.inventory?.cargo ?? [];
+      for (let i = 0; i < Math.min(CARGO_SIZE, rawCargo.length); i++) {
+        inv.cargo[i] = rawCargo[i] ?? null;
+      }
+      this.inventory = inv;
+
       this.upgrades = {
         blade: parsed.upgrades?.blade ?? 0,
         blaster: parsed.upgrades?.blaster ?? 0,
+        hammer: parsed.upgrades?.hammer ?? 0,
         suit: parsed.upgrades?.suit ?? 0,
         stimpack: parsed.upgrades?.stimpack ?? 0,
         shopAura: parsed.upgrades?.shopAura ?? 0,
       };
+      this.unlockedWeapons = {
+        blade: true,
+        blaster: parsed.unlockedWeapons?.blaster ?? false,
+        hammer: parsed.unlockedWeapons?.hammer ?? false,
+      };
+      this.equippedWeapon =
+        parsed.equippedWeapon && this.unlockedWeapons[parsed.equippedWeapon]
+          ? parsed.equippedWeapon
+          : 'blade';
+      this.secondaryWeapon =
+        parsed.secondaryWeapon &&
+        this.unlockedWeapons[parsed.secondaryWeapon] &&
+        parsed.secondaryWeapon !== this.equippedWeapon
+          ? parsed.secondaryWeapon
+          : null;
       this.muted = Boolean(parsed.muted);
 
       const baseCodex = createInitialCodex();
@@ -226,6 +341,7 @@ export class GameState {
   public resetSave(): void {
     try {
       localStorage.removeItem(SAVE_KEY);
+      localStorage.removeItem(LEGACY_SAVE_KEY);
     } catch {
       // ignore
     }

@@ -121,10 +121,10 @@ export function decayDemandForNewDay(codex: Record<string, CodexEntry>): void {
   }
 }
 
-export function getSuggestedStartPrice(itemId: string, entry: CodexEntry): number {
-  if (entry.lastSetPrice !== null) return entry.lastSetPrice;
-  if (entry.maxFairPrice !== null) return entry.maxFairPrice;
-  if (entry.minFairPrice !== null) return entry.minFairPrice;
+export function getSuggestedStartPrice(itemId: string, entry?: CodexEntry): number {
+  if (entry?.lastSetPrice !== null && entry?.lastSetPrice !== undefined) return entry.lastSetPrice;
+  if (entry?.maxFairPrice !== null && entry?.maxFairPrice !== undefined) return entry.maxFairPrice;
+  if (entry?.minFairPrice !== null && entry?.minFairPrice !== undefined) return entry.minFairPrice;
   // Slightly rounded guess so player still gets the fun of discovering exact sweet spot
   const def = getItemDef(itemId);
   return Math.max(10, Math.round((def.baseValue * 0.9) / 5) * 5);

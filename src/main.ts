@@ -4,6 +4,7 @@ import { getAtlas } from './assets/sprites';
 import { sound } from './engine/audio';
 import { InputManager, VIRTUAL_HEIGHT, VIRTUAL_WIDTH } from './engine/input';
 import { DungeonScene } from './scenes/DungeonScene';
+import { HubScene } from './scenes/HubScene';
 import { ShopScene } from './scenes/ShopScene';
 import { GameState } from './systems/gameState';
 import type { RunSummary, SceneId } from './types';
@@ -20,6 +21,7 @@ class StarlighterGame {
   private ui: UIManager;
   private touch: TouchControls;
   private shopScene: ShopScene;
+  private hubScene: HubScene;
   private dungeonScene: DungeonScene;
 
   private activeScene: SceneId = 'shop';
@@ -41,7 +43,6 @@ class StarlighterGame {
     this.ctx = ctx;
     this.ctx.imageSmoothingEnabled = false;
 
-    // Warm up fallback pixel atlas & preload HD Moonlighter art assets
     getAtlas();
     void preloadHDArt().then(() => {
       this.ui.renderHud();
@@ -68,6 +69,9 @@ class StarlighterGame {
           this.ui.openInventoryModal(this.activeScene === 'shop', 'bag');
         }
       },
+      onSwapWeapon: () => {
+        this.handleSwapWeapon();
+      },
     });
 
     this.ui = new UIManager(this.state, {
@@ -79,7 +83,10 @@ class StarlighterGame {
         this.ui.shopIsOpen = false;
         this.ui.renderHud();
         this.syncTouch();
-        this.ui.toast('Willkommen in Astro-Barter! Lege Relikte aus oder starte rechts eine Expedition!', 'good');
+        this.ui.toast(
+          'Willkommen in Astro-Barter! Verkaufe Relikte oder geh rechts auf die Promenade Port Solaris!',
+          'good',
+        );
       },
       onContinueGame: () => {
         this.state.load();
@@ -99,6 +106,9 @@ class StarlighterGame {
           this.syncTouch();
         }
       },
+      onSwapWeapon: () => {
+        this.handleSwapWeapon();
+      },
       onModalStateChange: (open) => {
         this.input.locked = open;
         this.syncTouch();
@@ -117,9 +127,9 @@ class StarlighterGame {
 
     this.shopScene = new ShopScene(this.state, {
       onOpenPedestal: (ped) => this.ui.openPedestalModal(ped),
-      onOpenWorkbench: () => this.ui.openWorkbenchModal(),
+      onOpenWorkbench: () => this.ui.openInventoryModal(true, 'codex'),
       onOpenChest: () => this.ui.openInventoryModal(true, 'bag'),
-      onEnterDungeon: () => this.transitionTo('dungeon'),
+      onEnterDungeon: () => this.transitionTo('hub', 'shop'),
       onToast: (msg, tone) => this.ui.toast(msg, tone),
       onHudDirty: () => {
         this.ui.shopIsOpen = this.shopScene.shopOpen;
@@ -128,10 +138,21 @@ class StarlighterGame {
       },
     });
 
-    this.dungeonScene = new DungeonScene(this.state, {
-      onReturnToShop: (summary) => this.handleReturnToShop(summary),
+    this.hubScene = new HubScene(this.state, {
+      onEnterShop: () => this.transitionTo('shop', 'hub'),
+      onOpenForge: () => this.ui.openForgeModal(),
+      onOpenMedBay: () => this.ui.openMedBayModal(),
+      onEnterDungeon: () => this.transitionTo('dungeon', 'hub'),
       onToast: (msg, tone) => this.ui.toast(msg, tone),
-      onHudDirty: () => this.ui.renderHud(),
+    });
+
+    this.dungeonScene = new DungeonScene(this.state, {
+      onReturnToHub: (summary) => this.handleReturnFromDungeon(summary),
+      onToast: (msg, tone) => this.ui.toast(msg, tone),
+      onHudDirty: () => {
+        this.ui.renderHud();
+        this.syncTouch();
+      },
     });
 
     this.shopScene.onEnter(false);
@@ -150,16 +171,37 @@ class StarlighterGame {
     requestAnimationFrame((t) => this.loop(t));
   }
 
+  private handleSwapWeapon(): void {
+    if (this.activeScene === 'dungeon') {
+      this.dungeonScene.swapWeapon();
+      this.syncTouch();
+      return;
+    }
+    if (this.state.swapEquippedWeapons()) {
+      sound.playWeaponSwap();
+      this.ui.renderHud();
+      this.syncTouch();
+    } else {
+      this.ui.toast('Schmiede eine 2. Waffe bei Kael auf Port Solaris zum Wechseln!', 'info');
+    }
+  }
+
   private syncTouch(): void {
     if (!this.touch || !this.ui) return;
     this.touch.setState(
       this.activeScene,
       this.activeScene === 'shop' && this.shopScene?.shopOpen,
       this.ui.modalOpen || this.ui.titleVisible,
+      this.state.equippedWeapon,
+      this.state.secondaryWeapon !== null,
     );
   }
 
-  private transitionTo(scene: SceneId, afterSwitch?: () => void): void {
+  private transitionTo(
+    scene: SceneId,
+    from: SceneId,
+    afterSwitch?: () => void,
+  ): void {
     if (this.transitionDir !== 0) return;
     this.transitionDir = 1;
     this.pendingTransition = () => {
@@ -168,8 +210,11 @@ class StarlighterGame {
       if (scene === 'dungeon') {
         this.ui.shopIsOpen = false;
         this.dungeonScene.startRun();
+      } else if (scene === 'hub') {
+        this.ui.shopIsOpen = false;
+        this.hubScene.onEnter(from === 'dungeon' ? 'dungeon' : 'shop');
       } else {
-        this.shopScene.onEnter(true);
+        this.shopScene.onEnter(from === 'hub');
         this.ui.shopIsOpen = false;
       }
       this.ui.renderHud();
@@ -178,8 +223,8 @@ class StarlighterGame {
     };
   }
 
-  private handleReturnToShop(summary: RunSummary): void {
-    this.transitionTo('shop', () => {
+  private handleReturnFromDungeon(summary: RunSummary): void {
+    this.transitionTo('hub', 'dungeon', () => {
       this.ui.openRunSummaryModal(summary);
     });
   }
@@ -205,6 +250,11 @@ class StarlighterGame {
       return;
     }
 
+    if (this.input.wasPressed('KeyC', false) && this.activeScene !== 'dungeon') {
+      this.handleSwapWeapon();
+      return;
+    }
+
     if (this.input.wasPressed('KeyM', false)) {
       const muted = sound.toggleMute();
       this.state.muted = muted;
@@ -219,7 +269,6 @@ class StarlighterGame {
 
     this.handleGlobalShortcuts();
 
-    // Scene transition fade logic
     if (this.transitionDir === 1) {
       this.transitionAlpha += dt * 3.8;
       if (this.transitionAlpha >= 1) {
@@ -239,25 +288,24 @@ class StarlighterGame {
       }
     }
 
-    // Update active scene (keep shop animations softly alive behind title!)
     if (this.activeScene === 'shop') {
-      if (!this.ui.modalOpen) {
-        this.shopScene.update(dt, this.input);
-      }
+      if (!this.ui.modalOpen) this.shopScene.update(dt, this.input);
+    } else if (this.activeScene === 'hub') {
+      if (!this.ui.modalOpen && !this.ui.titleVisible) this.hubScene.update(dt, this.input);
     } else if (!this.ui.modalOpen && !this.ui.titleVisible) {
       this.dungeonScene.update(dt, this.input);
     }
 
-    // Render 2x HD pixel-art world
     this.ctx.setTransform(RENDER_SCALE, 0, 0, RENDER_SCALE, 0, 0);
     this.ctx.imageSmoothingEnabled = false;
     if (this.activeScene === 'shop') {
       this.shopScene.render(this.ctx);
+    } else if (this.activeScene === 'hub') {
+      this.hubScene.render(this.ctx);
     } else {
       this.dungeonScene.render(this.ctx, this.input);
     }
 
-    // Scene warp fade overlay
     if (this.transitionAlpha > 0) {
       this.ctx.fillStyle = `rgba(10, 18, 30, ${this.transitionAlpha})`;
       this.ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);

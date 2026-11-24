@@ -193,6 +193,29 @@ export class SoundEngine {
     this.playTone(140, 58, 0.42, 'sawtooth', 0.11);
     this.playTone(110, 48, 0.38, 'square', 0.08, 0.06);
   }
+
+  public playShieldBlock(): void {
+    this.playTone(680, 1120, 0.09, 'triangle', 0.1);
+    this.playTone(980, 740, 0.1, 'sine', 0.08, 0.03);
+    this.playNoise(0.06, 2200, 0.09);
+  }
+
+  public playRailBeam(): void {
+    this.playNoise(0.24, 1800, 0.12);
+    this.playTone(1180, 190, 0.28, 'sawtooth', 0.09);
+    this.playTone(640, 220, 0.25, 'square', 0.07, 0.04);
+  }
+
+  public playHammerSmash(): void {
+    this.playNoise(0.24, 340, 0.18);
+    this.playTone(150, 42, 0.26, 'sawtooth', 0.13);
+    this.playTone(96, 36, 0.28, 'triangle', 0.11, 0.03);
+  }
+
+  public playWeaponSwap(): void {
+    this.playTone(460, 720, 0.06, 'triangle', 0.07);
+    this.playTone(720, 920, 0.06, 'sine', 0.06, 0.045);
+  }
 }
 
 export const sound = new SoundEngine();

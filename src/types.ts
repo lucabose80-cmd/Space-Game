@@ -1,4 +1,6 @@
-export type SceneId = 'shop' | 'dungeon';
+export type SceneId = 'shop' | 'hub' | 'dungeon';
+
+export type WeaponId = 'blade' | 'blaster' | 'hammer';
 
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic';
 
@@ -26,7 +28,7 @@ export interface ItemDef {
   description: string;
   glowColor: string;
   dropWeight: number;
-  minDepth: number; // 0 = everywhere, 1 = mid rooms, 2 = treasure/deep, 3 = boss only
+  minDepth: number;
 }
 
 export interface ItemStack {
@@ -36,7 +38,7 @@ export interface ItemStack {
 
 export interface PedestalSlot {
   id: number;
-  x: number; // world pixel center
+  x: number;
   y: number;
   itemId: string | null;
   qty: number;
@@ -47,7 +49,7 @@ export interface CodexEntry {
   itemId: string;
   discovered: boolean;
   timesSold: number;
-  demandScore: number; // -3 to +3 -> maps to low / normal / high
+  demandScore: number;
   maxCheapPrice: number | null;
   minFairPrice: number | null;
   maxFairPrice: number | null;
@@ -59,6 +61,7 @@ export interface CodexEntry {
 export interface UpgradeLevels {
   blade: number; // 0..3
   blaster: number; // 0..3
+  hammer: number; // 0..3
   suit: number; // 0..3
   stimpack: number; // 0..3
   shopAura: number; // 0..2
@@ -77,16 +80,24 @@ export interface UpgradeTier {
 
 export interface UpgradeTrack {
   key: UpgradeKey;
+  shop: 'forge' | 'medbay';
+  weaponId?: WeaponId;
   title: string;
   subtitle: string;
-  iconItemId: string;
+  primaryDesc?: string;
+  secondaryDesc?: string;
+  iconUrl: string;
+  craftCost?: {
+    creditCost: number;
+    materials: Array<{ itemId: string; qty: number }>;
+    statLabel: string;
+  };
   tiers: UpgradeTier[];
 }
 
 export interface InventoryData {
-  safeBelt: Array<ItemStack | null>; // 5 slots
-  cargo: Array<ItemStack | null>; // 15 slots
-  chest: Array<ItemStack | null>; // 28 slots
+  cargo: Array<ItemStack | null>; // 20 expedition slots (lost on death — extraction only!)
+  chest: Array<ItemStack | null>; // 28 shop storage slots (always safe!)
 }
 
 export interface RunSummary {
@@ -107,9 +118,12 @@ export interface SaveData {
   totalEarned: number;
   totalSold: number;
   bossDefeatedCount: number;
-  inventory: InventoryData;
+  inventory: InventoryData & { safeBelt?: Array<ItemStack | null> };
   pedestals: Array<{ id: number; itemId: string | null; qty: number; price: number }>;
   codex: Record<string, CodexEntry>;
   upgrades: UpgradeLevels;
+  unlockedWeapons: Record<WeaponId, boolean>;
+  equippedWeapon: WeaponId;
+  secondaryWeapon: WeaponId | null;
   muted: boolean;
 }

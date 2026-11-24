@@ -1,30 +1,72 @@
-import type { UpgradeLevels, UpgradeTrack } from '../types';
+import type { UpgradeLevels, UpgradeTrack, WeaponId } from '../types';
+
+export const WEAPON_META: Record<
+  WeaponId,
+  {
+    name: string;
+    shortName: string;
+    primaryLabel: string;
+    secondaryLabel: string;
+    iconUrl: string;
+    accentColor: string;
+  }
+> = {
+  blade: {
+    name: 'Plasma-Klinge',
+    shortName: 'KLINGE',
+    primaryLabel: '3er-Plasma-Kombo',
+    secondaryLabel: 'Kinetik-Schild (Blocken)',
+    iconUrl: '/art/sprites/weapon_blade.png',
+    accentColor: '#38e8d4',
+  },
+  blaster: {
+    name: 'Puls-Blaster',
+    shortName: 'BLASTER',
+    primaryLabel: 'Schnelle Plasma-Salve',
+    secondaryLabel: 'Durchschuss-Laserstrahl',
+    iconUrl: '/art/sprites/weapon_blaster.png',
+    accentColor: '#38bdf8',
+  },
+  hammer: {
+    name: 'Grav-Hammer',
+    shortName: 'HAMMER',
+    primaryLabel: 'Schwerer 2er-Schwung',
+    secondaryLabel: 'Grav-Schockwelle (360°)',
+    iconUrl: '/art/sprites/weapon_hammer.png',
+    accentColor: '#fb923c',
+  },
+};
 
 export const UPGRADE_TRACKS: UpgradeTrack[] = [
+  // ==================== KAEL'S EXO-SCHMIEDE (WAFFEN & ANZUG) ====================
   {
     key: 'blade',
+    shop: 'forge',
+    weaponId: 'blade',
     title: 'Plasma-Klinge',
-    subtitle: 'Nahkampf-Kombo (Linksklick / J)',
-    iconItemId: 'plasma_cell',
+    subtitle: 'Ausgewogene Nahkampf-Klinge + Kinetik-Schild',
+    primaryDesc: '3er-Kombo mit Wirbel-Finisher',
+    secondaryDesc: 'Kinetik-Schild blockt Laser & 75 % Schaden',
+    iconUrl: '/art/sprites/weapon_blade.png',
     tiers: [
       {
         level: 1,
         name: 'MK-II Ionen-Schneide',
-        description: 'Erhöht Klingen-Schaden und vergrößert den Plasma-Bogen.',
+        description: 'Erhöht Klingen-Schaden und vergrößert die Sichel-Reichweite.',
         creditCost: 220,
         materials: [{ itemId: 'scrap_coil', qty: 2 }],
-        statLabel: 'Schaden: 18 → 26',
+        statLabel: 'Schaden: 20 → 28',
       },
       {
         level: 2,
         name: 'MK-III Äther-Klinge',
-        description: 'Durchdringt schwere Panzerung und füllt Energie schneller auf.',
+        description: 'Schärfere Plasma-Kante durchdringt schwere Panzerung.',
         creditCost: 580,
         materials: [
           { itemId: 'alien_prism', qty: 2 },
           { itemId: 'drone_core', qty: 1 },
         ],
-        statLabel: 'Schaden: 26 → 36',
+        statLabel: 'Schaden: 28 → 38',
       },
       {
         level: 3,
@@ -35,57 +77,120 @@ export const UPGRADE_TRACKS: UpgradeTrack[] = [
           { itemId: 'star_compass', qty: 2 },
           { itemId: 'mk4_heart', qty: 1 },
         ],
-        statLabel: 'Schaden: 36 → 50',
+        statLabel: 'Schaden: 38 → 52',
       },
     ],
   },
   {
     key: 'blaster',
+    shop: 'forge',
+    weaponId: 'blaster',
     title: 'Puls-Blaster',
-    subtitle: 'Fernkampf-Salven (Rechtsklick / K)',
-    iconItemId: 'drone_core',
+    subtitle: 'Flinke Fernkampf-Waffe + Durchschuss-Laser',
+    primaryDesc: 'Schnelle Plasma-Bolzen aus der Distanz',
+    secondaryDesc: 'Überladener Durchschuss-Strahl (38 EN)',
+    iconUrl: '/art/sprites/weapon_blaster.png',
+    craftCost: {
+      creditCost: 150,
+      materials: [
+        { itemId: 'scrap_coil', qty: 2 },
+        { itemId: 'nav_chip', qty: 1 },
+      ],
+      statLabel: 'Schmieden: 15 Schaden · Durchschuss-Laser',
+    },
     tiers: [
       {
         level: 1,
         name: 'Fokus-Kondensator',
-        description: 'Stärkere Energiebolzen mit geringerem Energieverbrauch.',
-        creditCost: 200,
-        materials: [{ itemId: 'nav_chip', qty: 2 }],
-        statLabel: 'Schaden: 12 → 18',
+        description: 'Stärkere Energiebolzen & kräftigerer Laserstrahl.',
+        creditCost: 340,
+        materials: [{ itemId: 'plasma_cell', qty: 2 }],
+        statLabel: 'Schaden: 15 → 22',
       },
       {
         level: 2,
         name: 'Zwillings-Impuls',
         description: 'Schnellere Feuerrate und hohe Projektilgeschwindigkeit.',
-        creditCost: 540,
+        creditCost: 720,
         materials: [
           { itemId: 'plasma_cell', qty: 2 },
-          { itemId: 'drone_core', qty: 1 },
+          { itemId: 'drone_core', qty: 2 },
         ],
-        statLabel: 'Schaden: 18 → 25',
+        statLabel: 'Schaden: 22 → 30',
       },
       {
         level: 3,
         name: 'Nova-Disruptor',
         description: 'Hochleistungs-Plasma-Strahler für tiefe Sektoren.',
-        creditCost: 1200,
+        creditCost: 1400,
         materials: [
           { itemId: 'quantum_gyro', qty: 1 },
           { itemId: 'void_relic', qty: 1 },
         ],
-        statLabel: 'Schaden: 25 → 35',
+        statLabel: 'Schaden: 30 → 42',
+      },
+    ],
+  },
+  {
+    key: 'hammer',
+    shop: 'forge',
+    weaponId: 'hammer',
+    title: 'Grav-Hammer',
+    subtitle: 'Schwerer Kriegshammer + 360°-Schockwelle',
+    primaryDesc: 'Wuchtige 2er-Schwünge mit massivem Knockback',
+    secondaryDesc: 'Gravitations-Schockwelle rundum (42 EN)',
+    iconUrl: '/art/sprites/weapon_hammer.png',
+    craftCost: {
+      creditCost: 260,
+      materials: [
+        { itemId: 'drone_core', qty: 2 },
+        { itemId: 'plasma_cell', qty: 1 },
+      ],
+      statLabel: 'Schmieden: 34 Schaden · 360°-Schockwelle',
+    },
+    tiers: [
+      {
+        level: 1,
+        name: 'Seismik-Kopf',
+        description: 'Noch wuchtigere Schläge und größere Schockwelle.',
+        creditCost: 520,
+        materials: [{ itemId: 'alien_prism', qty: 2 }],
+        statLabel: 'Schaden: 34 → 46',
+      },
+      {
+        level: 2,
+        name: 'Solar-Amboss',
+        description: 'Glühender Gravitationskern zerschmettert jede Deckung.',
+        creditCost: 980,
+        materials: [
+          { itemId: 'star_compass', qty: 1 },
+          { itemId: 'cryo_amber', qty: 1 },
+        ],
+        statLabel: 'Schaden: 46 → 62',
+      },
+      {
+        level: 3,
+        name: 'Titan-Singularität',
+        description: 'Legendärer Schwerhammer mit vernichtendem Einschlag.',
+        creditCost: 1650,
+        materials: [
+          { itemId: 'void_relic', qty: 1 },
+          { itemId: 'mk4_heart', qty: 1 },
+        ],
+        statLabel: 'Schaden: 62 → 82',
       },
     ],
   },
   {
     key: 'suit',
+    shop: 'forge',
     title: 'Exo-Anzug',
-    subtitle: 'Lebenspunkte & Jetpack-Schub',
-    iconItemId: 'alien_prism',
+    subtitle: 'Maximale Lebenspunkte & Panzerung',
+    iconUrl: '/art/sprites/item_alien_prism.png',
     tiers: [
       {
         level: 1,
-        name: 'Verstärkte Keramik-Platten',
+        name: 'Keramik-Verbundplatten',
         description: 'Erhöht maximale HP deutlich und stabilisiert den Jetpack.',
         creditCost: 240,
         materials: [{ itemId: 'bio_gel', qty: 2 }],
@@ -115,16 +220,19 @@ export const UPGRADE_TRACKS: UpgradeTrack[] = [
       },
     ],
   },
+
+  // ==================== DR. LYRA'S MED-BAY & BOUTIQUE ====================
   {
     key: 'stimpack',
+    shop: 'medbay',
     title: 'Med-Stimpacks',
     subtitle: 'Sofort-Heilung auf Expedition (Q)',
-    iconItemId: 'bio_gel',
+    iconUrl: '/art/sprites/item_bio_gel.png',
     tiers: [
       {
         level: 1,
         name: 'Doppel-Injektor',
-        description: 'Mehr Ladungen pro Expedition und stärkere Heilwirkung.',
+        description: 'Mehr Heil-Ladungen pro Expedition und stärkere Wirkung.',
         creditCost: 180,
         materials: [{ itemId: 'bio_gel', qty: 2 }],
         statLabel: '2× 40 HP → 3× 55 HP',
@@ -152,9 +260,10 @@ export const UPGRADE_TRACKS: UpgradeTrack[] = [
   },
   {
     key: 'shopAura',
-    title: 'Shop-Atmosphäre',
-    subtitle: 'Holo-Deko & Kunden-Trinkgeld',
-    iconItemId: 'star_compass',
+    shop: 'medbay',
+    title: 'Shop-Atmosphäre & Deko',
+    subtitle: 'Gemütliches Licht & mehr Kunden-Trinkgeld',
+    iconUrl: '/art/sprites/item_star_compass.png',
     tiers: [
       {
         level: 1,
@@ -167,7 +276,7 @@ export const UPGRADE_TRACKS: UpgradeTrack[] = [
       {
         level: 2,
         name: 'VIP-Sternen-Lounge',
-        description: 'Legendärer Ruf im Sektor: +20 % Trinkgeld & mehr Geduld.',
+        description: 'Legendärer Ruf auf Port Solaris: +20 % Trinkgeld & mehr Geduld.',
         creditCost: 820,
         materials: [
           { itemId: 'star_compass', qty: 1 },
@@ -180,22 +289,24 @@ export const UPGRADE_TRACKS: UpgradeTrack[] = [
 ];
 
 export function getPlayerCombatStats(upgrades: UpgradeLevels) {
-  const bladeDamages = [18, 26, 36, 50];
-  const bladeRanges = [28, 32, 36, 40];
-  const blasterDamages = [12, 18, 25, 35];
-  const blasterCooldowns = [0.34, 0.28, 0.22, 0.18];
-  const blasterCosts = [18, 15, 13, 11];
+  const bladeDamages = [20, 28, 38, 52];
+  const bladeRanges = [31, 35, 39, 43];
+  const blasterDamages = [15, 22, 30, 42];
+  const blasterCooldowns = [0.29, 0.25, 0.21, 0.17];
+  const hammerDamages = [34, 46, 62, 82];
+  const hammerRanges = [36, 40, 44, 48];
   const maxHps = [100, 140, 185, 240];
   const stimCharges = [2, 3, 4, 5];
   const stimHeals = [40, 55, 75, 100];
   const tipBonuses = [0, 0.1, 0.2];
 
   return {
-    bladeDamage: bladeDamages[upgrades.blade] ?? 18,
-    bladeRange: bladeRanges[upgrades.blade] ?? 28,
-    blasterDamage: blasterDamages[upgrades.blaster] ?? 12,
-    blasterCooldown: blasterCooldowns[upgrades.blaster] ?? 0.34,
-    blasterEnergyCost: blasterCosts[upgrades.blaster] ?? 18,
+    bladeDamage: bladeDamages[upgrades.blade] ?? 20,
+    bladeRange: bladeRanges[upgrades.blade] ?? 31,
+    blasterDamage: blasterDamages[upgrades.blaster] ?? 15,
+    blasterCooldown: blasterCooldowns[upgrades.blaster] ?? 0.29,
+    hammerDamage: hammerDamages[upgrades.hammer] ?? 34,
+    hammerRange: hammerRanges[upgrades.hammer] ?? 36,
     maxHp: maxHps[upgrades.suit] ?? 100,
     maxStimCharges: stimCharges[upgrades.stimpack] ?? 2,
     stimHeal: stimHeals[upgrades.stimpack] ?? 40,
