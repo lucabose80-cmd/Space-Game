@@ -19,7 +19,7 @@ export const COMPANION_DEFS: Record<CompanionId, CompanionDef> = {
     name: 'Sammel-Bot „Puck“',
     shortName: 'PUCK',
     role: 'Magnet-Sammler',
-    abilitySummary: '2,6× Loot-Magnet-Reichweite im Sektor & +8–15 Cr Schrott-Bonus pro eingesammeltem Drop!',
+    abilitySummary: '2,6× Loot-Magnet-Reichweite im Sektor & +25 % Chance auf 1 Bonus-Relikt bei Gegnern & Truhen!',
     unlockRequirement: 'Verkaufe 15 Items im Shop ODER baue Astro-Barter auf Stufe II aus.',
     accentColor: '#fbbf24',
     iconUrl: '/art/sprites/bot_puck.png',

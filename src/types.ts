@@ -1,4 +1,4 @@
-export type SceneId = 'shop' | 'backroom' | 'hub' | 'dungeon';
+export type SceneId = 'shop' | 'backroom' | 'hub' | 'hangar' | 'dungeon';
 
 export type TimeOfDay = 'day' | 'night';
 
@@ -155,6 +155,7 @@ export interface RunSummary {
   shatteredItems: string[];
   clonedItems?: string[];
   cursedLost?: string[];
+  synthesizedItems?: string[];
   resonanceBonus?: number;
   nightRun?: boolean;
 }
@@ -176,6 +177,7 @@ export interface SaveData {
   equippedCompanion?: CompanionId | null;
   marketEvent?: MarketEventId;
   nyxStock?: BlackMarketOffer[];
+  pinnedRecipes?: string[];
   inventory: InventoryData & { safeBelt?: Array<ItemStack | null> };
   pedestals: Array<{ id: number; itemId: string | null; qty: number; price: number }>;
   saleBox?: ItemStack[];

@@ -74,6 +74,23 @@ const BOUNTY_CLIENTS = [
   'Schmied Kael',
 ];
 
+export interface PinnedRecipeMaterial {
+  itemId: string;
+  name: string;
+  owned: number;
+  required: number;
+}
+
+export interface PinnedRecipeDetail {
+  key: string;
+  title: string;
+  subtitle: string;
+  creditCost: number;
+  materials: PinnedRecipeMaterial[];
+  allMatsReady: boolean;
+  canAffordNow: boolean;
+}
+
 export class GameState {
   public day = 1;
   public timeOfDay: TimeOfDay = 'day';
@@ -95,6 +112,7 @@ export class GameState {
   public equippedCompanion: CompanionId | null = null;
   public marketEvent: MarketEventId = 'normal';
   public nyxStock: BlackMarketOffer[] = [];
+  public pinnedRecipes: string[] = [];
   public inventory: InventoryData = createEmptyInventory();
   public pedestals: PedestalSlot[] = [];
   public saleBox: ItemStack[] = [];
@@ -161,6 +179,7 @@ export class GameState {
     };
     this.equippedCompanion = null;
     this.marketEvent = 'normal';
+    this.pinnedRecipes = [];
     this.inventory = createEmptyInventory();
     this.codex = createInitialCodex();
     this.saleBox = [];
@@ -578,6 +597,7 @@ export class GameState {
     if (!this.secondaryWeapon) {
       this.secondaryWeapon = weaponId;
     }
+    this.prunePinnedRecipes();
     this.save();
     return true;
   }
@@ -615,9 +635,126 @@ export class GameState {
       this.syncShopCapacity();
     }
     this.checkCompanionUnlocks();
+    this.prunePinnedRecipes();
     this.restoreFullVitals();
     this.save();
     return true;
+  }
+
+  public isRecipePinned(recipeKey: string): boolean {
+    return this.pinnedRecipes.includes(recipeKey);
+  }
+
+  public togglePinRecipe(recipeKey: string): boolean {
+    const idx = this.pinnedRecipes.indexOf(recipeKey);
+    if (idx >= 0) {
+      this.pinnedRecipes.splice(idx, 1);
+      this.save();
+      return false;
+    }
+    // Keep up to 4 active pinned recipes so the HUD stays clean on desktop & mobile
+    if (this.pinnedRecipes.length >= 4) {
+      this.pinnedRecipes.shift();
+    }
+    this.pinnedRecipes.push(recipeKey);
+    this.prunePinnedRecipes();
+    this.save();
+    return this.pinnedRecipes.includes(recipeKey);
+  }
+
+  public prunePinnedRecipes(): void {
+    this.pinnedRecipes = this.pinnedRecipes.filter((key) => {
+      if (key.startsWith('craft:')) {
+        const wep = key.slice('craft:'.length) as WeaponId;
+        const track = UPGRADE_TRACKS.find((t) => t.weaponId === wep);
+        return Boolean(track?.craftCost && !this.unlockedWeapons[wep]);
+      }
+      if (key.startsWith('upgrade:')) {
+        const upg = key.slice('upgrade:'.length) as UpgradeKey;
+        const track = UPGRADE_TRACKS.find((t) => t.key === upg);
+        if (!track) return false;
+        const lvl = this.upgrades[upg] ?? 0;
+        return Boolean(track.tiers[lvl]);
+      }
+      return false;
+    });
+  }
+
+  public getPinnedRecipeDetails(): PinnedRecipeDetail[] {
+    const list: PinnedRecipeDetail[] = [];
+    for (const key of this.pinnedRecipes) {
+      if (key.startsWith('craft:')) {
+        const wep = key.slice('craft:'.length) as WeaponId;
+        const track = UPGRADE_TRACKS.find((t) => t.weaponId === wep);
+        if (!track?.craftCost || this.unlockedWeapons[wep]) continue;
+        const mats: PinnedRecipeMaterial[] = track.craftCost.materials.map((m) => ({
+          itemId: m.itemId,
+          name: getItemDef(m.itemId).name,
+          owned: countItemTotal(this.inventory, m.itemId),
+          required: m.qty,
+        }));
+        const allMatsReady = mats.every((m) => m.owned >= m.required);
+        list.push({
+          key,
+          title: `${track.title} (Schmieden)`,
+          subtitle: track.craftCost.statLabel,
+          creditCost: track.craftCost.creditCost,
+          materials: mats,
+          allMatsReady,
+          canAffordNow: allMatsReady && this.credits >= track.craftCost.creditCost,
+        });
+      } else if (key.startsWith('upgrade:')) {
+        const upg = key.slice('upgrade:'.length) as UpgradeKey;
+        const track = UPGRADE_TRACKS.find((t) => t.key === upg);
+        if (!track) continue;
+        const nextTier = track.tiers[this.upgrades[upg] ?? 0];
+        if (!nextTier) continue;
+        const mats: PinnedRecipeMaterial[] = nextTier.materials.map((m) => ({
+          itemId: m.itemId,
+          name: getItemDef(m.itemId).name,
+          owned: countItemTotal(this.inventory, m.itemId),
+          required: m.qty,
+        }));
+        const allMatsReady = mats.every((m) => m.owned >= m.required);
+        list.push({
+          key,
+          title: nextTier.name,
+          subtitle: nextTier.statLabel,
+          creditCost: nextTier.creditCost,
+          materials: mats,
+          allMatsReady,
+          canAffordNow: allMatsReady && this.credits >= nextTier.creditCost,
+        });
+      }
+    }
+    return list;
+  }
+
+  public getPinnedItemNeed(itemId: string): {
+    required: number;
+    owned: number;
+    stillNeeded: number;
+    recipeTitles: string[];
+  } | null {
+    const details = this.getPinnedRecipeDetails();
+    let required = 0;
+    const recipeTitles: string[] = [];
+    for (const d of details) {
+      for (const m of d.materials) {
+        if (m.itemId === itemId) {
+          required += m.required;
+          if (!recipeTitles.includes(d.title)) recipeTitles.push(d.title);
+        }
+      }
+    }
+    if (required <= 0) return null;
+    const owned = countItemTotal(this.inventory, itemId);
+    return {
+      required,
+      owned,
+      stillNeeded: Math.max(0, required - owned),
+      recipeTitles,
+    };
   }
 
   public hasSave(): boolean {
@@ -647,6 +784,7 @@ export class GameState {
         equippedCompanion: this.equippedCompanion,
         marketEvent: this.marketEvent,
         nyxStock: this.nyxStock,
+        pinnedRecipes: this.pinnedRecipes,
         inventory: this.inventory,
         pedestals: this.pedestals.map((p) => ({
           id: p.id,
@@ -798,6 +936,10 @@ export class GameState {
         Array.isArray(parsed.nyxStock) && parsed.nyxStock.length > 0
           ? parsed.nyxStock
           : this.generateNyxStock();
+      this.pinnedRecipes = Array.isArray(parsed.pinnedRecipes)
+        ? parsed.pinnedRecipes.filter((k): k is string => typeof k === 'string').slice(0, 4)
+        : [];
+      this.prunePinnedRecipes();
 
       this.restoreFullVitals();
       return true;

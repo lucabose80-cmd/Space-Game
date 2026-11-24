@@ -186,9 +186,11 @@ export class UIManager {
           ? `${timeLabel} · KAPITÄNS-QUARTIER`
           : this.currentScene === 'hub'
             ? `${timeLabel} · PORT SOLARIS`
-            : isNight
-              ? `🌙 ${floorTag} (+35% RAR)`
-              : `SEKTOR 1 · ${floorTag}`;
+            : this.currentScene === 'hangar'
+              ? `${timeLabel} · RAUMHAFEN (DOCKS I–IV)`
+              : isNight
+                ? `🌙 ${floorTag} (+35% RAR)`
+                : `SEKTOR 1 · ${floorTag}`;
 
     const hintText =
       this.currentScene === 'shop'
@@ -199,59 +201,96 @@ export class UIManager {
           ? 'Kapitäns-Quartier: Ruhekapsel (Tag↔Nacht), Drohnen-Dock (Begleiter), Sternen-Jukebox & Lagertruhen!'
           : this.currentScene === 'hub'
             ? isNight
-              ? '🌙 Nacht-Bonus aktiv: +35 % seltener Loot in Sektor 1 · Unten links: Nyx (Schwarzmarkt)!'
-              : 'Oben: Kael (6 Waffen) & Dr. Lyra · Unten: Nyx (Schwarzmarkt) & Vex (Tech-Labor) · Rechts: Sektor 1!'
-            : `${wMeta.name} (${this.state.equippedWeapon === 'blade' ? 'Schild verbraucht EN · Perfekt-Parade!' : wMeta.secondaryLabel}) · [R] Extraktion`;
+              ? '🌙 Nacht-Bonus aktiv: +35 % seltener Loot · Rechts: Raumhafen (Docks I–IV) · Unten links: Nyx!'
+              : 'Oben: Kael (6 Waffen) & Dr. Lyra · Unten: Nyx & Vex · Rechts: Raumhafen (Sektor-Docks I–IV)!'
+            : this.currentScene === 'hangar'
+              ? 'Raumhafen: Dock I (oben links) startet nach Sektor 1 · Docks II–IV & 5. Tor (Mitte) über Sektor-Schlüssel!'
+              : `${wMeta.name} (${this.state.equippedWeapon === 'blade' ? 'Schild verbraucht EN · Perfekt-Parade!' : wMeta.secondaryLabel}) · [R] Extraktion`;
 
     const eventPillHtml =
       this.state.marketEvent !== 'normal' && (this.currentScene === 'shop' || this.currentScene === 'hub')
         ? `<div style="margin-top:2px;padding:2px 6px;border:1px solid ${evMeta.color};background:rgba(15,23,42,0.85);font-family:var(--font-pixel);font-size:8px;color:${evMeta.color};text-align:center" title="${evMeta.description}">★ ${evMeta.shortBadge}</div>`
         : '';
 
+    const pinnedList = this.state.getPinnedRecipeDetails();
+    const pinTrackerHtml =
+      pinnedList.length > 0
+        ? `
+        <div class="hud-pin-tracker">
+          <div class="hud-pin-head">
+            <span>📌 MERKLISTE (${pinnedList.length})</span>
+          </div>
+          ${pinnedList
+            .map(
+              (rec) => `
+            <div class="hud-pin-entry">
+              <div class="hud-pin-title-row">
+                <span style="color:${rec.canAffordNow ? '#4ade80' : '#f8fafc'}">${rec.canAffordNow ? '✓ ' : ''}${rec.title}</span>
+                <button class="hud-pin-unpin" data-pin-key="${rec.key}" title="Von Merkliste entfernen">✕</button>
+              </div>
+              <div class="hud-pin-mats">
+                ${rec.materials
+                  .map(
+                    (m) =>
+                      `<span class="hud-pin-mat ${m.owned >= m.required ? 'done' : ''}">${m.name}: ${m.owned}/${m.required}</span>`,
+                  )
+                  .join('')}
+              </div>
+            </div>
+          `,
+            )
+            .join('')}
+        </div>
+      `
+        : '';
+
     this.hudEl.innerHTML = `
       <div class="hud-top">
-        <div class="hud-vitals">
-          ${
-            this.currentScene === 'shop'
-              ? `<div style="display:flex;justify-content:space-between;gap:6px;font-family:var(--font-pixel);font-size:8.5px;margin-bottom:1px">
-                  <span style="color:${timeColor}">${timeLabel}</span>
-                  <span style="color:${this.shopIsOpen ? 'var(--accent-emerald)' : 'var(--text-muted)'}">${this.shopIsOpen ? 'OFFEN' : 'ZU'}</span>
-                </div>`
-              : ''
-          }
-          <div class="hud-bar-row">
-            <span class="hud-bar-label">HP</span>
-            <div class="hud-bar-track">
-              <div class="hud-bar-fill hp" style="width:${hpPct}%"></div>
-            </div>
-            <span class="hud-bar-val">${Math.ceil(this.state.hp)}/${stats.maxHp}</span>
-          </div>
-          <div class="hud-bar-row">
-            <span class="hud-bar-label">EN</span>
-            <div class="hud-bar-track">
-              <div class="hud-bar-fill energy" style="width:${enPct}%"></div>
-            </div>
-            <span class="hud-bar-val">${Math.floor(this.state.energy)}/100</span>
-          </div>
-          <div class="hud-meta-row">
-            <span class="hud-credits">${this.state.credits} CR</span>
-            <span class="hud-stims">STIM: ${this.state.stimCharges}/${stats.maxStimCharges}</span>
-          </div>
-          <div class="hud-meta-row" style="border-top:none;padding-top:1px;margin-top:0;gap:8px">
-            <button id="hud-weapon-chip" style="display:inline-flex;align-items:center;gap:5px;background:none;border:none;color:${wMeta.accentColor};font-family:var(--font-pixel);font-size:8.5px;cursor:pointer;pointer-events:auto;padding:0" title="Waffe wechseln [C]">
-              <img src="${wMeta.iconUrl}" alt="${wMeta.name}" style="width:14px;height:14px;image-rendering:pixelated" />
-              <span>${wMeta.name}${this.state.secondaryWeapon ? ' [C]' : ''}</span>
-            </button>
+        <div style="display:flex;flex-direction:column;align-items:flex-start">
+          <div class="hud-vitals">
             ${
-              compDef
-                ? `<span style="display:inline-flex;align-items:center;gap:3px;font-family:var(--font-pixel);font-size:8px;color:${compDef.accentColor}" title="${compDef.name}: ${compDef.abilitySummary}">
-                    <img src="${compDef.iconUrl}" alt="${compDef.shortName}" style="width:12px;height:12px;image-rendering:pixelated" />
-                    <span>${compDef.shortName}</span>
-                  </span>`
+              this.currentScene === 'shop'
+                ? `<div style="display:flex;justify-content:space-between;gap:6px;font-family:var(--font-pixel);font-size:8.5px;margin-bottom:1px">
+                    <span style="color:${timeColor}">${timeLabel}</span>
+                    <span style="color:${this.shopIsOpen ? 'var(--accent-emerald)' : 'var(--text-muted)'}">${this.shopIsOpen ? 'OFFEN' : 'ZU'}</span>
+                  </div>`
                 : ''
             }
+            <div class="hud-bar-row">
+              <span class="hud-bar-label">HP</span>
+              <div class="hud-bar-track">
+                <div class="hud-bar-fill hp" style="width:${hpPct}%"></div>
+              </div>
+              <span class="hud-bar-val">${Math.ceil(this.state.hp)}/${stats.maxHp}</span>
+            </div>
+            <div class="hud-bar-row">
+              <span class="hud-bar-label">EN</span>
+              <div class="hud-bar-track">
+                <div class="hud-bar-fill energy" style="width:${enPct}%"></div>
+              </div>
+              <span class="hud-bar-val">${Math.floor(this.state.energy)}/100</span>
+            </div>
+            <div class="hud-meta-row">
+              <span class="hud-credits">${this.state.credits} CR</span>
+              <span class="hud-stims">STIM: ${this.state.stimCharges}/${stats.maxStimCharges}</span>
+            </div>
+            <div class="hud-meta-row" style="border-top:none;padding-top:1px;margin-top:0;gap:8px">
+              <button id="hud-weapon-chip" style="display:inline-flex;align-items:center;gap:5px;background:none;border:none;color:${wMeta.accentColor};font-family:var(--font-pixel);font-size:8.5px;cursor:pointer;pointer-events:auto;padding:0" title="Waffe wechseln [C]">
+                <img src="${wMeta.iconUrl}" alt="${wMeta.name}" style="width:14px;height:14px;image-rendering:pixelated" />
+                <span>${wMeta.name}${this.state.secondaryWeapon ? ' [C]' : ''}</span>
+              </button>
+              ${
+                compDef
+                  ? `<span style="display:inline-flex;align-items:center;gap:3px;font-family:var(--font-pixel);font-size:8px;color:${compDef.accentColor}" title="${compDef.name}: ${compDef.abilitySummary}">
+                      <img src="${compDef.iconUrl}" alt="${compDef.shortName}" style="width:12px;height:12px;image-rendering:pixelated" />
+                      <span>${compDef.shortName}</span>
+                    </span>`
+                  : ''
+              }
+            </div>
+            ${eventPillHtml}
           </div>
-          ${eventPillHtml}
+          ${pinTrackerHtml}
         </div>
 
         <div class="hud-center">
@@ -295,13 +334,17 @@ export class UIManager {
                    <span><kbd>I</kbd>Lager &amp; Waffen</span>`
                 : this.currentScene === 'hub'
                   ? `<span><kbd>WASD</kbd>Promenade</span>
-                     <span><kbd>E</kbd>Shops / Nyx / Vex / Warp</span>
+                     <span><kbd>E</kbd>Shops / Nyx / Vex / Raumhafen</span>
                      <span><kbd>I</kbd>Fracht &amp; Codex</span>`
-                  : `<span><kbd>LMB/J</kbd>${wMeta.shortName}</span>
-                     <span><kbd>RMB/K</kbd>${this.state.equippedWeapon === 'blade' ? 'Schild' : 'Spezial'}</span>
-                     <span><kbd>C</kbd>Wechseln</span>
-                     <span><kbd>SPACE</kbd>Dash</span>
-                     <span><kbd>R</kbd>Extraktion</span>`
+                  : this.currentScene === 'hangar'
+                    ? `<span><kbd>WASD</kbd>Raumhafen</span>
+                       <span><kbd>E</kbd>Schiff besteigen / Docks / 5. Tor</span>
+                       <span><kbd>I</kbd>Fracht &amp; Waffen</span>`
+                    : `<span><kbd>LMB/J</kbd>${wMeta.shortName}</span>
+                       <span><kbd>RMB/K</kbd>${this.state.equippedWeapon === 'blade' ? 'Schild' : 'Spezial'}</span>
+                       <span><kbd>C</kbd>Wechseln</span>
+                       <span><kbd>SPACE</kbd>Dash</span>
+                       <span><kbd>R</kbd>Extraktion</span>`
           }
         </div>
         <div class="hud-hint">${hintText}</div>
@@ -327,6 +370,16 @@ export class UIManager {
     });
     this.hudEl.querySelector('#hud-weapon-chip')?.addEventListener('click', () => {
       this.hooks.onSwapWeapon();
+    });
+    this.hudEl.querySelectorAll<HTMLElement>('.hud-pin-unpin').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const key = btn.dataset.pinKey;
+        if (key) {
+          sound.playUiClick();
+          this.state.togglePinRecipe(key);
+          this.renderHud();
+        }
+      });
     });
   }
 
@@ -380,18 +433,23 @@ export class UIManager {
           const unsafe = container === 'cargo' && index >= 5;
           modBadge = `<span class="slot-mod-badge" style="background:${unsafe ? '#fb7185' : '#c084fc'}" title="Phasen-Fluch (▲): Nur oberste Reihe stabil!">▲</span>`;
         } else if (def.modifier === 'volatile_boost') {
-          modBadge = `<span class="slot-mod-badge" style="background:#fbbf24" title="Resonanz (←): Opfert Item links für +180 Cr!">←</span>`;
+          modBadge = `<span class="slot-mod-badge" style="background:#fbbf24" title="Resonanz (←): Wandelt Item links in 1 Sternen-Kompass um!">←</span>`;
         } else if (def.modifier === 'fragile') {
           modBadge = `<span class="slot-mod-dot" style="background:#fb7185" title="Zerbrechlich"></span>`;
         } else if (def.modifier === 'smuggler') {
           modBadge = `<span class="slot-mod-dot" style="background:#fde047" title="Schmuggler-Bonus (+15 %)"></span>`;
         }
+        const pinNeed = this.state.getPinnedItemNeed(stack.itemId);
+        const pinBadge = pinNeed
+          ? `<span class="slot-pin-badge" title="Angepinnt für: ${pinNeed.recipeTitles.join(', ')} (${pinNeed.owned}/${pinNeed.required})">📌</span>`
+          : '';
         inner = `
+          ${pinBadge}
           ${modBadge}
           <img class="pixel-icon" src="${art.itemUrls[stack.itemId]}" alt="${def.name}" />
           <span class="slot-qty">${stack.qty}</span>
         `;
-        title = `${def.name} (x${stack.qty})${def.modifierLabel ? ' — ' + def.modifierLabel : ''}`;
+        title = `${def.name} (x${stack.qty})${pinNeed ? ` · 📌 Gebraucht (${pinNeed.owned}/${pinNeed.required})` : ''}${def.modifierLabel ? ' — ' + def.modifierLabel : ''}`;
       }
       return `
         <button class="inv-slot ${container === 'chest' ? 'safe' : ''} ${isSelected ? 'selected' : ''}"
@@ -410,6 +468,7 @@ export class UIManager {
       const selDef = selStack ? getItemDef(selStack.itemId) : null;
       const selEntry = selStack ? this.state.codex[selStack.itemId] : null;
       const selRarity = selDef ? RARITY_META[selDef.rarity] : null;
+      const selPin = selDef ? this.state.getPinnedItemNeed(selDef.id) : null;
 
       // Active Weapon Loadout Strip (all 6 Frontier weapon classes!)
       const unlockedList = (['blade', 'spear', 'fists', 'discus', 'blaster', 'hammer'] as WeaponId[]).filter(
@@ -453,6 +512,13 @@ export class UIManager {
               </div>
             </div>
             <p style="font-size:12px;color:var(--text-muted);line-height:1.4">${selDef.description}</p>
+            ${
+              selPin
+                ? `<div class="modifier-box" style="border-left-color:#fbbf24;color:#fde047">
+                     📌 <strong>Merkliste (${selPin.owned}/${selPin.required}):</strong> Gebraucht für ${selPin.recipeTitles.join(', ')}
+                   </div>`
+                : ''
+            }
             ${selDef.modifierLabel ? `<div class="modifier-box">⚡ ${selDef.modifierLabel}</div>` : ''}
             <div style="font-size:11px;color:var(--text-muted)">
               ${
@@ -725,11 +791,15 @@ export class UIManager {
               const def = getItemDef(id);
               const rarity = RARITY_META[def.rarity];
               const total = counts.get(id) ?? 0;
+              const pinNeed = this.state.getPinnedItemNeed(id);
               return `
                 <button class="picker-row ${this.pickedItemId === id ? 'selected' : ''}" data-item-id="${id}">
                   <img src="${art.itemUrls[id]}" alt="${def.name}" />
                   <div style="flex:1">
-                    <div style="font-family:var(--font-pixel);font-size:11px;color:${rarity.color}">${def.name}</div>
+                    <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+                      <span style="font-family:var(--font-pixel);font-size:11px;color:${rarity.color}">${def.name}</span>
+                      ${pinNeed ? `<span class="pin-wanted-pill" title="Gebraucht für: ${pinNeed.recipeTitles.join(', ')}">📌 ${pinNeed.owned}/${pinNeed.required}</span>` : ''}
+                    </div>
                     <div style="font-size:11px;color:var(--text-muted)">Verfügbar: ${total}×</div>
                   </div>
                 </button>
@@ -941,7 +1011,7 @@ export class UIManager {
           <img src="/art/sprites/npc_kael.png" alt="Schmied Kael" style="width:42px;height:46px;image-rendering:pixelated" />
           <div style="font-size:12px;line-height:1.4">
             <strong style="font-family:var(--font-pixel);font-size:11px;color:#fbbf24">SCHMIED KAEL</strong>
-            <div style="color:var(--text-muted)">„4 Waffenklassen bis Meister-Stufe MK-V! Bring mir Reaktor-Splitter, Aegis-Platten und Leviathan-Kerne aus den Tiefen von Sektor 1.“</div>
+            <div style="color:var(--text-muted)">„6 Waffenklassen bis Meister-Stufe MK-V! Bring mir Reaktor-Splitter, Aegis-Platten und Leviathan-Kerne aus den Tiefen von Sektor 1.“</div>
           </div>
         </div>
       `
@@ -988,10 +1058,12 @@ export class UIManager {
         const wid = track.weaponId;
         const isLockedWeapon = wid ? !this.state.unlockedWeapons[wid] : false;
 
-        // Uncrafted Weapon Card (e.g. Ionen-Speer, Puls-Blaster or Grav-Hammer!)
+        // Uncrafted Weapon Card (e.g. Ionen-Speer, Kinetik-Fäuste, Phasen-Diskus, Puls-Blaster or Grav-Hammer!)
         if (isLockedWeapon && wid && track.craftCost) {
           const canCraft = this.state.canCraftWeapon(wid);
           const hasCr = this.state.credits >= track.craftCost.creditCost;
+          const pinKey = `craft:${wid}`;
+          const isPinned = this.state.isRecipePinned(pinKey);
           const matsHtml = track.craftCost.materials
             .map((m) => {
               const def = getItemDef(m.itemId);
@@ -1001,7 +1073,7 @@ export class UIManager {
             .join('');
 
           return `
-            <div class="upgrade-card" style="border-color:rgba(251,191,36,0.45)">
+            <div class="upgrade-card" style="border-color:${isPinned ? '#fbbf24' : 'rgba(251,191,36,0.45)'}">
               <div class="upgrade-left">
                 <div class="inspector-icon-wrap">
                   <img class="pixel-icon" src="${track.iconUrl}" alt="${track.title}" />
@@ -1019,9 +1091,14 @@ export class UIManager {
                   </div>
                 </div>
               </div>
-              <button class="btn btn-amber btn-craft-weapon" data-wid="${wid}" ${canCraft ? '' : 'disabled'}>
-                Schmieden
-              </button>
+              <div class="upgrade-actions">
+                <button class="btn btn-amber btn-craft-weapon" data-wid="${wid}" ${canCraft ? '' : 'disabled'}>
+                  Schmieden
+                </button>
+                <button class="btn-pin ${isPinned ? 'pinned' : ''}" data-pin-key="${pinKey}" title="Materialien für dieses Rezept merken">
+                  ${isPinned ? '📌 Angepinnt' : '📌 Merken'}
+                </button>
+              </div>
             </div>
           `;
         }
@@ -1074,6 +1151,8 @@ export class UIManager {
         const tierLocked =
           track.requiresShopTier !== undefined && (this.state.upgrades.shopTier ?? 0) < track.requiresShopTier;
         const hasCredits = this.state.credits >= nextTier.creditCost;
+        const pinKey = `upgrade:${track.key}`;
+        const isPinned = this.state.isRecipePinned(pinKey);
         const matsHtml = nextTier.materials
           .map((m) => {
             const def = getItemDef(m.itemId);
@@ -1083,7 +1162,7 @@ export class UIManager {
           .join('');
 
         return `
-          <div class="upgrade-card" style="${track.key === 'shopTier' ? 'border-color:rgba(251,191,36,0.48)' : tierLocked ? 'opacity:0.78' : ''}">
+          <div class="upgrade-card" style="${isPinned ? 'border-color:#fbbf24' : track.key === 'shopTier' ? 'border-color:rgba(251,191,36,0.48)' : tierLocked ? 'opacity:0.78' : ''}">
             <div class="upgrade-left">
               <div class="inspector-icon-wrap">
                 <img class="pixel-icon" src="${track.iconUrl}" alt="${track.title}" />
@@ -1107,9 +1186,18 @@ export class UIManager {
                 ${equipControls}
               </div>
             </div>
-            <button class="btn ${track.key === 'shopTier' ? 'btn-amber' : 'btn-primary'} btn-buy-upgrade" data-key="${track.key}" ${canAfford ? '' : 'disabled'}>
-              ${tierLocked ? 'Gesperrt' : isShopTerm ? 'Ausbauen' : isTechLab ? 'Installieren' : 'Verbessern'}
-            </button>
+            <div class="upgrade-actions">
+              <button class="btn ${track.key === 'shopTier' ? 'btn-amber' : 'btn-primary'} btn-buy-upgrade" data-key="${track.key}" ${canAfford ? '' : 'disabled'}>
+                ${tierLocked ? 'Gesperrt' : isShopTerm ? 'Ausbauen' : isTechLab ? 'Installieren' : 'Verbessern'}
+              </button>
+              ${
+                !tierLocked && nextTier.materials.length > 0
+                  ? `<button class="btn-pin ${isPinned ? 'pinned' : ''}" data-pin-key="${pinKey}" title="Materialien für dieses Upgrade merken">
+                       ${isPinned ? '📌 Angepinnt' : '📌 Merken'}
+                     </button>`
+                  : ''
+              }
+            </div>
           </div>
         `;
       })
@@ -1140,6 +1228,22 @@ export class UIManager {
     this.modalEl.querySelector('#btn-open-codex-from-term')?.addEventListener('click', () => {
       sound.playUiClick();
       this.openInventoryModal(true, 'codex');
+    });
+
+    this.modalEl.querySelectorAll<HTMLElement>('.btn-pin').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const key = btn.dataset.pinKey!;
+        const nowPinned = this.state.togglePinRecipe(key);
+        sound.playUiClick();
+        this.toast(
+          nowPinned
+            ? '📌 Rezept angepinnt — benötigte Materialien werden jetzt im HUD, Shop & Sektor markiert!'
+            : 'Rezept von der Merkliste entfernt.',
+          nowPinned ? 'good' : 'info',
+        );
+        this.openStationShopModal(shop);
+        this.renderHud();
+      });
     });
 
     this.modalEl.querySelectorAll<HTMLElement>('.btn-craft-weapon').forEach((btn) => {
@@ -1319,12 +1423,16 @@ export class UIManager {
               const rarity = RARITY_META[def.rarity];
               const total = counts.get(id) ?? 0;
               const salePrice = Math.max(10, Math.round(def.baseValue * 0.7));
+              const pinNeed = this.state.getPinnedItemNeed(id);
               return `
                 <div class="picker-row" style="justify-content:space-between;cursor:default">
                   <div style="display:flex;align-items:center;gap:8px;min-width:0">
                     <img src="${art.itemUrls[id]}" alt="${def.name}" />
                     <div>
-                      <div style="font-family:var(--font-pixel);font-size:10.5px;color:${rarity.color}">${def.name} (${total}×)</div>
+                      <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+                        <span style="font-family:var(--font-pixel);font-size:10.5px;color:${rarity.color}">${def.name} (${total}×)</span>
+                        ${pinNeed ? `<span class="pin-wanted-pill" title="Gebraucht für: ${pinNeed.recipeTitles.join(', ')}">📌 ${pinNeed.owned}/${pinNeed.required}</span>` : ''}
+                      </div>
                       <div style="font-size:11px;color:var(--text-muted)">≈ ${salePrice} Cr/Stk (70 %)</div>
                     </div>
                   </div>
@@ -1420,7 +1528,7 @@ export class UIManager {
     const extraNotes: string[] = [];
     if (summary.sector1Cleared) {
       extraNotes.push(
-        `🏆 <strong>A.E.G.I.S. LEVIATHAN BESIEGT!</strong> Sektor-2-Schlüssel (<em>Kristall-Asteroidenfeld</em>) aktiviert &amp; goldene Trophäe im <strong>Kapitäns-Quartier</strong> aufgestellt!`,
+        `🏆 <strong>A.E.G.I.S. LEVIATHAN BESIEGT!</strong> Sektor-2-Schlüssel (<em>Kristall-Nebel</em>) im <strong>Raumhafen</strong> &amp; goldene Trophäe im <strong>Kapitäns-Quartier</strong> aktiviert!`,
       );
     }
     if (summary.nightRun) {
@@ -1438,9 +1546,9 @@ export class UIManager {
         `🧬 <strong>Klon-Matrix (↑):</strong> +1 ${summary.clonedItems.join(', ')} erfolgreich dupliziert!`,
       );
     }
-    if (summary.resonanceBonus && summary.resonanceBonus > 0) {
+    if (summary.synthesizedItems && summary.synthesizedItems.length > 0) {
       extraNotes.push(
-        `☀ <strong>Nova-Resonanz (←):</strong> +${summary.resonanceBonus} Cr Sofort-Bonus gutgeschrieben!`,
+        `☀ <strong>Nova-Resonanz (←):</strong> In +${summary.synthesizedItems.length} ${summary.synthesizedItems[0]} umgewandelt — im Shop verkaufbar!`,
       );
     }
     if (summary.cursedLost && summary.cursedLost.length > 0) {
@@ -1454,7 +1562,7 @@ export class UIManager {
       );
     } else if (summary.itemsSaved > 0) {
       extraNotes.push(
-        'Gehe links in deinen Shop „Astro-Barter“, um deine Beute zu verkaufen oder Aufträge an der Pinnwand abzuliefern!',
+        'Gehe links zurück über die Promenade in deinen Shop „Astro-Barter“, um deine Beute für Credits zu verkaufen!',
       );
     }
 
@@ -1488,7 +1596,7 @@ export class UIManager {
               ? `<div class="modifier-box" style="display:flex;flex-direction:column;gap:5px">${extraNotes.map((n) => `<div>${n}</div>`).join('')}</div>`
               : ''
           }
-          <button id="btn-summary-ok" class="btn btn-primary" style="width:100%">Weiter auf Port Solaris</button>
+          <button id="btn-summary-ok" class="btn btn-primary" style="width:100%">Weiter im Raumhafen</button>
         </div>
       </div>
     `);
@@ -1513,8 +1621,9 @@ export class UIManager {
         const soldOut = offer.stock <= 0;
         const canBuy = !soldOut && this.state.credits >= offer.price;
         const owned = countItemTotal(this.state.inventory, offer.itemId);
+        const pinNeed = this.state.getPinnedItemNeed(offer.itemId);
         return `
-          <div class="upgrade-card" style="border-color:${soldOut ? 'var(--border-steel)' : rarity.border};${soldOut ? 'opacity:0.55' : ''}">
+          <div class="upgrade-card" style="border-color:${soldOut ? 'var(--border-steel)' : pinNeed && pinNeed.stillNeeded > 0 ? '#fbbf24' : rarity.border};${soldOut ? 'opacity:0.55' : ''}">
             <div class="upgrade-left">
               <div class="inspector-icon-wrap" style="border-color:${rarity.border}">
                 <img class="pixel-icon" src="${art.itemUrls[offer.itemId]}" alt="${def.name}" />
@@ -1523,6 +1632,11 @@ export class UIManager {
                 <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
                   <strong style="font-family:var(--font-pixel);font-size:11px;color:${rarity.color}">${def.name}</strong>
                   <span class="rarity-badge" style="color:${rarity.color};background:${rarity.bg};border-color:${rarity.border}">${rarity.label}</span>
+                  ${
+                    pinNeed
+                      ? `<span class="pin-wanted-pill" title="Angepinnt für: ${pinNeed.recipeTitles.join(', ')}">📌 GESUCHT (${pinNeed.owned}/${pinNeed.required})</span>`
+                      : ''
+                  }
                 </div>
                 <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${def.description}</div>
                 <div class="mat-list">

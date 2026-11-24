@@ -6,6 +6,7 @@ import { sound } from './engine/audio';
 import { InputManager, VIRTUAL_HEIGHT, VIRTUAL_WIDTH } from './engine/input';
 import { BackroomScene } from './scenes/BackroomScene';
 import { DungeonScene } from './scenes/DungeonScene';
+import { HangarScene } from './scenes/HangarScene';
 import { HubScene } from './scenes/HubScene';
 import { ShopScene } from './scenes/ShopScene';
 import { GameState } from './systems/gameState';
@@ -25,6 +26,7 @@ class StarlighterGame {
   private shopScene: ShopScene;
   private backroomScene: BackroomScene;
   private hubScene: HubScene;
+  private hangarScene: HangarScene;
   private dungeonScene: DungeonScene;
 
   private activeScene: SceneId = 'shop';
@@ -171,7 +173,13 @@ class StarlighterGame {
       onOpenMedBay: () => this.ui.openMedBayModal(),
       onOpenTechLab: () => this.ui.openTechLabModal(),
       onOpenBlackMarket: () => this.ui.openBlackMarketModal(),
-      onEnterDungeon: () => this.transitionTo('dungeon', 'hub'),
+      onEnterDungeon: () => this.transitionTo('hangar', 'hub'),
+      onToast: (msg, tone) => this.ui.toast(msg, tone),
+    });
+
+    this.hangarScene = new HangarScene(this.state, {
+      onReturnToHub: () => this.transitionTo('hub', 'hangar'),
+      onLaunchSector1: () => this.transitionTo('dungeon', 'hangar'),
       onToast: (msg, tone) => this.ui.toast(msg, tone),
     });
 
@@ -206,7 +214,7 @@ class StarlighterGame {
     let desired: MusicTrack;
     if (this.activeScene === 'dungeon') {
       desired = this.dungeonScene.isInBossFight() ? 'boss' : 'dungeon';
-    } else if (this.activeScene === 'hub') {
+    } else if (this.activeScene === 'hub' || this.activeScene === 'hangar') {
       desired = 'hub';
     } else if (this.activeScene === 'backroom') {
       desired = 'shop_night';
@@ -281,9 +289,12 @@ class StarlighterGame {
         this.ui.shopIsOpen = false;
         this.dungeonScene.startRun();
         this.ui.dungeonFloor = this.dungeonScene.currentFloor;
+      } else if (scene === 'hangar') {
+        this.ui.shopIsOpen = false;
+        this.hangarScene.onEnter(from === 'dungeon' ? 'dungeon' : 'hub');
       } else if (scene === 'hub') {
         this.ui.shopIsOpen = false;
-        this.hubScene.onEnter(from === 'dungeon' ? 'dungeon' : 'shop');
+        this.hubScene.onEnter(from === 'hangar' || from === 'dungeon' ? 'dungeon' : 'shop');
       } else if (scene === 'backroom') {
         this.ui.shopIsOpen = false;
         this.backroomScene.onEnter();
@@ -299,7 +310,7 @@ class StarlighterGame {
   }
 
   private handleReturnFromDungeon(summary: RunSummary): void {
-    this.transitionTo('hub', 'dungeon', () => {
+    this.transitionTo('hangar', 'dungeon', () => {
       this.ui.openRunSummaryModal(summary);
     });
   }
@@ -372,6 +383,8 @@ class StarlighterGame {
       if (!this.ui.modalOpen && !this.ui.titleVisible) this.backroomScene.update(dt, this.input);
     } else if (this.activeScene === 'hub') {
       if (!this.ui.modalOpen && !this.ui.titleVisible) this.hubScene.update(dt, this.input);
+    } else if (this.activeScene === 'hangar') {
+      if (!this.ui.modalOpen && !this.ui.titleVisible) this.hangarScene.update(dt, this.input);
     } else if (!this.ui.modalOpen && !this.ui.titleVisible) {
       this.dungeonScene.update(dt, this.input);
     }
@@ -387,6 +400,8 @@ class StarlighterGame {
       this.backroomScene.render(this.ctx);
     } else if (this.activeScene === 'hub') {
       this.hubScene.render(this.ctx);
+    } else if (this.activeScene === 'hangar') {
+      this.hangarScene.render(this.ctx);
     } else {
       this.dungeonScene.render(this.ctx, this.input);
     }

@@ -4,7 +4,6 @@ import { getAtlas } from '../assets/sprites';
 import { sound } from '../engine/audio';
 import { VIRTUAL_HEIGHT, VIRTUAL_WIDTH, type InputManager } from '../engine/input';
 import type { GameState } from '../systems/gameState';
-import { countBackpackItems } from '../systems/inventory';
 import type { Direction } from '../types';
 
 interface Stroller {
@@ -370,25 +369,15 @@ export class HubScene {
       return;
     }
 
-    // 6. Warp-Gate to Sector 1 (3 Floors -> Leviathan!)
+    // 6. Gateway to Port Solaris Raumhafen & Sektor-Docks (Docks I–IV & 5. Tor!)
     if (Math.hypot(this.playerX - WARP_GATE_POS.x, this.playerY - WARP_GATE_POS.y) < 38) {
       this.activePrompt = {
-        label:
-          this.state.timeOfDay === 'night'
-            ? '[E] 🌙 Nacht-Warp: Sektor 1 · Ebene I–III (+35 % Rar)'
-            : '[E] Warp: Sektor 1 · Verlassene Korvette (Ebene I–III)',
-        x: WARP_GATE_POS.x - 66,
+        label: '[E] Raumhafen · Sektor-Docks I–IV & 5. Tor →',
+        x: WARP_GATE_POS.x - 62,
         y: WARP_GATE_POS.y - 24,
       };
       if (input.interactPressed()) {
-        const carried = countBackpackItems(this.state.inventory);
-        if (carried > 0) {
-          this.callbacks.onToast(
-            `Hinweis: ${carried} Relikte im Rucksack gehen bei 0 HP verloren (nur bei Extraktion sicher!).`,
-            'warn',
-          );
-        }
-        sound.playWarp();
+        sound.playUiClick();
         this.callbacks.onEnterDungeon();
       }
     }
@@ -578,10 +567,10 @@ export class HubScene {
       { text: 'MED-BAY', x: 356, y: 24, color: '#34d399' },
       { text: 'SCHWARZMARKT', x: 120, y: 148, color: '#c084fc' },
       { text: 'TECH-LABOR', x: 358, y: 148, color: '#38e8d4' },
-      { text: 'SEKTOR 1', x: 420, y: 90, color: '#38e8d4' },
+      { text: 'RAUMHAFEN →', x: 416, y: 90, color: '#38e8d4' },
     ];
     if (this.state.sector1Cleared) {
-      pills.push({ text: '★ S2 SCHLÜSSEL', x: 420, y: 101, color: '#fde047' });
+      pills.push({ text: '★ S2 SCHLÜSSEL', x: 416, y: 101, color: '#fde047' });
     }
     for (const p of pills) {
       const w = Math.ceil(ctx.measureText(p.text).width) + 10;

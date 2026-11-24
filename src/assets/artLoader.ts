@@ -9,6 +9,7 @@ export interface HDArtAssets {
   shopBgT3: HTMLImageElement | null;
   backroomBg: HTMLImageElement | null;
   hubBg: HTMLImageElement | null;
+  hangarBg: HTMLImageElement | null;
   dungeonBg: HTMLImageElement | null;
 
   heroDown: HTMLCanvasElement | null;
@@ -30,6 +31,7 @@ export interface HDArtAssets {
   companions: Record<CompanionId, HTMLCanvasElement | null>;
   companionUrls: Record<CompanionId, string>;
   botClerk: HTMLCanvasElement | null;
+  shipCorvette: HTMLCanvasElement | null;
 
   pedestal: HTMLCanvasElement | null;
   propSaleBox: HTMLCanvasElement | null;
@@ -71,6 +73,7 @@ const art: HDArtAssets = {
   shopBgT3: null,
   backroomBg: null,
   hubBg: null,
+  hangarBg: null,
   dungeonBg: null,
   heroDown: null,
   heroUp: null,
@@ -113,6 +116,7 @@ const art: HDArtAssets = {
     halo: '/art/sprites/bot_halo.png',
   },
   botClerk: null,
+  shipCorvette: null,
   pedestal: null,
   propSaleBox: null,
   propSleepPod: null,
@@ -178,6 +182,7 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
     shopBgT3,
     backroomBg,
     hubBg,
+    hangarBg,
     dungeonBg,
     heroDownImg,
     heroUpImg,
@@ -202,6 +207,7 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
     botLumaImg,
     botHaloImg,
     botClerkImg,
+    shipCorvetteImg,
     pedestalImg,
     saleBoxImg,
     sleepPodImg,
@@ -229,6 +235,7 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
     loadImage('/art/shop_bg_t3.png'),
     loadImage('/art/backroom_bg.png'),
     loadImage('/art/hub_bg.png'),
+    loadImage('/art/hangar_bg.png'),
     loadImage('/art/dungeon_bg.png'),
     loadImage('/art/sprites/hero_down.png'),
     loadImage('/art/sprites/hero_up.png'),
@@ -253,6 +260,7 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
     loadImage('/art/sprites/bot_luma.png'),
     loadImage('/art/sprites/bot_halo.png'),
     loadImage('/art/sprites/bot_clerk.png'),
+    loadImage('/art/sprites/ship_corvette.png'),
     loadImage('/art/sprites/pedestal.png'),
     loadImage('/art/sprites/prop_salebox.png'),
     loadImage('/art/sprites/prop_sleep_pod.png'),
@@ -281,6 +289,7 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
   art.shopBgT3 = shopBgT3;
   art.backroomBg = backroomBg;
   art.hubBg = hubBg;
+  art.hangarBg = hangarBg;
   art.dungeonBg = dungeonBg;
 
   art.heroDown = imgToCanvas(heroDownImg);
@@ -312,6 +321,7 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
   art.companions.luma = imgToCanvas(botLumaImg);
   art.companions.halo = imgToCanvas(botHaloImg);
   art.botClerk = imgToCanvas(botClerkImg);
+  art.shipCorvette = imgToCanvas(shipCorvetteImg);
 
   art.pedestal = imgToCanvas(pedestalImg);
   art.propSaleBox = imgToCanvas(saleBoxImg);

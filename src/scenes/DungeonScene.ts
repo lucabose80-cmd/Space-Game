@@ -1684,14 +1684,7 @@ export class DungeonScene {
       if (dist > range + hitPt.r + 4) continue;
       const diff = Math.abs(this.normalizeAngle(Math.atan2(dy, dx) - angle));
       if (diff <= (isFinisher ? 1.25 : 0.95) || dist < hitPt.r + 12) {
-        this.slashHits.push({
-          x: hitPt.x,
-          y: hitPt.y - 2,
-          angle: angle + (Math.random() - 0.5) * 0.6,
-          color: isFinisher ? '#fbbf24' : '#38e8d4',
-          life: 0.15,
-          maxLife: 0.15,
-        });
+        this.spawnBurst(hitPt.x, hitPt.y - 2, isFinisher ? '#fbbf24' : '#38e8d4', isFinisher ? 10 : 5);
         // 4th-hit uppercut breaks frontal shields!
         this.damageEnemy(e, damage, Math.cos(angle), Math.sin(angle), isFinisher ? 175 : 70, isFinisher);
         hitAny = true;
@@ -3600,6 +3593,17 @@ export class DungeonScene {
       this.state.save();
     } else if (Math.random() < 0.82) {
       this.spawnLootDrop(e.x, e.y, rollLootItem(lootDepth, false, nightBoost, luckBonus));
+      if (this.state.equippedCompanion === 'puck' && Math.random() < 0.25) {
+        this.spawnLootDrop(e.x + 6, e.y - 4, rollLootItem(lootDepth, false, nightBoost, luckBonus));
+        this.floats.push({
+          x: this.companionX,
+          y: this.companionY - 10,
+          text: '+1 BEUTE (PUCK)',
+          color: '#fbbf24',
+          life: 1.0,
+          maxLife: 1.0,
+        });
+      }
     }
 
     // Check live Companion Bot milestone unlocks (Spark / Luma / Halo)!
@@ -3974,26 +3978,19 @@ export class DungeonScene {
           const def = getItemDef(d.itemId);
           sound.playPickup();
           this.spawnBurst(d.x, d.y, def.glowColor, 6);
+          const pinNeed = this.state.getPinnedItemNeed(d.itemId);
           this.floats.push({
             x: d.x,
             y: d.y - 10,
-            text: `+1 ${def.name}`,
-            color: def.glowColor,
-            life: 1.0,
-            maxLife: 1.0,
+            text: pinNeed
+              ? `📌 +1 ${def.name} (${pinNeed.owned}/${pinNeed.required})`
+              : `+1 ${def.name}`,
+            color: pinNeed ? '#fde047' : def.glowColor,
+            life: pinNeed ? 1.35 : 1.0,
+            maxLife: pinNeed ? 1.35 : 1.0,
           });
-          if (hasPuck) {
-            const bonusCr = 8 + Math.floor(Math.random() * 8);
-            this.state.credits += bonusCr;
-            this.state.totalEarned += bonusCr;
-            this.floats.push({
-              x: this.companionX,
-              y: this.companionY - 10,
-              text: `+${bonusCr} Cr (PUCK)`,
-              color: '#fbbf24',
-              life: 1.05,
-              maxLife: 1.05,
-            });
+          if (pinNeed) {
+            this.spawnBurst(d.x, d.y, '#fde047', 10);
           }
           this.drops.splice(i, 1);
           this.callbacks.onHudDirty();
@@ -4008,7 +4005,7 @@ export class DungeonScene {
     if (this.currentRoom.type === 'start') {
       if (Math.hypot(this.playerX - ROOM_CENTER_X, this.playerY - (ROOM_CENTER_Y - 12)) < 28) {
         this.activePrompt = {
-          label: '[E] Extraktion: Port Solaris (Gratis)',
+          label: '[E] Extraktion: Raumhafen Port Solaris (Gratis)',
           x: ROOM_CENTER_X,
           y: ROOM_CENTER_Y - 32,
         };
@@ -4060,7 +4057,7 @@ export class DungeonScene {
         const padY = ROOM_CENTER_Y + 6;
         if (Math.hypot(this.playerX - exX, this.playerY - padY) < 28) {
           this.activePrompt = {
-            label: '[E] Extraktion: Port Solaris (Beute sichern)',
+            label: '[E] Extraktion: Raumhafen Port Solaris (Beute sichern)',
             x: exX,
             y: padY - 24,
           };
@@ -4091,7 +4088,7 @@ export class DungeonScene {
         const vy = ROOM_CENTER_Y + 12;
         if (Math.hypot(this.playerX - vx, this.playerY - vy) < 32) {
           this.activePrompt = {
-            label: '[E] ★ Sektor-1-Sieg! Port Solaris (S2-Schlüssel)',
+            label: '[E] ★ Sektor-1-Sieg! Raumhafen Port Solaris (S2-Schlüssel)',
             x: vx,
             y: vy - 26,
           };
@@ -4121,6 +4118,17 @@ export class DungeonScene {
           this.spawnLootDrop(chest.x, chest.y, rollLootItem(d, true, nightBoost, luckBonus));
           this.spawnLootDrop(chest.x, chest.y, rollLootItem(d, true, nightBoost, luckBonus));
           this.spawnLootDrop(chest.x, chest.y, rollLootItem(d, false, nightBoost, luckBonus));
+          if (this.state.equippedCompanion === 'puck' && Math.random() < 0.25) {
+            this.spawnLootDrop(chest.x + 8, chest.y + 4, rollLootItem(d, true, nightBoost, luckBonus));
+            this.floats.push({
+              x: this.companionX,
+              y: this.companionY - 10,
+              text: '+1 EXTRA-RELIKT (PUCK)',
+              color: '#fbbf24',
+              life: 1.1,
+              maxLife: 1.1,
+            });
+          }
           this.callbacks.onToast('Uralte Relikt-Truhe geplündert!', 'good');
         }
       }
@@ -4136,10 +4144,7 @@ export class DungeonScene {
     }
     sound.playWarp();
     const res = processSafeReturnEffects(this.state.inventory);
-    if (res.resonanceBonus > 0) {
-      this.state.credits += res.resonanceBonus;
-      this.state.totalEarned += res.resonanceBonus;
-    }
+    // ZERO direct credits from dungeons — all wealth comes from selling relics in Astro-Barter!
     this.state.save();
     this.callbacks.onReturnToHub({
       victory: true,
@@ -4152,7 +4157,8 @@ export class DungeonScene {
       shatteredItems: [],
       clonedItems: res.clonedItems,
       cursedLost: res.cursedLost,
-      resonanceBonus: res.resonanceBonus,
+      synthesizedItems: res.synthesizedItems,
+      resonanceBonus: 0,
       nightRun: this.state.timeOfDay === 'night',
       floorReached: this.maxFloorReached,
       sector1Cleared: this.sector1ClearedInRun,
@@ -4445,11 +4451,25 @@ export class DungeonScene {
     for (const d of this.drops) {
       const def = getItemDef(d.itemId);
       const bob = Math.sin(this.time * 5 + d.x) * 2.2;
+      const pinNeed = this.state.getPinnedItemNeed(d.itemId);
+      const wanted = Boolean(pinNeed && pinNeed.stillNeeded > 0);
       drawPixelShadow(ctx, d.x, d.y + 7, 6, 2.5, 0.42);
-      drawGlow(ctx, d.x, d.y + bob, 16, def.glowColor, 0.4);
+      drawGlow(ctx, d.x, d.y + bob, wanted ? 22 : 16, wanted ? '#fde047' : def.glowColor, wanted ? 0.56 : 0.4);
       const spr = art.items[d.itemId] ?? atlas.items[d.itemId];
       if (spr) {
         ctx.drawImage(spr, d.x - 9, d.y - 10 + bob, 18, 18);
+      }
+      if (wanted) {
+        const pinBob = Math.sin(this.time * 7 + d.x) * 1.5;
+        ctx.fillStyle = 'rgba(15, 22, 36, 0.92)';
+        ctx.fillRect(d.x - 10, d.y - 20 + pinBob, 20, 8);
+        ctx.strokeStyle = '#fde047';
+        ctx.lineWidth = 0.7;
+        ctx.strokeRect(d.x - 10, d.y - 20 + pinBob, 20, 8);
+        ctx.fillStyle = '#fde047';
+        ctx.font = 'bold 4.8px Silkscreen, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('★ PIN', d.x, d.y - 14 + pinBob);
       }
     }
 
@@ -6050,7 +6070,13 @@ export class DungeonScene {
   private drawReadyMeleeWeapon(ctx: CanvasRenderingContext2D, bob: number): void {
     const art = getHDArt();
     const wep = this.state.equippedWeapon;
-    if (wep === 'blaster' || this.swings.length > 0 || this.thrusts.length > 0) return;
+    if (
+      (wep !== 'blade' && wep !== 'spear' && wep !== 'hammer') ||
+      this.swings.length > 0 ||
+      this.thrusts.length > 0
+    ) {
+      return;
+    }
     const spr =
       wep === 'hammer'
         ? art.weapons.hammer
@@ -6304,14 +6330,49 @@ export class DungeonScene {
       ctx.drawImage(art.weapons.blaster, -8, -8, 16, 16);
       ctx.restore();
     } else if (this.state.equippedWeapon === 'fists' && art.weapons.fists) {
-      // Glowing kinetic energy gauntlets flanking hero!
-      const punchBoost = this.swingPoseTimer > 0 ? 4.5 : 0;
-      const a = this.lastAimAngle;
-      drawGlow(ctx, this.playerX + Math.cos(a) * (6 + punchBoost), this.playerY - 1 + Math.sin(a) * (6 + punchBoost), 10, '#fbbf24', 0.28);
-      ctx.save();
-      ctx.translate(this.playerX + lungeX + Math.cos(a) * (6 + punchBoost), this.playerY - 1 - bob + Math.sin(a) * (5 + punchBoost));
-      ctx.drawImage(art.weapons.fists, -7, -7, 14, 14);
-      ctx.restore();
+      // Dual glowing kinetic energy gauntlets flanking hero — alternating left/right jab thrusts!
+      const a = this.swingPoseTimer > 0 ? this.swingPoseAngle : this.lastAimAngle;
+      const perpX = -Math.sin(a);
+      const perpY = Math.cos(a);
+      const isPunching = this.swingPoseTimer > 0;
+      const punchPhase = isPunching
+        ? Math.sin((1 - this.swingPoseTimer / Math.max(0.05, this.swingPoseMax)) * Math.PI)
+        : 0;
+      const isFinisher = isPunching && this.swingPoseCombo === 2;
+
+      for (const side of [-1, 1] as const) {
+        const activeSide = isFinisher || (isPunching && this.swingPoseDir === side);
+        const reach = activeSide ? 8 + punchPhase * (isFinisher ? 11 : 8) : 5.5;
+        const spread = activeSide ? (isFinisher ? 4.5 : 3.2) : 6.5;
+        const gx = this.playerX + lungeX + Math.cos(a) * reach + perpX * side * spread;
+        const gy = this.playerY - 1 - bob + Math.sin(a) * reach + perpY * side * spread;
+        drawGlow(
+          ctx,
+          gx,
+          gy,
+          activeSide ? 13 : 8,
+          isFinisher ? '#fde047' : activeSide ? '#38e8d4' : '#fb923c',
+          activeSide ? 0.5 : 0.24,
+        );
+        ctx.save();
+        ctx.translate(gx, gy);
+        ctx.rotate(a + Math.PI / 2);
+        const sz = activeSide ? 11 : 8.5;
+        const halfW = art.weapons.fists.width / 2;
+        const srcX = side < 0 ? 0 : halfW;
+        ctx.drawImage(
+          art.weapons.fists,
+          srcX,
+          0,
+          halfW,
+          art.weapons.fists.height,
+          -sz * 0.42,
+          -sz * 0.55,
+          sz * 0.84,
+          sz * 1.1,
+        );
+        ctx.restore();
+      }
     } else if (this.state.equippedWeapon === 'discus' && this.discs.length < 2 && art.weapons.discus) {
       // Hovering mini phase-discus spinning lightly beside hero's hand when ready to throw!
       const hx = this.playerX + (this.facing === 'left' ? -10 : 10);

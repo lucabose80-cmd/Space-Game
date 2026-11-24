@@ -203,13 +203,15 @@ export function processSafeReturnEffects(inv: InventoryData): {
   warpedToChest: string[];
   clonedItems: string[];
   cursedLost: string[];
+  synthesizedItems: string[];
   resonanceBonus: number;
   savedCount: number;
 } {
   const warpedToChest: string[] = [];
   const clonedItems: string[] = [];
   const cursedLost: string[] = [];
-  let resonanceBonus = 0;
+  const synthesizedItems: string[] = [];
+  const resonanceBonus = 0;
   let extraChestSaved = 0;
   const cols = 5;
 
@@ -224,7 +226,8 @@ export function processSafeReturnEffects(inv: InventoryData): {
     }
   }
 
-  // 2. volatile_boost (←): consumes 1 unit of the left neighbor slot for +180 Cr bonus
+  // 2. volatile_boost (←): transmutes 1 unit of the left neighbor into 1 Star Compass relic (0 direct credits!)
+  let synthCount = 0;
   for (let i = 0; i < inv.cargo.length; i++) {
     const s = inv.cargo[i];
     if (!s) continue;
@@ -233,11 +236,23 @@ export function processSafeReturnEffects(inv: InventoryData): {
       if (col > 0) {
         const leftIdx = i - 1;
         const left = inv.cargo[leftIdx];
-        if (left && left.qty > 0) {
+        if (left && left.qty > 0 && left.itemId !== 'star_compass') {
           left.qty -= 1;
           if (left.qty <= 0) inv.cargo[leftIdx] = null;
-          resonanceBonus += 180;
+          synthCount += 1;
         }
+      }
+    }
+  }
+  for (let k = 0; k < synthCount; k++) {
+    const remBag = addItemToBackpack(inv, 'star_compass', 1);
+    if (remBag === 0) {
+      synthesizedItems.push(getItemDef('star_compass').name);
+    } else {
+      const remChest = addItemToChest(inv, 'star_compass', 1);
+      if (remChest === 0) {
+        extraChestSaved += 1;
+        synthesizedItems.push(getItemDef('star_compass').name);
       }
     }
   }
@@ -294,6 +309,7 @@ export function processSafeReturnEffects(inv: InventoryData): {
     warpedToChest,
     clonedItems,
     cursedLost,
+    synthesizedItems,
     resonanceBonus,
     savedCount: countBackpackItems(inv) + extraChestSaved,
   };
