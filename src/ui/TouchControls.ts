@@ -102,9 +102,11 @@ export class TouchControls {
     const secLabel =
       this.equippedWeapon === 'blade'
         ? 'SCHILD'
-        : this.equippedWeapon === 'blaster'
-          ? 'LASER'
-          : 'SCHOCK';
+        : this.equippedWeapon === 'spear'
+          ? 'LANZE'
+          : this.equippedWeapon === 'blaster'
+            ? 'LASER'
+            : 'SCHOCK';
     const secSub = this.equippedWeapon === 'blade' ? 'HALTEN' : 'SPEZIAL';
 
     let buttonsHtml = '';
@@ -119,7 +121,7 @@ export class TouchControls {
           <button class="tbtn tbtn-primary tbtn-big" data-code="KeyE">AKTION<small>[E]</small></button>
         </div>
       `;
-    } else if (this.scene === 'hub') {
+    } else if (this.scene === 'hub' || this.scene === 'backroom') {
       buttonsHtml = `
         <div class="touch-pad-grid shop-pad">
           <button class="tbtn tbtn-util" data-cb="bag">FRACHT</button>

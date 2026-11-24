@@ -14,7 +14,7 @@ import {
 } from '../systems/inventory';
 import type { Direction, RunSummary, WeaponId } from '../types';
 import {
-  generateSector1Dungeon,
+  generateSector1Floor,
   ROOM_BOTTOM,
   ROOM_CENTER_X,
   ROOM_CENTER_Y,
@@ -38,11 +38,60 @@ type BossState =
   | 'laser_sweep'
   | 'pylon_barrage'
   | 'phase2_roar'
-  | 'stunned';
+  | 'stunned'
+  | 'breacher_stomp'
+  | 'breacher_fan'
+  | 'lev_idle'
+  | 'lev_arm_track'
+  | 'lev_arm_slam'
+  | 'lev_twin_windup'
+  | 'lev_twin_beam'
+  | 'lev_debris'
+  | 'lev_omega_spiral';
+
+interface LeviathanArm {
+  side: -1 | 1;
+  homeX: number;
+  homeY: number;
+  x: number;
+  y: number;
+  targetX: number;
+  targetY: number;
+  state: 'idle' | 'tracking' | 'slamming' | 'grounded' | 'returning' | 'beam';
+  timer: number;
+  beamAngle: number;
+}
+
+interface DebrisDrop {
+  x: number;
+  y: number;
+  r: number;
+  timer: number;
+  maxTimer: number;
+}
+
+interface SpearThrustFx {
+  x: number;
+  y: number;
+  angle: number;
+  length: number;
+  comboStep: number;
+  isCharge: boolean;
+  life: number;
+  maxLife: number;
+}
 
 interface Enemy {
   id: number;
-  kind: 'slime' | 'drone' | 'turret' | 'boss';
+  kind:
+    | 'slime'
+    | 'drone'
+    | 'turret'
+    | 'shield_drone'
+    | 'spore_spitter'
+    | 'boss_breacher'
+    | 'boss'
+    | 'boss_leviathan';
   x: number;
   y: number;
   vx: number;
@@ -80,6 +129,9 @@ interface Enemy {
   bossPhase2?: boolean;
   bossStatusText?: string;
   bossAfterimageTick?: number;
+  // Leviathan articulated giant gauntlets
+  levArms?: [LeviathanArm, LeviathanArm];
+  levActiveSide?: 0 | 1;
 }
 
 interface Projectile {
@@ -92,6 +144,7 @@ interface Projectile {
   color: string;
   radius: number;
   life: number;
+  isSporeGlob?: boolean;
 }
 
 interface LootDrop {
@@ -131,6 +184,7 @@ interface BossAfterimage {
   height: number;
   tilt: number;
   enraged: boolean;
+  isBreacher?: boolean;
   life: number;
   maxLife: number;
 }
@@ -200,7 +254,8 @@ export class DungeonScene {
   private state: GameState;
   private callbacks: DungeonCallbacks;
 
-  private floor: DungeonFloor = generateSector1Dungeon(8);
+  private floor: DungeonFloor = generateSector1Floor(1);
+  public currentFloor: 1 | 2 | 3 = 1;
   public currentRoom!: DungeonRoom;
 
   public playerX = ROOM_CENTER_X;
@@ -213,6 +268,9 @@ export class DungeonScene {
   private dashCooldown = 0;
   private dashVx = 0;
   private dashVy = 0;
+  private lanceChargeTimer = 0;
+  private lanceChargeAngle = 0;
+  private lanceHitIds = new Set<number>();
   private invulnTimer = 0;
   private playerFlashTimer = 0;
 
@@ -250,6 +308,8 @@ export class DungeonScene {
   private projectiles: Projectile[] = [];
   private drops: LootDrop[] = [];
   private swings: WeaponSwing[] = [];
+  private thrusts: SpearThrustFx[] = [];
+  private debrisDrops: DebrisDrop[] = [];
   private slashHits: SlashHitFx[] = [];
   private bossAfterimages: BossAfterimage[] = [];
   private beams: LaserBeamFx[] = [];
@@ -270,7 +330,9 @@ export class DungeonScene {
   // Run telemetry
   private roomsCleared = 0;
   private enemiesDefeated = 0;
-  private bossDefeatedInRun = false;
+  private floorBossDefeated = false;
+  private maxFloorReached = 1;
+  private sector1ClearedInRun = false;
   private finished = false;
 
   public activePrompt: { label: string; x: number; y: number } | null = null;
@@ -281,16 +343,29 @@ export class DungeonScene {
   }
 
   public startRun(): void {
-    this.floor = generateSector1Dungeon(8);
     this.state.restoreFullVitals();
     this.roomsCleared = 0;
     this.enemiesDefeated = 0;
-    this.bossDefeatedInRun = false;
+    this.maxFloorReached = 1;
+    this.sector1ClearedInRun = false;
     this.finished = false;
+    this.startFloor(1, true);
+  }
+
+  public startFloor(floorIndex: 1 | 2 | 3, freshRun = false): void {
+    this.currentFloor = floorIndex;
+    this.maxFloorReached = Math.max(this.maxFloorReached, floorIndex);
+    if (floorIndex > this.state.deepestFloor) {
+      this.state.deepestFloor = floorIndex;
+      this.state.save();
+    }
+    this.floor = generateSector1Floor(floorIndex);
+    this.floorBossDefeated = false;
     this.warpChannel = 0;
-    this.invulnTimer = 0.5;
+    this.invulnTimer = 0.55;
     this.dashCooldown = 0;
     this.dashTimer = 0;
+    this.lanceChargeTimer = 0;
     this.attackCooldown = 0;
     this.specialCooldown = 0;
     this.shieldActive = false;
@@ -298,13 +373,26 @@ export class DungeonScene {
     this.shieldOverheatTimer = 0;
     this.shieldOverheatMsgCd = 0;
     this.enterRoom(this.floor.startKey, null);
-    this.spawnBurst(this.playerX, this.playerY, '#38e8d4', 20);
-    this.callbacks.onToast(
-      this.state.timeOfDay === 'night'
-        ? '🌙 Nacht-Expedition in Sektor 1 (+35 % Chance auf seltene & epische Relikte)!'
-        : 'Sektor 1: Verlassene Korvette — Beute bleibt nur bei Extraktion [R] sicher!',
-      this.state.timeOfDay === 'night' ? 'good' : 'info',
-    );
+    this.spawnBurst(this.playerX, this.playerY, floorIndex === 3 ? '#fbbf24' : '#38e8d4', 22);
+
+    if (freshRun) {
+      this.callbacks.onToast(
+        this.state.timeOfDay === 'night'
+          ? '🌙 Nacht-Expedition · Ebene I: Frachtdeck (+35 % Rar-Loot)!'
+          : 'Sektor 1 · Ebene I: Frachtdeck — Beute bleibt nur bei Extraktion [R] sicher!',
+        this.state.timeOfDay === 'night' ? 'good' : 'info',
+      );
+    } else if (floorIndex === 2) {
+      this.callbacks.onToast(
+        '⬇ Ebene II: Überwuchertes Maschinen-Deck — Achtung: Schild-Drohnen, Sporen-Spucker & Dampf-Ventile!',
+        'warn',
+      );
+    } else {
+      this.callbacks.onToast(
+        '⬇ Ebene III: Reaktor-Kern — Nutze die Notfall-Medstation! Der gigantische A.E.G.I.S. LEVIATHAN wartet!',
+        'warn',
+      );
+    }
     this.callbacks.onHudDirty();
   }
 
@@ -318,6 +406,8 @@ export class DungeonScene {
     this.projectiles = [];
     this.drops = [];
     this.swings = [];
+    this.thrusts = [];
+    this.debrisDrops = [];
     this.slashHits = [];
     this.bossAfterimages = [];
     this.beams = [];
@@ -344,7 +434,7 @@ export class DungeonScene {
       this.facing = 'left';
     } else {
       this.playerX = ROOM_CENTER_X;
-      this.playerY = ROOM_CENTER_Y + 18;
+      this.playerY = ROOM_CENTER_Y + 24;
       this.facing = 'up';
     }
 
@@ -354,140 +444,142 @@ export class DungeonScene {
       }
       if (room.type === 'boss') {
         sound.playBossRoar();
-        this.triggerShake(0.35, 4);
-        this.callbacks.onToast('ACHTUNG: Core-Wächter MK-IV erwacht!', 'warn');
+        this.triggerShake(0.4, 4.5);
+        if (this.currentFloor === 1) {
+          this.callbacks.onToast('⚠ EBENEN-BOSS I: Schott-Brecher MK-II rückt vor!', 'warn');
+        } else if (this.currentFloor === 2) {
+          this.callbacks.onToast('⚠ EBENEN-BOSS II: Core-Wächter MK-IV erwacht!', 'warn');
+        } else {
+          this.callbacks.onToast('🚨 SEKTOR-1-ENDBOSS: A.E.G.I.S. LEVIATHAN AKTIVIERT!', 'warn');
+        }
       }
     }
   }
 
+  private isBossKind(kind: Enemy['kind']): boolean {
+    return kind === 'boss_breacher' || kind === 'boss' || kind === 'boss_leviathan';
+  }
+
   private spawnEnemy(kind: Enemy['kind'], x: number, y: number): void {
-    const baseScale = 1 + this.state.bossDefeatedCount * 0.14;
+    const floorScale = this.currentFloor === 1 ? 1.0 : this.currentFloor === 2 ? 1.24 : 1.48;
+    const baseScale = floorScale * (1 + Math.min(3, this.state.bossDefeatedCount) * 0.08);
+
+    const makeBase = (hp: number, radius: number): Enemy => ({
+      id: this.nextEnemyId++,
+      kind,
+      x,
+      y,
+      vx: 0,
+      vy: 0,
+      hp,
+      maxHp: hp,
+      radius,
+      flashTimer: 0,
+      aiTimer: 0.6 + Math.random() * 0.4,
+      phase: 0,
+      subBurst: 0,
+      burstDelay: 0,
+      moveDirX: Math.random() > 0.5 ? 1 : -1,
+      moveDirY: 0,
+      scurryTimer: 0,
+      chargeDirX: 0,
+      chargeDirY: 0,
+      chargeActive: 0,
+      telegraphTimer: 0,
+      aimAngle: Math.PI / 2,
+      summonThreshold: 0,
+      anim: Math.random() * 5,
+    });
+
     if (kind === 'slime') {
-      const hp = Math.round(48 * baseScale);
-      this.enemies.push({
-        id: this.nextEnemyId++,
-        kind,
-        x,
-        y,
-        vx: 0,
-        vy: 0,
-        hp,
-        maxHp: hp,
-        radius: 8,
-        flashTimer: 0,
-        aiTimer: 0.35 + Math.random() * 0.35,
-        phase: 0,
-        subBurst: 0,
-        burstDelay: 0,
-        moveDirX: 0,
-        moveDirY: 0,
-        scurryTimer: 0,
-        chargeDirX: 0,
-        chargeDirY: 0,
-        chargeActive: 0,
-        telegraphTimer: 0,
-        aimAngle: 0,
-        summonThreshold: 0,
-        anim: Math.random() * 5,
-      });
+      const e = makeBase(Math.round(46 * baseScale), 8);
+      e.aiTimer = 0.35 + Math.random() * 0.35;
+      this.enemies.push(e);
     } else if (kind === 'drone') {
-      const hp = Math.round(54 * baseScale);
-      this.enemies.push({
-        id: this.nextEnemyId++,
-        kind,
-        x,
-        y,
-        vx: 0,
-        vy: 0,
-        hp,
-        maxHp: hp,
-        radius: 8,
-        flashTimer: 0,
-        aiTimer: 0.9 + Math.random() * 0.6,
-        phase: Math.random() * Math.PI * 2,
-        subBurst: 0,
-        burstDelay: 0,
-        moveDirX: Math.random() > 0.5 ? 1 : -1,
-        moveDirY: 0,
-        scurryTimer: 0,
-        chargeDirX: 0,
-        chargeDirY: 0,
-        chargeActive: 0,
-        telegraphTimer: 0,
-        aimAngle: 0,
-        summonThreshold: 0,
-        anim: 0,
-      });
+      const e = makeBase(Math.round(52 * baseScale), 8);
+      e.aiTimer = 0.9 + Math.random() * 0.6;
+      e.phase = Math.random() * Math.PI * 2;
+      this.enemies.push(e);
     } else if (kind === 'turret') {
-      const hp = Math.round(68 * baseScale);
-      this.enemies.push({
-        id: this.nextEnemyId++,
-        kind,
-        x,
-        y,
-        vx: 0,
-        vy: 0,
-        hp,
-        maxHp: hp,
-        radius: 9,
-        flashTimer: 0,
-        aiTimer: 0.9 + Math.random() * 0.5,
-        phase: 0,
-        subBurst: 0,
-        burstDelay: 0,
-        moveDirX: 0,
-        moveDirY: 0,
-        scurryTimer: 0.8 + Math.random() * 0.4,
-        chargeDirX: 0,
-        chargeDirY: 0,
-        chargeActive: 0,
-        telegraphTimer: 0,
-        aimAngle: 0,
-        summonThreshold: 0,
-        anim: 0,
-      });
+      const e = makeBase(Math.round(66 * baseScale), 9);
+      e.aiTimer = 0.9 + Math.random() * 0.5;
+      e.scurryTimer = 0.8 + Math.random() * 0.4;
+      e.moveDirX = 0;
+      this.enemies.push(e);
+    } else if (kind === 'shield_drone') {
+      const e = makeBase(Math.round(78 * baseScale), 10);
+      e.aiTimer = 1.1 + Math.random() * 0.5;
+      e.aimAngle = Math.atan2(this.playerY - y, this.playerX - x);
+      this.enemies.push(e);
+    } else if (kind === 'spore_spitter') {
+      const e = makeBase(Math.round(72 * baseScale), 9);
+      e.aiTimer = 1.0 + Math.random() * 0.5;
+      e.scurryTimer = 0;
+      this.enemies.push(e);
+    } else if (kind === 'boss_breacher') {
+      const e = makeBase(Math.round(255 * (1 + Math.min(2, this.state.bossDefeatedCount) * 0.08)), 16);
+      e.bossState = 'stalk';
+      e.bossStateTimer = 0.85;
+      e.bossStateMax = 0.85;
+      e.bossHeight = 0;
+      e.bossPhase2 = false;
+      e.bossStatusText = 'AKTIV';
+      e.bossAfterimageTick = 0;
+      this.enemies.push(e);
+    } else if (kind === 'boss') {
+      const e = makeBase(Math.round(420 * (1 + Math.min(2, this.state.bossDefeatedCount) * 0.08)), 16);
+      e.bossState = 'stalk';
+      e.bossStateTimer = 0.95;
+      e.bossStateMax = 0.95;
+      e.bossHeight = 0;
+      e.bossTargetX = x;
+      e.bossTargetY = y;
+      e.bossLaserAngle = 0;
+      e.bossLaserDir = 1;
+      e.bossLaserTick = 0;
+      e.bossOrbitAngle = 0;
+      e.bossPylonRadius = 28;
+      e.bossPhase2 = false;
+      e.bossStatusText = 'AKTIV';
+      e.bossAfterimageTick = 0;
+      this.enemies.push(e);
     } else {
-      const hp = Math.round(380 * baseScale);
-      this.enemies.push({
-        id: this.nextEnemyId++,
-        kind: 'boss',
-        x,
-        y,
-        vx: 0,
-        vy: 0,
-        hp,
-        maxHp: hp,
-        radius: 16,
-        flashTimer: 0,
-        aiTimer: 1.0,
-        phase: 0,
-        subBurst: 0,
-        burstDelay: 0,
-        moveDirX: 0,
-        moveDirY: 0,
-        scurryTimer: 0,
-        chargeDirX: 0,
-        chargeDirY: 0,
-        chargeActive: 0,
-        telegraphTimer: 0,
-        aimAngle: 0,
-        summonThreshold: 0.5,
-        anim: 0,
-        bossState: 'stalk',
-        bossStateTimer: 0.95,
-        bossStateMax: 0.95,
-        bossHeight: 0,
-        bossTargetX: x,
-        bossTargetY: y,
-        bossLaserAngle: 0,
-        bossLaserDir: 1,
-        bossLaserTick: 0,
-        bossOrbitAngle: 0,
-        bossPylonRadius: 28,
-        bossPhase2: false,
-        bossStatusText: 'AKTIV',
-        bossAfterimageTick: 0,
-      });
+      // Gigantic Sector-1 Endboss: A.E.G.I.S. LEVIATHAN!
+      const e = makeBase(Math.round(760 * (1 + Math.min(2, this.state.bossDefeatedCount) * 0.06)), 28);
+      e.bossState = 'lev_idle';
+      e.bossStateTimer = 1.05;
+      e.bossStateMax = 1.05;
+      e.bossHeight = 0;
+      e.bossPhase2 = false;
+      e.bossStatusText = 'OMEGA-KERN AKTIV';
+      e.levActiveSide = 0;
+      e.levArms = [
+        {
+          side: -1,
+          homeX: ROOM_CENTER_X - 78,
+          homeY: ROOM_TOP + 54,
+          x: ROOM_CENTER_X - 78,
+          y: ROOM_TOP + 54,
+          targetX: ROOM_CENTER_X - 78,
+          targetY: ROOM_TOP + 54,
+          state: 'idle',
+          timer: 0,
+          beamAngle: Math.PI / 2,
+        },
+        {
+          side: 1,
+          homeX: ROOM_CENTER_X + 78,
+          homeY: ROOM_TOP + 54,
+          x: ROOM_CENTER_X + 78,
+          y: ROOM_TOP + 54,
+          targetX: ROOM_CENTER_X + 78,
+          targetY: ROOM_TOP + 54,
+          state: 'idle',
+          timer: 0,
+          beamAngle: Math.PI / 2,
+        },
+      ];
+      this.enemies.push(e);
     }
   }
 
@@ -581,6 +673,7 @@ export class DungeonScene {
     }
 
     this.updatePlayer(dt, input);
+    this.updateHazardsAndDebris(dt);
     this.updateEnemies(dt);
     this.updateProjectiles(dt);
     this.updateDrops(dt);
@@ -625,14 +718,23 @@ export class DungeonScene {
       return Math.atan2(m.y - this.playerY, m.x - this.playerX);
     }
 
-    // Smart auto-aim on touch / keyboard-only: lock onto nearest enemy in range!
-    let bestDist = 175;
+    // Smart auto-aim on touch / keyboard-only: lock onto nearest enemy (or grounded Leviathan gauntlet!)
+    let bestDist = 185;
     let bestAngle: number | null = null;
     for (const e of this.enemies) {
       const d = Math.hypot(e.x - this.playerX, e.y - this.playerY);
       if (d < bestDist) {
         bestDist = d;
         bestAngle = Math.atan2(e.y - this.playerY, e.x - this.playerX);
+      }
+      if (e.kind === 'boss_leviathan' && e.levArms) {
+        for (const arm of e.levArms) {
+          const ad = Math.hypot(arm.x - this.playerX, arm.y - this.playerY);
+          if (ad < bestDist) {
+            bestDist = ad;
+            bestAngle = Math.atan2(arm.y - this.playerY, arm.x - this.playerX);
+          }
+        }
       }
     }
     if (bestAngle !== null) return bestAngle;
@@ -662,6 +764,70 @@ export class DungeonScene {
   private updatePlayer(dt: number, input: InputManager): void {
     const move = input.getMoveVector();
     const weapon: WeaponId = this.state.equippedWeapon;
+    const stats = this.state.getStats();
+
+    // Active Ion-Lance Charge (Spear Secondary piercing i-frame dash!)
+    if (this.lanceChargeTimer > 0) {
+      this.lanceChargeTimer = Math.max(0, this.lanceChargeTimer - dt);
+      const speed = 315;
+      const vx = Math.cos(this.lanceChargeAngle) * speed;
+      const vy = Math.sin(this.lanceChargeAngle) * speed;
+      this.moveEntityWithCollisions(vx * dt, vy * dt);
+
+      if (Math.random() < 0.85) {
+        this.afterimages.push({
+          x: this.playerX,
+          y: this.playerY,
+          facing: this.facing,
+          life: 0.18,
+          maxLife: 0.18,
+        });
+        this.particles.push({
+          x: this.playerX + (Math.random() - 0.5) * 8,
+          y: this.playerY - 2 + (Math.random() - 0.5) * 8,
+          vx: -vx * 0.2,
+          vy: -vy * 0.2,
+          color: Math.random() > 0.4 ? '#38e8d4' : '#fde047',
+          size: 2.0,
+          life: 0.22,
+          maxLife: 0.22,
+        });
+      }
+
+      const chargeDmg = Math.round(stats.spearDamage * 1.75);
+      for (const e of [...this.enemies]) {
+        if (this.lanceHitIds.has(e.id)) continue;
+        if (e.kind === 'boss' && (e.bossHeight ?? 0) > 28) continue;
+        const hitDist = this.getDistanceToEnemyHitbox(e, this.playerX, this.playerY);
+        if (hitDist <= 22) {
+          this.lanceHitIds.add(e.id);
+          this.slashHits.push({
+            x: e.x,
+            y: e.y - 2,
+            angle: this.lanceChargeAngle,
+            color: '#fde047',
+            life: 0.2,
+            maxLife: 0.2,
+          });
+          this.damageEnemy(
+            e,
+            chargeDmg,
+            Math.cos(this.lanceChargeAngle),
+            Math.sin(this.lanceChargeAngle),
+            165,
+            true,
+          );
+          this.hitStop = 0.032;
+          this.triggerShake(0.12, 2.6);
+        }
+      }
+      for (const pod of this.currentRoom.pods) {
+        if (!pod.broken && Math.hypot(pod.x - this.playerX, pod.y - this.playerY) <= 20) {
+          this.breakPod(pod);
+        }
+      }
+      return;
+    }
 
     // Warp-Beacon channeling (hold R)
     if (input.warpHeld() && this.dashTimer <= 0) {
@@ -691,7 +857,6 @@ export class DungeonScene {
 
     // Stimpack healing (Q)
     if (input.healPressed()) {
-      const stats = this.state.getStats();
       if (this.state.stimCharges > 0 && this.state.hp < stats.maxHp) {
         this.state.stimCharges -= 1;
         const heal = stats.stimHeal;
@@ -749,7 +914,7 @@ export class DungeonScene {
       this.shieldOpenAnim = Math.max(0, this.shieldOpenAnim - dt * 11.0);
     }
 
-    // Jetpack Dash (Space)
+    // Jetpack Dash (Space) — boosted by Vex' Schub-Kondensator!
     if (input.dashPressed() && this.dashCooldown <= 0) {
       this.shieldActive = false;
       let dx = move.x;
@@ -760,7 +925,7 @@ export class DungeonScene {
         dy = Math.sin(angle);
       }
       this.dashTimer = 0.19;
-      this.dashCooldown = 0.54;
+      this.dashCooldown = 0.54 * stats.dashCooldownMult;
       this.invulnTimer = Math.max(this.invulnTimer, 0.28);
       this.dashVx = dx * 258;
       this.dashVy = dy * 258;
@@ -768,7 +933,7 @@ export class DungeonScene {
       this.spawnBurst(this.playerX, this.playerY + 4, '#fb923c', 8);
     }
 
-    const baseSpeed = this.shieldActive ? 54 : 108;
+    const baseSpeed = (this.shieldActive ? 54 : 108) * stats.moveSpeedMult;
     let vx = move.x * baseSpeed;
     let vy = move.y * baseSpeed;
 
@@ -809,6 +974,8 @@ export class DungeonScene {
       this.lastAimAngle = aim;
       if (weapon === 'blade') {
         this.performPlasmaSlash(aim);
+      } else if (weapon === 'spear') {
+        this.performSpearThrust(aim);
       } else if (weapon === 'blaster') {
         this.performBlasterShot(aim);
       } else {
@@ -820,7 +987,9 @@ export class DungeonScene {
     if (input.secondaryPressed() && this.specialCooldown <= 0 && this.dashTimer <= 0) {
       const aim = this.getAimAngle(input);
       this.lastAimAngle = aim;
-      if (weapon === 'blaster') {
+      if (weapon === 'spear') {
+        this.performIonLanceCharge(aim);
+      } else if (weapon === 'blaster') {
         this.performPiercingBeam(aim);
       } else if (weapon === 'hammer') {
         this.performGravShockwave();
@@ -938,21 +1107,22 @@ export class DungeonScene {
     let hitAny = false;
     for (const e of [...this.enemies]) {
       if (e.kind === 'boss' && (e.bossHeight ?? 0) > 28) continue;
-      const dx = e.x - this.playerX;
-      const dy = e.y - this.playerY;
+      const hitPt = this.getClosestEnemyHitPoint(e, this.playerX, this.playerY);
+      const dx = hitPt.x - this.playerX;
+      const dy = hitPt.y - this.playerY;
       const dist = Math.hypot(dx, dy);
-      if (dist > radius + e.radius) continue;
+      if (dist > radius + hitPt.r) continue;
       const diff = Math.abs(this.normalizeAngle(Math.atan2(dy, dx) - angle));
-      if (diff <= sweep / 2 + 0.28 || dist < e.radius + 9) {
+      if (diff <= sweep / 2 + 0.28 || dist < hitPt.r + 9) {
         this.slashHits.push({
-          x: e.x,
-          y: e.y - 2,
+          x: hitPt.x,
+          y: hitPt.y - 2,
           angle: angle + (Math.random() - 0.5) * 0.5,
           color: isFinisher ? '#fde047' : '#38e8d4',
           life: 0.18,
           maxLife: 0.18,
         });
-        this.damageEnemy(e, damage, Math.cos(angle), Math.sin(angle), isFinisher ? 165 : 105);
+        this.damageEnemy(e, damage, Math.cos(angle), Math.sin(angle), isFinisher ? 165 : 105, isFinisher);
         hitAny = true;
       }
     }
@@ -975,6 +1145,154 @@ export class DungeonScene {
     this.attackCooldown = isFinisher ? 0.34 : 0.2;
     this.comboStep = (this.comboStep + 1) % 3;
     this.comboResetTimer = 0.64;
+  }
+
+  private performSpearThrust(angle: number): void {
+    const stats = this.state.getStats();
+    const isFinisher = this.comboStep === 2;
+    const length = isFinisher ? stats.spearRange * 1.28 : stats.spearRange;
+    const damage = isFinisher ? Math.round(stats.spearDamage * 1.45) : stats.spearDamage;
+    const duration = isFinisher ? 0.22 : 0.17;
+
+    this.orientFacing(angle);
+    this.swingPoseTimer = duration;
+    this.swingPoseMax = duration;
+    this.swingPoseAngle = angle;
+    this.swingPoseDir = this.comboStep === 1 ? -1 : 1;
+    this.swingPoseCombo = this.comboStep;
+
+    this.moveEntityWithCollisions(Math.cos(angle) * (isFinisher ? 10 : 6), Math.sin(angle) * (isFinisher ? 10 : 6));
+    sound.playSlash(this.comboStep);
+
+    const sx = this.playerX + Math.cos(angle) * 6;
+    const sy = this.playerY - 2 + Math.sin(angle) * 6;
+    const ex = sx + Math.cos(angle) * length;
+    const ey = sy + Math.sin(angle) * length;
+
+    this.thrusts.push({
+      x: sx,
+      y: sy,
+      angle,
+      length,
+      comboStep: this.comboStep,
+      isCharge: false,
+      life: duration,
+      maxLife: duration,
+    });
+
+    // Crisp needle-sparks shooting forward along the piercing plasma spear!
+    const sparkCount = isFinisher ? 14 : 7;
+    for (let k = 0; k < sparkCount; k++) {
+      const u = 0.25 + (k / sparkCount) * 0.75;
+      this.particles.push({
+        x: sx + (ex - sx) * u,
+        y: sy + (ey - sy) * u,
+        vx: Math.cos(angle) * (55 + Math.random() * 45) + (Math.random() - 0.5) * 24,
+        vy: Math.sin(angle) * (55 + Math.random() * 45) + (Math.random() - 0.5) * 24,
+        color: isFinisher ? (k % 2 === 0 ? '#fde047' : '#38e8d4') : k % 2 === 0 ? '#ffffff' : '#67e8f9',
+        size: isFinisher ? 2.0 : 1.5,
+        life: 0.22,
+        maxLife: 0.22,
+      });
+    }
+
+    let hitAny = false;
+    for (const e of [...this.enemies]) {
+      if (e.kind === 'boss' && (e.bossHeight ?? 0) > 28) continue;
+      const hitPt = this.getClosestEnemyHitPoint(e, (sx + ex) * 0.5, (sy + ey) * 0.5);
+      const dLine = this.pointToSegmentDist(hitPt.x, hitPt.y, sx, sy, ex, ey);
+      if (dLine <= hitPt.r + (isFinisher ? 11 : 8)) {
+        this.slashHits.push({
+          x: hitPt.x,
+          y: hitPt.y - 2,
+          angle,
+          color: isFinisher ? '#fde047' : '#38e8d4',
+          life: 0.18,
+          maxLife: 0.18,
+        });
+        // Spear 3rd-hit finisher pierces frontal shields!
+        this.damageEnemy(e, damage, Math.cos(angle), Math.sin(angle), isFinisher ? 145 : 92, isFinisher);
+        hitAny = true;
+      }
+    }
+
+    for (const pod of this.currentRoom.pods) {
+      if (!pod.broken && this.pointToSegmentDist(pod.x, pod.y, sx, sy, ex, ey) <= 13) {
+        this.breakPod(pod);
+        hitAny = true;
+      }
+    }
+
+    if (hitAny) {
+      this.hitStop = isFinisher ? 0.045 : 0.022;
+      this.triggerShake(isFinisher ? 0.14 : 0.08, isFinisher ? 2.8 : 1.5);
+      this.state.energy = Math.min(100, this.state.energy + 11);
+      this.callbacks.onHudDirty();
+    }
+
+    this.attackCooldown = isFinisher ? 0.29 : 0.18;
+    this.comboStep = (this.comboStep + 1) % 3;
+    this.comboResetTimer = 0.62;
+  }
+
+  private performIonLanceCharge(angle: number): void {
+    const cost = 34;
+    if (this.state.energy < cost) {
+      this.callbacks.onToast('Zu wenig Energie für Lanzen-Vorstoß (34 EN)!', 'warn');
+      return;
+    }
+    this.state.energy -= cost;
+    this.specialCooldown = 0.68;
+    this.attackCooldown = 0.28;
+    this.orientFacing(angle);
+    this.lanceChargeTimer = 0.22;
+    this.lanceChargeAngle = angle;
+    this.lanceHitIds.clear();
+    this.invulnTimer = Math.max(this.invulnTimer, 0.34);
+    sound.playDash();
+    sound.playRailBeam();
+    this.triggerShake(0.16, 2.8);
+    this.thrusts.push({
+      x: this.playerX,
+      y: this.playerY - 2,
+      angle,
+      length: 72,
+      comboStep: 2,
+      isCharge: true,
+      life: 0.25,
+      maxLife: 0.25,
+    });
+    this.spawnBurst(this.playerX, this.playerY, '#38e8d4', 14);
+    this.callbacks.onHudDirty();
+  }
+
+  private getClosestEnemyHitPoint(
+    e: Enemy,
+    refX: number,
+    refY: number,
+  ): { x: number; y: number; r: number } {
+    let bestX = e.x;
+    let bestY = e.y;
+    let bestR = e.radius;
+    let bestD = Math.hypot(e.x - refX, e.y - refY) - e.radius;
+    if (e.kind === 'boss_leviathan' && e.levArms) {
+      for (const arm of e.levArms) {
+        const armR = 17;
+        const d = Math.hypot(arm.x - refX, arm.y - refY) - armR;
+        if (d < bestD) {
+          bestD = d;
+          bestX = arm.x;
+          bestY = arm.y;
+          bestR = armR;
+        }
+      }
+    }
+    return { x: bestX, y: bestY, r: bestR };
+  }
+
+  private getDistanceToEnemyHitbox(e: Enemy, px: number, py: number): number {
+    const hit = this.getClosestEnemyHitPoint(e, px, py);
+    return Math.hypot(hit.x - px, hit.y - py) - hit.r;
   }
 
   private performBlasterShot(angle: number): void {
@@ -1037,12 +1355,15 @@ export class DungeonScene {
     const ey = sy + dy * maxT;
     this.beams.push({ x1: sx, y1: sy, x2: ex, y2: ey, life: 0.24, maxLife: 0.24 });
 
-    // Hit ALL grounded enemies along beam line!
+    // Hit ALL grounded enemies along beam line (pierces shields!)
     for (const e of [...this.enemies]) {
       if (e.kind === 'boss' && (e.bossHeight ?? 0) > 28) continue;
-      const distToLine = this.pointToSegmentDist(e.x, e.y, sx, sy, ex, ey);
-      if (distToLine <= e.radius + 9) {
-        this.damageEnemy(e, beamDamage, dx, dy, 120);
+      let hit = this.pointToSegmentDist(e.x, e.y, sx, sy, ex, ey) <= e.radius + 9;
+      if (!hit && e.kind === 'boss_leviathan' && e.levArms) {
+        hit = e.levArms.some((arm) => this.pointToSegmentDist(arm.x, arm.y, sx, sy, ex, ey) <= 22);
+      }
+      if (hit) {
+        this.damageEnemy(e, beamDamage, dx, dy, 120, true);
       }
     }
     for (const pod of this.currentRoom.pods) {
@@ -1116,21 +1437,22 @@ export class DungeonScene {
     let hitAny = false;
     for (const e of [...this.enemies]) {
       if (e.kind === 'boss' && (e.bossHeight ?? 0) > 28) continue;
-      const dx = e.x - this.playerX;
-      const dy = e.y - this.playerY;
+      const hitPt = this.getClosestEnemyHitPoint(e, this.playerX, this.playerY);
+      const dx = hitPt.x - this.playerX;
+      const dy = hitPt.y - this.playerY;
       const dist = Math.hypot(dx, dy);
-      if (dist > radius + e.radius) continue;
+      if (dist > radius + hitPt.r) continue;
       const diff = Math.abs(this.normalizeAngle(Math.atan2(dy, dx) - angle));
-      if (diff <= sweep / 2 + 0.26 || dist < e.radius + 10) {
+      if (diff <= sweep / 2 + 0.26 || dist < hitPt.r + 10) {
         this.slashHits.push({
-          x: e.x,
-          y: e.y - 2,
+          x: hitPt.x,
+          y: hitPt.y - 2,
           angle: angle + 0.2,
           color: '#fb923c',
           life: 0.2,
           maxLife: 0.2,
         });
-        this.damageEnemy(e, damage, Math.cos(angle), Math.sin(angle), isHeavy ? 210 : 165);
+        this.damageEnemy(e, damage, Math.cos(angle), Math.sin(angle), isHeavy ? 210 : 165, isHeavy);
         hitAny = true;
       }
     }
@@ -1178,11 +1500,12 @@ export class DungeonScene {
     this.spawnBurst(this.playerX, this.playerY, '#fbbf24', 22);
 
     for (const e of [...this.enemies]) {
-      const dx = e.x - this.playerX;
-      const dy = e.y - this.playerY;
+      const hitPt = this.getClosestEnemyHitPoint(e, this.playerX, this.playerY);
+      const dx = hitPt.x - this.playerX;
+      const dy = hitPt.y - this.playerY;
       const dist = Math.max(1, Math.hypot(dx, dy));
-      if (dist <= maxR + e.radius) {
-        this.damageEnemy(e, dmg, dx / dist, dy / dist, 230);
+      if (dist <= maxR + hitPt.r) {
+        this.damageEnemy(e, dmg, dx / dist, dy / dist, 230, true);
       }
     }
     for (const pod of this.currentRoom.pods) {
@@ -1400,29 +1723,126 @@ export class DungeonScene {
             e.telegraphTimer = 0.52;
           }
         }
+      } else if (e.kind === 'shield_drone') {
+        // Armored Aegis-Drone: tracks player with frontal kinetic shield arc (flank or pierce!), fires 3-bolt burst!
+        const targetAng = Math.atan2(dy, dx);
+        const turnDiff = this.normalizeAngle(targetAng - e.aimAngle);
+        const turnRate = e.telegraphTimer > 0 ? 1.2 : 2.3;
+        e.aimAngle += Math.max(-turnRate * dt, Math.min(turnRate * dt, turnDiff));
+
+        const desiredDist = 74;
+        const radial = dist > desiredDist + 14 ? 1 : dist < 50 ? -1 : 0;
+        const strafe = e.moveDirX;
+        e.vx += (-ny * strafe * 44 + nx * radial * 46) * dt * 4;
+        e.vy += (nx * strafe * 44 + ny * radial * 46) * dt * 4;
+
+        if (e.telegraphTimer > 0) {
+          e.telegraphTimer -= dt;
+          if (e.telegraphTimer <= 0) {
+            for (const off of [-0.24, 0, 0.24]) {
+              this.fireEnemyBolt(e.x, e.y, e.aimAngle + off, 148, 14, '#38e8d4');
+            }
+            this.spawnBurst(e.x + Math.cos(e.aimAngle) * 10, e.y + Math.sin(e.aimAngle) * 10, '#38e8d4', 6);
+            e.moveDirX = -e.moveDirX;
+            e.aiTimer = 1.65 + Math.random() * 0.45;
+          }
+        } else {
+          e.aiTimer -= dt;
+          if (e.aiTimer <= 0) {
+            e.telegraphTimer = 0.48;
+          }
+        }
+      } else if (e.kind === 'spore_spitter') {
+        // Bioluminescent Floor II/III Spore-Spitter: fires bursting spore globs that split into 5 mini-spores, then burrows!
+        if (e.scurryTimer > 0) {
+          e.scurryTimer -= dt;
+          e.vx = e.moveDirX * 84;
+          e.vy = e.moveDirY * 84;
+          if (Math.random() < dt * 14) {
+            this.particles.push({
+              x: e.x,
+              y: e.y + 6,
+              vx: (Math.random() - 0.5) * 20,
+              vy: -14,
+              color: '#34d399',
+              size: 1.8,
+              life: 0.25,
+              maxLife: 0.25,
+            });
+          }
+          if (e.scurryTimer <= 0) {
+            e.aiTimer = 0.7 + Math.random() * 0.4;
+          }
+        } else if (e.telegraphTimer > 0) {
+          e.vx *= 0.2;
+          e.vy *= 0.2;
+          e.telegraphTimer -= dt;
+          if (e.telegraphTimer <= 0) {
+            const ang = Math.atan2(dy, dx);
+            this.projectiles.push({
+              x: e.x,
+              y: e.y,
+              vx: Math.cos(ang) * 124,
+              vy: Math.sin(ang) * 124,
+              fromPlayer: false,
+              damage: 14,
+              color: '#a3e635',
+              radius: 5.0,
+              life: 0.85,
+              isSporeGlob: true,
+            });
+            this.spawnBurst(e.x, e.y, '#34d399', 7);
+            // Skitter away to a new flank angle
+            const away = ang + Math.PI + (Math.random() - 0.5) * 1.4;
+            e.moveDirX = Math.cos(away);
+            e.moveDirY = Math.sin(away);
+            e.scurryTimer = 0.72;
+          }
+        } else {
+          e.aiTimer -= dt;
+          if (e.aiTimer <= 0) {
+            e.telegraphTimer = 0.5;
+          }
+        }
+      } else if (e.kind === 'boss_breacher') {
+        this.updateBreacherAI(e, dt, dx, dy, nx, ny);
       } else if (e.kind === 'boss') {
         this.updateBossAI(e, dt, dx, dy, nx, ny);
+      } else if (e.kind === 'boss_leviathan') {
+        this.updateLeviathanAI(e, dt);
       }
 
       const prevX = e.x;
       const prevY = e.y;
       const airborne = e.kind === 'boss' && (e.bossHeight ?? 0) > 22;
 
-      const ex = Math.max(ROOM_LEFT + e.radius, Math.min(ROOM_RIGHT - e.radius, e.x + e.vx * dt));
-      if (!this.collidesRoomObstacle(ex, e.y, e.radius * 0.85) || e.kind === 'drone' || airborne) {
-        e.x = ex;
-      } else if (e.kind === 'turret') {
-        e.moveDirX = -e.moveDirX;
-      }
-      const ey = Math.max(ROOM_TOP + e.radius, Math.min(ROOM_BOTTOM - e.radius, e.y + e.vy * dt));
-      if (!this.collidesRoomObstacle(e.x, ey, e.radius * 0.85) || e.kind === 'drone' || airborne) {
-        e.y = ey;
-      } else if (e.kind === 'turret') {
-        e.moveDirY = -e.moveDirY;
+      if (e.kind !== 'boss_leviathan') {
+        const ex = Math.max(ROOM_LEFT + e.radius, Math.min(ROOM_RIGHT - e.radius, e.x + e.vx * dt));
+        if (
+          !this.collidesRoomObstacle(ex, e.y, e.radius * 0.85) ||
+          e.kind === 'drone' ||
+          e.kind === 'shield_drone' ||
+          airborne
+        ) {
+          e.x = ex;
+        } else if (e.kind === 'turret' || e.kind === 'spore_spitter') {
+          e.moveDirX = -e.moveDirX;
+        }
+        const ey = Math.max(ROOM_TOP + e.radius, Math.min(ROOM_BOTTOM - e.radius, e.y + e.vy * dt));
+        if (
+          !this.collidesRoomObstacle(e.x, ey, e.radius * 0.85) ||
+          e.kind === 'drone' ||
+          e.kind === 'shield_drone' ||
+          airborne
+        ) {
+          e.y = ey;
+        } else if (e.kind === 'turret' || e.kind === 'spore_spitter') {
+          e.moveDirY = -e.moveDirY;
+        }
       }
 
-      // Boss wall slam bounce during Rocket Charge!
-      if (e.kind === 'boss' && e.bossState === 'charge_dash') {
+      // Boss wall slam bounce during Rocket/Hydraulic Charge!
+      if ((e.kind === 'boss' || e.kind === 'boss_breacher') && e.bossState === 'charge_dash') {
         const hitWall =
           (Math.abs(e.vx) > 20 && Math.abs(e.x - prevX) < 0.25) ||
           (Math.abs(e.vy) > 20 && Math.abs(e.y - prevY) < 0.25);
@@ -1441,8 +1861,8 @@ export class DungeonScene {
           e.vx = -e.chargeDirX * 55;
           e.vy = -e.chargeDirY * 55;
           e.bossState = 'stunned';
-          e.bossStateTimer = 0.55;
-          e.bossStateMax = 0.55;
+          e.bossStateTimer = 0.6;
+          e.bossStateMax = 0.6;
           e.bossStatusText = 'ÜBERHITZT';
         }
       }
@@ -1452,8 +1872,488 @@ export class DungeonScene {
         if (pDist < e.radius + 7) {
           const pushX = (this.playerX - e.x) / Math.max(1, pDist);
           const pushY = (this.playerY - e.y) / Math.max(1, pDist);
-          this.damagePlayer(e.kind === 'boss' ? 20 : 12, pushX, pushY, e);
+          this.damagePlayer(this.isBossKind(e.kind) ? 20 : 12, pushX, pushY, e);
         }
+        // Leviathan gauntlet contact damage during slams!
+        if (e.kind === 'boss_leviathan' && e.levArms) {
+          for (const arm of e.levArms) {
+            if (arm.state === 'slamming') {
+              const aDist = Math.hypot(this.playerX - arm.x, this.playerY - arm.y);
+              if (aDist < 19) {
+                this.damagePlayer(
+                  20,
+                  (this.playerX - arm.x) / Math.max(1, aDist),
+                  (this.playerY - arm.y) / Math.max(1, aDist),
+                  e,
+                );
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  private updateHazardsAndDebris(dt: number): void {
+    // 1. Floor II/III Steam / Plasma Floor Vents (4.0s cycle: safe 0..2.2, warn 2.2..3.0, active 3.0..4.0)
+    for (const h of this.currentRoom.hazards) {
+      const cycle = (this.time + h.phase) % 4.0;
+      if (cycle >= 3.0) {
+        if (Math.random() < dt * 16) {
+          this.particles.push({
+            x: h.x + (Math.random() - 0.5) * h.r,
+            y: h.y + (Math.random() - 0.5) * h.r * 0.7,
+            vx: (Math.random() - 0.5) * 18,
+            vy: -34 - Math.random() * 24,
+            color: Math.random() > 0.45 ? '#38e8d4' : '#fb923c',
+            size: 2,
+            life: 0.25,
+            maxLife: 0.25,
+          });
+        }
+        if (this.dashTimer <= 0 && this.lanceChargeTimer <= 0) {
+          const dist = Math.hypot(this.playerX - h.x, this.playerY - h.y);
+          if (dist < h.r + 4) {
+            this.damagePlayer(
+              14,
+              (this.playerX - h.x) / Math.max(1, dist),
+              (this.playerY - h.y) / Math.max(1, dist),
+            );
+          }
+        }
+      }
+    }
+
+    // 2. Leviathan Falling Reactor Debris Rings!
+    for (let i = this.debrisDrops.length - 1; i >= 0; i--) {
+      const d = this.debrisDrops[i];
+      d.timer -= dt;
+      if (d.timer <= 0) {
+        sound.playBossSlam();
+        this.triggerShake(0.16, 2.8);
+        this.decals.push({
+          x: d.x,
+          y: d.y + 2,
+          r: d.r * 0.7,
+          color: 'rgba(15, 23, 42, 0.55)',
+          life: 4.5,
+          maxLife: 4.5,
+        });
+        this.shockwaves.push({
+          x: d.x,
+          y: d.y,
+          maxRadius: d.r + 12,
+          color: '#fb923c',
+          life: 0.26,
+          maxLife: 0.26,
+        });
+        this.spawnBurst(d.x, d.y, '#fbbf24', 14);
+        const pd = Math.hypot(this.playerX - d.x, this.playerY - d.y);
+        if (pd <= d.r + 4) {
+          this.damagePlayer(
+            18,
+            (this.playerX - d.x) / Math.max(1, pd),
+            (this.playerY - d.y) / Math.max(1, pd),
+          );
+        }
+        this.debrisDrops.splice(i, 1);
+      }
+    }
+  }
+
+  // ==================== FLOOR I BOSS: SCHOTT-BRECHER MK-II ====================
+  private updateBreacherAI(e: Enemy, dt: number, dx: number, dy: number, nx: number, ny: number): void {
+    const enraged = e.hp <= e.maxHp * 0.5;
+    if (enraged && !e.bossPhase2) {
+      e.bossPhase2 = true;
+      sound.playBossRoar();
+      this.triggerShake(0.32, 4.0);
+      this.shockwaves.push({ x: e.x, y: e.y, maxRadius: 72, color: '#fb923c', life: 0.36, maxLife: 0.36 });
+      this.spawnBurst(e.x, e.y, '#fbbf24', 20);
+      this.callbacks.onToast('⚠ Schott-Brecher MK-II aktiviert Hydraulik-Overdrive!', 'warn');
+    }
+
+    const state: BossState = e.bossState ?? 'stalk';
+    e.bossStateTimer = (e.bossStateTimer ?? 0) - dt;
+
+    if (state === 'stunned') {
+      if (e.bossStateTimer <= 0) {
+        e.bossState = 'stalk';
+        e.bossStateTimer = enraged ? 0.65 : 0.9;
+        e.bossStateMax = e.bossStateTimer;
+        e.bossStatusText = enraged ? 'OVERDRIVE' : 'AKTIV';
+      }
+      return;
+    }
+
+    if (state === 'charge_windup') {
+      e.vx *= 0.2;
+      e.vy *= 0.2;
+      if (e.bossStateTimer > (e.bossStateMax ?? 0.55) * 0.35) {
+        e.chargeDirX = nx;
+        e.chargeDirY = ny;
+      }
+      if (e.bossStateTimer <= 0) {
+        sound.playBossCharge();
+        e.bossState = 'charge_dash';
+        e.bossStateTimer = enraged ? 0.52 : 0.46;
+        e.bossStateMax = e.bossStateTimer;
+        e.bossStatusText = 'HYDRAULIK-RAMME!';
+      }
+      return;
+    }
+
+    if (state === 'charge_dash') {
+      const spd = enraged ? 235 : 198;
+      e.vx = e.chargeDirX * spd;
+      e.vy = e.chargeDirY * spd;
+      e.bossAfterimageTick = (e.bossAfterimageTick ?? 0) - dt;
+      if (e.bossAfterimageTick <= 0) {
+        e.bossAfterimageTick = 0.06;
+        this.bossAfterimages.push({
+          x: e.x,
+          y: e.y,
+          height: 0,
+          tilt: e.chargeDirX * 0.2,
+          enraged,
+          isBreacher: true,
+          life: 0.22,
+          maxLife: 0.22,
+        });
+      }
+      if (e.bossStateTimer <= 0) {
+        e.bossState = 'stalk';
+        e.bossStateTimer = enraged ? 0.72 : 0.95;
+        e.bossStateMax = e.bossStateTimer;
+        e.bossStatusText = enraged ? 'OVERDRIVE' : 'AKTIV';
+      }
+      return;
+    }
+
+    if (state === 'breacher_stomp') {
+      e.vx *= 0.2;
+      e.vy *= 0.2;
+      if (e.bossStateTimer <= 0) {
+        sound.playBossSlam();
+        this.triggerShake(0.3, 4.5);
+        this.shockwaves.push({ x: e.x, y: e.y + 4, maxRadius: 64, color: '#fbbf24', life: 0.32, maxLife: 0.32 });
+        this.spawnBurst(e.x, e.y + 4, '#fb923c', 20);
+        const bolts = enraged ? 8 : 6;
+        for (let k = 0; k < bolts; k++) {
+          const a = (k / bolts) * Math.PI * 2 + 0.15;
+          this.fireEnemyBolt(e.x, e.y, a, enraged ? 132 : 112, 14, '#fbbf24');
+        }
+        const pd = Math.hypot(this.playerX - e.x, this.playerY - e.y);
+        if (pd <= 46) {
+          this.damagePlayer(18, (this.playerX - e.x) / Math.max(1, pd), (this.playerY - e.y) / Math.max(1, pd), e);
+        }
+        e.bossState = 'stalk';
+        e.bossStateTimer = enraged ? 0.78 : 1.05;
+        e.bossStateMax = e.bossStateTimer;
+        e.bossStatusText = enraged ? 'OVERDRIVE' : 'AKTIV';
+      }
+      return;
+    }
+
+    if (state === 'breacher_fan') {
+      e.vx *= 0.3;
+      e.vy *= 0.3;
+      if (e.bossStateTimer <= 0) {
+        const base = Math.atan2(dy, dx);
+        const spread = enraged ? [-0.42, -0.21, 0, 0.21, 0.42] : [-0.36, -0.18, 0, 0.18, 0.36];
+        for (const off of spread) {
+          this.fireEnemyBolt(e.x, e.y, base + off, enraged ? 152 : 134, 13, '#fb923c');
+        }
+        sound.playBlaster();
+        this.spawnBurst(e.x, e.y, '#fbbf24', 10);
+        e.bossState = 'stalk';
+        e.bossStateTimer = enraged ? 0.72 : 0.96;
+        e.bossStateMax = e.bossStateTimer;
+        e.bossStatusText = enraged ? 'OVERDRIVE' : 'AKTIV';
+      }
+      return;
+    }
+
+    // Stalk toward player with heavy industrial stomp rhythm
+    e.vx += nx * (enraged ? 58 : 44) * dt * 3.2;
+    e.vy += ny * (enraged ? 58 : 44) * dt * 3.2;
+
+    if (e.bossStateTimer <= 0) {
+      const atk = e.phase % 3;
+      e.phase += 1;
+      if (atk === 0) {
+        e.bossState = 'charge_windup';
+        e.bossStateTimer = enraged ? 0.48 : 0.58;
+        e.bossStateMax = e.bossStateTimer;
+        e.chargeDirX = nx;
+        e.chargeDirY = ny;
+        e.bossStatusText = 'ANLAUF...';
+      } else if (atk === 1) {
+        e.bossState = 'breacher_stomp';
+        e.bossStateTimer = 0.48;
+        e.bossStateMax = 0.48;
+        e.bossStatusText = 'SEISMIK-STAMPFER!';
+      } else {
+        e.bossState = 'breacher_fan';
+        e.bossStateTimer = 0.44;
+        e.bossStateMax = 0.44;
+        e.bossStatusText = 'SCHROTT-SALVE!';
+      }
+    }
+  }
+
+  // ==================== FLOOR III GIGANTIC BOSS: A.E.G.I.S. LEVIATHAN ====================
+  private updateLeviathanAI(e: Enemy, dt: number): void {
+    const arms = e.levArms;
+    if (!arms) return;
+    const enraged = e.hp <= e.maxHp * 0.5;
+
+    // Dramatic Phase-2 Omega Overload at 50% HP!
+    if (enraged && !e.bossPhase2) {
+      e.bossPhase2 = true;
+      e.bossState = 'phase2_roar';
+      e.bossStateTimer = 1.25;
+      e.bossStateMax = 1.25;
+      e.bossStatusText = 'OMEGA-ÜBERLASTUNG!';
+      for (const arm of arms) {
+        arm.state = 'returning';
+      }
+      sound.playBossRoar();
+      this.triggerShake(0.55, 6.2);
+      this.shockwaves.push({ x: e.x, y: e.y + 8, maxRadius: 140, color: '#fb7185', life: 0.5, maxLife: 0.5 });
+      this.spawnBurst(e.x, e.y + 8, '#fb7185', 34);
+      this.callbacks.onToast('🚨 PHASE II: A.E.G.I.S. LEVIATHAN zündet OMEGA-ÜBERLASTUNG!', 'warn');
+      return;
+    }
+
+    // Update each giant articulated gauntlet smoothly
+    for (const arm of arms) {
+      if (arm.state === 'idle' || arm.state === 'returning') {
+        const hoverY = arm.homeY + Math.sin(this.time * 3.0 + arm.side) * 4;
+        arm.x += (arm.homeX - arm.x) * Math.min(1, dt * 6);
+        arm.y += (hoverY - arm.y) * Math.min(1, dt * 6);
+        if (arm.state === 'returning' && Math.hypot(arm.x - arm.homeX, arm.y - hoverY) < 4) {
+          arm.state = 'idle';
+        }
+      } else if (arm.state === 'tracking') {
+        arm.timer -= dt;
+        // Track player smoothly during first 65% of lock-on
+        if (arm.timer > 0.24) {
+          arm.targetX += (this.playerX - arm.targetX) * Math.min(1, dt * 7);
+          arm.targetY +=
+            (Math.max(ROOM_TOP + 62, Math.min(ROOM_BOTTOM - 18, this.playerY)) - arm.targetY) *
+            Math.min(1, dt * 7);
+        }
+        arm.x += (arm.targetX - arm.x) * Math.min(1, dt * 5);
+        arm.y += (arm.targetY - 38 - arm.y) * Math.min(1, dt * 5);
+        if (arm.timer <= 0) {
+          arm.state = 'slamming';
+          arm.timer = 0.16;
+        }
+      } else if (arm.state === 'slamming') {
+        arm.timer -= dt;
+        arm.x += (arm.targetX - arm.x) * Math.min(1, dt * 22);
+        arm.y += (arm.targetY - arm.y) * Math.min(1, dt * 24);
+        if (arm.timer <= 0) {
+          arm.x = arm.targetX;
+          arm.y = arm.targetY;
+          arm.state = 'grounded';
+          arm.timer = enraged ? 0.95 : 1.2;
+          sound.playBossSlam();
+          this.triggerShake(0.32, 5.2);
+          this.decals.push({
+            x: arm.x,
+            y: arm.y + 6,
+            r: 22,
+            color: 'rgba(15, 23, 42, 0.58)',
+            life: 6.0,
+            maxLife: 6.0,
+          });
+          this.shockwaves.push({
+            x: arm.x,
+            y: arm.y + 2,
+            maxRadius: 58,
+            color: enraged ? '#fb7185' : '#fb923c',
+            life: 0.32,
+            maxLife: 0.32,
+          });
+          this.spawnBurst(arm.x, arm.y + 4, '#fbbf24', 22);
+          const bolts = enraged ? 8 : 6;
+          for (let k = 0; k < bolts; k++) {
+            this.fireEnemyBolt(arm.x, arm.y, (k / bolts) * Math.PI * 2, enraged ? 130 : 108, 14, '#fb923c');
+          }
+          const pd = Math.hypot(this.playerX - arm.x, this.playerY - arm.y);
+          if (pd <= 34) {
+            this.damagePlayer(
+              22,
+              (this.playerX - arm.x) / Math.max(1, pd),
+              (this.playerY - arm.y) / Math.max(1, pd),
+              e,
+            );
+          }
+        }
+      } else if (arm.state === 'grounded') {
+        // Vulnerable on floor so player can slash/spear the giant gauntlet!
+        arm.timer -= dt;
+        if (arm.timer <= 0) {
+          arm.state = 'returning';
+        }
+      } else if (arm.state === 'beam') {
+        const bx = arm.side < 0 ? ROOM_CENTER_X - 96 : ROOM_CENTER_X + 96;
+        const by = ROOM_TOP + 52;
+        arm.x += (bx - arm.x) * Math.min(1, dt * 8);
+        arm.y += (by - arm.y) * Math.min(1, dt * 8);
+      }
+    }
+
+    const state: BossState = e.bossState ?? 'lev_idle';
+    e.bossStateTimer = (e.bossStateTimer ?? 0) - dt;
+
+    if (state === 'phase2_roar') {
+      if (e.bossStateTimer <= 0) {
+        e.bossState = 'lev_idle';
+        e.bossStateTimer = 0.55;
+        e.bossStateMax = 0.55;
+        e.bossStatusText = 'OMEGA-ÜBERLASTUNG';
+      }
+      return;
+    }
+
+    if (state === 'lev_arm_track') {
+      if (e.bossStateTimer <= 0) {
+        e.bossState = 'lev_idle';
+        e.bossStateTimer = enraged ? 0.55 : 0.8;
+        e.bossStateMax = e.bossStateTimer;
+        e.bossStatusText = enraged ? 'OMEGA-KERN' : 'AKTIV';
+      }
+      return;
+    }
+
+    if (state === 'lev_twin_windup') {
+      for (const arm of arms) {
+        arm.state = 'beam';
+        arm.beamAngle = arm.side < 0 ? 0.65 : Math.PI - 0.65;
+      }
+      if (e.bossStateTimer <= 0) {
+        sound.playBossLaser();
+        this.triggerShake(0.28, 3.4);
+        e.bossState = 'lev_twin_beam';
+        e.bossStateTimer = enraged ? 1.45 : 1.3;
+        e.bossStateMax = e.bossStateTimer;
+        e.bossStatusText = 'ZWILLINGS-STRAHL!';
+      }
+      return;
+    }
+
+    if (state === 'lev_twin_beam') {
+      const rate = enraged ? 0.98 : 0.78;
+      for (const arm of arms) {
+        // Left sweeps clockwise toward center, Right sweeps counter-clockwise toward center
+        arm.beamAngle += (arm.side < 0 ? 1 : -1) * rate * dt;
+        const cosA = Math.cos(arm.beamAngle);
+        const sinA = Math.sin(arm.beamAngle);
+        const ex = arm.x + cosA * 260;
+        const ey = arm.y + sinA * 260;
+        if (this.pointToSegmentDist(this.playerX, this.playerY, arm.x, arm.y, ex, ey) <= 10) {
+          this.damagePlayer(18, -sinA * arm.side, cosA * arm.side, e);
+        }
+      }
+      if (e.bossStateTimer <= 0) {
+        for (const arm of arms) arm.state = 'returning';
+        e.bossState = 'lev_idle';
+        e.bossStateTimer = enraged ? 0.65 : 0.9;
+        e.bossStateMax = e.bossStateTimer;
+        e.bossStatusText = enraged ? 'OMEGA-KERN' : 'AKTIV';
+      }
+      return;
+    }
+
+    if (state === 'lev_debris') {
+      e.burstDelay -= dt;
+      if (e.subBurst > 0 && e.burstDelay <= 0) {
+        e.subBurst -= 1;
+        e.burstDelay = enraged ? 0.2 : 0.26;
+        // Aim first drop near player, rest scattered across arena!
+        const tx =
+          e.subBurst % 3 === 0
+            ? Math.max(ROOM_LEFT + 28, Math.min(ROOM_RIGHT - 28, this.playerX + (Math.random() - 0.5) * 34))
+            : ROOM_LEFT + 32 + Math.random() * (ROOM_RIGHT - ROOM_LEFT - 64);
+        const ty =
+          e.subBurst % 3 === 0
+            ? Math.max(ROOM_TOP + 68, Math.min(ROOM_BOTTOM - 22, this.playerY + (Math.random() - 0.5) * 28))
+            : ROOM_TOP + 72 + Math.random() * (ROOM_BOTTOM - ROOM_TOP - 94);
+        this.debrisDrops.push({ x: tx, y: ty, r: 22, timer: 0.95, maxTimer: 0.95 });
+      }
+      if (e.bossStateTimer <= 0) {
+        e.bossState = 'lev_idle';
+        e.bossStateTimer = enraged ? 0.6 : 0.85;
+        e.bossStateMax = e.bossStateTimer;
+        e.bossStatusText = enraged ? 'OMEGA-KERN' : 'AKTIV';
+      }
+      return;
+    }
+
+    if (state === 'lev_omega_spiral') {
+      e.burstDelay -= dt;
+      if (e.subBurst > 0 && e.burstDelay <= 0) {
+        e.subBurst -= 1;
+        e.burstDelay = enraged ? 0.16 : 0.22;
+        const base = (e.subBurst * 0.34) + 0.35;
+        const count = enraged ? 7 : 5;
+        for (let k = 0; k < count; k++) {
+          const a = 0.22 + (k / (count - 1)) * (Math.PI - 0.44) + Math.sin(base) * 0.14;
+          this.fireEnemyBolt(e.x, e.y + 12, a, enraged ? 142 : 118, 14, enraged ? '#fb7185' : '#38e8d4');
+        }
+        sound.playBlaster();
+      }
+      if (e.bossStateTimer <= 0) {
+        e.bossState = 'lev_idle';
+        e.bossStateTimer = enraged ? 0.65 : 0.9;
+        e.bossStateMax = e.bossStateTimer;
+        e.bossStatusText = enraged ? 'OMEGA-KERN' : 'AKTIV';
+      }
+      return;
+    }
+
+    // lev_idle: pick next grand titan pattern!
+    if (e.bossStateTimer <= 0) {
+      const atk = e.phase % 4;
+      e.phase += 1;
+      if (atk === 0 || atk === 2) {
+        // Giant Gauntlet Slam (alternating Left / Right!)
+        const sideIdx: 0 | 1 = (e.levActiveSide ?? 0) === 0 ? 1 : 0;
+        e.levActiveSide = sideIdx;
+        const arm = arms[sideIdx];
+        arm.state = 'tracking';
+        arm.timer = enraged ? 0.68 : 0.82;
+        arm.targetX = Math.max(ROOM_LEFT + 34, Math.min(ROOM_RIGHT - 34, this.playerX));
+        arm.targetY = Math.max(ROOM_TOP + 68, Math.min(ROOM_BOTTOM - 22, this.playerY));
+        e.bossState = 'lev_arm_track';
+        e.bossStateTimer = enraged ? 1.85 : 2.25;
+        e.bossStateMax = e.bossStateTimer;
+        e.bossStatusText = 'TITANEN-FAUSTSCHLAG!';
+      } else if (atk === 1) {
+        // Twin Sweeping Plasma Beams!
+        e.bossState = 'lev_twin_windup';
+        e.bossStateTimer = enraged ? 0.65 : 0.8;
+        e.bossStateMax = e.bossStateTimer;
+        e.bossStatusText = 'ZWILLINGS-STRAHL LÄDT...';
+      } else if (enraged && e.phase % 8 === 4) {
+        // Phase-2 Omega Spiral Plasma Wave!
+        e.bossState = 'lev_omega_spiral';
+        e.subBurst = 6;
+        e.burstDelay = 0.15;
+        e.bossStateTimer = 1.5;
+        e.bossStateMax = 1.5;
+        e.bossStatusText = 'OMEGA-SPIRALE!';
+      } else {
+        // Falling Reactor Debris Rain!
+        e.bossState = 'lev_debris';
+        e.subBurst = enraged ? 8 : 6;
+        e.burstDelay = 0.1;
+        e.bossStateTimer = 1.9;
+        e.bossStateMax = 1.9;
+        e.bossStatusText = 'TRÜMMER-HAGEL!';
       }
     }
   }
@@ -1930,22 +2830,74 @@ export class DungeonScene {
     });
   }
 
-  private damageEnemy(e: Enemy, amount: number, kx: number, ky: number, knockForce: number): void {
-    e.hp -= amount;
+  private damageEnemy(
+    e: Enemy,
+    amount: number,
+    kx: number,
+    ky: number,
+    knockForce: number,
+    piercing = false,
+  ): void {
+    // Shield-Drone frontal kinetic barrier reduces non-piercing frontal hits by 65%!
+    let finalAmt = amount;
+    if (e.kind === 'shield_drone' && !piercing) {
+      const fromAngle = Math.atan2(-ky, -kx);
+      const diff = Math.abs(this.normalizeAngle(fromAngle - e.aimAngle));
+      if (diff <= 1.08) {
+        finalAmt = Math.max(2, Math.round(amount * 0.35));
+        sound.playShieldBlock();
+        this.spawnBurst(
+          e.x + Math.cos(e.aimAngle) * 11,
+          e.y + Math.sin(e.aimAngle) * 11,
+          '#38e8d4',
+          8,
+        );
+        this.floats.push({
+          x: e.x,
+          y: e.y - e.radius - 10,
+          text: `SCHILD -${finalAmt}`,
+          color: '#67e8f9',
+          life: 0.6,
+          maxLife: 0.6,
+        });
+        e.hp -= finalAmt;
+        e.flashTimer = 0.08;
+        e.vx += kx * knockForce * 0.3;
+        e.vy += ky * knockForce * 0.3;
+        if (e.hp <= 0) this.onEnemyKilled(e);
+        return;
+      }
+    }
+
+    // Vex' Ionen-Kette passive Crit module (1.65x golden critical strike!)
+    const stats = this.state.getStats();
+    const isCrit = stats.critChance > 0 && Math.random() < stats.critChance;
+    if (isCrit) {
+      finalAmt = Math.round(finalAmt * 1.65);
+    }
+
+    e.hp -= finalAmt;
     e.flashTimer = 0.11;
-    const resistance = e.kind === 'boss' ? 0.12 : e.kind === 'turret' ? 0.35 : 1.0;
+    const resistance =
+      e.kind === 'boss_leviathan'
+        ? 0
+        : this.isBossKind(e.kind)
+          ? 0.12
+          : e.kind === 'turret' || e.kind === 'shield_drone'
+            ? 0.35
+            : 1.0;
     e.vx += kx * knockForce * resistance;
     e.vy += ky * knockForce * resistance;
 
     sound.playHit();
-    this.spawnBurst(e.x, e.y, '#38e8d4', 6);
+    this.spawnBurst(e.x, e.y, isCrit ? '#fde047' : '#38e8d4', isCrit ? 10 : 6);
     this.floats.push({
       x: e.x + (Math.random() - 0.5) * 8,
       y: e.y - e.radius - 4,
-      text: `${amount}`,
-      color: '#f8fafc',
-      life: 0.65,
-      maxLife: 0.65,
+      text: isCrit ? `KRIT! ${finalAmt}` : `${finalAmt}`,
+      color: isCrit ? '#fde047' : '#f8fafc',
+      life: isCrit ? 0.85 : 0.65,
+      maxLife: isCrit ? 0.85 : 0.65,
     });
 
     if (e.hp <= 0) {
@@ -1959,32 +2911,90 @@ export class DungeonScene {
 
     this.enemiesDefeated += 1;
     sound.playEnemyDefeat();
-    this.spawnBurst(e.x, e.y, e.kind === 'boss' ? '#fbbf24' : '#c084fc', e.kind === 'boss' ? 36 : 14);
+    const isBoss = this.isBossKind(e.kind);
+    this.spawnBurst(e.x, e.y, isBoss ? '#fbbf24' : '#c084fc', isBoss ? 36 : 14);
 
     const nightBoost = this.state.timeOfDay === 'night';
-    if (e.kind === 'boss') {
+    const luckBonus = this.state.getStats().lootLuckBonus;
+    const lootDepth = this.currentRoom.depth + (this.currentFloor - 1);
+
+    if (e.kind === 'boss_breacher') {
+      this.triggerShake(0.45, 5.0);
+      this.shockwaves.push({
+        x: e.x,
+        y: e.y,
+        maxRadius: 86,
+        color: '#fbbf24',
+        life: 0.42,
+        maxLife: 0.42,
+      });
+      this.floorBossDefeated = true;
+      this.state.bossDefeatedCount += 1;
+      this.spawnLootDrop(e.x, e.y, 'reactor_shard');
+      for (let k = 0; k < 2; k++) {
+        this.spawnLootDrop(e.x, e.y, rollLootItem(2, k === 0, nightBoost, luckBonus));
+      }
+      this.callbacks.onToast(
+        'SIEG! Schott-Brecher MK-II besiegt! Links: Extraktion · Rechts: Tiefen-Aufzug → Ebene II!',
+        'good',
+      );
+      this.state.save();
+    } else if (e.kind === 'boss') {
       this.triggerShake(0.5, 5.5);
       this.shockwaves.push({
         x: e.x,
         y: e.y,
-        maxRadius: 92,
+        maxRadius: 96,
         color: '#fbbf24',
         life: 0.45,
         maxLife: 0.45,
       });
-      this.bossDefeatedInRun = true;
+      this.floorBossDefeated = true;
       this.state.bossDefeatedCount += 1;
       this.spawnLootDrop(e.x, e.y, 'mk4_heart');
-      for (let k = 0; k < 3; k++) {
-        this.spawnLootDrop(e.x, e.y, rollLootItem(2, k === 0, nightBoost));
+      this.spawnLootDrop(e.x, e.y, 'aegis_plate');
+      for (let k = 0; k < 2; k++) {
+        this.spawnLootDrop(e.x, e.y, rollLootItem(3, k === 0, nightBoost, luckBonus));
       }
       this.callbacks.onToast(
-        'SIEG! Core-Wächter MK-IV besiegt! Sammle den Loot und nutze das Sieges-Portal [E]!',
+        'SIEG! Core-Wächter MK-IV besiegt! Links: Extraktion · Rechts: Tiefen-Aufzug → Ebene III (Endboss)!',
         'good',
       );
       this.state.save();
-    } else if (Math.random() < 0.8) {
-      this.spawnLootDrop(e.x, e.y, rollLootItem(this.currentRoom.depth, false, nightBoost));
+    } else if (e.kind === 'boss_leviathan') {
+      this.debrisDrops = [];
+      this.triggerShake(0.75, 7.0);
+      this.shockwaves.push({
+        x: e.x,
+        y: e.y + 12,
+        maxRadius: 145,
+        color: '#fde047',
+        life: 0.6,
+        maxLife: 0.6,
+      });
+      this.spawnBurst(e.x, e.y + 10, '#fde047', 42);
+      this.floorBossDefeated = true;
+      this.state.bossDefeatedCount += 1;
+      this.state.sector1Cleared = true;
+      this.sector1ClearedInRun = true;
+      // Drop Leviathan Omega Core + 4 rare/epic relics in center of arena!
+      const dropY = ROOM_CENTER_Y - 12;
+      this.spawnLootDrop(ROOM_CENTER_X, dropY, 'leviathan_core');
+      this.spawnLootDrop(ROOM_CENTER_X - 18, dropY + 4, 'aegis_plate');
+      for (let k = 0; k < 3; k++) {
+        this.spawnLootDrop(
+          ROOM_CENTER_X + (k - 1) * 16,
+          dropY + 8,
+          rollLootItem(3, true, nightBoost, luckBonus),
+        );
+      }
+      this.callbacks.onToast(
+        '★ SEKTOR 1 BEZWUNGEN! A.E.G.I.S. LEVIATHAN zerstört! Sektor-2-Schlüssel & Backroom-Trophäe freigeschaltet!',
+        'good',
+      );
+      this.state.save();
+    } else if (Math.random() < 0.82) {
+      this.spawnLootDrop(e.x, e.y, rollLootItem(lootDepth, false, nightBoost, luckBonus));
     }
 
     if (this.enemies.length === 0 && !this.currentRoom.cleared) {
@@ -1992,7 +3002,11 @@ export class DungeonScene {
       this.roomsCleared += 1;
       sound.playDoorUnlock();
       if (this.currentRoom.type === 'combat') {
-        this.spawnLootDrop(ROOM_CENTER_X, ROOM_CENTER_Y, rollLootItem(this.currentRoom.depth, false, nightBoost));
+        this.spawnLootDrop(
+          ROOM_CENTER_X,
+          ROOM_CENTER_Y,
+          rollLootItem(lootDepth, false, nightBoost, luckBonus),
+        );
       }
       // Dr. Lyra's Nano-Vitalserum passive heal on room clear!
       const stats = this.state.getStats();
@@ -2052,7 +3066,7 @@ export class DungeonScene {
           isPerfect ? '#fde047' : '#38e8d4',
           isPerfect ? 16 : 10,
         );
-        if (attacker) {
+        if (attacker && attacker.kind !== 'boss_leviathan') {
           attacker.vx -= kx * (isPerfect ? 230 : 150);
           attacker.vy -= ky * (isPerfect ? 230 : 150);
         }
@@ -2105,11 +3119,16 @@ export class DungeonScene {
     pod.broken = true;
     sound.playHit();
     this.spawnBurst(pod.x, pod.y, '#fbbf24', 10);
-    if (Math.random() < 0.68) {
+    if (Math.random() < 0.7) {
       this.spawnLootDrop(
         pod.x,
         pod.y,
-        rollLootItem(this.currentRoom.depth, false, this.state.timeOfDay === 'night'),
+        rollLootItem(
+          this.currentRoom.depth + (this.currentFloor - 1),
+          false,
+          this.state.timeOfDay === 'night',
+          this.state.getStats().lootLuckBonus,
+        ),
       );
     }
   }
@@ -2142,7 +3161,26 @@ export class DungeonScene {
         this.collidesRoomObstacle(p.x, p.y, p.radius);
 
       if (hitWall || p.life <= 0) {
-        this.spawnBurst(p.x, p.y, p.color, 4);
+        if (p.isSporeGlob) {
+          // Burst Spore-Glob into 5 radial bioluminescent mini-spores!
+          this.spawnBurst(p.x, p.y, '#a3e635', 10);
+          for (let k = 0; k < 5; k++) {
+            const a = (k / 5) * Math.PI * 2 + 0.3;
+            this.projectiles.push({
+              x: p.x,
+              y: p.y,
+              vx: Math.cos(a) * 102,
+              vy: Math.sin(a) * 102,
+              fromPlayer: false,
+              damage: 11,
+              color: '#34d399',
+              radius: 2.8,
+              life: 1.15,
+            });
+          }
+        } else {
+          this.spawnBurst(p.x, p.y, p.color, 4);
+        }
         this.projectiles.splice(i, 1);
         continue;
       }
@@ -2151,7 +3189,8 @@ export class DungeonScene {
         let consumed = false;
         for (const e of this.enemies) {
           if (e.kind === 'boss' && (e.bossHeight ?? 0) > 28) continue;
-          if (Math.hypot(e.x - p.x, e.y - p.y) < e.radius + p.radius) {
+          const hitDist = this.getDistanceToEnemyHitbox(e, p.x, p.y);
+          if (hitDist < p.radius) {
             const len = Math.max(1, Math.hypot(p.vx, p.vy));
             this.damageEnemy(e, p.damage, p.vx / len, p.vy / len, 55);
             consumed = true;
@@ -2188,6 +3227,7 @@ export class DungeonScene {
               this.triggerShake(0.12, 2.4);
               const speed = Math.max(240, Math.hypot(p.vx, p.vy) * 1.9);
               p.fromPlayer = true;
+              p.isSporeGlob = false;
               p.vx = Math.cos(this.shieldAngle) * speed;
               p.vy = Math.sin(this.shieldAngle) * speed;
               p.damage = Math.max(26, Math.round(p.damage * 2.1));
@@ -2295,19 +3335,89 @@ export class DungeonScene {
         }
         return;
       }
+
+      // Floor III Start Room: One-time Emergency Med-Terminal before Leviathan!
+      if (this.currentRoom.hasHealStation && !this.currentRoom.healStationUsed) {
+        const hx = ROOM_CENTER_X + 70;
+        const hy = ROOM_CENTER_Y - 12;
+        if (Math.hypot(this.playerX - hx, this.playerY - hy) < 28) {
+          this.activePrompt = {
+            label: '[E] Notfall-Medstation (+60 % HP & +1 Stimpack)',
+            x: hx - 12,
+            y: hy - 22,
+          };
+          if (input.interactPressed()) {
+            this.currentRoom.healStationUsed = true;
+            const stats = this.state.getStats();
+            const heal = Math.round(stats.maxHp * 0.6);
+            this.state.hp = Math.min(stats.maxHp, this.state.hp + heal);
+            this.state.stimCharges = Math.min(stats.maxStimCharges, this.state.stimCharges + 1);
+            sound.playHeal();
+            this.spawnBurst(hx, hy, '#34d399', 18);
+            this.floats.push({
+              x: this.playerX,
+              y: this.playerY - 16,
+              text: `+${heal} HP & +1 STIM`,
+              color: '#34d399',
+              life: 1.3,
+              maxLife: 1.3,
+            });
+            this.callbacks.onToast('Notfall-Medstation genutzt — bereit für A.E.G.I.S. LEVIATHAN!', 'good');
+            this.callbacks.onHudDirty();
+          }
+          return;
+        }
+      }
     }
 
-    if (this.currentRoom.type === 'boss' && this.bossDefeatedInRun) {
-      if (Math.hypot(this.playerX - ROOM_CENTER_X, this.playerY - ROOM_CENTER_Y) < 30) {
-        this.activePrompt = {
-          label: '[E] Sieges-Extraktion: Port Solaris!',
-          x: ROOM_CENTER_X,
-          y: ROOM_CENTER_Y - 26,
-        };
-        if (input.interactPressed()) {
-          this.triggerSafeWarp('boss_victory', false);
+    if (this.currentRoom.type === 'boss' && this.floorBossDefeated) {
+      if (this.currentFloor < 3) {
+        // Dual Moonlighter Exit Choice: Left = Safe Extraction, Right = Descend Deeper!
+        const exX = ROOM_CENTER_X - 48;
+        const elX = ROOM_CENTER_X + 48;
+        const padY = ROOM_CENTER_Y + 6;
+        if (Math.hypot(this.playerX - exX, this.playerY - padY) < 28) {
+          this.activePrompt = {
+            label: '[E] Extraktion: Port Solaris (Beute sichern)',
+            x: exX,
+            y: padY - 24,
+          };
+          if (input.interactPressed()) {
+            this.triggerSafeWarp('boss_victory', false);
+          }
+          return;
         }
-        return;
+        if (Math.hypot(this.playerX - elX, this.playerY - padY) < 28) {
+          const nextFloor = (this.currentFloor + 1) as 2 | 3;
+          this.activePrompt = {
+            label:
+              nextFloor === 2
+                ? '[E] Tiefen-Aufzug → Ebene II (Maschinen-Deck)'
+                : '[E] Tiefen-Aufzug → Ebene III (Reaktor-Kern)',
+            x: elX - 10,
+            y: padY - 24,
+          };
+          if (input.interactPressed()) {
+            sound.playWarp();
+            this.startFloor(nextFloor, false);
+          }
+          return;
+        }
+      } else {
+        // Floor III Leviathan defeated -> Golden Sector-1 Victory Portal!
+        const vx = ROOM_CENTER_X;
+        const vy = ROOM_CENTER_Y + 12;
+        if (Math.hypot(this.playerX - vx, this.playerY - vy) < 32) {
+          this.activePrompt = {
+            label: '[E] ★ Sektor-1-Sieg! Port Solaris (S2-Schlüssel)',
+            x: vx,
+            y: vy - 26,
+          };
+          if (input.interactPressed()) {
+            this.triggerSafeWarp('boss_victory', false);
+          }
+          return;
+        }
       }
     }
 
@@ -2323,10 +3433,12 @@ export class DungeonScene {
           chest.opened = true;
           sound.playUpgrade();
           const nightBoost = this.state.timeOfDay === 'night';
+          const luckBonus = this.state.getStats().lootLuckBonus;
+          const d = Math.min(3, 1 + this.currentFloor);
           this.spawnBurst(chest.x, chest.y, '#fbbf24', 20);
-          this.spawnLootDrop(chest.x, chest.y, rollLootItem(2, true, nightBoost));
-          this.spawnLootDrop(chest.x, chest.y, rollLootItem(2, true, nightBoost));
-          this.spawnLootDrop(chest.x, chest.y, rollLootItem(2, false, nightBoost));
+          this.spawnLootDrop(chest.x, chest.y, rollLootItem(d, true, nightBoost, luckBonus));
+          this.spawnLootDrop(chest.x, chest.y, rollLootItem(d, true, nightBoost, luckBonus));
+          this.spawnLootDrop(chest.x, chest.y, rollLootItem(d, false, nightBoost, luckBonus));
           this.callbacks.onToast('Uralte Relikt-Truhe geplündert!', 'good');
         }
       }
@@ -2360,6 +3472,8 @@ export class DungeonScene {
       cursedLost: res.cursedLost,
       resonanceBonus: res.resonanceBonus,
       nightRun: this.state.timeOfDay === 'night',
+      floorReached: this.maxFloorReached,
+      sector1Cleared: this.sector1ClearedInRun,
     });
   }
 
@@ -2379,6 +3493,8 @@ export class DungeonScene {
       warpedToChest: res.warpedToChest,
       shatteredItems: res.shatteredItems,
       nightRun: this.state.timeOfDay === 'night',
+      floorReached: this.maxFloorReached,
+      sector1Cleared: false,
     });
   }
 
@@ -2408,6 +3524,10 @@ export class DungeonScene {
     for (let i = this.swings.length - 1; i >= 0; i--) {
       this.swings[i].life -= dt;
       if (this.swings[i].life <= 0) this.swings.splice(i, 1);
+    }
+    for (let i = this.thrusts.length - 1; i >= 0; i--) {
+      this.thrusts[i].life -= dt;
+      if (this.thrusts[i].life <= 0) this.thrusts.splice(i, 1);
     }
     for (let i = this.slashHits.length - 1; i >= 0; i--) {
       this.slashHits[i].life -= dt;
@@ -2473,7 +3593,14 @@ export class DungeonScene {
       ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
     }
 
-    // Cosmic Indigo Night Expedition Ambience (+35% rare/epic loot)
+    // Distinct Floor I / II / III Atmospheric Tints + Cosmic Night Ambience!
+    if (this.currentFloor === 2) {
+      ctx.fillStyle = 'rgba(10, 56, 46, 0.2)';
+      ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+    } else if (this.currentFloor === 3) {
+      ctx.fillStyle = 'rgba(54, 16, 12, 0.22)';
+      ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+    }
     if (this.state.timeOfDay === 'night') {
       ctx.fillStyle = 'rgba(15, 23, 54, 0.16)';
       ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
@@ -2490,14 +3617,61 @@ export class DungeonScene {
       ctx.restore();
     }
 
-    // Ambient bioluminescent spores
+    // Floor II/III Steam & Plasma Hazard Vents!
+    for (const h of this.currentRoom.hazards) {
+      const cycle = (this.time + h.phase) % 4.0;
+      const warning = cycle >= 2.2 && cycle < 3.0;
+      const active = cycle >= 3.0;
+      ctx.save();
+      ctx.fillStyle = '#0f172a';
+      ctx.beginPath();
+      ctx.ellipse(h.x, h.y, h.r, h.r * 0.65, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = active ? '#fb923c' : warning ? '#fbbf24' : '#334155';
+      ctx.lineWidth = active ? 2 : 1.1;
+      ctx.stroke();
+      // Metal grate bars
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 1;
+      for (let gx = -h.r * 0.55; gx <= h.r * 0.55; gx += 4.5) {
+        ctx.beginPath();
+        ctx.moveTo(h.x + gx, h.y - h.r * 0.45);
+        ctx.lineTo(h.x + gx, h.y + h.r * 0.45);
+        ctx.stroke();
+      }
+      if (warning) {
+        const wPulse = 0.5 + 0.5 * Math.sin(this.time * 26);
+        ctx.fillStyle = `rgba(251, 191, 36, ${0.18 + wPulse * 0.25})`;
+        ctx.beginPath();
+        ctx.ellipse(h.x, h.y, h.r, h.r * 0.65, 0, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (active) {
+        drawGlow(ctx, h.x, h.y - 4, h.r * 1.9, '#38e8d4', 0.48);
+        ctx.fillStyle = 'rgba(56, 232, 212, 0.55)';
+        ctx.beginPath();
+        ctx.ellipse(h.x, h.y, h.r * 0.9, h.r * 0.58, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.72)';
+        ctx.beginPath();
+        ctx.ellipse(h.x, h.y - 1, h.r * 0.45, h.r * 0.28, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // Ambient bioluminescent spores (emerald on Floor II, embers on Floor III!)
     for (let s = 0; s < 10; s++) {
       const sx = ROOM_LEFT + ((s * 73 + this.currentRoom.tileSeed) % (ROOM_RIGHT - ROOM_LEFT));
       const sy =
         ROOM_TOP +
         ((s * 47 + Math.floor(this.time * 8) + this.currentRoom.tileSeed) % (ROOM_BOTTOM - ROOM_TOP));
       const a = 0.25 + 0.45 * Math.sin(this.time * 2.5 + s);
-      ctx.fillStyle = `rgba(56, 232, 212, ${Math.max(0, a)})`;
+      ctx.fillStyle =
+        this.currentFloor === 3
+          ? `rgba(251, 146, 60, ${Math.max(0, a)})`
+          : this.currentFloor === 2
+            ? `rgba(52, 211, 153, ${Math.max(0, a)})`
+            : `rgba(56, 232, 212, ${Math.max(0, a)})`;
       ctx.fillRect(sx + Math.sin(this.time + s) * 4, sy, 1.5, 1.5);
     }
 
@@ -2505,8 +3679,45 @@ export class DungeonScene {
 
     if (this.currentRoom.type === 'start') {
       this.renderWarpPad(ctx, ROOM_CENTER_X, ROOM_CENTER_Y - 12, '#38e8d4');
-    } else if (this.currentRoom.type === 'boss' && this.bossDefeatedInRun) {
-      this.renderWarpPad(ctx, ROOM_CENTER_X, ROOM_CENTER_Y, '#fbbf24');
+      // Floor III Start Room Emergency Med-Station!
+      if (this.currentRoom.hasHealStation) {
+        const hx = ROOM_CENTER_X + 70;
+        const hy = ROOM_CENTER_Y - 12;
+        const used = Boolean(this.currentRoom.healStationUsed);
+        drawPixelShadow(ctx, hx, hy + 10, 11, 4, 0.48);
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(hx - 10, hy - 14, 20, 22);
+        ctx.strokeStyle = used ? '#475569' : '#34d399';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(hx - 10, hy - 14, 20, 22);
+        ctx.fillStyle = used ? '#334155' : '#10b981';
+        ctx.fillRect(hx - 6, hy - 9, 12, 10);
+        if (!used) {
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(hx - 1.2, hy - 7.5, 2.4, 7);
+          ctx.fillRect(hx - 3.5, hy - 5.2, 7, 2.4);
+          drawGlow(ctx, hx, hy - 4, 24, '#34d399', 0.34 + Math.sin(this.time * 5) * 0.08);
+        }
+      }
+    } else if (this.currentRoom.type === 'boss' && this.floorBossDefeated) {
+      if (this.currentFloor < 3) {
+        const padY = ROOM_CENTER_Y + 6;
+        this.renderWarpPad(ctx, ROOM_CENTER_X - 48, padY, '#38e8d4');
+        this.renderWarpPad(ctx, ROOM_CENTER_X + 48, padY, '#fbbf24');
+        ctx.font = 'bold 5px Silkscreen, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#67e8f9';
+        ctx.fillText('EXTRAKTION', ROOM_CENTER_X - 48, padY + 22);
+        ctx.fillStyle = '#fde047';
+        ctx.fillText(this.currentFloor === 1 ? '▼ EBENE II' : '▼ EBENE III', ROOM_CENTER_X + 48, padY + 22);
+      } else {
+        const vy = ROOM_CENTER_Y + 12;
+        this.renderWarpPad(ctx, ROOM_CENTER_X, vy, '#fde047');
+        ctx.font = 'bold 5.2px Silkscreen, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#fde047';
+        ctx.fillText('★ SEKTOR-1 SIEG!', ROOM_CENTER_X, vy + 22);
+      }
     }
 
     for (const ob of this.currentRoom.obstacles) {
@@ -2570,19 +3781,44 @@ export class DungeonScene {
     // Glowing Rocket-Charge Boss Afterimages!
     for (const ba of this.bossAfterimages) {
       const alpha = (ba.life / ba.maxLife) * 0.48;
-      if (art.bossFlash) {
+      const bFlash = ba.isBreacher ? art.bossBreacherFlash : art.bossFlash;
+      if (bFlash) {
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
         ctx.globalAlpha = alpha;
         ctx.translate(ba.x, ba.y - ba.height);
         ctx.rotate(ba.tilt);
-        ctx.drawImage(art.bossFlash, -26, -28, 52, 50);
+        ctx.drawImage(bFlash, -26, -28, 52, 50);
         ctx.restore();
       }
       drawGlow(ctx, ba.x, ba.y - ba.height, 26, ba.enraged ? '#fb7185' : '#fb923c', alpha * 0.7);
     }
 
-    // Enemy & Boss Floor Telegraphs (Drone Laser Sightlines, Boss Charge Lanes, Slam Target Reticles, Laser Aim!)
+    // Leviathan Falling Reactor Debris Telegraphs!
+    for (const dr of this.debrisDrops) {
+      const prog = 1 - Math.max(0, dr.timer / dr.maxTimer);
+      ctx.save();
+      ctx.fillStyle = `rgba(244, 63, 94, ${0.14 + prog * 0.25})`;
+      ctx.beginPath();
+      ctx.ellipse(dr.x, dr.y, dr.r * prog, dr.r * prog * 0.65, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = `rgba(251, 146, 60, ${0.65 + prog * 0.35})`;
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.ellipse(dr.x, dr.y, dr.r, dr.r * 0.65, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      // Falling glowing hull chunk descending into reticle
+      if (prog > 0.35) {
+        const dropH = (1 - prog) * 140;
+        ctx.fillStyle = '#475569';
+        ctx.fillRect(dr.x - 6, dr.y - dropH - 6, 12, 10);
+        ctx.fillStyle = '#fb923c';
+        ctx.fillRect(dr.x - 4, dr.y - dropH - 4, 8, 4);
+      }
+      ctx.restore();
+    }
+
+    // Enemy & Boss Floor Telegraphs
     for (const e of this.enemies) {
       if (e.kind === 'drone' && e.telegraphTimer > 0) {
         ctx.save();
@@ -2594,8 +3830,10 @@ export class DungeonScene {
         ctx.lineTo(e.x + Math.cos(e.aimAngle) * 145, e.y + Math.sin(e.aimAngle) * 145);
         ctx.stroke();
         ctx.restore();
-      } else if (e.kind === 'boss') {
+      } else if (e.kind === 'boss' || e.kind === 'boss_breacher') {
         this.renderBossFloorTelegraph(ctx, e);
+      } else if (e.kind === 'boss_leviathan') {
+        this.renderLeviathanFloorTelegraphs(ctx, e);
       }
     }
 
@@ -2603,17 +3841,24 @@ export class DungeonScene {
     type Drawable = { y: number; draw: () => void };
     const drawables: Drawable[] = [];
     for (const e of this.enemies) {
-      const sortY = e.kind === 'boss' && (e.bossHeight ?? 0) > 12 ? 999 : e.y;
+      const sortY =
+        e.kind === 'boss_leviathan'
+          ? ROOM_TOP + 20
+          : e.kind === 'boss' && (e.bossHeight ?? 0) > 12
+            ? 999
+            : e.y;
       drawables.push({ y: sortY, draw: () => this.renderEnemy(ctx, e) });
     }
     drawables.push({ y: this.playerY, draw: () => this.renderPlayer(ctx) });
     drawables.sort((a, b) => a.y - b.y);
     for (const d of drawables) d.draw();
 
-    // Active Boss Sweeping Reactor Laser Beam!
+    // Active Boss Sweeping Reactor Laser Beams (Core-Wächter & Leviathan Twin Beams!)
     for (const e of this.enemies) {
       if (e.kind === 'boss' && e.bossState === 'laser_sweep') {
         this.renderBossLaserBeam(ctx, e);
+      } else if (e.kind === 'boss_leviathan' && (e.bossState === 'lev_twin_windup' || e.bossState === 'lev_twin_beam')) {
+        this.renderLeviathanTwinBeams(ctx, e);
       }
     }
 
@@ -2631,9 +3876,12 @@ export class DungeonScene {
       ctx.restore();
     }
 
-    // Hand-Crafted 2.5D Tapered Crescent Weapon Swings + Ghost-Blade Trails!
+    // Hand-Crafted 2.5D Tapered Crescent Weapon Swings + Piercing Ionen-Speer Thrusts!
     for (const s of this.swings) {
       this.renderWeaponSwing(ctx, s);
+    }
+    for (const tr of this.thrusts) {
+      this.renderSpearThrust(ctx, tr);
     }
 
     // Crisp X-Slash Impact Flashes on Struck Enemies!
@@ -3639,6 +4887,341 @@ export class DungeonScene {
     }
   }
 
+  private renderSpearThrust(ctx: CanvasRenderingContext2D, tr: SpearThrustFx): void {
+    const art = getHDArt();
+    const t = 1 - tr.life / tr.maxLife;
+    const alpha = Math.max(0, 1 - Math.pow(t, 1.35));
+    const extend = Math.min(1, t * 4.2);
+    const len = tr.length * (0.45 + 0.55 * extend);
+    const isFinisher = tr.comboStep === 2 || tr.isCharge;
+
+    ctx.save();
+    ctx.translate(tr.x, tr.y);
+    ctx.rotate(tr.angle);
+
+    // 1. Multi-layer piercing plasma lance cone & sonic shock rings!
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = isFinisher
+      ? `rgba(253, 224, 71, ${alpha * 0.46})`
+      : `rgba(56, 232, 212, ${alpha * 0.45})`;
+    ctx.beginPath();
+    ctx.moveTo(-4, 0);
+    ctx.lineTo(len * 0.28, -(isFinisher ? 9 : 6.5));
+    ctx.lineTo(len + 6, 0);
+    ctx.lineTo(len * 0.28, isFinisher ? 9 : 6.5);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = isFinisher
+      ? `rgba(56, 232, 212, ${alpha * 0.85})`
+      : `rgba(103, 232, 249, ${alpha * 0.85})`;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(len * 0.32, -(isFinisher ? 4.8 : 3.4));
+    ctx.lineTo(len + 3, 0);
+    ctx.lineTo(len * 0.32, isFinisher ? 4.8 : 3.4);
+    ctx.closePath();
+    ctx.fill();
+
+    // White-hot needle core
+    ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.96})`;
+    ctx.beginPath();
+    ctx.moveTo(4, 0);
+    ctx.lineTo(len * 0.45, -1.6);
+    ctx.lineTo(len + 2, 0);
+    ctx.lineTo(len * 0.45, 1.6);
+    ctx.closePath();
+    ctx.fill();
+
+    // Expanding sonic piercing rings along shaft
+    ctx.strokeStyle = isFinisher
+      ? `rgba(253, 224, 71, ${alpha * 0.85})`
+      : `rgba(165, 243, 252, ${alpha * 0.78})`;
+    ctx.lineWidth = 1.2;
+    for (const frac of [0.35, 0.68]) {
+      const rx = len * frac;
+      const ry = (isFinisher ? 7.5 : 5.5) * (0.6 + t * 0.7);
+      ctx.beginPath();
+      ctx.ellipse(rx, 0, 2.2, ry, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // 2. Lunging HD Ionen-Speer sprite right inside the plasma lance!
+    if (art.weapons.spear) {
+      const lungeDist = len * 0.42;
+      ctx.save();
+      ctx.translate(tr.x + Math.cos(tr.angle) * lungeDist, tr.y + Math.sin(tr.angle) * lungeDist);
+      ctx.rotate(tr.angle + Math.PI / 4);
+      ctx.globalAlpha = Math.min(1, alpha * 1.4);
+      ctx.drawImage(art.weapons.spear, -13, -15, 28, 28);
+      ctx.restore();
+    }
+  }
+
+  private renderLeviathanFloorTelegraphs(ctx: CanvasRenderingContext2D, e: Enemy): void {
+    if (!e.levArms) return;
+    const pulse = 0.5 + 0.5 * Math.sin(this.time * 24);
+    for (const arm of e.levArms) {
+      if (arm.state === 'tracking' || arm.state === 'slamming') {
+        ctx.save();
+        ctx.fillStyle = `rgba(244, 63, 94, ${0.18 + pulse * 0.18})`;
+        ctx.beginPath();
+        ctx.ellipse(arm.targetX, arm.targetY + 4, 30, 20, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = `rgba(251, 113, 133, ${0.75 + pulse * 0.25})`;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.ellipse(arm.targetX, arm.targetY + 4, 30, 20, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.strokeStyle = '#fde047';
+        ctx.lineWidth = 1.1;
+        ctx.beginPath();
+        ctx.moveTo(arm.targetX - 10, arm.targetY + 4);
+        ctx.lineTo(arm.targetX + 10, arm.targetY + 4);
+        ctx.moveTo(arm.targetX, arm.targetY - 4);
+        ctx.lineTo(arm.targetX, arm.targetY + 12);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+  }
+
+  private renderLeviathanTwinBeams(ctx: CanvasRenderingContext2D, e: Enemy): void {
+    if (!e.levArms) return;
+    const windup = e.bossState === 'lev_twin_windup';
+    const pulse = 0.5 + 0.5 * Math.sin(this.time * 36);
+    for (const arm of e.levArms) {
+      const cosA = Math.cos(arm.beamAngle);
+      const sinA = Math.sin(arm.beamAngle);
+      const ex = arm.x + cosA * 255;
+      const ey = arm.y + sinA * 255;
+      ctx.save();
+      if (windup) {
+        ctx.strokeStyle = `rgba(251, 113, 133, ${0.45 + pulse * 0.5})`;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 3]);
+        ctx.beginPath();
+        ctx.moveTo(arm.x, arm.y);
+        ctx.lineTo(ex, ey);
+        ctx.stroke();
+      } else {
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = 'rgba(244, 63, 94, 0.58)';
+        ctx.lineWidth = 14 + pulse * 3;
+        ctx.beginPath();
+        ctx.moveTo(arm.x, arm.y);
+        ctx.lineTo(ex, ey);
+        ctx.stroke();
+        ctx.strokeStyle = 'rgba(251, 146, 60, 0.92)';
+        ctx.lineWidth = 7 + pulse * 2;
+        ctx.stroke();
+        ctx.strokeStyle = '#fffbeb';
+        ctx.lineWidth = 2.8;
+        ctx.stroke();
+        drawGlow(ctx, arm.x, arm.y, 20, '#fb7185', 0.8);
+      }
+      ctx.restore();
+    }
+  }
+
+  private renderBreacherBoss(ctx: CanvasRenderingContext2D, e: Enemy): void {
+    const art = getHDArt();
+    const state = e.bossState ?? 'stalk';
+    const enraged = Boolean(e.bossPhase2);
+    const stompBob = Math.abs(Math.sin(this.time * (enraged ? 11 : 7))) * 2.4;
+    let scaleX = 1;
+    let scaleY = 1;
+    let tilt = Math.max(-0.18, Math.min(0.18, e.vx * 0.0014));
+    if (state === 'charge_windup') {
+      scaleX = 1.22;
+      scaleY = 0.78;
+    } else if (state === 'breacher_stomp') {
+      scaleX = 0.86;
+      scaleY = 1.22;
+    } else if (state === 'stunned') {
+      tilt = Math.sin(this.time * 18) * 0.14;
+    }
+
+    drawPixelShadow(ctx, e.x, e.y + 17, 22, 7.2, 0.55);
+    const spr = e.flashTimer > 0 ? art.bossBreacherFlash : art.bossBreacher;
+    if (spr) {
+      ctx.save();
+      ctx.translate(e.x, e.y + 16 - stompBob);
+      ctx.rotate(tilt);
+      ctx.scale(scaleX, scaleY);
+      ctx.drawImage(spr, -27, -45, 54, 52);
+      ctx.restore();
+    }
+    const corePulse = 0.5 + 0.5 * Math.sin(this.time * (enraged ? 14 : 7));
+    drawGlow(ctx, e.x, e.y - 4, 20 + corePulse * 6, enraged ? '#fb7185' : '#fbbf24', 0.42 + corePulse * 0.22);
+  }
+
+  private renderLeviathanBoss(ctx: CanvasRenderingContext2D, e: Enemy): void {
+    const enraged = Boolean(e.bossPhase2);
+    const flash = e.flashTimer > 0;
+    const pulse = 0.5 + 0.5 * Math.sin(this.time * (enraged ? 14 : 6));
+    const breath = Math.sin(this.time * 2.8) * 1.8;
+    const cx = e.x;
+    const cy = e.y + breath;
+
+    // 1. Massive Armored Titan Hull Chassis spanning top of Reactor Core Arena!
+    ctx.save();
+    drawPixelShadow(ctx, cx, cy + 28, 84, 14, 0.58);
+
+    // Armored Outer Wing Bulkheads with metallic bevel & rivets
+    ctx.fillStyle = flash ? '#f8fafc' : '#111827';
+    ctx.fillRect(cx - 90, cy - 29, 180, 48);
+    ctx.fillStyle = flash ? '#ffffff' : '#1e293b';
+    ctx.fillRect(cx - 86, cy - 27, 172, 43);
+    ctx.fillStyle = flash ? '#ffffff' : '#334155';
+    ctx.fillRect(cx - 82, cy - 24, 164, 34);
+    // Top armor bevel highlight
+    ctx.fillStyle = '#64748b';
+    ctx.fillRect(cx - 82, cy - 24, 164, 2.5);
+
+    // Bronze / Steel Shoulder Armor Plates, Horn Fins & Glowing Exhaust Vents
+    ctx.fillStyle = flash ? '#fef3c7' : enraged ? '#7f1d1d' : '#78350f';
+    ctx.fillRect(cx - 78, cy - 22, 46, 28);
+    ctx.fillRect(cx + 32, cy - 22, 46, 28);
+    ctx.fillStyle = enraged ? '#b91c1c' : '#b45309';
+    ctx.fillRect(cx - 76, cy - 20, 42, 4);
+    ctx.fillRect(cx + 34, cy - 20, 42, 4);
+    ctx.strokeStyle = enraged ? '#fb7185' : '#fbbf24';
+    ctx.lineWidth = 1.2;
+    ctx.strokeRect(cx - 78, cy - 22, 46, 28);
+    ctx.strokeRect(cx + 32, cy - 22, 46, 28);
+
+    // Armored corner bolts
+    ctx.fillStyle = '#fde68a';
+    for (const bx of [cx - 75, cx - 36, cx + 35, cx + 74]) {
+      ctx.fillRect(bx, cy - 19, 2, 2);
+      ctx.fillRect(bx, cy + 2, 2, 2);
+    }
+
+    // Shoulder plasma radiator slits
+    for (const side of [-1, 1]) {
+      const vx = cx + side * 55;
+      ctx.fillStyle = enraged ? '#fb7185' : '#38e8d4';
+      for (let s = 0; s < 3; s++) {
+        ctx.fillRect(vx - 13, cy - 14 + s * 6, 26, 2.6);
+      }
+      drawGlow(ctx, vx, cy - 8, 22, enraged ? '#fb7185' : '#38e8d4', 0.32 + pulse * 0.14);
+    }
+
+    // Central Crown Crest & Mandible Hull
+    ctx.fillStyle = flash ? '#ffffff' : '#475569';
+    ctx.beginPath();
+    ctx.moveTo(cx - 36, cy - 28);
+    ctx.lineTo(cx + 36, cy - 28);
+    ctx.lineTo(cx + 28, cy + 24);
+    ctx.lineTo(cx, cy + 33);
+    ctx.lineTo(cx - 28, cy + 24);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#64748b';
+    ctx.fillRect(cx - 30, cy - 27, 60, 4);
+    ctx.strokeStyle = enraged ? '#fb7185' : '#fbbf24';
+    ctx.lineWidth = 1.3;
+    ctx.stroke();
+
+    // Twin golden-crimson brow fins flanking Omega Eye
+    ctx.fillStyle = enraged ? '#fb7185' : '#fbbf24';
+    ctx.fillRect(cx - 26, cy - 20, 10, 3);
+    ctx.fillRect(cx + 16, cy - 20, 10, 3);
+
+    // Rotating Omega Reactor Eye Ring (Core Weakpoint!)
+    const coreColor = enraged ? '#fb7185' : '#fbbf24';
+    drawGlow(ctx, cx, cy + 2, 34 + pulse * 8, coreColor, 0.5 + pulse * 0.25);
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.arc(cx, cy + 2, 16, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = coreColor;
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.arc(cx, cy + 2, 13, this.time * 2, this.time * 2 + Math.PI * 1.45);
+    ctx.stroke();
+    ctx.fillStyle = coreColor;
+    ctx.beginPath();
+    ctx.arc(cx, cy + 2, 8 + pulse * 2.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(cx, cy + 2, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // 2. Articulated Segmented Chain Arms + Massive Hydraulic Giant Gauntlets!
+    if (e.levArms) {
+      for (const arm of e.levArms) {
+        const shX = cx + arm.side * 66;
+        const shY = cy + 6;
+        const grounded = arm.state === 'grounded';
+        const slamming = arm.state === 'slamming';
+
+        // Segmented steel hydraulic chain joints from shoulder -> gauntlet
+        ctx.save();
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(shX, shY);
+        ctx.lineTo(arm.x, arm.y);
+        ctx.stroke();
+        ctx.strokeStyle = enraged ? '#fb7185' : '#38e8d4';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+
+        for (let seg = 1; seg <= 3; seg++) {
+          const u = seg / 4;
+          const jx = shX + (arm.x - shX) * u;
+          const jy = shY + (arm.y - shY) * u;
+          ctx.fillStyle = '#1e293b';
+          ctx.beginPath();
+          ctx.arc(jx, jy, 4.2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#94a3b8';
+          ctx.lineWidth = 0.9;
+          ctx.stroke();
+        }
+
+        // Ground shadow under gauntlet
+        drawPixelShadow(ctx, arm.x, arm.y + 16, grounded ? 19 : 14, grounded ? 6 : 4, grounded ? 0.58 : 0.35);
+
+        // Massive Armored Gauntlet Fist!
+        ctx.translate(arm.x, arm.y);
+        const fistFill = flash ? '#ffffff' : grounded ? '#92400e' : '#334155';
+        ctx.fillStyle = fistFill;
+        ctx.fillRect(-15, -13, 30, 26);
+        ctx.strokeStyle = slamming || enraged ? '#fb7185' : grounded ? '#fde047' : '#38e8d4';
+        ctx.lineWidth = grounded ? 1.8 : 1.2;
+        ctx.strokeRect(-15, -13, 30, 26);
+        // Knuckle plates & glowing plasma core emitter inside fist
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(-12, 7, 6, 7);
+        ctx.fillRect(-3, 8, 6, 7);
+        ctx.fillRect(6, 7, 6, 7);
+        ctx.fillStyle = enraged ? '#fb7185' : grounded ? '#fde047' : '#38e8d4';
+        ctx.beginPath();
+        ctx.arc(0, -1, 5.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(-2, -3, 4, 4);
+        ctx.restore();
+
+        drawGlow(
+          ctx,
+          arm.x,
+          arm.y,
+          grounded ? 26 : 18,
+          grounded ? '#fde047' : enraged ? '#fb7185' : '#38e8d4',
+          grounded ? 0.45 : 0.25,
+        );
+      }
+    }
+  }
+
   private renderEnemy(ctx: CanvasRenderingContext2D, e: Enemy): void {
     const art = getHDArt();
     const atlas = getAtlas();
@@ -3646,6 +5229,14 @@ export class DungeonScene {
 
     if (e.kind === 'boss') {
       this.renderAnimatedBoss(ctx, e);
+      return;
+    }
+    if (e.kind === 'boss_breacher') {
+      this.renderBreacherBoss(ctx, e);
+      return;
+    }
+    if (e.kind === 'boss_leviathan') {
+      this.renderLeviathanBoss(ctx, e);
       return;
     }
 
@@ -3681,6 +5272,43 @@ export class DungeonScene {
       }
       if (e.telegraphTimer > 0) drawGlow(ctx, e.x, e.y + hover, 18, '#fb7185', 0.55);
       else drawGlow(ctx, e.x, e.y + hover, 13, '#38e8d4', 0.22);
+    } else if (e.kind === 'shield_drone') {
+      const hover = Math.sin(this.time * 5.2 + e.id) * 2.2;
+      const spr = e.flashTimer > 0 ? art.shieldDroneFlash : art.shieldDrone;
+      if (spr) {
+        ctx.drawImage(spr, e.x - 13, e.y - 14 + hover, 26, 26);
+      }
+      // Visible glowing frontal kinetic shield arc (tells player to flank or pierce!)
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = e.telegraphTimer > 0 ? '#fde047' : '#38e8d4';
+      ctx.lineWidth = 2.6;
+      ctx.beginPath();
+      ctx.arc(e.x, e.y + hover, 14, e.aimAngle - 0.95, e.aimAngle + 0.95);
+      ctx.stroke();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 0.9;
+      ctx.stroke();
+      ctx.restore();
+      drawGlow(ctx, e.x, e.y + hover, 17, '#38e8d4', 0.28);
+    } else if (e.kind === 'spore_spitter') {
+      const pulse = Math.sin(this.time * 7 + e.id) * 0.1;
+      const spr = e.flashTimer > 0 ? art.sporeSpitterFlash : art.sporeSpitter;
+      if (spr) {
+        ctx.save();
+        ctx.translate(e.x, e.y + 8);
+        ctx.scale(1 + pulse, 1 - pulse);
+        ctx.drawImage(spr, -12, -22, 24, 23);
+        ctx.restore();
+      }
+      drawGlow(
+        ctx,
+        e.x,
+        e.y - 2,
+        e.telegraphTimer > 0 ? 22 : 15,
+        e.telegraphTimer > 0 ? '#a3e635' : '#34d399',
+        e.telegraphTimer > 0 ? 0.52 : 0.26,
+      );
     } else {
       const scurrying = e.scurryTimer > 0;
       const bob = scurrying ? Math.abs(Math.sin(this.time * 22 + e.id)) * 2.2 : 0;
@@ -3718,13 +5346,18 @@ export class DungeonScene {
   private drawReadyMeleeWeapon(ctx: CanvasRenderingContext2D, bob: number): void {
     const art = getHDArt();
     const wep = this.state.equippedWeapon;
-    if (wep === 'blaster' || this.swings.length > 0) return;
-    const spr = wep === 'hammer' ? art.weapons.hammer : art.weapons.blade;
+    if (wep === 'blaster' || this.swings.length > 0 || this.thrusts.length > 0) return;
+    const spr =
+      wep === 'hammer'
+        ? art.weapons.hammer
+        : wep === 'spear'
+          ? art.weapons.spear
+          : art.weapons.blade;
     if (!spr) return;
 
     const idleBreath = Math.sin(this.time * 4.2) * 0.06;
     const walkSwing = this.walkAnim > 0 ? Math.sin(this.walkAnim) * 0.14 : 0;
-    const size = wep === 'hammer' ? 21 : 19;
+    const size = wep === 'spear' ? 23 : wep === 'hammer' ? 21 : 19;
 
     let ox = 8;
     let oy = -2;
@@ -3758,14 +5391,14 @@ export class DungeonScene {
   private renderPlayer(ctx: CanvasRenderingContext2D): void {
     const art = getHDArt();
     const atlas = getAtlas();
-    if (this.invulnTimer > 0 && this.dashTimer <= 0 && Math.floor(this.time * 24) % 2 === 0) {
+    if (this.invulnTimer > 0 && this.dashTimer <= 0 && this.lanceChargeTimer <= 0 && Math.floor(this.time * 24) % 2 === 0) {
       return;
     }
 
     const walking = this.walkAnim > 0;
     const bob = walking ? Math.abs(Math.sin(this.walkAnim)) * 2.2 : Math.sin(this.time * 3) * 0.4;
 
-    // Dynamic Melee Body Lunge, Squash/Stretch & Lean during Blade / Hammer Swings!
+    // Dynamic Melee Body Lunge, Squash/Stretch & Lean during Blade / Spear / Hammer attacks!
     let lungeX = 0;
     let lungeY = 0;
     let scaleX = 1;
@@ -3881,25 +5514,30 @@ export class DungeonScene {
   }
 
   private renderBossBar(ctx: CanvasRenderingContext2D): void {
-    const boss = this.enemies.find((e) => e.kind === 'boss');
+    const boss = this.enemies.find((e) => this.isBossKind(e.kind));
     if (!boss) return;
 
     const pct = Math.max(0, boss.hp / boss.maxHp);
     const enraged = Boolean(boss.bossPhase2);
-    const bw = 232;
+    const bw = 244;
     const bx = (VIRTUAL_WIDTH - bw) / 2;
     const by = VIRTUAL_HEIGHT - 27;
 
     ctx.fillStyle = 'rgba(12, 16, 26, 0.94)';
     ctx.fillRect(bx - 5, by - 12, bw + 10, 21);
-    ctx.strokeStyle = enraged ? '#fb7185' : '#fb923c';
+    ctx.strokeStyle =
+      boss.kind === 'boss_leviathan' ? (enraged ? '#fb7185' : '#fde047') : enraged ? '#fb7185' : '#fb923c';
     ctx.lineWidth = 0.9;
     ctx.strokeRect(bx - 4.5, by - 11.5, bw + 9, 20);
 
+    const baseName =
+      boss.kind === 'boss_breacher'
+        ? 'SCHOTT-BRECHER MK-II'
+        : boss.kind === 'boss_leviathan'
+          ? '★ A.E.G.I.S. LEVIATHAN'
+          : 'CORE-WÄCHTER MK-IV';
     const status = boss.bossStatusText ? ` · ${boss.bossStatusText}` : '';
-    const title = enraged
-      ? `CORE-WÄCHTER MK-IV [PHASE II]${status}`
-      : `CORE-WÄCHTER MK-IV${status}`;
+    const title = enraged ? `${baseName} [PHASE II]${status}` : `${baseName}${status}`;
     ctx.fillStyle = enraged ? '#fda4af' : '#fde047';
     ctx.font = 'bold 5.2px Silkscreen, monospace';
     ctx.textAlign = 'center';
@@ -3907,7 +5545,7 @@ export class DungeonScene {
 
     ctx.fillStyle = '#2a1822';
     ctx.fillRect(bx, by, bw, 5.5);
-    ctx.fillStyle = enraged ? '#e11d48' : '#f97316';
+    ctx.fillStyle = enraged ? '#e11d48' : boss.kind === 'boss_leviathan' ? '#f59e0b' : '#f97316';
     ctx.fillRect(bx, by, bw * pct, 5.5);
     ctx.fillStyle = enraged ? '#fda4af' : '#fde047';
     ctx.fillRect(bx, by, bw * pct, 1.3);

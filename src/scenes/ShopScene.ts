@@ -62,10 +62,9 @@ interface Customer {
 export interface ShopCallbacks {
   onOpenPedestal: (pedestal: PedestalSlot) => void;
   onOpenWorkbench: () => void;
-  onOpenChest: () => void;
+  onEnterBackroom: () => void;
   onOpenBounties: () => void;
   onOpenSaleBox: () => void;
-  onAdvanceTime: () => void;
   onEnterDungeon: () => void;
   onToast: (msg: string, tone?: 'info' | 'good' | 'warn') => void;
   onHudDirty: () => void;
@@ -110,9 +109,8 @@ const SOLID_SHAPES: SolidShape[] = [
 
 // Interactive station hotspots matching public/art/shop_bg*.png
 const WORKBENCH_POS = { x: 92, y: 164 };
-const SLEEP_POD_POS = { x: 120, y: 122 };
+const BACKROOM_DOOR_POS = { x: 136, y: 114 };
 const SALE_BOX_POS = { x: 186, y: 188 };
-const CHEST_POS = { x: 334, y: 118 };
 const BOUNTY_BOARD_POS = { x: 386, y: 118 };
 const WARP_GATE_POS = { x: 426, y: 152 };
 const SHOP_DOOR_POS = { x: 240, y: 218 };
@@ -174,7 +172,7 @@ export class ShopScene {
     }
   }
 
-  public onEnter(fromDungeon = false): void {
+  public onEnter(from: 'default' | 'hub' | 'backroom' = 'default'): void {
     this.state.restoreFullVitals();
     this.shopOpen = false;
     this.customers = [];
@@ -182,11 +180,15 @@ export class ShopScene {
     this.floats = [];
     this.dashTimer = 0;
     this.dashCooldown = 0;
-    if (fromDungeon) {
+    if (from === 'hub') {
       this.playerX = 408;
       this.playerY = 152;
       this.facing = 'left';
       this.spawnBurst(426, 152, '#38e8d4', 20);
+    } else if (from === 'backroom') {
+      this.playerX = BACKROOM_DOOR_POS.x;
+      this.playerY = BACKROOM_DOOR_POS.y + 18;
+      this.facing = 'down';
     } else {
       this.playerX = 240;
       this.playerY = 188;
@@ -432,11 +434,7 @@ export class ShopScene {
         }
       }
 
-      // 3. Chrono-Ruhekapsel (Sleep Pod) & unlocked Sale-Box smooth circles
-      const outSleep = this.pushOutCircle(px, py, SLEEP_POD_POS.x, SLEEP_POD_POS.y + 1, 8.5 + PLAYER_RADIUS);
-      px = outSleep.x;
-      py = outSleep.y;
-
+      // 3. Unlocked Sale-Box smooth circle
       if (hasSaleBox) {
         const outBox = this.pushOutCircle(px, py, SALE_BOX_POS.x, SALE_BOX_POS.y + 1, 7.5 + PLAYER_RADIUS);
         px = outBox.x;
@@ -920,20 +918,17 @@ export class ShopScene {
       }
     }
 
-    // 4. Chrono-Ruhekapsel (Sleep Pod — Day <-> Night cycle!)
-    if (Math.hypot(this.playerX - SLEEP_POD_POS.x, this.playerY - SLEEP_POD_POS.y) < 26) {
-      const label =
-        this.state.timeOfDay === 'day'
-          ? '[E] Ruhen → Nacht (+35 % Rar-Loot)'
-          : `[E] Schlafen → Morgen (Tag ${this.state.day + 1})`;
+    // 4. Privates Hinterzimmer (Kapitäns-Quartier: Bett, Lagertruhen & Trophäen!)
+    if (Math.hypot(this.playerX - BACKROOM_DOOR_POS.x, this.playerY - BACKROOM_DOOR_POS.y) < 30) {
       this.activePrompt = {
-        label,
-        x: SLEEP_POD_POS.x + 14,
-        y: SLEEP_POD_POS.y - 20,
+        label: '[E] Hinterzimmer (Bett & Lagertruhen)',
+        x: BACKROOM_DOOR_POS.x + 14,
+        y: BACKROOM_DOOR_POS.y - 20,
       };
       if (input.interactPressed()) {
         if (this.shopOpen) this.closeShop(true);
-        this.callbacks.onAdvanceTime();
+        sound.playUiClick();
+        this.callbacks.onEnterBackroom();
       }
       return;
     }
@@ -968,21 +963,7 @@ export class ShopScene {
       return;
     }
 
-    // 7. Lagertruhe (blue steel chest upper-right)
-    if (Math.hypot(this.playerX - CHEST_POS.x, this.playerY - CHEST_POS.y) < 28) {
-      this.activePrompt = {
-        label: `[E] Lagertruhe (${this.state.getStats().chestCapacity} Slots)`,
-        x: CHEST_POS.x,
-        y: CHEST_POS.y - 18,
-      };
-      if (input.interactPressed()) {
-        sound.playUiClick();
-        this.callbacks.onOpenChest();
-      }
-      return;
-    }
-
-    // 8. Exit Airlock to Port Solaris Promenade (Schmiede, Med-Bay & Warp-Gate!)
+    // 7. Exit Airlock to Port Solaris Promenade (Schmiede, Med-Bay, Tech-Labor & Warp-Gate!)
     if (Math.hypot(this.playerX - WARP_GATE_POS.x, this.playerY - WARP_GATE_POS.y) < 36) {
       this.activePrompt = {
         label: '[E] Port Solaris (Shops & Sektor)',
@@ -999,7 +980,7 @@ export class ShopScene {
       return;
     }
 
-    // 9. Shop Open/Close Door (bottom airlock hatch)
+    // 8. Shop Open/Close Door (bottom airlock hatch)
     if (Math.hypot(this.playerX - SHOP_DOOR_POS.x, this.playerY - SHOP_DOOR_POS.y) < 30) {
       this.activePrompt = {
         label: this.shopOpen ? '[E] Laden schließen' : '[E] Laden öffnen',
@@ -1081,29 +1062,27 @@ export class ShopScene {
       ctx.fillRect(s.x, s.y, isNight ? 1.8 : 1.4, isNight ? 1.8 : 1.4);
     }
 
-    // Pulsing cyan holographic glows on Counter, Shop-Ausbau Terminal, and Promenade Exit
+    // Pulsing cyan holographic glows on Counter, Shop-Ausbau Terminal, Backroom Door & Promenade Exit
     const pulse = 0.5 + 0.5 * Math.sin(this.time * 4.2);
     const nightBoost = isNight ? 0.1 : 0;
     drawGlow(ctx, 206, 146, 22, '#38e8d4', 0.14 + nightBoost + pulse * 0.08);
     drawGlow(ctx, 240, 156, 24, '#38e8d4', 0.12 + nightBoost + pulse * 0.06);
     drawGlow(ctx, 64, 132, 32, '#38e8d4', 0.16 + nightBoost + pulse * 0.08);
+    drawGlow(ctx, BACKROOM_DOOR_POS.x, BACKROOM_DOOR_POS.y - 12, 22, '#fbbf24', 0.2 + nightBoost + pulse * 0.08);
     drawGlow(ctx, 444, 152, 42 + pulse * 6, '#38e8d4', 0.28 + nightBoost + pulse * 0.14);
 
-    // Subtle crisp status pills (Door, Promenade, Shop-Ausbau, Auftrags-Pinnwand!)
+    // Backroom Doorway mounted flush on upper-left wall (leading to Captain's Quarters!)
+    this.renderBackroomDoor(ctx, pulse);
+
+    // Subtle crisp status pills (Door, Promenade, Shop-Ausbau, Quartier, Auftrags-Pinnwand!)
     this.renderStationBadges(ctx, pulse);
 
     // Sleek retractable holographic laser filament on the baked right-side counter opening!
     this.renderCounterGate(ctx, pulse);
 
-    // 3. Depth-Sorted Dynamic Entities (Sleep Pod, Sale-Box, Pedestals, Customers, Player)
+    // 3. Depth-Sorted Dynamic Entities (Sale-Box, Pedestals, Customers, Player)
     type Drawable = { y: number; draw: () => void };
     const drawables: Drawable[] = [];
-
-    // Chrono-Ruhekapsel (Sleep Pod) upper-left
-    drawables.push({
-      y: SLEEP_POD_POS.y,
-      draw: () => this.renderSleepPod(ctx, pulse),
-    });
 
     // Unlocked Sonderangebots-Kiste (Sale-Box, Stufe II+)
     if (this.state.getStats().hasSaleBox) {
@@ -1159,7 +1138,7 @@ export class ShopScene {
     if (auraLevel >= 1) {
       // Visible floating warm Holo-Lanterns flanking the shop!
       const lanterns = [
-        { x: 156, y: 108, phase: 0 },
+        { x: 168, y: 100, phase: 0 },
         { x: 324, y: 108, phase: 1.8 },
       ];
       for (const l of lanterns) {
@@ -1245,22 +1224,20 @@ export class ShopScene {
     }
   }
 
-  private renderSleepPod(ctx: CanvasRenderingContext2D, pulse: number): void {
+  private renderBackroomDoor(ctx: CanvasRenderingContext2D, pulse: number): void {
     const art = getHDArt();
-    const x = SLEEP_POD_POS.x;
-    const y = SLEEP_POD_POS.y;
-    const isNight = this.state.timeOfDay === 'night';
-
-    drawPixelShadow(ctx, x, y + 9, 12, 4, 0.45);
-    drawGlow(ctx, x, y - 2, 20, isNight ? '#818cf8' : '#38e8d4', 0.2 + pulse * 0.08);
-    if (art.propSleepPod) {
-      ctx.drawImage(art.propSleepPod, x - 13, y - 16, 26, 26);
+    const x = BACKROOM_DOOR_POS.x;
+    const y = BACKROOM_DOOR_POS.y - 12;
+    if (art.propBackroomDoor) {
+      ctx.drawImage(art.propBackroomDoor, x - 14, y - 16, 28, 28);
     } else {
-      ctx.fillStyle = '#334155';
-      ctx.fillRect(x - 10, y - 8, 20, 14);
-      ctx.fillStyle = '#38e8d4';
-      ctx.fillRect(x - 7, y - 5, 14, 7);
+      ctx.fillStyle = '#5c3c24';
+      ctx.fillRect(x - 10, y - 14, 20, 24);
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillRect(x - 7, y - 11, 14, 18);
     }
+    // Cozy warm doorway carpet glow spilling onto floor
+    drawGlow(ctx, x, y + 12, 16, '#fbbf24', 0.16 + pulse * 0.06);
   }
 
   private renderSaleBox(ctx: CanvasRenderingContext2D, pulse: number): void {
@@ -1327,6 +1304,17 @@ export class ShopScene {
     ctx.strokeRect(tx - 30, ty - 5, 60, 10);
     ctx.fillStyle = '#fde047';
     ctx.fillText('SHOP-AUSBAU', tx, ty + 2);
+
+    // Backroom Captain's Quarters doorway badge
+    const qx = BACKROOM_DOOR_POS.x;
+    const qy = 82;
+    ctx.fillStyle = 'rgba(15, 22, 36, 0.92)';
+    ctx.fillRect(qx - 22, qy - 5, 44, 10);
+    ctx.strokeStyle = '#fbbf24';
+    ctx.lineWidth = 0.8;
+    ctx.strokeRect(qx - 22, qy - 5, 44, 10);
+    ctx.fillStyle = '#fde047';
+    ctx.fillText('QUARTIER', qx, qy + 2);
 
     // Auftrags-Pinnwand (Bounties Board) compact pinned wall badge right below cork board
     const bx = BOUNTY_BOARD_POS.x - 4;

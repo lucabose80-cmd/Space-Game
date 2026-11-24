@@ -1,8 +1,8 @@
-export type SceneId = 'shop' | 'hub' | 'dungeon';
+export type SceneId = 'shop' | 'backroom' | 'hub' | 'dungeon';
 
 export type TimeOfDay = 'day' | 'night';
 
-export type WeaponId = 'blade' | 'blaster' | 'hammer';
+export type WeaponId = 'blade' | 'blaster' | 'hammer' | 'spear';
 
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic';
 
@@ -77,15 +77,19 @@ export interface CodexEntry {
 }
 
 export interface UpgradeLevels {
-  blade: number; // 0..3
-  blaster: number; // 0..3
-  hammer: number; // 0..3
-  suit: number; // 0..3
+  blade: number; // 0..4
+  blaster: number; // 0..4
+  hammer: number; // 0..4
+  spear: number; // 0..4 (Ionen-Speer!)
+  suit: number; // 0..4
   stimpack: number; // 0..3
-  bioRegen: number; // 0..3 (Dr. Lyra Med-Bay: room-clear heal & faster energy regen)
-  shopTier: number; // 0..2 (Astro-Barter expansion: 4 -> 6 -> 8 pedestals, Sale-Box & larger chest!)
+  bioRegen: number; // 0..3 (Dr. Lyra Med-Bay)
+  shopTier: number; // 0..2 (Astro-Barter expansion: 4 -> 6 -> 8 pedestals, Sale-Box & 28/36/48 chest!)
   shopAura: number; // 0..2 (Astro-Barter Shop-Terminal: decor & tips)
-  shopScanner: number; // 0..2 (Astro-Barter Shop-Terminal: checkout speed & fair-price bonus)
+  shopScanner: number; // 0..2 (Astro-Barter Shop-Terminal: checkout bonus & patience)
+  modCrit: number; // 0..3 (Vex' Tech-Labor: Ionen-Kette Crit Chance)
+  modThruster: number; // 0..3 (Vex' Tech-Labor: Schub-Kondensator Speed & Dash CD)
+  modLuck: number; // 0..3 (Vex' Tech-Labor: Relikt-Scanner Rare/Epic Drop Boost)
 }
 
 export type UpgradeKey = keyof UpgradeLevels;
@@ -101,7 +105,7 @@ export interface UpgradeTier {
 
 export interface UpgradeTrack {
   key: UpgradeKey;
-  shop: 'forge' | 'medbay' | 'shop_terminal';
+  shop: 'forge' | 'medbay' | 'shop_terminal' | 'techlab';
   weaponId?: WeaponId;
   title: string;
   subtitle: string;
@@ -124,6 +128,8 @@ export interface InventoryData {
 export interface RunSummary {
   victory: boolean;
   reason: 'warp' | 'boss_victory' | 'defeat';
+  floorReached: number;
+  sector1Cleared?: boolean;
   roomsCleared: number;
   enemiesDefeated: number;
   itemsSaved: number;
@@ -144,6 +150,8 @@ export interface SaveData {
   totalEarned: number;
   totalSold: number;
   bossDefeatedCount: number;
+  sector1Cleared?: boolean;
+  deepestFloor?: number;
   inventory: InventoryData & { safeBelt?: Array<ItemStack | null> };
   pedestals: Array<{ id: number; itemId: string | null; qty: number; price: number }>;
   saleBox?: ItemStack[];

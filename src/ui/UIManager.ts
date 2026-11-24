@@ -40,6 +40,7 @@ export class UIManager {
   private titleEl: HTMLElement;
 
   public currentScene: SceneId = 'shop';
+  public dungeonFloor: 1 | 2 | 3 = 1;
   public shopIsOpen = false;
   public modalOpen = false;
   public titleVisible = true;
@@ -81,8 +82,8 @@ export class UIManager {
         <div class="title-kicker">PORT SOLARIS · ASTRO-BARTER</div>
         <h1 class="title-logo">STARLIGHTER</h1>
         <p class="title-sub">
-          Führe deinen Relikt-Shop auf Port Solaris, schmiede neue Waffen bei Kael und plündere
-          verlassene Raumschiff-Wracks — aber Vorsicht: Deine Beute ist nur bei Extraktion sicher!
+          Führe deinen Relikt-Shop auf Port Solaris, schmiede Waffen bis MK-V bei Kael, installiere Tech-Module bei Vex
+          und bezwinge alle 3 Ebenen von Sektor 1 bis zum gigantischen A.E.G.I.S. LEVIATHAN!
         </p>
         <div class="title-buttons">
           ${
@@ -153,26 +154,36 @@ export class UIManager {
     const isNight = this.state.timeOfDay === 'night';
     const timeLabel = isNight ? `🌙 NACHT ${this.state.day}` : `☀ TAG ${this.state.day}`;
     const timeColor = isNight ? '#818cf8' : 'var(--accent-amber)';
+    const floorTag =
+      this.dungeonFloor === 1
+        ? 'EBENE I · FRACHTDECK'
+        : this.dungeonFloor === 2
+          ? 'EBENE II · MASCHINEN-DECK'
+          : 'EBENE III · REAKTOR-KERN';
 
     const locationText =
       this.currentScene === 'shop'
         ? `${timeLabel} · ASTRO-BARTER`
-        : this.currentScene === 'hub'
-          ? `${timeLabel} · PORT SOLARIS`
-          : isNight
-            ? `🌙 NACHT · SEKTOR 1 (+35% RAR)`
-            : `SEKTOR 1 · VERLASSENE KORVETTE`;
+        : this.currentScene === 'backroom'
+          ? `${timeLabel} · KAPITÄNS-QUARTIER`
+          : this.currentScene === 'hub'
+            ? `${timeLabel} · PORT SOLARIS`
+            : isNight
+              ? `🌙 ${floorTag} (+35% RAR)`
+              : `SEKTOR 1 · ${floorTag}`;
 
     const hintText =
       this.currentScene === 'shop'
         ? this.shopIsOpen
           ? 'Kunden stöbern! Geh rechts hinter den Tresen [E] & schnapp Diebe mit [SPACE]!'
-          : 'Podeste [E] · Auftrags-Pinnwand · Ruhekapsel (Tag↔Nacht) · Laden öffnen [O]'
-        : this.currentScene === 'hub'
-          ? isNight
-            ? '🌙 Nacht-Bonus aktiv: +35 % seltener & epischer Loot in Sektor 1!'
-            : 'Links: Astro-Barter · Oben: Kael (Schmiede) & Dr. Lyra (Med-Bay) · Rechts: Sektor 1!'
-          : `${wMeta.name} (${this.state.equippedWeapon === 'blade' ? 'Schild verbraucht EN · Perfekt-Parade!' : wMeta.secondaryLabel}) · [R] Extraktion`;
+          : 'Podeste [E] · Oben links: Hinterzimmer (Bett & Truhen) · Auftrags-Pinnwand · Laden [O]'
+        : this.currentScene === 'backroom'
+          ? 'Privates Kapitäns-Quartier: Ruhekapsel (Tag↔Nacht), Lagertruhen, Waffen-Ständer & Sektor-1-Trophäe!'
+          : this.currentScene === 'hub'
+            ? isNight
+              ? '🌙 Nacht-Bonus aktiv: +35 % seltener & epischer Loot in Sektor 1!'
+              : 'Oben: Kael (Schmiede) & Dr. Lyra (Med-Bay) · Unten rechts: Vex (Tech-Labor) · Rechts: Sektor 1!'
+            : `${wMeta.name} (${this.state.equippedWeapon === 'blade' ? 'Schild verbraucht EN · Perfekt-Parade!' : wMeta.secondaryLabel}) · [R] Extraktion`;
 
     this.hudEl.innerHTML = `
       <div class="hud-top">
@@ -214,7 +225,7 @@ export class UIManager {
         <div class="hud-center">
           ${
             this.currentScene !== 'shop'
-              ? `<div class="hud-location-pill" style="${isNight ? 'border-color:#818cf8;color:#c7d2fe' : ''}">${locationText}</div>`
+              ? `<div class="hud-location-pill" style="${isNight ? 'border-color:#818cf8;color:#c7d2fe' : this.currentScene === 'dungeon' && this.dungeonFloor === 3 ? 'border-color:#fb923c;color:#fed7aa' : ''}">${locationText}</div>`
               : ''
           }
         </div>
@@ -243,15 +254,19 @@ export class UIManager {
                  <span><kbd>SPACE</kbd>Dash / Dieb fangen</span>
                  <span><kbd>O</kbd>Laden</span>
                  <span><kbd>I</kbd>Fracht &amp; Codex</span>`
-              : this.currentScene === 'hub'
-                ? `<span><kbd>WASD</kbd>Promenade</span>
-                   <span><kbd>E</kbd>Shops / Warp-Gate</span>
-                   <span><kbd>I</kbd>Fracht &amp; Codex</span>`
-                : `<span><kbd>LMB/J</kbd>${wMeta.shortName}</span>
-                   <span><kbd>RMB/K</kbd>${this.state.equippedWeapon === 'blade' ? 'Schild' : 'Spezial'}</span>
-                   <span><kbd>C</kbd>Wechseln</span>
-                   <span><kbd>SPACE</kbd>Dash</span>
-                   <span><kbd>R</kbd>Extraktion</span>`
+              : this.currentScene === 'backroom'
+                ? `<span><kbd>WASD</kbd>Quartier</span>
+                   <span><kbd>E</kbd>Bett / Truhen / Trophäe</span>
+                   <span><kbd>I</kbd>Lager &amp; Waffen</span>`
+                : this.currentScene === 'hub'
+                  ? `<span><kbd>WASD</kbd>Promenade</span>
+                     <span><kbd>E</kbd>Shops / Tech-Labor / Warp</span>
+                     <span><kbd>I</kbd>Fracht &amp; Codex</span>`
+                  : `<span><kbd>LMB/J</kbd>${wMeta.shortName}</span>
+                     <span><kbd>RMB/K</kbd>${this.state.equippedWeapon === 'blade' ? 'Schild' : 'Spezial'}</span>
+                     <span><kbd>C</kbd>Wechseln</span>
+                     <span><kbd>SPACE</kbd>Dash</span>
+                     <span><kbd>R</kbd>Extraktion</span>`
           }
         </div>
         <div class="hud-hint">${hintText}</div>
@@ -260,7 +275,10 @@ export class UIManager {
 
     this.hudEl.querySelector('#hud-bag-btn')?.addEventListener('click', () => {
       sound.playUiClick();
-      this.openInventoryModal(this.currentScene === 'shop', 'bag');
+      this.openInventoryModal(
+        this.currentScene === 'shop' || this.currentScene === 'backroom',
+        'bag',
+      );
     });
     this.hudEl.querySelector('#hud-shop-toggle')?.addEventListener('click', () => {
       this.hooks.onToggleShopOpen();
@@ -354,8 +372,8 @@ export class UIManager {
       const selEntry = selStack ? this.state.codex[selStack.itemId] : null;
       const selRarity = selDef ? RARITY_META[selDef.rarity] : null;
 
-      // Active Weapon Loadout Strip
-      const unlockedList = (['blade', 'blaster', 'hammer'] as WeaponId[]).filter(
+      // Active Weapon Loadout Strip (all 4 Frontier weapon classes!)
+      const unlockedList = (['blade', 'spear', 'blaster', 'hammer'] as WeaponId[]).filter(
         (id) => this.state.unlockedWeapons[id],
       );
       const weaponBarHtml = `
@@ -843,11 +861,40 @@ export class UIManager {
     this.openStationShopModal('shop_terminal');
   }
 
-  private openStationShopModal(shop: 'forge' | 'medbay' | 'shop_terminal'): void {
+  // ==================== VEX' TECH-LABOR (PASSIVE MODULE & SEKTOR-KARTE) ====================
+  public openTechLabModal(): void {
+    this.openStationShopModal('techlab');
+  }
+
+  private openStationShopModal(shop: 'forge' | 'medbay' | 'shop_terminal' | 'techlab'): void {
     const tracks = UPGRADE_TRACKS.filter((t) => t.shop === shop);
     const isForge = shop === 'forge';
     const isMedBay = shop === 'medbay';
     const isShopTerm = shop === 'shop_terminal';
+    const isTechLab = shop === 'techlab';
+
+    const sectorProgressHtml = isTechLab
+      ? `
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:8px 10px;background:rgba(12,20,36,0.72);border:1px solid rgba(56,232,212,0.35)">
+          <div style="text-align:center;font-size:10px">
+            <div style="font-family:var(--font-pixel);color:${this.state.deepestFloor >= 1 ? '#38e8d4' : 'var(--text-muted)'}">EBENE I</div>
+            <div style="color:var(--text-muted);margin-top:2px">Schott-Brecher</div>
+          </div>
+          <div style="text-align:center;font-size:10px">
+            <div style="font-family:var(--font-pixel);color:${this.state.deepestFloor >= 2 ? '#34d399' : 'var(--text-muted)'}">EBENE II</div>
+            <div style="color:var(--text-muted);margin-top:2px">Core-Wächter</div>
+          </div>
+          <div style="text-align:center;font-size:10px">
+            <div style="font-family:var(--font-pixel);color:${this.state.deepestFloor >= 3 ? '#fb923c' : 'var(--text-muted)'}">EBENE III</div>
+            <div style="color:var(--text-muted);margin-top:2px">A.E.G.I.S. Leviathan</div>
+          </div>
+          <div style="text-align:center;font-size:10px;border-left:1px solid rgba(255,255,255,0.12);padding-left:6px">
+            <div style="font-family:var(--font-pixel);color:${this.state.sector1Cleared ? '#fde047' : '#94a3b8'}">${this.state.sector1Cleared ? '★ SEKTOR 2' : '🔒 SEKTOR 2'}</div>
+            <div style="color:${this.state.sector1Cleared ? '#fde047' : 'var(--text-muted)'};margin-top:2px">${this.state.sector1Cleared ? 'Schlüssel aktiv!' : 'Leviathan nötig'}</div>
+          </div>
+        </div>
+      `
+      : '';
 
     const npcBanner = isForge
       ? `
@@ -855,7 +902,7 @@ export class UIManager {
           <img src="/art/sprites/npc_kael.png" alt="Schmied Kael" style="width:42px;height:46px;image-rendering:pixelated" />
           <div style="font-size:12px;line-height:1.4">
             <strong style="font-family:var(--font-pixel);font-size:11px;color:#fbbf24">SCHMIED KAEL</strong>
-            <div style="color:var(--text-muted)">„Bring mir Relikte aus den Wracks, dann schmiede ich dir echte Frontier-Waffen! Du kannst jederzeit zwischen deinen geschmiedeten Waffen wechseln.“</div>
+            <div style="color:var(--text-muted)">„4 Waffenklassen bis Meister-Stufe MK-V! Bring mir Reaktor-Splitter, Aegis-Platten und Leviathan-Kerne aus den Tiefen von Sektor 1.“</div>
           </div>
         </div>
       `
@@ -869,7 +916,18 @@ export class UIManager {
           </div>
         </div>
       `
-        : `
+        : isTechLab
+          ? `
+        <div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:rgba(56,232,212,0.1);border:1px solid rgba(56,232,212,0.42)">
+          <img src="/art/sprites/npc_vex.png" alt="Ingenieurin Vex" style="width:42px;height:48px;image-rendering:pixelated" />
+          <div style="font-size:12px;line-height:1.4">
+            <strong style="font-family:var(--font-pixel);font-size:11px;color:#38e8d4">INGENIEURIN VEX · TECH-LABOR</strong>
+            <div style="color:var(--text-muted)">„Meine passiven Exo-Module steigern Krit-Chance, Lauf- &amp; Dash-Tempo und Relikt-Glück dauerhaft — unverzichtbar für Ebene II &amp; den A.E.G.I.S. Leviathan!“</div>
+          </div>
+        </div>
+        ${sectorProgressHtml}
+      `
+          : `
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 12px;background:rgba(56,232,212,0.09);border:1px solid rgba(56,232,212,0.38);flex-wrap:wrap">
           <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:200px">
             <img src="/art/sprites/prop_salebox.png" alt="Astro-Barter Ausbau" style="width:36px;height:36px;image-rendering:pixelated" />
@@ -878,7 +936,7 @@ export class UIManager {
                 ASTRO-BARTER · STUFE ${['I', 'II', 'III'][this.state.upgrades.shopTier ?? 0] ?? 'I'}
               </strong>
               <div style="color:var(--text-muted)">
-                Vergrößere deinen Laden (4 → 6 → 8 Podeste &amp; Sonderangebots-Kiste), hänge Holo-Laternen auf und steigere Erlös &amp; Trinkgeld!
+                Vergrößere deinen Laden (4 → 6 → 8 Podeste, mehr Truhen im Hinterzimmer &amp; Sale-Box), hänge Holo-Laternen auf und steigere Erlös &amp; Trinkgeld!
               </div>
             </div>
           </div>
@@ -891,7 +949,7 @@ export class UIManager {
         const wid = track.weaponId;
         const isLockedWeapon = wid ? !this.state.unlockedWeapons[wid] : false;
 
-        // Uncrafted Weapon Card (e.g. Puls-Blaster or Grav-Hammer!)
+        // Uncrafted Weapon Card (e.g. Ionen-Speer, Puls-Blaster or Grav-Hammer!)
         if (isLockedWeapon && wid && track.craftCost) {
           const canCraft = this.state.canCraftWeapon(wid);
           const hasCr = this.state.credits >= track.craftCost.creditCost;
@@ -1005,7 +1063,7 @@ export class UIManager {
               </div>
             </div>
             <button class="btn ${track.key === 'shopTier' ? 'btn-amber' : 'btn-primary'} btn-buy-upgrade" data-key="${track.key}" ${canAfford ? '' : 'disabled'}>
-              ${isShopTerm ? 'Ausbauen' : 'Verbessern'}
+              ${isShopTerm ? 'Ausbauen' : isTechLab ? 'Installieren' : 'Verbessern'}
             </button>
           </div>
         `;
@@ -1016,7 +1074,9 @@ export class UIManager {
       ? "KAEL'S EXO-SCHMIEDE"
       : isMedBay
         ? "DR. LYRA'S MED-BAY"
-        : 'ASTRO-BARTER · SHOP-AUSBAU';
+        : isTechLab
+          ? "VEX' TECH-LABOR · MODULE & SEKTOR-KARTE"
+          : 'ASTRO-BARTER · SHOP-AUSBAU';
 
     this.showModalHtml(`
       <div class="modal-window">
@@ -1069,13 +1129,17 @@ export class UIManager {
             const lvl = this.state.upgrades.shopTier;
             this.toast(
               lvl === 1
-                ? '★ Stufe II erreicht! 6 Holo-Podeste, Sonderangebots-Kiste & 36 Truhen-Slots!'
-                : '★ Stufe III erreicht! Solaris Flaggschiff-Basar mit 8 Podesten & 48 Truhen-Slots!',
+                ? '★ Stufe II erreicht! 6 Holo-Podeste, Sale-Box & 2 Lagertruhen (36 Slots) im Hinterzimmer!'
+                : '★ Stufe III erreicht! 8 Podeste & 3 Lagertruhen (48 Slots) im Kapitäns-Quartier!',
               'good',
             );
           } else {
             this.toast(
-              isShopTerm ? 'Astro-Barter erfolgreich ausgebaut!' : 'Upgrade erfolgreich fertiggestellt!',
+              isShopTerm
+                ? 'Astro-Barter erfolgreich ausgebaut!'
+                : isTechLab
+                  ? 'Exo-Modul dauerhaft installiert!'
+                  : 'Upgrade erfolgreich fertiggestellt!',
               'good',
             );
           }
@@ -1289,15 +1353,31 @@ export class UIManager {
 
   // ==================== EXPEDITION SUMMARY MODAL ====================
   public openRunSummaryModal(summary: RunSummary): void {
-    const title =
-      summary.reason === 'boss_victory'
+    const title = summary.sector1Cleared
+      ? '★ SEKTOR 1 BEZWUNGEN!'
+      : summary.reason === 'boss_victory'
         ? 'TRIUMPHALE EXTRAKTION!'
         : summary.victory
           ? 'EXTRAKTION ERFOLGREICH!'
           : 'IM WRACK GEFALLEN (0 HP)';
-    const titleColor = summary.victory ? 'var(--accent-emerald)' : 'var(--accent-coral)';
+    const titleColor = summary.sector1Cleared
+      ? '#fde047'
+      : summary.victory
+        ? 'var(--accent-emerald)'
+        : 'var(--accent-coral)';
+    const floorLabel =
+      summary.floorReached === 3
+        ? 'Ebene III'
+        : summary.floorReached === 2
+          ? 'Ebene II'
+          : 'Ebene I';
 
     const extraNotes: string[] = [];
+    if (summary.sector1Cleared) {
+      extraNotes.push(
+        `🏆 <strong>A.E.G.I.S. LEVIATHAN BESIEGT!</strong> Sektor-2-Schlüssel (<em>Kristall-Asteroidenfeld</em>) aktiviert &amp; goldene Trophäe im <strong>Kapitäns-Quartier</strong> aufgestellt!`,
+      );
+    }
     if (summary.nightRun) {
       extraNotes.push(
         `🌙 <strong>Nacht-Expedition:</strong> Erhöhte Fundchance (+35 %) auf seltene &amp; epische Relikte war aktiv!`,
@@ -1334,7 +1414,7 @@ export class UIManager {
     }
 
     this.showModalHtml(`
-      <div class="modal-window" style="max-width:540px">
+      <div class="modal-window" style="max-width:560px">
         <div class="modal-header">
           <span class="modal-title" style="color:${titleColor}">${title}</span>
           <button id="modal-close-btn" class="modal-close">ESC ✕</button>
@@ -1342,8 +1422,8 @@ export class UIManager {
         <div class="modal-body">
           <div class="summary-grid">
             <div class="summary-stat">
-              <div style="font-size:11px;color:var(--text-muted)">Räume gesäubert</div>
-              <div class="val">${summary.roomsCleared}</div>
+              <div style="font-size:11px;color:var(--text-muted)">Tiefe erreicht</div>
+              <div class="val" style="color:#38e8d4">${floorLabel}</div>
             </div>
             <div class="summary-stat">
               <div style="font-size:11px;color:var(--text-muted)">Gegner besiegt</div>

@@ -32,6 +32,7 @@ export interface HubCallbacks {
   onEnterShop: () => void;
   onOpenForge: () => void;
   onOpenMedBay: () => void;
+  onOpenTechLab: () => void;
   onEnterDungeon: () => void;
   onToast: (msg: string, tone?: 'info' | 'good' | 'warn') => void;
 }
@@ -46,6 +47,7 @@ const PLAZA_BOTTOM = 224;
 const SHOP_DOOR_POS = { x: 74, y: 132 };
 const FORGE_POS = { x: 144, y: 126 };
 const MEDBAY_POS = { x: 348, y: 126 };
+const TECHLAB_POS = { x: 344, y: 204 };
 const WARP_GATE_POS = { x: 416, y: 164 };
 
 export class HubScene {
@@ -157,10 +159,24 @@ export class HubScene {
         y: 164 + (Math.random() - 0.5) * 36,
         vx: -14 - Math.random() * 12,
         vy: (Math.random() - 0.5) * 10,
-        color: '#38e8d4',
+        color: this.state.sector1Cleared && Math.random() < 0.4 ? '#fbbf24' : '#38e8d4',
         size: 1.5,
         life: 0.5 + Math.random() * 0.35,
         maxLife: 0.85,
+      });
+    }
+
+    // Holo-sparks at Vex' Tech-Labor pavilion (bottom-right plaza)
+    if (Math.random() < dt * 4.5) {
+      this.particles.push({
+        x: TECHLAB_POS.x + 12 + (Math.random() - 0.5) * 28,
+        y: TECHLAB_POS.y - 12 + (Math.random() - 0.5) * 10,
+        vx: (Math.random() - 0.5) * 10,
+        vy: -12 - Math.random() * 10,
+        color: Math.random() > 0.35 ? '#38e8d4' : '#fde047',
+        size: 1.4,
+        life: 0.45 + Math.random() * 0.35,
+        maxLife: 0.8,
       });
     }
 
@@ -223,6 +239,8 @@ export class HubScene {
     }
     // Keep clear of street lamp posts & bottom bench
     if (y > 212 && x < 178) return false;
+    // Keep clear of Vex' Tech-Labor kiosk footprint (bottom-right)
+    if (x > 332 && x < 386 && y > 194 && y < 222) return false;
     return true;
   }
 
@@ -231,10 +249,10 @@ export class HubScene {
     const spots = [
       { x: 136, y: 176 },
       { x: 240, y: 164 },
-      { x: 332, y: 176 },
+      { x: 312, y: 174 },
       { x: 240, y: 94 },
       { x: 196, y: 196 },
-      { x: 298, y: 196 },
+      { x: 288, y: 196 },
     ];
     for (const s of this.strollers) {
       const dx = s.targetX - s.x;
@@ -277,7 +295,7 @@ export class HubScene {
     // 2. Kael's Exo-Schmiede (Weapons & Suit)
     if (Math.hypot(this.playerX - FORGE_POS.x, this.playerY - FORGE_POS.y) < 34) {
       this.activePrompt = {
-        label: "[E] Kael's Exo-Schmiede (Waffen)",
+        label: "[E] Kael's Exo-Schmiede (Waffen & MK-V)",
         x: FORGE_POS.x,
         y: FORGE_POS.y - 28,
       };
@@ -288,7 +306,7 @@ export class HubScene {
       return;
     }
 
-    // 3. Dr. Lyra's Med-Bay (Stimpacks & Shop Decor)
+    // 3. Dr. Lyra's Med-Bay (Stimpacks & Bio-Regen)
     if (Math.hypot(this.playerX - MEDBAY_POS.x, this.playerY - MEDBAY_POS.y) < 34) {
       this.activePrompt = {
         label: "[E] Dr. Lyra's Med-Bay",
@@ -302,14 +320,28 @@ export class HubScene {
       return;
     }
 
-    // 4. Warp-Gate to Sector 1
+    // 4. Vex' Tech-Labor (Passive Combat/Loot Modules & Sector 1/2 Progression!)
+    if (Math.hypot(this.playerX - TECHLAB_POS.x, this.playerY - TECHLAB_POS.y) < 38) {
+      this.activePrompt = {
+        label: "[E] Vex' Tech-Labor (Module & Sektor-Karte)",
+        x: TECHLAB_POS.x - 16,
+        y: TECHLAB_POS.y - 34,
+      };
+      if (input.interactPressed()) {
+        sound.playUiClick();
+        this.callbacks.onOpenTechLab();
+      }
+      return;
+    }
+
+    // 5. Warp-Gate to Sector 1 (3 Floors -> Leviathan!)
     if (Math.hypot(this.playerX - WARP_GATE_POS.x, this.playerY - WARP_GATE_POS.y) < 38) {
       this.activePrompt = {
         label:
           this.state.timeOfDay === 'night'
-            ? '[E] 🌙 Nacht-Warp: Sektor 1 (+35 % Rar-Loot)'
-            : '[E] Warp: Sektor 1 (Verlassene Korvette)',
-        x: WARP_GATE_POS.x - 58,
+            ? '[E] 🌙 Nacht-Warp: Sektor 1 · Ebene I–III (+35 % Rar)'
+            : '[E] Warp: Sektor 1 · Verlassene Korvette (Ebene I–III)',
+        x: WARP_GATE_POS.x - 66,
         y: WARP_GATE_POS.y - 30,
       };
       if (input.interactPressed()) {
@@ -380,13 +412,21 @@ export class HubScene {
       ctx.fillRect(s.x, s.y, isNight ? 1.8 : 1.4, isNight ? 1.8 : 1.4);
     }
 
-    // Ambient landmark glows (Forge fire, Med-Bay emerald, Star Compass, Warp-Gate!)
+    // Ambient landmark glows (Forge fire, Med-Bay emerald, Tech-Labor cyan, Star Compass, Warp-Gate!)
     const pulse = 0.5 + 0.5 * Math.sin(this.time * 4.2);
     const nightBoost = isNight ? 0.14 : 0;
     drawGlow(ctx, 132, 82, 38, '#fb923c', 0.24 + nightBoost + pulse * 0.1);
     drawGlow(ctx, 354, 72, 36, '#34d399', 0.22 + nightBoost + pulse * 0.08);
+    drawGlow(ctx, TECHLAB_POS.x + 14, TECHLAB_POS.y - 2, 36, '#38e8d4', 0.22 + nightBoost + pulse * 0.08);
     drawGlow(ctx, 240, 166, 38, '#38e8d4', 0.16 + nightBoost * 0.7 + pulse * 0.07);
-    drawGlow(ctx, 434, 160, 46 + pulse * 6, '#38e8d4', 0.3 + nightBoost + pulse * 0.12);
+    drawGlow(
+      ctx,
+      434,
+      160,
+      46 + pulse * 6,
+      this.state.sector1Cleared ? '#fbbf24' : '#38e8d4',
+      0.3 + nightBoost + pulse * 0.12,
+    );
     if (isNight) {
       // Cozy street-lamp pools at night!
       drawGlow(ctx, 84, 126, 32, '#fbbf24', 0.28);
@@ -397,7 +437,7 @@ export class HubScene {
     // Subtle crisp building signage pills
     this.renderSignPills(ctx);
 
-    // Depth-sorted entities: Kael, Dr. Lyra, Strollers, Player
+    // Depth-sorted entities: Kael, Dr. Lyra, Vex' Tech-Labor, Strollers, Player
     type Drawable = { y: number; draw: () => void };
     const drawables: Drawable[] = [];
 
@@ -421,6 +461,29 @@ export class HubScene {
         drawPixelShadow(ctx, MEDBAY_POS.x, MEDBAY_POS.y + 4, 8, 3.2, 0.48);
         if (art.npcLyra) {
           ctx.drawImage(art.npcLyra, MEDBAY_POS.x - 12, MEDBAY_POS.y - 23 + bob, 24, 28);
+        }
+      },
+    });
+
+    // Vex' Tech-Labor Pavilion (bottom-right plaza)
+    drawables.push({
+      y: TECHLAB_POS.y + 6,
+      draw: () => {
+        drawPixelShadow(ctx, TECHLAB_POS.x + 15, TECHLAB_POS.y + 11, 24, 6, 0.45);
+        if (art.propTechKiosk) {
+          ctx.drawImage(art.propTechKiosk, TECHLAB_POS.x - 10, TECHLAB_POS.y - 26, 50, 38);
+        }
+      },
+    });
+
+    // Ingenieurin Vex standing right beside her Tech-Labor kiosk
+    drawables.push({
+      y: TECHLAB_POS.y + 2,
+      draw: () => {
+        const bob = Math.sin(this.time * 3.5 + 0.8) * 0.6;
+        drawPixelShadow(ctx, TECHLAB_POS.x - 14, TECHLAB_POS.y + 7, 8, 3, 0.48);
+        if (art.npcVex) {
+          ctx.drawImage(art.npcVex, TECHLAB_POS.x - 26, TECHLAB_POS.y - 21 + bob, 24, 28);
         }
       },
     });
@@ -474,8 +537,12 @@ export class HubScene {
     const pills = [
       { text: 'SCHMIEDE', x: 144, y: 40, color: '#fb923c' },
       { text: 'MED-BAY', x: 356, y: 24, color: '#34d399' },
+      { text: 'TECH-LABOR', x: TECHLAB_POS.x + 15, y: TECHLAB_POS.y - 31, color: '#38e8d4' },
       { text: 'SEKTOR 1', x: 420, y: 94, color: '#38e8d4' },
     ];
+    if (this.state.sector1Cleared) {
+      pills.push({ text: '★ S2 SCHLÜSSEL', x: 420, y: 105, color: '#fde047' });
+    }
     for (const p of pills) {
       const w = Math.ceil(ctx.measureText(p.text).width) + 10;
       ctx.fillStyle = 'rgba(11, 16, 28, 0.88)';

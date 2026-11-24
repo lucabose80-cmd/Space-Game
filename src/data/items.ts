@@ -206,14 +206,50 @@ export const ITEMS: ItemDef[] = [
     minDepth: 2,
   },
   {
+    id: 'reactor_shard',
+    name: 'Reaktor-Splitter',
+    rarity: 'uncommon',
+    baseValue: 195,
+    maxStack: 5,
+    modifier: 'none',
+    description: 'Glühender Energiekristall aus dem Maschinen-Deck (Ebene II+). Wichtig für Tech-Module.',
+    glowColor: '#38bdf8',
+    dropWeight: 12,
+    minDepth: 2,
+  },
+  {
+    id: 'aegis_plate',
+    name: 'Aegis-Panzerplatte',
+    rarity: 'rare',
+    baseValue: 360,
+    maxStack: 5,
+    modifier: 'none',
+    description: 'Hochfeste Sternenlegierung aus den tiefen Decks. Ermöglicht MK-V Meister-Upgrades!',
+    glowColor: '#38e8d4',
+    dropWeight: 8,
+    minDepth: 2,
+  },
+  {
     id: 'mk4_heart',
     name: 'MK-IV Reaktor-Kern',
     rarity: 'epic',
     baseValue: 960,
     maxStack: 5,
     modifier: 'none',
-    description: 'Das pulsierende Herz des Core-Wächters MK-IV. Das Kronjuwel jedes Händlers.',
+    description: 'Das pulsierende Herz des Core-Wächters MK-IV von Ebene II.',
     glowColor: '#fb923c',
+    dropWeight: 0,
+    minDepth: 3,
+  },
+  {
+    id: 'leviathan_core',
+    name: 'A.E.G.I.S. Omega-Kern',
+    rarity: 'epic',
+    baseValue: 1450,
+    maxStack: 5,
+    modifier: 'none',
+    description: 'Legendärer Zentralkern des Sektor-1-Endbosses A.E.G.I.S. Leviathan. Krönung jeder Sammlung!',
+    glowColor: '#fde047',
     dropWeight: 0,
     minDepth: 3,
   },
@@ -231,17 +267,23 @@ export function getItemDef(itemId: string): ItemDef {
   return def;
 }
 
-export function rollLootItem(depth: number, guaranteedRare = false, nightBoost = false): string {
+export function rollLootItem(
+  depth: number,
+  guaranteedRare = false,
+  nightBoost = false,
+  rareLuckBonus = 0,
+): string {
   const pool = ITEMS.filter((item) => {
     if (item.dropWeight <= 0) return false;
     if (guaranteedRare) return item.rarity === 'rare' || item.rarity === 'epic';
     return item.minDepth <= depth;
   });
+  const rareMult = (nightBoost ? 1.35 : 1.0) + Math.max(0, rareLuckBonus);
   const getW = (item: ItemDef) => {
-    if (!nightBoost) return item.dropWeight;
-    return item.rarity === 'rare' || item.rarity === 'epic'
-      ? item.dropWeight * 1.35
-      : item.dropWeight;
+    if (item.rarity === 'rare' || item.rarity === 'epic') {
+      return item.dropWeight * rareMult;
+    }
+    return item.dropWeight;
   };
   const totalWeight = pool.reduce((sum, item) => sum + getW(item), 0);
   let r = Math.random() * totalWeight;

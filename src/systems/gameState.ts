@@ -25,7 +25,7 @@ import {
 
 const SAVE_KEY = 'starlighter_save_v2';
 const LEGACY_SAVE_KEY = 'starlighter_save_v1';
-const SAVE_VERSION = 3;
+const SAVE_VERSION = 4;
 
 export const SALE_BOX_MAX_SLOTS = 6;
 
@@ -77,6 +77,8 @@ export class GameState {
   public totalEarned = 0;
   public totalSold = 0;
   public bossDefeatedCount = 0;
+  public sector1Cleared = false;
+  public deepestFloor = 1;
   public inventory: InventoryData = createEmptyInventory();
   public pedestals: PedestalSlot[] = [];
   public saleBox: ItemStack[] = [];
@@ -84,6 +86,7 @@ export class GameState {
   public codex: Record<string, CodexEntry> = createInitialCodex();
   public upgrades: UpgradeLevels = {
     blade: 0,
+    spear: 0,
     blaster: 0,
     hammer: 0,
     suit: 0,
@@ -92,9 +95,13 @@ export class GameState {
     shopTier: 0,
     shopAura: 0,
     shopScanner: 0,
+    modCrit: 0,
+    modThruster: 0,
+    modLuck: 0,
   };
   public unlockedWeapons: Record<WeaponId, boolean> = {
     blade: true,
+    spear: false,
     blaster: false,
     hammer: false,
   };
@@ -118,11 +125,14 @@ export class GameState {
     this.totalEarned = 0;
     this.totalSold = 0;
     this.bossDefeatedCount = 0;
+    this.sector1Cleared = false;
+    this.deepestFloor = 1;
     this.inventory = createEmptyInventory();
     this.codex = createInitialCodex();
     this.saleBox = [];
     this.upgrades = {
       blade: 0,
+      spear: 0,
       blaster: 0,
       hammer: 0,
       suit: 0,
@@ -131,9 +141,13 @@ export class GameState {
       shopTier: 0,
       shopAura: 0,
       shopScanner: 0,
+      modCrit: 0,
+      modThruster: 0,
+      modLuck: 0,
     };
     this.unlockedWeapons = {
       blade: true,
+      spear: false,
       blaster: false,
       hammer: false,
     };
@@ -460,6 +474,8 @@ export class GameState {
         totalEarned: this.totalEarned,
         totalSold: this.totalSold,
         bossDefeatedCount: this.bossDefeatedCount,
+        sector1Cleared: this.sector1Cleared,
+        deepestFloor: this.deepestFloor,
         inventory: this.inventory,
         pedestals: this.pedestals.map((p) => ({
           id: p.id,
@@ -495,9 +511,12 @@ export class GameState {
       this.totalEarned = parsed.totalEarned ?? 0;
       this.totalSold = parsed.totalSold ?? 0;
       this.bossDefeatedCount = parsed.bossDefeatedCount ?? 0;
+      this.sector1Cleared = Boolean(parsed.sector1Cleared);
+      this.deepestFloor = Math.max(1, Math.min(3, parsed.deepestFloor ?? 1));
 
       this.upgrades = {
         blade: parsed.upgrades?.blade ?? 0,
+        spear: parsed.upgrades?.spear ?? 0,
         blaster: parsed.upgrades?.blaster ?? 0,
         hammer: parsed.upgrades?.hammer ?? 0,
         suit: parsed.upgrades?.suit ?? 0,
@@ -506,9 +525,12 @@ export class GameState {
         shopTier: parsed.upgrades?.shopTier ?? 0,
         shopAura: parsed.upgrades?.shopAura ?? 0,
         shopScanner: parsed.upgrades?.shopScanner ?? 0,
+        modCrit: parsed.upgrades?.modCrit ?? 0,
+        modThruster: parsed.upgrades?.modThruster ?? 0,
+        modLuck: parsed.upgrades?.modLuck ?? 0,
       };
 
-      // Migrate v1/v2 inventory cleanly up to current shopTier chest capacity (28 / 36 / 48)
+      // Migrate v1/v2/v3 inventory cleanly up to current shopTier chest capacity (28 / 36 / 48)
       const chestCap = this.getStats().chestCapacity;
       const inv = createEmptyInventory(chestCap);
       const rawChest = parsed.inventory?.chest ?? [];
@@ -527,6 +549,7 @@ export class GameState {
 
       this.unlockedWeapons = {
         blade: true,
+        spear: parsed.unlockedWeapons?.spear ?? false,
         blaster: parsed.unlockedWeapons?.blaster ?? false,
         hammer: parsed.unlockedWeapons?.hammer ?? false,
       };
