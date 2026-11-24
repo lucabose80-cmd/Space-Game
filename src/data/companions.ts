@@ -175,8 +175,13 @@ export const MUSIC_TRACK_META: Record<
   },
   dungeon: {
     title: 'Wrack-Sektor Echoes',
-    subtitle: 'Atmosphärischer Retro-Sci-Fi Dungeon-Puls',
+    subtitle: 'Atmosphärischer Retro-Sci-Fi Dungeon-Puls (Sektor 1)',
     accent: '#38bdf8',
+  },
+  dungeon_s2: {
+    title: 'Kristall-Nebel Resonanz',
+    subtitle: 'Schimmernde Äther-Arpeggios (Sektor 2)',
+    accent: '#c084fc',
   },
   boss: {
     title: 'A.E.G.I.S. Alarmprotokoll',

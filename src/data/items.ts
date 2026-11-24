@@ -253,6 +253,114 @@ export const ITEMS: ItemDef[] = [
     dropWeight: 0,
     minDepth: 3,
   },
+  // ==================== SEKTOR 2: KRISTALL-NEBEL RELIKTE ====================
+  {
+    id: 'quartz_shard',
+    name: 'Quarz-Splitter',
+    rarity: 'common',
+    baseValue: 95,
+    maxStack: 5,
+    modifier: 'none',
+    description: 'Glühender Amethyst-Splitter aus den äußeren Kavernen des Kristall-Nebels.',
+    glowColor: '#c084fc',
+    dropWeight: 26,
+    minDepth: 0,
+    sector: 2,
+  },
+  {
+    id: 'prism_dust',
+    name: 'Prisma-Staub',
+    rarity: 'common',
+    baseValue: 135,
+    maxStack: 5,
+    modifier: 'none',
+    description: 'Regenbogenfarben schimmernder Kristallstaub — heiß begehrt bei Optik-Händlern.',
+    glowColor: '#38e8d4',
+    dropWeight: 22,
+    minDepth: 0,
+    sector: 2,
+  },
+  {
+    id: 'amethyst_core',
+    name: 'Amethyst-Kern',
+    rarity: 'uncommon',
+    baseValue: 225,
+    maxStack: 5,
+    modifier: 'none',
+    description: 'In Messing gefasster Hochfrequenz-Kristall. Schlüsselmaterial für MK-VI Schmiedekunst!',
+    glowColor: '#a855f7',
+    dropWeight: 18,
+    minDepth: 0,
+    sector: 2,
+  },
+  {
+    id: 'lumen_prism',
+    name: 'Lumen-Prisma',
+    rarity: 'uncommon',
+    baseValue: 295,
+    maxStack: 5,
+    modifier: 'mirror_clone',
+    modifierLabel: 'Klon-Matrix (↑): Dupliziert bei Extraktion +1 Stück des Relikts ÜBER sich!',
+    description: 'Dreieckiges Lichtprisma, das Materie über sich präzise spiegelt.',
+    glowColor: '#22d3ee',
+    dropWeight: 14,
+    minDepth: 1,
+    sector: 2,
+  },
+  {
+    id: 'crystal_capacitor',
+    name: 'Kristall-Kondensator',
+    rarity: 'rare',
+    baseValue: 420,
+    maxStack: 5,
+    modifier: 'warp_anchor',
+    modifierLabel: 'Warp-Anker (→): Rettet den RECHTEN Nachbar-Slot sogar bei Tod in die Truhe!',
+    description: 'Elektrisch geladene Quarz-Spule mit stabilem Mikro-Wurmloch.',
+    glowColor: '#38bdf8',
+    dropWeight: 10,
+    minDepth: 1,
+    sector: 2,
+  },
+  {
+    id: 'resonance_tuning',
+    name: 'Resonanz-Gabel',
+    rarity: 'rare',
+    baseValue: 490,
+    maxStack: 5,
+    modifier: 'smuggler',
+    modifierLabel: 'Schmuggler-Bonus: +15 % höherer Marktwert im Shop!',
+    description: 'Antike Stimmgabel aus dem Herzen des Nebels — schwingt perfekt im Einklang mit edlen Kristallen.',
+    glowColor: '#e879f9',
+    dropWeight: 9,
+    minDepth: 1,
+    sector: 2,
+  },
+  {
+    id: 'prism_matrix',
+    name: 'Prisma-Matrix',
+    rarity: 'epic',
+    baseValue: 740,
+    maxStack: 5,
+    modifier: 'none',
+    description: 'Komplexe Gold-Amethyst-Matrix der Sektor-2-Wächter. Essenziell für MK-VI Meisterwaffen!',
+    glowColor: '#f472b6',
+    dropWeight: 6,
+    minDepth: 2,
+    sector: 2,
+  },
+  {
+    id: 'archon_heart',
+    name: 'Archon-Herz',
+    rarity: 'epic',
+    baseValue: 1850,
+    maxStack: 5,
+    modifier: 'none',
+    description: 'Strahlender Kristall-Kern des Sektor-2-Endbosses PRISMA-ARCHON. Ermöglicht legendäre MK-VI-Ausrüstung!',
+    glowColor: '#fde047',
+    dropWeight: 0,
+    minDepth: 3,
+    sector: 2,
+  },
 ];
 
 export const ITEMS_BY_ID: Record<string, ItemDef> = Object.fromEntries(
@@ -272,9 +380,12 @@ export function rollLootItem(
   guaranteedRare = false,
   nightBoost = false,
   rareLuckBonus = 0,
+  sector: 1 | 2 = 1,
 ): string {
   const pool = ITEMS.filter((item) => {
     if (item.dropWeight <= 0) return false;
+    const itemSector = item.sector ?? 1;
+    if (itemSector !== sector) return false;
     if (guaranteedRare) return item.rarity === 'rare' || item.rarity === 'epic';
     return item.minDepth <= depth;
   });
@@ -291,5 +402,5 @@ export function rollLootItem(
     r -= getW(item);
     if (r <= 0) return item.id;
   }
-  return pool[0]?.id ?? 'scrap_coil';
+  return pool[0]?.id ?? (sector === 2 ? 'quartz_shard' : 'scrap_coil');
 }

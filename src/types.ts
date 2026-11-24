@@ -8,7 +8,7 @@ export type CompanionId = 'puck' | 'spark' | 'luma' | 'halo';
 
 export type MarketEventId = 'normal' | 'trade_fair' | 'collector_visit' | 'night_rush';
 
-export type MusicTrack = 'shop_day' | 'shop_night' | 'hub' | 'dungeon' | 'boss';
+export type MusicTrack = 'shop_day' | 'shop_night' | 'hub' | 'dungeon' | 'dungeon_s2' | 'boss';
 
 export interface BlackMarketOffer {
   id: string;
@@ -51,6 +51,7 @@ export interface ItemDef {
   glowColor: string;
   dropWeight: number;
   minDepth: number;
+  sector?: 1 | 2;
 }
 
 export interface ItemStack {
@@ -145,8 +146,10 @@ export interface InventoryData {
 export interface RunSummary {
   victory: boolean;
   reason: 'warp' | 'boss_victory' | 'defeat';
+  sector?: 1 | 2;
   floorReached: number;
   sector1Cleared?: boolean;
+  sector2Cleared?: boolean;
   roomsCleared: number;
   enemiesDefeated: number;
   itemsSaved: number;
@@ -169,7 +172,9 @@ export interface SaveData {
   totalSold: number;
   bossDefeatedCount: number;
   sector1Cleared?: boolean;
+  sector2Cleared?: boolean;
   deepestFloor?: number;
+  deepestFloorS2?: number;
   totalEnemiesDefeated?: number;
   breacherDefeated?: boolean;
   coreWatcherDefeated?: boolean;

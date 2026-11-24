@@ -186,20 +186,27 @@ export class BackroomScene {
       return;
     }
 
-    // 3. Eingebauter Sektor-1-Trophäen-Altar
+    // 3. Eingebauter Sektor-Trophäen-Altar (Sektor 1 Leviathan & Sektor 2 Prisma-Archon)
     if (Math.hypot(this.playerX - TROPHY_PLINTH_POS.x, this.playerY - TROPHY_PLINTH_POS.y) < 28) {
       this.activePrompt = {
-        label: this.state.sector1Cleared
-          ? '[E] ★ A.E.G.I.S. Leviathan Trophäe inspizieren'
-          : `[E] Sektor-1-Trophäe (Tiefste Ebene: ${this.state.deepestFloor}/3)`,
+        label: this.state.sector2Cleared
+          ? '[E] ★ S1 & S2 Trophäen inspizieren (Leviathan & Prisma-Archon)'
+          : this.state.sector1Cleared
+            ? '[E] ★ A.E.G.I.S. Leviathan Trophäe (S2 im Raumhafen aktiv!)'
+            : `[E] Sektor-1-Trophäe (Tiefste Ebene: ${this.state.deepestFloor}/3)`,
         x: TROPHY_PLINTH_POS.x,
         y: TROPHY_PLINTH_POS.y - 28,
       };
       if (input.interactPressed()) {
         sound.playUiClick();
-        if (this.state.sector1Cleared) {
+        if (this.state.sector2Cleared) {
           this.callbacks.onToast(
-            '★ Sektor 1 bezwungen! Der goldene Leviathan-Kern schaltet den Sektor-2-Schlüssel (Kristall-Asteroidenfeld) frei!',
+            '★ Sektor 1 & Sektor 2 bezwungen! Der goldene Leviathan-Kern & das violette Archon-Herz leuchten — 2/4 Sektor-Schlüssel für das 5. Tor aktiv!',
+            'good',
+          );
+        } else if (this.state.sector1Cleared) {
+          this.callbacks.onToast(
+            `★ Sektor 1 bezwungen! Der Kristall-Kreuzer wartet an Dock II im Raumhafen (Sektor 2 · Tiefste Ebene: ${this.state.deepestFloorS2}/3)!`,
             'good',
           );
         } else {
@@ -318,7 +325,7 @@ export class BackroomScene {
       }
     }
 
-    // Radiant golden victory aura & rising star sparkles over the built-in altar relics once Sector 1 is cleared!
+    // Radiant golden (S1) + amethyst-violet (S2) victory aura & rising sparkles over the built-in altar relics!
     if (this.state.sector1Cleared) {
       drawGlow(ctx, 240, 100, 32, '#fbbf24', 0.34 + pulse * 0.14);
       drawGlow(ctx, 240, 92, 16, '#fef08a', 0.28 + pulse * 0.12);
@@ -328,6 +335,17 @@ export class BackroomScene {
         const sy = 104 - phase * 22;
         ctx.fillStyle = `rgba(254, 240, 138, ${Math.sin(phase * Math.PI) * 0.9})`;
         ctx.fillRect(sx, sy, 1.8, 1.8);
+      }
+    }
+    if (this.state.sector2Cleared) {
+      drawGlow(ctx, 240, 96, 38, '#c084fc', 0.32 + pulse * 0.14);
+      drawGlow(ctx, 240, 88, 18, '#f0abfc', 0.28 + pulse * 0.12);
+      for (let i = 0; i < 4; i++) {
+        const phase = (this.time * 0.78 + i * 0.25 + 0.12) % 1;
+        const sx = 224 + i * 10 + Math.cos(this.time * 3.4 + i * 2.1) * 4;
+        const sy = 102 - phase * 26;
+        ctx.fillStyle = `rgba(232, 121, 249, ${Math.sin(phase * Math.PI) * 0.95})`;
+        ctx.fillRect(sx, sy, 2.0, 2.0);
       }
     }
 
@@ -377,10 +395,14 @@ export class BackroomScene {
       { text: 'RUHEKOJE', x: 86, y: 66, color: '#38e8d4' },
       { text: 'DROHNEN', x: 164, y: 80, color: '#38bdf8' },
       {
-        text: this.state.sector1Cleared ? '★ LEVIATHAN' : 'TROPHÄE',
+        text: this.state.sector2Cleared
+          ? '★ S1 & S2 SIEGER'
+          : this.state.sector1Cleared
+            ? '★ LEVIATHAN'
+            : 'TROPHÄE',
         x: 240,
         y: 74,
-        color: this.state.sector1Cleared ? '#fde047' : '#94a3b8',
+        color: this.state.sector2Cleared ? '#e879f9' : this.state.sector1Cleared ? '#fde047' : '#94a3b8',
       },
       { text: 'JUKEBOX', x: 326, y: 74, color: '#e879f9' },
       { text: 'WAFFEN', x: 80, y: 150, color: '#fb923c' },

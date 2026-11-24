@@ -114,6 +114,18 @@ export const UPGRADE_TRACKS: UpgradeTrack[] = [
         ],
         statLabel: 'Schaden: 52 → 70',
       },
+      {
+        level: 5,
+        name: 'MK-VI Prisma-Klinge',
+        description: 'Kristall-Meisterklinge aus Sektor 2 — schneidet durch Resonanz-Panzerung!',
+        creditCost: 4200,
+        materials: [
+          { itemId: 'amethyst_core', qty: 3 },
+          { itemId: 'prism_matrix', qty: 2 },
+          { itemId: 'archon_heart', qty: 1 },
+        ],
+        statLabel: 'Schaden: 70 → 94',
+      },
     ],
   },
   {
@@ -167,13 +179,25 @@ export const UPGRADE_TRACKS: UpgradeTrack[] = [
       {
         level: 4,
         name: 'Solaris-Sternenlanze MK-V',
-        description: 'Die perfekte Waffe für Ebene III & kommende Sektor-2-Expeditionen!',
+        description: 'Die perfekte Waffe für Ebene III & Sektor-2-Expeditionen!',
         creditCost: 2650,
         materials: [
           { itemId: 'aegis_plate', qty: 2 },
           { itemId: 'leviathan_core', qty: 1 },
         ],
         statLabel: 'Schaden: 56 → 74',
+      },
+      {
+        level: 5,
+        name: 'Archon-Kristalllanze MK-VI',
+        description: 'Fokussiert Nebel-Resonanz zu einem unaufhaltsamen Durchstoß-Speer!',
+        creditCost: 4500,
+        materials: [
+          { itemId: 'amethyst_core', qty: 3 },
+          { itemId: 'prism_matrix', qty: 2 },
+          { itemId: 'archon_heart', qty: 1 },
+        ],
+        statLabel: 'Schaden: 74 → 98',
       },
     ],
   },
@@ -236,6 +260,18 @@ export const UPGRADE_TRACKS: UpgradeTrack[] = [
         ],
         statLabel: 'Schaden: 36 → 48 / Schlag',
       },
+      {
+        level: 5,
+        name: 'Amethyst-Brecher MK-VI',
+        description: 'Kristallverstärkte Schlaghandschuhe — zerschmettern selbst Kristall-Wächter!',
+        creditCost: 4400,
+        materials: [
+          { itemId: 'amethyst_core', qty: 3 },
+          { itemId: 'prism_matrix', qty: 2 },
+          { itemId: 'archon_heart', qty: 1 },
+        ],
+        statLabel: 'Schaden: 48 → 65 / Schlag',
+      },
     ],
   },
   {
@@ -244,7 +280,7 @@ export const UPGRADE_TRACKS: UpgradeTrack[] = [
     weaponId: 'discus',
     title: 'Phasen-Diskus',
     subtitle: 'Abprallender Bumerang-Diskus + Magnet-Rückruf / Orbit',
-    primaryDesc: 'Prallt bis zu 4× an Wänden, Säulen & Gegnern ab (max. 2 aktiv)',
+    primaryDesc: 'Prallt bis zu 7× an Wänden, Säulen & Gegnern ab (max. 2 aktiv)',
     secondaryDesc: 'Magnet-Rückruf (1,7× Durchschuss) oder Klingen-Orbit (28 EN)',
     iconUrl: '/art/sprites/weapon_discus.png',
     craftCost: {
@@ -296,6 +332,18 @@ export const UPGRADE_TRACKS: UpgradeTrack[] = [
           { itemId: 'leviathan_core', qty: 1 },
         ],
         statLabel: 'Schaden: 45 → 60 · 6× Abpraller',
+      },
+      {
+        level: 5,
+        name: 'Nebula-Chakram MK-VI',
+        description: 'Geschliffenes Archon-Prisma mit 7 Abprallern & extremer Schneidkraft!',
+        creditCost: 4550,
+        materials: [
+          { itemId: 'amethyst_core', qty: 3 },
+          { itemId: 'prism_matrix', qty: 2 },
+          { itemId: 'archon_heart', qty: 1 },
+        ],
+        statLabel: 'Schaden: 60 → 80 · 7× Abpraller',
       },
     ],
   },
@@ -358,6 +406,18 @@ export const UPGRADE_TRACKS: UpgradeTrack[] = [
         ],
         statLabel: 'Schaden: 42 → 56',
       },
+      {
+        level: 5,
+        name: 'Prismen-Strahler MK-VI',
+        description: 'Kristallfokussierte Hyper-Railkanone für Sektor-2-Endgame!',
+        creditCost: 4300,
+        materials: [
+          { itemId: 'amethyst_core', qty: 3 },
+          { itemId: 'prism_matrix', qty: 2 },
+          { itemId: 'archon_heart', qty: 1 },
+        ],
+        statLabel: 'Schaden: 56 → 75',
+      },
     ],
   },
   {
@@ -419,6 +479,18 @@ export const UPGRADE_TRACKS: UpgradeTrack[] = [
         ],
         statLabel: 'Schaden: 82 → 108',
       },
+      {
+        level: 5,
+        name: 'Archon-Bebenhammer MK-VI',
+        description: 'Monolithischer Kristall-Hammer mit verheerender Resonanz-Schockwelle!',
+        creditCost: 4650,
+        materials: [
+          { itemId: 'amethyst_core', qty: 3 },
+          { itemId: 'prism_matrix', qty: 2 },
+          { itemId: 'archon_heart', qty: 1 },
+        ],
+        statLabel: 'Schaden: 108 → 142',
+      },
     ],
   },
   {
@@ -461,13 +533,25 @@ export const UPGRADE_TRACKS: UpgradeTrack[] = [
       {
         level: 4,
         name: 'Omega-Vanguard-Rüstung',
-        description: 'Ultimativer Sektor-Meisteranzug aus dem Leviathan-Kern!',
+        description: 'Ultimativer Sektor-1-Meisteranzug aus dem Leviathan-Kern!',
         creditCost: 2500,
         materials: [
           { itemId: 'aegis_plate', qty: 2 },
           { itemId: 'leviathan_core', qty: 1 },
         ],
         statLabel: 'Max HP: 245 → 320',
+      },
+      {
+        level: 5,
+        name: 'Kristall-Aegis MK-VI',
+        description: 'Strahlender Resonanz-Panzer aus dem Kristall-Nebel — bereit für Sektor 3!',
+        creditCost: 4300,
+        materials: [
+          { itemId: 'amethyst_core', qty: 3 },
+          { itemId: 'prism_matrix', qty: 2 },
+          { itemId: 'archon_heart', qty: 1 },
+        ],
+        statLabel: 'Max HP: 320 → 420',
       },
     ],
   },
@@ -801,20 +885,20 @@ export const UPGRADE_TRACKS: UpgradeTrack[] = [
 ];
 
 export function getPlayerCombatStats(upgrades: UpgradeLevels) {
-  const bladeDamages = [20, 28, 38, 52, 70];
-  const bladeRanges = [31, 35, 39, 43, 47];
-  const spearDamages = [22, 31, 42, 56, 74];
-  const spearRanges = [46, 50, 54, 58, 62];
-  const fistsDamages = [14, 20, 27, 36, 48];
-  const fistsRanges = [25, 27, 29, 31, 34];
-  const discusDamages = [17, 24, 33, 45, 60];
-  const discusRanges = [190, 210, 230, 250, 275];
-  const discusBounceCounts = [3, 4, 4, 5, 6];
-  const blasterDamages = [15, 22, 30, 42, 56];
-  const blasterCooldowns = [0.29, 0.25, 0.21, 0.17, 0.145];
-  const hammerDamages = [34, 46, 62, 82, 108];
-  const hammerRanges = [36, 40, 44, 48, 52];
-  const maxHps = [100, 140, 185, 245, 320];
+  const bladeDamages = [20, 28, 38, 52, 70, 94];
+  const bladeRanges = [31, 35, 39, 43, 47, 51];
+  const spearDamages = [22, 31, 42, 56, 74, 98];
+  const spearRanges = [46, 50, 54, 58, 62, 66];
+  const fistsDamages = [14, 20, 27, 36, 48, 65];
+  const fistsRanges = [25, 27, 29, 31, 34, 37];
+  const discusDamages = [17, 24, 33, 45, 60, 80];
+  const discusRanges = [190, 210, 230, 250, 275, 300];
+  const discusBounceCounts = [3, 4, 4, 5, 6, 7];
+  const blasterDamages = [15, 22, 30, 42, 56, 75];
+  const blasterCooldowns = [0.29, 0.25, 0.21, 0.17, 0.145, 0.125];
+  const hammerDamages = [34, 46, 62, 82, 108, 142];
+  const hammerRanges = [36, 40, 44, 48, 52, 56];
+  const maxHps = [100, 140, 185, 245, 320, 420];
   const stimCharges = [2, 3, 4, 5];
   const stimHeals = [40, 55, 75, 100];
   const roomClearHeals = [0, 12, 24, 38];

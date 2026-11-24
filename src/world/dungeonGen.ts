@@ -47,7 +47,16 @@ export interface EnemySpawn {
     | 'phase_stalker'
     | 'boss_breacher'
     | 'boss'
-    | 'boss_leviathan';
+    | 'boss_leviathan'
+    // Sector 2: Kristall-Nebel enemies & bosses
+    | 'crystal_crawler'
+    | 'prism_drone'
+    | 'shard_sniper'
+    | 'void_crawler'
+    | 'resonance_warden'
+    | 'boss_quartz_golem'
+    | 'boss_prism_weaver'
+    | 'boss_prisma_archon';
   x: number;
   y: number;
 }
@@ -72,6 +81,7 @@ export interface DungeonRoom {
 }
 
 export interface DungeonFloor {
+  sector: 1 | 2;
   floorIndex: 1 | 2 | 3;
   floorName: string;
   rooms: Map<string, DungeonRoom>;
@@ -80,7 +90,7 @@ export interface DungeonFloor {
   treasureKey: string;
 }
 
-// Playable room inner bounds matching public/art/dungeon_bg.png (480x270 logical space)
+// Playable room inner bounds matching public/art/dungeon_bg*.png (480x270 logical space)
 export const ROOM_LEFT = 68;
 export const ROOM_RIGHT = 412;
 export const ROOM_TOP = 46;
@@ -99,13 +109,27 @@ const DIRS: Array<{ side: DoorSide; opp: DoorSide; dx: number; dy: number }> = [
   { side: 'west', opp: 'east', dx: -1, dy: 0 },
 ];
 
-const FLOOR_NAMES: Record<1 | 2 | 3, string> = {
+const FLOOR_NAMES_S1: Record<1 | 2 | 3, string> = {
   1: 'Ebene I · Frachtdeck',
   2: 'Ebene II · Maschinen-Deck',
   3: 'Ebene III · Reaktor-Kern',
 };
 
+const FLOOR_NAMES_S2: Record<1 | 2 | 3, string> = {
+  1: 'Ebene I · Quarz-Kaverne',
+  2: 'Ebene II · Resonanz-Ader',
+  3: 'Ebene III · Herz des Nebels',
+};
+
 export function generateSector1Floor(floorIndex: 1 | 2 | 3 = 1, customRooms?: number): DungeonFloor {
+  return generateSectorFloor(1, floorIndex, customRooms);
+}
+
+export function generateSectorFloor(
+  sector: 1 | 2 = 1,
+  floorIndex: 1 | 2 | 3 = 1,
+  customRooms?: number,
+): DungeonFloor {
   const targetRooms = customRooms ?? (floorIndex === 1 ? 7 : floorIndex === 2 ? 8 : 6);
   const coords: Array<{ gx: number; gy: number }> = [{ gx: 0, gy: 0 }];
   const occupied = new Set<string>([roomKey(0, 0)]);
@@ -232,30 +256,40 @@ export function generateSector1Floor(floorIndex: 1 | 2 | 3 = 1, customRooms?: nu
       );
     } else if (type === 'boss') {
       if (floorIndex === 3) {
-        // Wide-open grand Reactor Arena for the screen-spanning A.E.G.I.S. LEVIATHAN!
+        // Wide-open grand Arena for Sector 1 Leviathan or Sector 2 PRISMA-ARCHON!
         obstacles.push(
           { x: ROOM_LEFT + 34, y: ROOM_BOTTOM - 48, w: 20, h: 20, kind: 'pillar' },
           { x: ROOM_RIGHT - 54, y: ROOM_BOTTOM - 48, w: 20, h: 20, kind: 'pillar' },
         );
-        spawns.push({ kind: 'boss_leviathan', x: ROOM_CENTER_X, y: ROOM_TOP + 34 });
+        spawns.push({
+          kind: sector === 2 ? 'boss_prisma_archon' : 'boss_leviathan',
+          x: ROOM_CENTER_X,
+          y: sector === 2 ? ROOM_TOP + 54 : ROOM_TOP + 34,
+        });
       } else if (floorIndex === 1) {
-        // Floor I Boss: Schott-Brecher MK-II (loader mech arena with 4 tactical cover crates)
         obstacles.push(
           { x: ROOM_LEFT + 50, y: ROOM_TOP + 30, w: 20, h: 20, kind: 'crate' },
           { x: ROOM_RIGHT - 70, y: ROOM_TOP + 30, w: 20, h: 20, kind: 'crate' },
           { x: ROOM_LEFT + 50, y: ROOM_BOTTOM - 50, w: 20, h: 20, kind: 'crate' },
           { x: ROOM_RIGHT - 70, y: ROOM_BOTTOM - 50, w: 20, h: 20, kind: 'crate' },
         );
-        spawns.push({ kind: 'boss_breacher', x: ROOM_CENTER_X, y: ROOM_CENTER_Y });
+        spawns.push({
+          kind: sector === 2 ? 'boss_quartz_golem' : 'boss_breacher',
+          x: ROOM_CENTER_X,
+          y: ROOM_CENTER_Y,
+        });
       } else {
-        // Floor II Boss: Core-Wächter MK-IV
         obstacles.push(
           { x: ROOM_LEFT + 48, y: ROOM_TOP + 28, w: 22, h: 22, kind: 'pillar' },
           { x: ROOM_RIGHT - 70, y: ROOM_TOP + 28, w: 22, h: 22, kind: 'pillar' },
           { x: ROOM_LEFT + 48, y: ROOM_BOTTOM - 50, w: 22, h: 22, kind: 'pillar' },
           { x: ROOM_RIGHT - 70, y: ROOM_BOTTOM - 50, w: 22, h: 22, kind: 'pillar' },
         );
-        spawns.push({ kind: 'boss', x: ROOM_CENTER_X, y: ROOM_CENTER_Y });
+        spawns.push({
+          kind: sector === 2 ? 'boss_prism_weaver' : 'boss',
+          x: ROOM_CENTER_X,
+          y: ROOM_CENTER_Y,
+        });
       }
     } else {
       const pattern = Math.floor(Math.random() * 3);
@@ -326,8 +360,28 @@ export function generateSector1Floor(floorIndex: 1 | 2 | 3 = 1, customRooms?: nu
       for (let i = 0; i < enemyCount; i++) {
         const spot = candidateSpots[i % candidateSpots.length];
         const r = Math.random();
-        let kind: EnemySpawn['kind'] = 'slime';
-        if (floorIndex === 1) {
+        let kind: EnemySpawn['kind'] = sector === 2 ? 'crystal_crawler' : 'slime';
+        if (sector === 2) {
+          if (floorIndex === 1) {
+            // Sektor 2 · Ebene I (Quarz-Kaverne): Kristall-Krabbler & Prisma-Drohne
+            kind = r > 0.48 ? 'prism_drone' : 'crystal_crawler';
+          } else if (floorIndex === 2) {
+            // Sektor 2 · Ebene II (Resonanz-Ader): Splitter-Schütze (neu!) & Äther-Krabbler (Variante!)
+            if (i === 0) kind = Math.random() < 0.52 ? 'shard_sniper' : 'void_crawler';
+            else if (r > 0.68) kind = 'shard_sniper';
+            else if (r > 0.40) kind = 'void_crawler';
+            else if (r > 0.18) kind = 'prism_drone';
+            else kind = 'crystal_crawler';
+          } else {
+            // Sektor 2 · Ebene III (Herz des Nebels): Resonanz-Wächter (neu!) + Elite-Mix
+            if (i === 0) kind = 'resonance_warden';
+            else if (i === 1) kind = Math.random() < 0.55 ? 'shard_sniper' : 'void_crawler';
+            else if (r > 0.72) kind = 'resonance_warden';
+            else if (r > 0.46) kind = 'shard_sniper';
+            else if (r > 0.22) kind = 'void_crawler';
+            else kind = 'prism_drone';
+          }
+        } else if (floorIndex === 1) {
           // Floor I (Frachtdeck): Classic Corvette Patrol
           if (depth >= 2 && r > 0.74) kind = 'turret';
           else if (r > 0.44) kind = 'drone';
@@ -375,8 +429,9 @@ export function generateSector1Floor(floorIndex: 1 | 2 | 3 = 1, customRooms?: nu
   }
 
   return {
+    sector,
     floorIndex,
-    floorName: FLOOR_NAMES[floorIndex],
+    floorName: (sector === 2 ? FLOOR_NAMES_S2 : FLOOR_NAMES_S1)[floorIndex],
     rooms,
     startKey: roomKey(0, 0),
     bossKey,

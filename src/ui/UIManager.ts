@@ -59,6 +59,7 @@ export class UIManager {
   private titleEl: HTMLElement;
 
   public currentScene: SceneId = 'shop';
+  public dungeonSector: 1 | 2 = 1;
   public dungeonFloor: 1 | 2 | 3 = 1;
   public shopIsOpen = false;
   public modalOpen = false;
@@ -101,8 +102,8 @@ export class UIManager {
         <div class="title-kicker">PORT SOLARIS · ASTRO-BARTER</div>
         <h1 class="title-logo">STARLIGHTER</h1>
         <p class="title-sub">
-          Führe deinen Relikt-Shop auf Port Solaris, schmiede Waffen bis MK-V bei Kael, installiere Tech-Module bei Vex
-          und bezwinge alle 3 Ebenen von Sektor 1 bis zum gigantischen A.E.G.I.S. LEVIATHAN!
+          Führe deinen Relikt-Shop auf Port Solaris, schmiede 6 Waffenklassen bis Kristall-Meister MK-VI bei Kael
+          und bezwinge Sektor 1 (Wrackfeld) &amp; Sektor 2 (Kristall-Nebel) bis zum Prisma-Archon!
         </p>
         <div class="title-buttons">
           ${
@@ -176,11 +177,17 @@ export class UIManager {
     const timeLabel = isNight ? `🌙 NACHT ${this.state.day}` : `☀ TAG ${this.state.day}`;
     const timeColor = isNight ? '#818cf8' : 'var(--accent-amber)';
     const floorTag =
-      this.dungeonFloor === 1
-        ? 'EBENE I · FRACHTDECK'
-        : this.dungeonFloor === 2
-          ? 'EBENE II · MASCHINEN-DECK'
-          : 'EBENE III · REAKTOR-KERN';
+      this.dungeonSector === 2
+        ? this.dungeonFloor === 1
+          ? 'EBENE I · QUARZ-KAVERNE'
+          : this.dungeonFloor === 2
+            ? 'EBENE II · RESONANZ-ADER'
+            : 'EBENE III · HERZ DES NEBELS'
+        : this.dungeonFloor === 1
+          ? 'EBENE I · FRACHTDECK'
+          : this.dungeonFloor === 2
+            ? 'EBENE II · MASCHINEN-DECK'
+            : 'EBENE III · REAKTOR-KERN';
 
     const locationText =
       this.currentScene === 'shop'
@@ -192,8 +199,8 @@ export class UIManager {
             : this.currentScene === 'hangar'
               ? `${timeLabel} · RAUMHAFEN (DOCKS I–IV)`
               : isNight
-                ? `🌙 ${floorTag} (+35% RAR)`
-                : `SEKTOR 1 · ${floorTag}`;
+                ? `🌙 S${this.dungeonSector} · ${floorTag} (+35% RAR)`
+                : `SEKTOR ${this.dungeonSector} · ${floorTag}`;
 
     const hintText =
       this.currentScene === 'shop'
@@ -207,7 +214,9 @@ export class UIManager {
               ? '🌙 Nacht-Bonus aktiv: +35 % seltener Loot · Rechts: Raumhafen (Docks I–IV) · Unten links: Nyx!'
               : 'Oben: Kael (6 Waffen) & Dr. Lyra · Unten: Nyx & Vex · Rechts: Raumhafen (Sektor-Docks I–IV)!'
             : this.currentScene === 'hangar'
-              ? 'Raumhafen: Dock I (oben links) startet nach Sektor 1 · Docks II–IV & 5. Tor (Mitte) über Sektor-Schlüssel!'
+              ? this.state.sector1Cleared
+                ? 'Raumhafen: Dock I → Sektor 1 · Dock II (Kristall-Kreuzer) → Sektor 2 · 5. Tor (Mitte) zeigt Sektor-Siegel!'
+                : 'Raumhafen: Dock I (oben links) startet nach Sektor 1 · Docks II–IV & 5. Tor (Mitte) über Sektor-Schlüssel!'
               : `${wMeta.name} (${this.state.equippedWeapon === 'blade' ? 'Schild verbraucht EN · Perfekt-Parade!' : wMeta.secondaryLabel}) · [R] Extraktion`;
 
     const eventPillHtml =
@@ -299,7 +308,15 @@ export class UIManager {
         <div class="hud-center">
           ${
             this.currentScene !== 'shop'
-              ? `<div class="hud-location-pill" style="${isNight ? 'border-color:#818cf8;color:#c7d2fe' : this.currentScene === 'dungeon' && this.dungeonFloor === 3 ? 'border-color:#fb923c;color:#fed7aa' : ''}">${locationText}</div>`
+              ? `<div class="hud-location-pill" style="${
+                  this.currentScene === 'dungeon' && this.dungeonSector === 2
+                    ? 'border-color:#c084fc;color:#f5d0fe'
+                    : isNight
+                      ? 'border-color:#818cf8;color:#c7d2fe'
+                      : this.currentScene === 'dungeon' && this.dungeonFloor === 3
+                        ? 'border-color:#fb923c;color:#fed7aa'
+                        : ''
+                }">${locationText}</div>`
               : ''
           }
         </div>
@@ -597,7 +614,9 @@ export class UIManager {
                   <div class="inspector-icon-wrap" style="opacity:0.4">?</div>
                   <div>
                     <div style="font-family:var(--font-pixel);font-size:11px">??? (Unentdeckt)</div>
-                    <div style="font-size:11px;color:var(--text-muted);margin-top:3px">Finde dieses Relikt in Sektor 1.</div>
+                    <div style="font-size:11px;color:var(--text-muted);margin-top:3px">${
+                      item.sector === 2 ? 'Finde dieses Kristall-Relikt in Sektor 2.' : 'Finde dieses Relikt in Sektor 1.'
+                    }</div>
                   </div>
                 </div>
               `;
@@ -1001,8 +1020,24 @@ export class UIManager {
             <div style="color:var(--text-muted);margin-top:2px">A.E.G.I.S. Leviathan</div>
           </div>
           <div style="text-align:center;font-size:10px;border-left:1px solid rgba(255,255,255,0.12);padding-left:6px">
-            <div style="font-family:var(--font-pixel);color:${this.state.sector1Cleared ? '#fde047' : '#94a3b8'}">${this.state.sector1Cleared ? '★ SEKTOR 2' : '🔒 SEKTOR 2'}</div>
-            <div style="color:${this.state.sector1Cleared ? '#fde047' : 'var(--text-muted)'};margin-top:2px">${this.state.sector1Cleared ? 'Schlüssel aktiv!' : 'Leviathan nötig'}</div>
+            <div style="font-family:var(--font-pixel);color:${
+              this.state.sector2Cleared ? '#e879f9' : this.state.sector1Cleared ? '#fde047' : '#94a3b8'
+            }">${
+              this.state.sector2Cleared
+                ? '★ S2 BEZWUNGEN'
+                : this.state.sector1Cleared
+                  ? `★ S2 · E${this.state.deepestFloorS2}/3`
+                  : '🔒 SEKTOR 2'
+            }</div>
+            <div style="color:${
+              this.state.sector2Cleared ? '#f0abfc' : this.state.sector1Cleared ? '#fde047' : 'var(--text-muted)'
+            };margin-top:2px">${
+              this.state.sector2Cleared
+                ? 'S3-Schlüssel aktiv!'
+                : this.state.sector1Cleared
+                  ? 'Dock II bereit!'
+                  : 'Leviathan nötig'
+            }</div>
           </div>
         </div>
       `
@@ -1014,7 +1049,7 @@ export class UIManager {
           <img src="/art/sprites/npc_kael.png" alt="Schmied Kael" style="width:42px;height:46px;image-rendering:pixelated" />
           <div style="font-size:12px;line-height:1.4">
             <strong style="font-family:var(--font-pixel);font-size:11px;color:#fbbf24">SCHMIED KAEL</strong>
-            <div style="color:var(--text-muted)">„6 Waffenklassen bis Meister-Stufe MK-V! Bring mir Reaktor-Splitter, Aegis-Platten und Leviathan-Kerne aus den Tiefen von Sektor 1.“</div>
+            <div style="color:var(--text-muted)">„6 Waffenklassen bis Kristall-Meister MK-VI! Bring mir Materialien aus Sektor 1 sowie Amethyst-Kerne, Prisma-Matrizen &amp; Archon-Herzen aus Sektor 2.“</div>
           </div>
         </div>
       `
@@ -1034,7 +1069,7 @@ export class UIManager {
           <img src="/art/sprites/npc_vex.png" alt="Ingenieurin Vex" style="width:42px;height:48px;image-rendering:pixelated" />
           <div style="font-size:12px;line-height:1.4">
             <strong style="font-family:var(--font-pixel);font-size:11px;color:#38e8d4">INGENIEURIN VEX · TECH-LABOR</strong>
-            <div style="color:var(--text-muted)">„Meine passiven Exo-Module steigern Krit-Chance, Lauf- &amp; Dash-Tempo und Relikt-Glück dauerhaft — unverzichtbar für Ebene II &amp; den A.E.G.I.S. Leviathan!“</div>
+            <div style="color:var(--text-muted)">„Meine passiven Exo-Module steigern Krit-Chance, Lauf- &amp; Dash-Tempo und Relikt-Glück dauerhaft — unverzichtbar für Sektor 1 &amp; den Kristall-Nebel!“</div>
           </div>
         </div>
         ${sectorProgressHtml}
@@ -1509,29 +1544,41 @@ export class UIManager {
 
   // ==================== EXPEDITION SUMMARY MODAL ====================
   public openRunSummaryModal(summary: RunSummary): void {
-    const title = summary.sector1Cleared
-      ? '★ SEKTOR 1 BEZWUNGEN!'
-      : summary.reason === 'boss_victory'
-        ? 'TRIUMPHALE EXTRAKTION!'
+    const isS2 = summary.sector === 2;
+    const title = summary.sector2Cleared
+      ? '★ SEKTOR 2 BEZWUNGEN!'
+      : summary.sector1Cleared
+        ? '★ SEKTOR 1 BEZWUNGEN!'
+        : summary.reason === 'boss_victory'
+          ? 'TRIUMPHALE EXTRAKTION!'
+          : summary.victory
+            ? 'EXTRAKTION ERFOLGREICH!'
+            : isS2
+              ? 'IM KRISTALL-NEBEL GEFALLEN (0 HP)'
+              : 'IM WRACK GEFALLEN (0 HP)';
+    const titleColor = summary.sector2Cleared
+      ? '#e879f9'
+      : summary.sector1Cleared
+        ? '#fde047'
         : summary.victory
-          ? 'EXTRAKTION ERFOLGREICH!'
-          : 'IM WRACK GEFALLEN (0 HP)';
-    const titleColor = summary.sector1Cleared
-      ? '#fde047'
-      : summary.victory
-        ? 'var(--accent-emerald)'
-        : 'var(--accent-coral)';
-    const floorLabel =
+          ? 'var(--accent-emerald)'
+          : 'var(--accent-coral)';
+    const floorLabel = `${isS2 ? 'S2 · ' : 'S1 · '}${
       summary.floorReached === 3
         ? 'Ebene III'
         : summary.floorReached === 2
           ? 'Ebene II'
-          : 'Ebene I';
+          : 'Ebene I'
+    }`;
 
     const extraNotes: string[] = [];
-    if (summary.sector1Cleared) {
+    if (summary.sector2Cleared) {
       extraNotes.push(
-        `🏆 <strong>A.E.G.I.S. LEVIATHAN BESIEGT!</strong> Sektor-2-Schlüssel (<em>Kristall-Nebel</em>) im <strong>Raumhafen</strong> &amp; goldene Trophäe im <strong>Kapitäns-Quartier</strong> aktiviert!`,
+        `💎 <strong>PRISMA-ARCHON BESIEGT!</strong> <strong>Sektor-3-Schlüssel</strong> &amp; <strong>Siegel #2</strong> am 5. Tor im Raumhafen sowie das violette Archon-Herz im Kapitäns-Quartier aktiviert!`,
+      );
+    } else if (summary.sector1Cleared) {
+      extraNotes.push(
+        `🏆 <strong>A.E.G.I.S. LEVIATHAN BESIEGT!</strong> Sektor-2-Schlüssel (<em>Kristall-Nebel</em>) an <strong>Dock II</strong> im Raumhafen &amp; goldene Trophäe im <strong>Kapitäns-Quartier</strong> aktiviert!`,
       );
     }
     if (summary.nightRun) {
@@ -1789,7 +1836,7 @@ export class UIManager {
     const override = sound.getJukeboxOverride();
     const activeTrack = sound.getActiveMusicTrack();
     const musicMuted = sound.isMusicMuted() || sound.isMuted();
-    const trackIds: MusicTrack[] = ['shop_day', 'shop_night', 'hub', 'dungeon', 'boss'];
+    const trackIds: MusicTrack[] = ['shop_day', 'shop_night', 'hub', 'dungeon', 'dungeon_s2', 'boss'];
 
     const rowsHtml = trackIds
       .map((tid) => {

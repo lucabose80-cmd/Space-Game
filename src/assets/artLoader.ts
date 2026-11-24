@@ -11,6 +11,7 @@ export interface HDArtAssets {
   hubBg: HTMLImageElement | null;
   hangarBg: HTMLImageElement | null;
   dungeonBg: HTMLImageElement | null;
+  dungeonBgS2: HTMLImageElement | null;
 
   heroDown: HTMLCanvasElement | null;
   heroUp: HTMLCanvasElement | null;
@@ -32,6 +33,7 @@ export interface HDArtAssets {
   companionUrls: Record<CompanionId, string>;
   botClerk: HTMLCanvasElement | null;
   shipCorvette: HTMLCanvasElement | null;
+  shipCrystal: HTMLCanvasElement | null;
 
   pedestal: HTMLCanvasElement | null;
   propSaleBox: HTMLCanvasElement | null;
@@ -67,6 +69,19 @@ export interface HDArtAssets {
   bossBreacherFlash: HTMLCanvasElement | null;
   boss: HTMLCanvasElement | null;
   bossFlash: HTMLCanvasElement | null;
+  // Sector 2 Crystal Nebula Enemies & Prisma-Archon Boss
+  crystalCrawler: HTMLCanvasElement | null;
+  crystalCrawlerFlash: HTMLCanvasElement | null;
+  prismDrone: HTMLCanvasElement | null;
+  prismDroneFlash: HTMLCanvasElement | null;
+  shardSniper: HTMLCanvasElement | null;
+  shardSniperFlash: HTMLCanvasElement | null;
+  voidCrawler: HTMLCanvasElement | null;
+  voidCrawlerFlash: HTMLCanvasElement | null;
+  resonanceWarden: HTMLCanvasElement | null;
+  resonanceWardenFlash: HTMLCanvasElement | null;
+  bossPrismaArchon: HTMLCanvasElement | null;
+  bossPrismaArchonFlash: HTMLCanvasElement | null;
 
   items: Record<string, HTMLCanvasElement>;
   itemUrls: Record<string, string>;
@@ -81,6 +96,7 @@ const art: HDArtAssets = {
   hubBg: null,
   hangarBg: null,
   dungeonBg: null,
+  dungeonBgS2: null,
   heroDown: null,
   heroUp: null,
   heroRight: null,
@@ -123,6 +139,7 @@ const art: HDArtAssets = {
   },
   botClerk: null,
   shipCorvette: null,
+  shipCrystal: null,
   pedestal: null,
   propSaleBox: null,
   propSleepPod: null,
@@ -156,6 +173,18 @@ const art: HDArtAssets = {
   bossBreacherFlash: null,
   boss: null,
   bossFlash: null,
+  crystalCrawler: null,
+  crystalCrawlerFlash: null,
+  prismDrone: null,
+  prismDroneFlash: null,
+  shardSniper: null,
+  shardSniperFlash: null,
+  voidCrawler: null,
+  voidCrawlerFlash: null,
+  resonanceWarden: null,
+  resonanceWardenFlash: null,
+  bossPrismaArchon: null,
+  bossPrismaArchonFlash: null,
   items: {},
   itemUrls: Object.fromEntries(ITEMS.map((i) => [i.id, `/art/sprites/item_${i.id}.png`])),
 };
@@ -196,6 +225,7 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
     hubBg,
     hangarBg,
     dungeonBg,
+    dungeonBgS2,
     heroDownImg,
     heroUpImg,
     heroRightImg,
@@ -220,6 +250,7 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
     botHaloImg,
     botClerkImg,
     shipCorvetteImg,
+    shipCrystalImg,
     pedestalImg,
     saleBoxImg,
     sleepPodImg,
@@ -243,6 +274,12 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
     turret1Img,
     bossBreacherImg,
     bossImg,
+    crystalCrawlerImg,
+    prismDroneImg,
+    shardSniperImg,
+    voidCrawlerImg,
+    resonanceWardenImg,
+    bossPrismaArchonImg,
     ...itemImgs
   ] = await Promise.all([
     loadImage('/art/shop_bg.png'),
@@ -252,6 +289,7 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
     loadImage('/art/hub_bg.png'),
     loadImage('/art/hangar_bg.png'),
     loadImage('/art/dungeon_bg.png'),
+    loadImage('/art/dungeon_bg_s2.png'),
     loadImage('/art/sprites/hero_down.png'),
     loadImage('/art/sprites/hero_up.png'),
     loadImage('/art/sprites/hero_right.png'),
@@ -276,6 +314,7 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
     loadImage('/art/sprites/bot_halo.png'),
     loadImage('/art/sprites/bot_clerk.png'),
     loadImage('/art/sprites/ship_corvette.png'),
+    loadImage('/art/sprites/ship_crystal.png'),
     loadImage('/art/sprites/pedestal.png'),
     loadImage('/art/sprites/prop_salebox.png'),
     loadImage('/art/sprites/prop_sleep_pod.png'),
@@ -299,6 +338,12 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
     loadImage('/art/sprites/turret_1.png'),
     loadImage('/art/sprites/boss_breacher.png'),
     loadImage('/art/sprites/boss.png'),
+    loadImage('/art/sprites/enemy_crystal_crawler.png'),
+    loadImage('/art/sprites/enemy_prism_drone.png'),
+    loadImage('/art/sprites/enemy_shard_sniper.png'),
+    loadImage('/art/sprites/enemy_void_crawler.png'),
+    loadImage('/art/sprites/enemy_resonance_warden.png'),
+    loadImage('/art/sprites/boss_prisma_archon.png'),
     ...ITEMS.map((item) => loadImage(`/art/sprites/item_${item.id}.png`)),
   ]);
 
@@ -309,6 +354,7 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
   art.hubBg = hubBg;
   art.hangarBg = hangarBg;
   art.dungeonBg = dungeonBg;
+  art.dungeonBgS2 = dungeonBgS2;
 
   art.heroDown = imgToCanvas(heroDownImg);
   art.heroUp = imgToCanvas(heroUpImg);
@@ -340,6 +386,7 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
   art.companions.halo = imgToCanvas(botHaloImg);
   art.botClerk = imgToCanvas(botClerkImg);
   art.shipCorvette = imgToCanvas(shipCorvetteImg);
+  art.shipCrystal = imgToCanvas(shipCrystalImg);
 
   art.pedestal = imgToCanvas(pedestalImg);
   art.propSaleBox = imgToCanvas(saleBoxImg);
@@ -375,6 +422,19 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
   art.bossBreacherFlash = art.bossBreacher ? makeFlashSilhouette(art.bossBreacher, '#ffffff') : null;
   art.boss = imgToCanvas(bossImg);
   art.bossFlash = art.boss ? makeFlashSilhouette(art.boss, '#ffffff') : null;
+
+  art.crystalCrawler = imgToCanvas(crystalCrawlerImg);
+  art.crystalCrawlerFlash = art.crystalCrawler ? makeFlashSilhouette(art.crystalCrawler, '#ffffff') : null;
+  art.prismDrone = imgToCanvas(prismDroneImg);
+  art.prismDroneFlash = art.prismDrone ? makeFlashSilhouette(art.prismDrone, '#ffffff') : null;
+  art.shardSniper = imgToCanvas(shardSniperImg);
+  art.shardSniperFlash = art.shardSniper ? makeFlashSilhouette(art.shardSniper, '#ffffff') : null;
+  art.voidCrawler = imgToCanvas(voidCrawlerImg);
+  art.voidCrawlerFlash = art.voidCrawler ? makeFlashSilhouette(art.voidCrawler, '#ffffff') : null;
+  art.resonanceWarden = imgToCanvas(resonanceWardenImg);
+  art.resonanceWardenFlash = art.resonanceWarden ? makeFlashSilhouette(art.resonanceWarden, '#ffffff') : null;
+  art.bossPrismaArchon = imgToCanvas(bossPrismaArchonImg);
+  art.bossPrismaArchonFlash = art.bossPrismaArchon ? makeFlashSilhouette(art.bossPrismaArchon, '#ffffff') : null;
 
   ITEMS.forEach((item, idx) => {
     const c = imgToCanvas(itemImgs[idx] ?? null);

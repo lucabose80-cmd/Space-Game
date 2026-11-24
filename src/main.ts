@@ -30,6 +30,8 @@ class StarlighterGame {
   private dungeonScene: DungeonScene;
 
   private activeScene: SceneId = 'shop';
+  private pendingDungeonSector: 1 | 2 = 1;
+  private lastReturnedSector: 1 | 2 = 1;
   private transitionAlpha = 0;
   private transitionDir: -1 | 0 | 1 = 0;
   private pendingTransition: (() => void) | null = null;
@@ -179,7 +181,14 @@ class StarlighterGame {
 
     this.hangarScene = new HangarScene(this.state, {
       onReturnToHub: () => this.transitionTo('hub', 'hangar'),
-      onLaunchSector1: () => this.transitionTo('dungeon', 'hangar'),
+      onLaunchSector1: () => {
+        this.pendingDungeonSector = 1;
+        this.transitionTo('dungeon', 'hangar');
+      },
+      onLaunchSector2: () => {
+        this.pendingDungeonSector = 2;
+        this.transitionTo('dungeon', 'hangar');
+      },
       onToast: (msg, tone) => this.ui.toast(msg, tone),
     });
 
@@ -188,6 +197,7 @@ class StarlighterGame {
       onOpenDungeonChest: (chest) => this.ui.openDungeonChestModal(chest),
       onToast: (msg, tone) => this.ui.toast(msg, tone),
       onHudDirty: () => {
+        this.ui.dungeonSector = this.dungeonScene.currentSector;
         this.ui.dungeonFloor = this.dungeonScene.currentFloor;
         this.ui.renderHud();
         this.syncTouch();
@@ -214,7 +224,11 @@ class StarlighterGame {
   private syncMusic(): void {
     let desired: MusicTrack;
     if (this.activeScene === 'dungeon') {
-      desired = this.dungeonScene.isInBossFight() ? 'boss' : 'dungeon';
+      desired = this.dungeonScene.isInBossFight()
+        ? 'boss'
+        : this.dungeonScene.currentSector === 2
+          ? 'dungeon_s2'
+          : 'dungeon';
     } else if (this.activeScene === 'hub' || this.activeScene === 'hangar') {
       desired = 'hub';
     } else if (this.activeScene === 'backroom') {
@@ -243,7 +257,7 @@ class StarlighterGame {
         );
       } else {
         this.ui.toast(
-          `🌙 Es wird Nacht (Tag ${res.day}) — Sektor 1 bietet jetzt +35 % seltene & epische Beute!`,
+          `🌙 Es wird Nacht (Tag ${res.day}) — Alle Sektoren bieten jetzt +35 % seltene & epische Beute!`,
           'info',
         );
       }
@@ -288,11 +302,12 @@ class StarlighterGame {
       this.ui.currentScene = scene;
       if (scene === 'dungeon') {
         this.ui.shopIsOpen = false;
-        this.dungeonScene.startRun();
+        this.dungeonScene.startRun(this.pendingDungeonSector);
+        this.ui.dungeonSector = this.dungeonScene.currentSector;
         this.ui.dungeonFloor = this.dungeonScene.currentFloor;
       } else if (scene === 'hangar') {
         this.ui.shopIsOpen = false;
-        this.hangarScene.onEnter(from === 'dungeon' ? 'dungeon' : 'hub');
+        this.hangarScene.onEnter(from === 'dungeon' ? 'dungeon' : 'hub', this.lastReturnedSector);
       } else if (scene === 'hub') {
         this.ui.shopIsOpen = false;
         this.hubScene.onEnter(from === 'hangar' || from === 'dungeon' ? 'dungeon' : 'shop');
@@ -311,6 +326,7 @@ class StarlighterGame {
   }
 
   private handleReturnFromDungeon(summary: RunSummary): void {
+    this.lastReturnedSector = summary.sector ?? 1;
     this.transitionTo('hangar', 'dungeon', () => {
       this.ui.openRunSummaryModal(summary);
     });

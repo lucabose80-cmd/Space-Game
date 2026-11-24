@@ -99,7 +99,9 @@ export class GameState {
   public totalSold = 0;
   public bossDefeatedCount = 0;
   public sector1Cleared = false;
+  public sector2Cleared = false;
   public deepestFloor = 1;
+  public deepestFloorS2 = 1;
   public totalEnemiesDefeated = 0;
   public breacherDefeated = false;
   public coreWatcherDefeated = false;
@@ -166,7 +168,9 @@ export class GameState {
     this.totalSold = 0;
     this.bossDefeatedCount = 0;
     this.sector1Cleared = false;
+    this.sector2Cleared = false;
     this.deepestFloor = 1;
+    this.deepestFloorS2 = 1;
     this.totalEnemiesDefeated = 0;
     this.breacherDefeated = false;
     this.coreWatcherDefeated = false;
@@ -351,16 +355,22 @@ export class GameState {
 
   // ==================== NYX' SCHWARZMARKT (TÄGLICH ROTIERENDE SELTENE TEILE) ====================
   public generateNyxStock(): BlackMarketOffer[] {
-    const commonPool = ITEMS.filter((i) => i.rarity === 'common' || i.rarity === 'uncommon');
+    const allowedSector = (i: (typeof ITEMS)[number]) => (i.sector ?? 1) === 1 || this.sector1Cleared;
+    const commonPool = ITEMS.filter(
+      (i) => allowedSector(i) && (i.rarity === 'common' || i.rarity === 'uncommon'),
+    );
     const rarePool = ITEMS.filter(
       (i) =>
+        allowedSector(i) &&
         i.rarity === 'rare' &&
         (i.id !== 'mk4_heart' || this.deepestFloor >= 2 || this.day >= 3),
     );
     const epicPool = ITEMS.filter(
       (i) =>
+        allowedSector(i) &&
         i.rarity === 'epic' &&
-        (i.id !== 'leviathan_core' || this.sector1Cleared || this.deepestFloor >= 3),
+        (i.id !== 'leviathan_core' || this.sector1Cleared || this.deepestFloor >= 3) &&
+        (i.id !== 'archon_heart' || this.sector2Cleared || this.deepestFloorS2 >= 3),
     );
 
     const pickFrom = (arr: typeof ITEMS, exclude: Set<string>) => {
@@ -776,7 +786,9 @@ export class GameState {
         totalSold: this.totalSold,
         bossDefeatedCount: this.bossDefeatedCount,
         sector1Cleared: this.sector1Cleared,
+        sector2Cleared: this.sector2Cleared,
         deepestFloor: this.deepestFloor,
+        deepestFloorS2: this.deepestFloorS2,
         totalEnemiesDefeated: this.totalEnemiesDefeated,
         breacherDefeated: this.breacherDefeated,
         coreWatcherDefeated: this.coreWatcherDefeated,
@@ -822,7 +834,9 @@ export class GameState {
       this.totalSold = parsed.totalSold ?? 0;
       this.bossDefeatedCount = parsed.bossDefeatedCount ?? 0;
       this.sector1Cleared = Boolean(parsed.sector1Cleared);
+      this.sector2Cleared = Boolean(parsed.sector2Cleared);
       this.deepestFloor = Math.max(1, Math.min(3, parsed.deepestFloor ?? 1));
+      this.deepestFloorS2 = Math.max(1, Math.min(3, parsed.deepestFloorS2 ?? 1));
       this.totalEnemiesDefeated = parsed.totalEnemiesDefeated ?? 0;
       this.breacherDefeated = Boolean(parsed.breacherDefeated || this.deepestFloor >= 2 || this.bossDefeatedCount >= 1);
       this.coreWatcherDefeated = Boolean(

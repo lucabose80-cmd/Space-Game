@@ -53,6 +53,16 @@ const TRACK_PATTERNS: Record<MusicTrack, TrackPattern> = {
     lead: [64, null, 67, 71, 72, null, 71, 67, 62, null, 66, 69, 67, null, 64, null],
     bass: [40, 40, null, 47, 43, null, 40, null, 38, 38, null, 45, 43, null, 40, null],
   },
+  dungeon_s2: {
+    stepMs: 210,
+    leadType: 'sine',
+    bassType: 'triangle',
+    leadVol: 0.028,
+    bassVol: 0.022,
+    // Shimmering crystalline nebula arpeggio (F# minor / A major sparkle)
+    lead: [78, 81, 85, null, 88, 85, 81, 78, 76, 80, 83, null, 85, 81, 78, null],
+    bass: [42, null, 49, null, 45, null, 52, null, 40, null, 47, null, 44, null, 49, null],
+  },
   boss: {
     stepMs: 155,
     leadType: 'square',
