@@ -1,0 +1,167 @@
+import { ITEMS } from '../data/items';
+import { flipCanvasHorizontal, makeFlashSilhouette } from './pixelArt';
+
+export interface HDArtAssets {
+  loaded: boolean;
+  shopBg: HTMLImageElement | null;
+  dungeonBg: HTMLImageElement | null;
+
+  heroDown: HTMLCanvasElement | null;
+  heroUp: HTMLCanvasElement | null;
+  heroRight: HTMLCanvasElement | null;
+  heroLeft: HTMLCanvasElement | null;
+  heroFlash: HTMLCanvasElement | null;
+
+  customers: HTMLCanvasElement[];
+
+  pedestal: HTMLCanvasElement | null;
+  podIntact: HTMLCanvasElement | null;
+  chestClosed: HTMLCanvasElement | null;
+  chestOpen: HTMLCanvasElement | null;
+
+  slime: HTMLCanvasElement | null;
+  slimeFlash: HTMLCanvasElement | null;
+  drone: HTMLCanvasElement | null;
+  droneFlash: HTMLCanvasElement | null;
+  turret0: HTMLCanvasElement | null;
+  turret1: HTMLCanvasElement | null;
+  turretFlash: HTMLCanvasElement | null;
+  boss: HTMLCanvasElement | null;
+  bossFlash: HTMLCanvasElement | null;
+
+  items: Record<string, HTMLCanvasElement>;
+  itemUrls: Record<string, string>;
+}
+
+const art: HDArtAssets = {
+  loaded: false,
+  shopBg: null,
+  dungeonBg: null,
+  heroDown: null,
+  heroUp: null,
+  heroRight: null,
+  heroLeft: null,
+  heroFlash: null,
+  customers: [],
+  pedestal: null,
+  podIntact: null,
+  chestClosed: null,
+  chestOpen: null,
+  slime: null,
+  slimeFlash: null,
+  drone: null,
+  droneFlash: null,
+  turret0: null,
+  turret1: null,
+  turretFlash: null,
+  boss: null,
+  bossFlash: null,
+  items: {},
+  itemUrls: Object.fromEntries(ITEMS.map((i) => [i.id, `/art/sprites/item_${i.id}.png`])),
+};
+
+function loadImage(src: string): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
+function imgToCanvas(img: HTMLImageElement | null): HTMLCanvasElement | null {
+  if (!img) return null;
+  const c = document.createElement('canvas');
+  c.width = img.naturalWidth || img.width;
+  c.height = img.naturalHeight || img.height;
+  const ctx = c.getContext('2d');
+  if (!ctx) return null;
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(img, 0, 0);
+  return c;
+}
+
+export function getHDArt(): HDArtAssets {
+  return art;
+}
+
+export async function preloadHDArt(): Promise<HDArtAssets> {
+  if (art.loaded) return art;
+
+  const [
+    shopBg,
+    dungeonBg,
+    heroDownImg,
+    heroUpImg,
+    heroRightImg,
+    custHornedImg,
+    custAstroImg,
+    custGreenImg,
+    pedestalImg,
+    podImg,
+    chestClosedImg,
+    chestOpenImg,
+    slimeImg,
+    droneImg,
+    turret0Img,
+    turret1Img,
+    bossImg,
+    ...itemImgs
+  ] = await Promise.all([
+    loadImage('/art/shop_bg.png'),
+    loadImage('/art/dungeon_bg.png'),
+    loadImage('/art/sprites/hero_down.png'),
+    loadImage('/art/sprites/hero_up.png'),
+    loadImage('/art/sprites/hero_right.png'),
+    loadImage('/art/sprites/cust_horned.png'),
+    loadImage('/art/sprites/cust_astro.png'),
+    loadImage('/art/sprites/cust_green.png'),
+    loadImage('/art/sprites/pedestal.png'),
+    loadImage('/art/sprites/pod_intact.png'),
+    loadImage('/art/sprites/chest_closed.png'),
+    loadImage('/art/sprites/chest_open.png'),
+    loadImage('/art/sprites/slime.png'),
+    loadImage('/art/sprites/drone.png'),
+    loadImage('/art/sprites/turret_0.png'),
+    loadImage('/art/sprites/turret_1.png'),
+    loadImage('/art/sprites/boss.png'),
+    ...ITEMS.map((item) => loadImage(`/art/sprites/item_${item.id}.png`)),
+  ]);
+
+  art.shopBg = shopBg;
+  art.dungeonBg = dungeonBg;
+
+  art.heroDown = imgToCanvas(heroDownImg);
+  art.heroUp = imgToCanvas(heroUpImg);
+  art.heroRight = imgToCanvas(heroRightImg);
+  art.heroLeft = art.heroRight ? flipCanvasHorizontal(art.heroRight) : null;
+  art.heroFlash = art.heroDown ? makeFlashSilhouette(art.heroDown, '#ffffff') : null;
+
+  const custCanvases = [custAstroImg, custHornedImg, custGreenImg]
+    .map(imgToCanvas)
+    .filter((c): c is HTMLCanvasElement => c !== null);
+  art.customers = custCanvases;
+
+  art.pedestal = imgToCanvas(pedestalImg);
+  art.podIntact = imgToCanvas(podImg);
+  art.chestClosed = imgToCanvas(chestClosedImg);
+  art.chestOpen = imgToCanvas(chestOpenImg);
+
+  art.slime = imgToCanvas(slimeImg);
+  art.slimeFlash = art.slime ? makeFlashSilhouette(art.slime, '#ffffff') : null;
+  art.drone = imgToCanvas(droneImg);
+  art.droneFlash = art.drone ? makeFlashSilhouette(art.drone, '#ffffff') : null;
+  art.turret0 = imgToCanvas(turret0Img);
+  art.turret1 = imgToCanvas(turret1Img);
+  art.turretFlash = art.turret0 ? makeFlashSilhouette(art.turret0, '#ffffff') : null;
+  art.boss = imgToCanvas(bossImg);
+  art.bossFlash = art.boss ? makeFlashSilhouette(art.boss, '#ffffff') : null;
+
+  ITEMS.forEach((item, idx) => {
+    const c = imgToCanvas(itemImgs[idx] ?? null);
+    if (c) art.items[item.id] = c;
+  });
+
+  art.loaded = true;
+  return art;
+}

@@ -54,11 +54,11 @@ export interface DungeonFloor {
   treasureKey: string;
 }
 
-// Playable room inner bounds inside 480x270 canvas (room framed cleanly by thick hull walls!)
-export const ROOM_LEFT = 40;
-export const ROOM_RIGHT = 440;
-export const ROOM_TOP = 38;
-export const ROOM_BOTTOM = 232;
+// Playable room inner bounds matching public/art/dungeon_bg.png (480x270 logical space)
+export const ROOM_LEFT = 68;
+export const ROOM_RIGHT = 412;
+export const ROOM_TOP = 46;
+export const ROOM_BOTTOM = 222;
 export const ROOM_CENTER_X = (ROOM_LEFT + ROOM_RIGHT) / 2;
 export const ROOM_CENTER_Y = (ROOM_TOP + ROOM_BOTTOM) / 2;
 
@@ -88,7 +88,6 @@ export function generateSector1Dungeon(targetRooms = 8): DungeonFloor {
     const key = roomKey(nx, ny);
     if (occupied.has(key)) continue;
 
-    // Avoid tight 2x2 blobs too often so layout has clean corridors & branches
     let neighborCount = 0;
     for (const d of DIRS) {
       if (occupied.has(roomKey(nx + d.dx, ny + d.dy))) neighborCount++;
@@ -175,58 +174,54 @@ export function generateSector1Dungeon(targetRooms = 8): DungeonFloor {
     let chest: RoomChest | null = null;
 
     if (type === 'start') {
-      // Safe entry pods in corners so player can immediately break something for a shiny coin/relic!
       pods.push(
-        { id: podCounter++, x: ROOM_LEFT + 28, y: ROOM_TOP + 24, hp: 1, broken: false },
-        { id: podCounter++, x: ROOM_RIGHT - 28, y: ROOM_TOP + 24, hp: 1, broken: false },
+        { id: podCounter++, x: ROOM_LEFT + 30, y: ROOM_TOP + 22, hp: 1, broken: false },
+        { id: podCounter++, x: ROOM_RIGHT - 30, y: ROOM_TOP + 22, hp: 1, broken: false },
       );
     } else if (type === 'treasure') {
       chest = { x: ROOM_CENTER_X, y: ROOM_CENTER_Y - 6, opened: false, rare: true };
       pods.push(
-        { id: podCounter++, x: ROOM_CENTER_X - 58, y: ROOM_CENTER_Y - 26, hp: 1, broken: false },
-        { id: podCounter++, x: ROOM_CENTER_X + 58, y: ROOM_CENTER_Y - 26, hp: 1, broken: false },
-        { id: podCounter++, x: ROOM_CENTER_X - 58, y: ROOM_CENTER_Y + 26, hp: 1, broken: false },
-        { id: podCounter++, x: ROOM_CENTER_X + 58, y: ROOM_CENTER_Y + 26, hp: 1, broken: false },
+        { id: podCounter++, x: ROOM_CENTER_X - 54, y: ROOM_CENTER_Y - 24, hp: 1, broken: false },
+        { id: podCounter++, x: ROOM_CENTER_X + 54, y: ROOM_CENTER_Y - 24, hp: 1, broken: false },
+        { id: podCounter++, x: ROOM_CENTER_X - 54, y: ROOM_CENTER_Y + 24, hp: 1, broken: false },
+        { id: podCounter++, x: ROOM_CENTER_X + 54, y: ROOM_CENTER_Y + 24, hp: 1, broken: false },
       );
       obstacles.push(
-        { x: ROOM_LEFT + 44, y: ROOM_TOP + 24, w: 22, h: 22, kind: 'pillar' },
-        { x: ROOM_RIGHT - 66, y: ROOM_TOP + 24, w: 22, h: 22, kind: 'pillar' },
-        { x: ROOM_LEFT + 44, y: ROOM_BOTTOM - 46, w: 22, h: 22, kind: 'pillar' },
-        { x: ROOM_RIGHT - 66, y: ROOM_BOTTOM - 46, w: 22, h: 22, kind: 'pillar' },
+        { x: ROOM_LEFT + 34, y: ROOM_TOP + 20, w: 22, h: 22, kind: 'pillar' },
+        { x: ROOM_RIGHT - 56, y: ROOM_TOP + 20, w: 22, h: 22, kind: 'pillar' },
+        { x: ROOM_LEFT + 34, y: ROOM_BOTTOM - 42, w: 22, h: 22, kind: 'pillar' },
+        { x: ROOM_RIGHT - 56, y: ROOM_BOTTOM - 42, w: 22, h: 22, kind: 'pillar' },
       );
     } else if (type === 'boss') {
-      // Clean arena with 4 tactical cover pillars
       obstacles.push(
-        { x: ROOM_LEFT + 66, y: ROOM_TOP + 36, w: 22, h: 22, kind: 'pillar' },
-        { x: ROOM_RIGHT - 88, y: ROOM_TOP + 36, w: 22, h: 22, kind: 'pillar' },
-        { x: ROOM_LEFT + 66, y: ROOM_BOTTOM - 58, w: 22, h: 22, kind: 'pillar' },
-        { x: ROOM_RIGHT - 88, y: ROOM_BOTTOM - 58, w: 22, h: 22, kind: 'pillar' },
+        { x: ROOM_LEFT + 48, y: ROOM_TOP + 28, w: 22, h: 22, kind: 'pillar' },
+        { x: ROOM_RIGHT - 70, y: ROOM_TOP + 28, w: 22, h: 22, kind: 'pillar' },
+        { x: ROOM_LEFT + 48, y: ROOM_BOTTOM - 50, w: 22, h: 22, kind: 'pillar' },
+        { x: ROOM_RIGHT - 70, y: ROOM_BOTTOM - 50, w: 22, h: 22, kind: 'pillar' },
       );
       spawns.push({ kind: 'boss', x: ROOM_CENTER_X, y: ROOM_CENTER_Y });
     } else {
-      // Combat room with 3 distinct obstacle patterns
       const pattern = Math.floor(Math.random() * 3);
       if (pattern === 0) {
         obstacles.push(
-          { x: ROOM_CENTER_X - 78, y: ROOM_CENTER_Y - 32, w: 22, h: 22, kind: 'pillar' },
-          { x: ROOM_CENTER_X + 56, y: ROOM_CENTER_Y - 32, w: 22, h: 22, kind: 'pillar' },
-          { x: ROOM_CENTER_X - 78, y: ROOM_CENTER_Y + 14, w: 22, h: 22, kind: 'pillar' },
-          { x: ROOM_CENTER_X + 56, y: ROOM_CENTER_Y + 14, w: 22, h: 22, kind: 'pillar' },
+          { x: ROOM_CENTER_X - 66, y: ROOM_CENTER_Y - 30, w: 22, h: 22, kind: 'pillar' },
+          { x: ROOM_CENTER_X + 44, y: ROOM_CENTER_Y - 30, w: 22, h: 22, kind: 'pillar' },
+          { x: ROOM_CENTER_X - 66, y: ROOM_CENTER_Y + 12, w: 22, h: 22, kind: 'pillar' },
+          { x: ROOM_CENTER_X + 44, y: ROOM_CENTER_Y + 12, w: 22, h: 22, kind: 'pillar' },
         );
       } else if (pattern === 1) {
         obstacles.push(
           { x: ROOM_CENTER_X - 18, y: ROOM_CENTER_Y - 14, w: 36, h: 28, kind: 'conduit' },
-          { x: ROOM_LEFT + 54, y: ROOM_TOP + 26, w: 20, h: 20, kind: 'crate' },
-          { x: ROOM_RIGHT - 74, y: ROOM_BOTTOM - 46, w: 20, h: 20, kind: 'crate' },
+          { x: ROOM_LEFT + 42, y: ROOM_TOP + 22, w: 20, h: 20, kind: 'crate' },
+          { x: ROOM_RIGHT - 62, y: ROOM_BOTTOM - 42, w: 20, h: 20, kind: 'crate' },
         );
       } else {
         obstacles.push(
-          { x: ROOM_CENTER_X - 66, y: ROOM_CENTER_Y - 12, w: 24, h: 24, kind: 'conduit' },
-          { x: ROOM_CENTER_X + 42, y: ROOM_CENTER_Y - 12, w: 24, h: 24, kind: 'conduit' },
+          { x: ROOM_CENTER_X - 58, y: ROOM_CENTER_Y - 12, w: 24, h: 24, kind: 'conduit' },
+          { x: ROOM_CENTER_X + 34, y: ROOM_CENTER_Y - 12, w: 24, h: 24, kind: 'conduit' },
         );
       }
 
-      // Corner destructible alien pods
       pods.push(
         { id: podCounter++, x: ROOM_LEFT + 26, y: ROOM_TOP + 22, hp: 1, broken: false },
         { id: podCounter++, x: ROOM_RIGHT - 26, y: ROOM_BOTTOM - 22, hp: 1, broken: false },
@@ -235,17 +230,15 @@ export function generateSector1Dungeon(targetRooms = 8): DungeonFloor {
         pods.push({ id: podCounter++, x: ROOM_RIGHT - 26, y: ROOM_TOP + 22, hp: 1, broken: false });
       }
 
-      // Enemy wave scaled gently by room depth
       const enemyCount = Math.min(5, 2 + Math.floor(depth * 0.85) + (Math.random() < 0.4 ? 1 : 0));
       const candidateSpots: Array<{ x: number; y: number }> = [
-        { x: ROOM_CENTER_X - 96, y: ROOM_CENTER_Y - 46 },
-        { x: ROOM_CENTER_X + 96, y: ROOM_CENTER_Y - 46 },
-        { x: ROOM_CENTER_X - 96, y: ROOM_CENTER_Y + 46 },
-        { x: ROOM_CENTER_X + 96, y: ROOM_CENTER_Y + 46 },
-        { x: ROOM_CENTER_X, y: ROOM_CENTER_Y - 52 },
-        { x: ROOM_CENTER_X, y: ROOM_CENTER_Y + 52 },
+        { x: ROOM_CENTER_X - 84, y: ROOM_CENTER_Y - 40 },
+        { x: ROOM_CENTER_X + 84, y: ROOM_CENTER_Y - 40 },
+        { x: ROOM_CENTER_X - 84, y: ROOM_CENTER_Y + 40 },
+        { x: ROOM_CENTER_X + 84, y: ROOM_CENTER_Y + 40 },
+        { x: ROOM_CENTER_X, y: ROOM_CENTER_Y - 46 },
+        { x: ROOM_CENTER_X, y: ROOM_CENTER_Y + 46 },
       ];
-      // Shuffle spots
       for (let i = candidateSpots.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [candidateSpots[i], candidateSpots[j]] = [candidateSpots[j], candidateSpots[i]];

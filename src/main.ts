@@ -1,4 +1,5 @@
 import './style.css';
+import { preloadHDArt } from './assets/artLoader';
 import { getAtlas } from './assets/sprites';
 import { sound } from './engine/audio';
 import { InputManager, VIRTUAL_HEIGHT, VIRTUAL_WIDTH } from './engine/input';
@@ -7,6 +8,8 @@ import { ShopScene } from './scenes/ShopScene';
 import { GameState } from './systems/gameState';
 import type { RunSummary, SceneId } from './types';
 import { UIManager } from './ui/UIManager';
+
+const RENDER_SCALE = 2; // 960x540 native HD pixel-art backing buffer (2x logical 480x270)
 
 class StarlighterGame {
   private canvas: HTMLCanvasElement;
@@ -30,14 +33,17 @@ class StarlighterGame {
     if (!ctx) throw new Error('Unable to acquire 2D canvas context');
 
     this.canvas = canvas;
-    this.canvas.width = VIRTUAL_WIDTH;
-    this.canvas.height = VIRTUAL_HEIGHT;
+    this.canvas.width = VIRTUAL_WIDTH * RENDER_SCALE;
+    this.canvas.height = VIRTUAL_HEIGHT * RENDER_SCALE;
     this.canvas.tabIndex = 0;
     this.ctx = ctx;
     this.ctx.imageSmoothingEnabled = false;
 
-    // Warm up sprite atlas immediately
+    // Warm up fallback pixel atlas & preload HD Moonlighter art assets
     getAtlas();
+    void preloadHDArt().then(() => {
+      this.ui.renderHud();
+    });
 
     this.input = new InputManager(this.canvas);
     this.state = new GameState();
@@ -208,7 +214,8 @@ class StarlighterGame {
       this.dungeonScene.update(dt, this.input);
     }
 
-    // Render pixel-art world
+    // Render 2x HD pixel-art world
+    this.ctx.setTransform(RENDER_SCALE, 0, 0, RENDER_SCALE, 0, 0);
     this.ctx.imageSmoothingEnabled = false;
     if (this.activeScene === 'shop') {
       this.shopScene.render(this.ctx);

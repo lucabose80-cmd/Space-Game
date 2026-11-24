@@ -20,10 +20,10 @@ const SAVE_KEY = 'starlighter_save_v1';
 const SAVE_VERSION = 1;
 
 export const SHOP_PEDESTAL_COORDS: Array<{ id: number; x: number; y: number }> = [
-  { id: 0, x: 144, y: 176 },
-  { id: 1, x: 192, y: 176 },
-  { id: 2, x: 288, y: 176 },
-  { id: 3, x: 336, y: 176 },
+  { id: 0, x: 132, y: 152 },
+  { id: 1, x: 132, y: 198 },
+  { id: 2, x: 360, y: 148 },
+  { id: 3, x: 360, y: 192 },
 ];
 
 export class GameState {

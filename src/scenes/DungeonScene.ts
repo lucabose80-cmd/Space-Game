@@ -1,3 +1,4 @@
+import { getHDArt } from '../assets/artLoader';
 import { drawGlow, drawPixelShadow } from '../assets/pixelArt';
 import { getAtlas } from '../assets/sprites';
 import { getItemDef, rollLootItem } from '../data/items';
@@ -1155,116 +1156,109 @@ export class DungeonScene {
   }
 
   public render(ctx: CanvasRenderingContext2D, input: InputManager): void {
+    const art = getHDArt();
     const atlas = getAtlas();
 
     ctx.save();
     if (this.shakeTimer > 0) {
       const sx = (Math.random() - 0.5) * 2 * this.shakeMag;
       const sy = (Math.random() - 0.5) * 2 * this.shakeMag;
-      ctx.translate(Math.round(sx), Math.round(sy));
+      ctx.translate(sx, sy);
     }
 
-    // Outer deep derelict void
-    ctx.fillStyle = '#0e131f';
-    ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
-
-    // Starship Bulkhead Walls
-    ctx.fillStyle = '#242d3d';
-    ctx.fillRect(ROOM_LEFT - 18, ROOM_TOP - 18, ROOM_RIGHT - ROOM_LEFT + 36, ROOM_BOTTOM - ROOM_TOP + 36);
-    ctx.fillStyle = '#334155';
-    ctx.fillRect(ROOM_LEFT - 14, ROOM_TOP - 14, ROOM_RIGHT - ROOM_LEFT + 28, ROOM_BOTTOM - ROOM_TOP + 28);
-    ctx.fillStyle = '#1b2230';
-    ctx.fillRect(ROOM_LEFT - 4, ROOM_TOP - 4, ROOM_RIGHT - ROOM_LEFT + 8, ROOM_BOTTOM - ROOM_TOP + 8);
-
-    // Deck floor tiles (varied with bioluminescent moss, clipped to room interior!)
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(ROOM_LEFT, ROOM_TOP, ROOM_RIGHT - ROOM_LEFT, ROOM_BOTTOM - ROOM_TOP);
-    ctx.clip();
-    const seed = this.currentRoom.tileSeed;
-    for (let y = ROOM_TOP; y < ROOM_BOTTOM; y += 16) {
-      for (let x = ROOM_LEFT; x < ROOM_RIGHT; x += 16) {
-        const hash = Math.abs(Math.sin(x * 12.9898 + y * 78.233 + seed) * 43758.5453);
-        const frac = hash - Math.floor(hash);
-        const nearEdge =
-          x <= ROOM_LEFT + 16 || x >= ROOM_RIGHT - 32 || y <= ROOM_TOP + 16 || y >= ROOM_BOTTOM - 32;
-        let idx = 0;
-        if (nearEdge && frac < 0.36) idx = 3; // biolum moss near hull edges!
-        else if (frac < 0.14) idx = 1;
-        else if (frac < 0.26) idx = 2;
-        ctx.drawImage(atlas.tiles.deck[idx], x, y);
-      }
+    // 1. High-craft Moonlighter Derelict Starship Room Backdrop (960x540 rendered 1:1!)
+    if (art.dungeonBg) {
+      ctx.drawImage(art.dungeonBg, 0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+    } else {
+      ctx.fillStyle = '#0e131f';
+      ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
     }
-    ctx.restore();
 
-    // Wall conduits & glowing strips
-    ctx.fillStyle = '#14b8a6';
-    ctx.fillRect(ROOM_LEFT + 22, ROOM_TOP - 9, 44, 2);
-    ctx.fillRect(ROOM_RIGHT - 66, ROOM_TOP - 9, 44, 2);
-    ctx.fillRect(ROOM_LEFT + 22, ROOM_BOTTOM + 7, 44, 2);
-    ctx.fillRect(ROOM_RIGHT - 66, ROOM_BOTTOM + 7, 44, 2);
+    // Subtle ambient bioluminescent spores floating in the derelict room
+    for (let s = 0; s < 10; s++) {
+      const sx = ROOM_LEFT + ((s * 73 + this.currentRoom.tileSeed) % (ROOM_RIGHT - ROOM_LEFT));
+      const sy =
+        ROOM_TOP +
+        ((s * 47 + Math.floor(this.time * 8) + this.currentRoom.tileSeed) % (ROOM_BOTTOM - ROOM_TOP));
+      const a = 0.25 + 0.45 * Math.sin(this.time * 2.5 + s);
+      ctx.fillStyle = `rgba(56, 232, 212, ${Math.max(0, a)})`;
+      ctx.fillRect(sx + Math.sin(this.time + s) * 4, sy, 1.5, 1.5);
+    }
 
-    // Airlock Doors (Laser-locked red in combat / Open glowing cyan when cleared!)
+    // 2. Active Airlock Doors (red laser bars when locked / glowing cyan energy when open!)
     this.renderDoors(ctx);
 
-    // Start room Warp Pad OR Boss Victory Portal
+    // 3. Start Room Warp Pad OR Boss Victory Portal
     if (this.currentRoom.type === 'start') {
       this.renderWarpPad(ctx, ROOM_CENTER_X, ROOM_CENTER_Y - 12, '#38e8d4');
     } else if (this.currentRoom.type === 'boss' && this.bossDefeatedInRun) {
       this.renderWarpPad(ctx, ROOM_CENTER_X, ROOM_CENTER_Y, '#fbbf24');
     }
 
-    // Obstacles (pillars, conduits, crates)
+    // 4. Obstacles (pillars, conduits, crates)
     for (const ob of this.currentRoom.obstacles) {
       this.renderObstacle(ctx, ob);
     }
 
-    // Destructible alien Frachtkapseln
+    // 5. Destructible Golden Alien Frachtkapseln
     for (const pod of this.currentRoom.pods) {
       if (!pod.broken) {
-        drawPixelShadow(ctx, pod.x, pod.y + 5, 7, 3);
-        ctx.drawImage(atlas.props.podIntact, Math.round(pod.x - 8), Math.round(pod.y - 7));
-        drawGlow(ctx, pod.x, pod.y - 1, 12, '#fbbf24', 0.18);
+        drawPixelShadow(ctx, pod.x, pod.y + 9, 9, 3.5, 0.48);
+        if (art.podIntact) {
+          ctx.drawImage(art.podIntact, pod.x - 11, pod.y - 13, 22, 24);
+        } else {
+          ctx.drawImage(atlas.props.podIntact, Math.round(pod.x - 8), Math.round(pod.y - 7));
+        }
+        drawGlow(ctx, pod.x, pod.y - 1, 16, '#fbbf24', 0.22);
       } else {
-        ctx.drawImage(atlas.props.podBroken, Math.round(pod.x - 8), Math.round(pod.y - 7));
+        ctx.drawImage(atlas.props.podBroken, Math.round(pod.x - 8), Math.round(pod.y - 5));
       }
     }
 
-    // Ancient Treasure Chest
+    // 6. Ornate Ancient Treasure Chest
     if (this.currentRoom.chest) {
       const ch = this.currentRoom.chest;
-      drawPixelShadow(ctx, ch.x, ch.y + 6, 11, 4);
-      ctx.drawImage(
-        ch.opened ? atlas.props.chestOpen : atlas.props.chestClosed,
-        Math.round(ch.x - 10),
-        Math.round(ch.y - 6),
-      );
+      drawPixelShadow(ctx, ch.x, ch.y + 10, 14, 4.5, 0.5);
+      const chestSpr = ch.opened ? art.chestOpen : art.chestClosed;
+      if (chestSpr) {
+        ctx.drawImage(chestSpr, ch.x - 14, ch.y - 13, 28, 25);
+      } else {
+        ctx.drawImage(
+          ch.opened ? atlas.props.chestOpen : atlas.props.chestClosed,
+          Math.round(ch.x - 10),
+          Math.round(ch.y - 6),
+        );
+      }
       if (!ch.opened) {
-        drawGlow(ctx, ch.x, ch.y - 2, 24, '#fbbf24', 0.32 + Math.sin(this.time * 4) * 0.08);
+        drawGlow(ctx, ch.x, ch.y - 2, 28, '#fbbf24', 0.34 + Math.sin(this.time * 4) * 0.08);
       }
     }
 
-    // Loot Drops
+    // 7. HD Glowing Loot Drops
     for (const d of this.drops) {
       const def = getItemDef(d.itemId);
-      const bob = Math.sin(this.time * 5 + d.x) * 2;
-      drawPixelShadow(ctx, d.x, d.y + 5, 5, 2, 0.35);
-      drawGlow(ctx, d.x, d.y + bob, 14, def.glowColor, 0.38);
-      const spr = atlas.items[d.itemId];
+      const bob = Math.sin(this.time * 5 + d.x) * 2.2;
+      drawPixelShadow(ctx, d.x, d.y + 7, 6, 2.5, 0.42);
+      drawGlow(ctx, d.x, d.y + bob, 16, def.glowColor, 0.4);
+      const spr = art.items[d.itemId] ?? atlas.items[d.itemId];
       if (spr) {
-        ctx.drawImage(spr, Math.round(d.x - 7), Math.round(d.y - 8 + bob), 14, 14);
+        ctx.drawImage(spr, d.x - 9, d.y - 10 + bob, 18, 18);
       }
     }
 
-    // Jetpack Dash Afterimages
+    // 8. Jetpack Dash Afterimages
     for (const a of this.afterimages) {
       ctx.save();
       ctx.globalAlpha = (a.life / a.maxLife) * 0.45;
-      ctx.drawImage(atlas.heroFlash, Math.round(a.x - 8), Math.round(a.y - 10));
+      if (art.heroFlash) {
+        ctx.drawImage(art.heroFlash, a.x - 12, a.y - 16, 24, 28);
+      } else {
+        ctx.drawImage(atlas.heroFlash, Math.round(a.x - 8), Math.round(a.y - 10));
+      }
       ctx.restore();
     }
 
-    // Boss Charge Telegraph Lane (super readable!)
+    // 9. Boss Charge Telegraph Lane
     for (const e of this.enemies) {
       if (e.kind === 'boss' && e.telegraphTimer > 0 && e.phase % 2 === 1) {
         ctx.save();
@@ -1279,15 +1273,17 @@ export class DungeonScene {
       }
     }
 
-    // Enemies
+    // 10. Depth-Sorted Enemies & Player
+    type Drawable = { y: number; draw: () => void };
+    const drawables: Drawable[] = [];
     for (const e of this.enemies) {
-      this.renderEnemy(ctx, e);
+      drawables.push({ y: e.y, draw: () => this.renderEnemy(ctx, e) });
     }
+    drawables.push({ y: this.playerY, draw: () => this.renderPlayer(ctx) });
+    drawables.sort((a, b) => a.y - b.y);
+    for (const d of drawables) d.draw();
 
-    // Player
-    this.renderPlayer(ctx);
-
-    // Plasma Blade Slash Arcs!
+    // 11. Plasma Blade Slash Arcs
     for (const s of this.slashes) {
       const alpha = s.life / s.maxLife;
       ctx.save();
@@ -1305,63 +1301,63 @@ export class DungeonScene {
       ctx.restore();
     }
 
-    // Projectiles
+    // 12. Projectiles
     for (const p of this.projectiles) {
-      drawGlow(ctx, p.x, p.y, 11, p.color, 0.55);
+      drawGlow(ctx, p.x, p.y, 12, p.color, 0.55);
       ctx.fillStyle = p.color;
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(Math.round(p.x - 1), Math.round(p.y - 1), 2, 2);
+      ctx.fillRect(p.x - 1, p.y - 1, 2, 2);
     }
 
-    // Particles
+    // 13. Particles
     for (const p of this.particles) {
       ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
       ctx.fillStyle = p.color;
-      ctx.fillRect(Math.round(p.x), Math.round(p.y), p.size, p.size);
+      ctx.fillRect(p.x, p.y, p.size, p.size);
     }
     ctx.globalAlpha = 1;
 
-    // Warp-Beacon Channel Ring
+    // 14. Warp-Beacon Channel Ring
     if (this.warpChannel > 0.05) {
       const pct = Math.min(1, this.warpChannel / this.warpDuration);
       ctx.save();
       ctx.strokeStyle = '#38e8d4';
       ctx.lineWidth = 2.5;
       ctx.beginPath();
-      ctx.arc(this.playerX, this.playerY, 16, -Math.PI / 2, -Math.PI / 2 + pct * Math.PI * 2);
+      ctx.arc(this.playerX, this.playerY, 17, -Math.PI / 2, -Math.PI / 2 + pct * Math.PI * 2);
       ctx.stroke();
-      drawGlow(ctx, this.playerX, this.playerY, 24, '#38e8d4', 0.35 * pct);
+      drawGlow(ctx, this.playerX, this.playerY, 26, '#38e8d4', 0.35 * pct);
       ctx.restore();
     }
 
-    // Floating Damage & Loot Numbers
-    ctx.font = 'bold 7px Silkscreen, monospace';
+    // 15. Floating Damage & Loot Numbers
+    ctx.font = 'bold 6.5px Silkscreen, monospace';
     ctx.textAlign = 'center';
     for (const f of this.floats) {
       ctx.globalAlpha = Math.max(0, Math.min(1, f.life / 0.4));
       ctx.fillStyle = '#0e131f';
-      ctx.fillText(f.text, Math.round(f.x) + 1, Math.round(f.y) + 1);
+      ctx.fillText(f.text, f.x + 0.8, f.y + 0.8);
       ctx.fillStyle = f.color;
-      ctx.fillText(f.text, Math.round(f.x), Math.round(f.y));
+      ctx.fillText(f.text, f.x, f.y);
     }
     ctx.globalAlpha = 1;
 
-    // Subtle Mouse Aim Reticle
+    // 16. Mouse Aim Reticle
     if (input.isMouseActive() && !input.locked) {
       const m = input.getMousePos();
-      ctx.strokeStyle = 'rgba(56, 232, 212, 0.75)';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(Math.round(m.x - 3.5), Math.round(m.y - 3.5), 7, 7);
+      ctx.strokeStyle = 'rgba(56, 232, 212, 0.8)';
+      ctx.lineWidth = 0.8;
+      ctx.strokeRect(m.x - 3.5, m.y - 3.5, 7, 7);
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(Math.round(m.x), Math.round(m.y), 1, 1);
+      ctx.fillRect(m.x - 0.5, m.y - 0.5, 1, 1);
     }
 
     ctx.restore();
 
-    // Unshaken overlays: Minimap, Boss Bar, Prompt, Room Transition Fade
+    // Unshaken overlays
     this.renderMinimap(ctx);
     this.renderBossBar(ctx);
 
@@ -1378,77 +1374,87 @@ export class DungeonScene {
   private renderDoors(ctx: CanvasRenderingContext2D): void {
     const locked = !this.currentRoom.cleared;
     const doors = this.currentRoom.doors;
+    const pulse = 0.5 + 0.5 * Math.sin(this.time * 5);
 
     const drawH = (x: number, y: number) => {
-      ctx.fillStyle = '#475569';
-      ctx.fillRect(x - 19, y - 7, 38, 14);
-      ctx.fillStyle = locked ? '#2b121b' : '#0b222c';
-      ctx.fillRect(x - 15, y - 5, 30, 10);
       if (locked) {
+        ctx.fillStyle = 'rgba(42, 12, 22, 0.85)';
+        ctx.fillRect(x - 16, y - 5, 32, 10);
         ctx.fillStyle = '#fb7185';
         ctx.fillRect(x - 15, y - 3, 30, 2);
         ctx.fillRect(x - 15, y + 1, 30, 2);
-        drawGlow(ctx, x, y, 22, '#fb7185', 0.35);
+        ctx.fillStyle = '#fff1f2';
+        ctx.fillRect(x - 14, y - 2.5, 28, 0.8);
+        ctx.fillRect(x - 14, y + 1.5, 28, 0.8);
+        drawGlow(ctx, x, y, 26, '#fb7185', 0.42);
       } else {
+        ctx.fillStyle = 'rgba(8, 30, 42, 0.85)';
+        ctx.fillRect(x - 15, y - 5, 30, 10);
         ctx.fillStyle = '#38e8d4';
-        ctx.fillRect(x - 13, y - 1, 26, 2);
-        drawGlow(ctx, x, y, 20, '#38e8d4', 0.26);
+        ctx.fillRect(x - 13, y - 1.5, 26, 3);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(x - 10, y - 0.5, 20, 1);
+        drawGlow(ctx, x, y, 24 + pulse * 4, '#38e8d4', 0.36);
       }
     };
 
     const drawV = (x: number, y: number) => {
-      ctx.fillStyle = '#475569';
-      ctx.fillRect(x - 7, y - 19, 14, 38);
-      ctx.fillStyle = locked ? '#2b121b' : '#0b222c';
-      ctx.fillRect(x - 5, y - 15, 10, 30);
       if (locked) {
+        ctx.fillStyle = 'rgba(42, 12, 22, 0.85)';
+        ctx.fillRect(x - 5, y - 18, 10, 36);
         ctx.fillStyle = '#fb7185';
-        ctx.fillRect(x - 3, y - 15, 2, 30);
-        ctx.fillRect(x + 1, y - 15, 2, 30);
-        drawGlow(ctx, x, y, 22, '#fb7185', 0.35);
+        ctx.fillRect(x - 3, y - 16, 2, 32);
+        ctx.fillRect(x + 1, y - 16, 2, 32);
+        ctx.fillStyle = '#fff1f2';
+        ctx.fillRect(x - 2.5, y - 15, 0.8, 30);
+        ctx.fillRect(x + 1.5, y - 15, 0.8, 30);
+        drawGlow(ctx, x, y, 26, '#fb7185', 0.42);
       } else {
+        ctx.fillStyle = 'rgba(8, 30, 42, 0.85)';
+        ctx.fillRect(x - 5, y - 16, 10, 32);
         ctx.fillStyle = '#38e8d4';
-        ctx.fillRect(x - 1, y - 13, 2, 26);
-        drawGlow(ctx, x, y, 20, '#38e8d4', 0.26);
+        ctx.fillRect(x - 1.5, y - 14, 3, 28);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(x - 0.5, y - 11, 1, 22);
+        drawGlow(ctx, x, y, 24 + pulse * 4, '#38e8d4', 0.36);
       }
     };
 
-    if (doors.north) drawH(ROOM_CENTER_X, ROOM_TOP - 5);
-    if (doors.south) drawH(ROOM_CENTER_X, ROOM_BOTTOM + 5);
-    if (doors.west) drawV(ROOM_LEFT - 5, ROOM_CENTER_Y);
-    if (doors.east) drawV(ROOM_RIGHT + 5, ROOM_CENTER_Y);
+    if (doors.north) drawH(ROOM_CENTER_X, ROOM_TOP - 6);
+    if (doors.south) drawH(ROOM_CENTER_X, ROOM_BOTTOM + 10);
+    if (doors.west) drawV(ROOM_LEFT - 10, ROOM_CENTER_Y);
+    if (doors.east) drawV(ROOM_RIGHT + 10, ROOM_CENTER_Y);
   }
 
   private renderWarpPad(ctx: CanvasRenderingContext2D, x: number, y: number, color: string): void {
     const pulse = 0.5 + 0.5 * Math.sin(this.time * 5);
-    ctx.fillStyle = '#1e293b';
+    ctx.fillStyle = 'rgba(18, 26, 40, 0.9)';
     ctx.beginPath();
-    ctx.arc(x, y, 15, 0, Math.PI * 2);
+    ctx.arc(x, y, 16, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = color;
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(x, y, 11 + pulse * 1.5, 0, Math.PI * 2);
+    ctx.arc(x, y, 12 + pulse * 1.5, 0, Math.PI * 2);
     ctx.stroke();
     ctx.fillStyle = color;
-    ctx.globalAlpha = 0.28 + pulse * 0.22;
+    ctx.globalAlpha = 0.3 + pulse * 0.22;
     ctx.beginPath();
     ctx.arc(x, y, 9, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 1;
-    drawGlow(ctx, x, y, 28, color, 0.36);
+    drawGlow(ctx, x, y, 32, color, 0.4);
   }
 
   private renderObstacle(ctx: CanvasRenderingContext2D, ob: DungeonRoom['obstacles'][number]): void {
     const atlas = getAtlas();
     if (ob.kind === 'crate') {
-      drawPixelShadow(ctx, ob.x + ob.w / 2, ob.y + ob.h + 1, ob.w / 2, 3, 0.35);
+      drawPixelShadow(ctx, ob.x + ob.w / 2, ob.y + ob.h + 1, ob.w / 2, 3, 0.4);
       ctx.drawImage(atlas.props.crate, ob.x, ob.y, ob.w, ob.h);
       return;
     }
 
-    // Beveled metallic bulkhead pillar / glowing conduit housing
-    ctx.fillStyle = '#0f1420';
+    ctx.fillStyle = 'rgba(10, 14, 24, 0.72)';
     ctx.fillRect(ob.x - 1, ob.y + 3, ob.w + 2, ob.h);
     ctx.fillStyle = '#1e2738';
     ctx.fillRect(ob.x, ob.y, ob.w, ob.h);
@@ -1456,7 +1462,6 @@ export class DungeonScene {
     ctx.fillRect(ob.x + 1, ob.y + 1, ob.w - 2, ob.h - 4);
     ctx.fillStyle = '#64748b';
     ctx.fillRect(ob.x + 2, ob.y + 2, ob.w - 4, 4);
-    // Metallic corner rivets
     ctx.fillStyle = '#94a3b8';
     ctx.fillRect(ob.x + 3, ob.y + 3, 2, 2);
     ctx.fillRect(ob.x + ob.w - 5, ob.y + 3, 2, 2);
@@ -1470,7 +1475,7 @@ export class DungeonScene {
       ctx.fillRect(ob.x + 6, ob.y + Math.floor(ob.h / 2) - 2, ob.w - 12, 3);
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(ob.x + 8, ob.y + Math.floor(ob.h / 2) - 1, ob.w - 16, 1);
-      drawGlow(ctx, ob.x + ob.w / 2, ob.y + ob.h / 2, 20, '#38e8d4', 0.28);
+      drawGlow(ctx, ob.x + ob.w / 2, ob.y + ob.h / 2, 22, '#38e8d4', 0.3);
     } else {
       ctx.fillStyle = '#334155';
       ctx.fillRect(ob.x + 5, ob.y + 8, ob.w - 10, ob.h - 14);
@@ -1478,34 +1483,63 @@ export class DungeonScene {
   }
 
   private renderEnemy(ctx: CanvasRenderingContext2D, e: Enemy): void {
+    const art = getHDArt();
     const atlas = getAtlas();
     const frame = Math.floor(e.anim) % 2;
 
     if (e.kind === 'boss') {
-      drawPixelShadow(ctx, e.x, e.y + 12, 14, 5);
-      const spr = e.flashTimer > 0 ? atlas.bossFlash : atlas.boss[e.telegraphTimer > 0 ? 1 : frame];
-      ctx.drawImage(spr, Math.round(e.x - 14), Math.round(e.y - 13));
-      drawGlow(ctx, e.x, e.y, 26, e.telegraphTimer > 0 ? '#fb7185' : '#fb923c', 0.35);
+      const hover = Math.sin(this.time * 3.5) * 2;
+      drawPixelShadow(ctx, e.x, e.y + 18, 22, 7, 0.55);
+      const spr = e.flashTimer > 0 ? art.bossFlash ?? atlas.bossFlash : art.boss ?? atlas.boss[frame];
+      if (art.boss) {
+        ctx.drawImage(spr, e.x - 26, e.y - 28 + hover, 52, 50);
+      } else {
+        ctx.drawImage(spr, Math.round(e.x - 14), Math.round(e.y - 13));
+      }
+      drawGlow(ctx, e.x, e.y + hover, 34, e.telegraphTimer > 0 ? '#fb7185' : '#fb923c', 0.42);
       return;
     }
 
-    drawPixelShadow(ctx, e.x, e.y + 6, 7, 3);
-    let spr: HTMLCanvasElement;
+    drawPixelShadow(ctx, e.x, e.y + 9, 8.5, 3.2, 0.48);
+
     if (e.kind === 'slime') {
-      spr = e.flashTimer > 0 ? atlas.slimeFlash : atlas.slime[frame];
+      const squish = Math.sin(e.anim * 1.4) * 0.1;
+      const spr = e.flashTimer > 0 ? art.slimeFlash ?? atlas.slimeFlash : art.slime ?? atlas.slime[frame];
+      if (art.slime) {
+        ctx.save();
+        ctx.translate(e.x, e.y + 9);
+        ctx.scale(1 + squish, 1 - squish);
+        ctx.drawImage(spr, -11, -20, 22, 21);
+        ctx.restore();
+      } else {
+        ctx.drawImage(spr, Math.round(e.x - 8), Math.round(e.y - 8));
+      }
+      drawGlow(ctx, e.x, e.y, 14, '#c084fc', 0.22);
     } else if (e.kind === 'drone') {
-      const hover = Math.sin(this.time * 6 + e.id) * 2;
-      spr = e.flashTimer > 0 ? atlas.droneFlash : atlas.drone[e.telegraphTimer > 0 ? 1 : 0];
-      ctx.drawImage(spr, Math.round(e.x - 8), Math.round(e.y - 9 + hover));
-      if (e.telegraphTimer > 0) drawGlow(ctx, e.x, e.y + hover, 16, '#fb7185', 0.48);
-      this.renderEnemyMiniHp(ctx, e);
-      return;
+      const hover = Math.sin(this.time * 6 + e.id) * 2.4;
+      const spr = e.flashTimer > 0 ? art.droneFlash ?? atlas.droneFlash : art.drone ?? atlas.drone[0];
+      if (art.drone) {
+        ctx.drawImage(spr, e.x - 11, e.y - 12 + hover, 22, 22);
+      } else {
+        ctx.drawImage(spr, Math.round(e.x - 8), Math.round(e.y - 9 + hover));
+      }
+      if (e.telegraphTimer > 0) drawGlow(ctx, e.x, e.y + hover, 18, '#fb7185', 0.55);
+      else drawGlow(ctx, e.x, e.y + hover, 13, '#38e8d4', 0.22);
     } else {
-      spr = e.flashTimer > 0 ? atlas.turretFlash : atlas.turret[e.telegraphTimer > 0 ? 1 : 0];
-      if (e.telegraphTimer > 0) drawGlow(ctx, e.x, e.y, 16, '#fbbf24', 0.45);
+      const spr =
+        e.flashTimer > 0
+          ? art.turretFlash ?? atlas.turretFlash
+          : e.telegraphTimer > 0
+            ? art.turret1 ?? atlas.turret[1]
+            : art.turret0 ?? atlas.turret[0];
+      if (art.turret0) {
+        ctx.drawImage(spr, e.x - 12, e.y - 13, 24, 24);
+      } else {
+        ctx.drawImage(spr, Math.round(e.x - 8), Math.round(e.y - 8));
+      }
+      if (e.telegraphTimer > 0) drawGlow(ctx, e.x, e.y, 20, '#fbbf24', 0.5);
     }
 
-    ctx.drawImage(spr, Math.round(e.x - 8), Math.round(e.y - 8));
     this.renderEnemyMiniHp(ctx, e);
   }
 
@@ -1513,28 +1547,50 @@ export class DungeonScene {
     if (e.hp >= e.maxHp) return;
     const pct = Math.max(0, e.hp / e.maxHp);
     ctx.fillStyle = '#0e131f';
-    ctx.fillRect(Math.round(e.x - 9), Math.round(e.y - 13), 18, 3);
+    ctx.fillRect(e.x - 10, e.y - 16, 20, 3);
     ctx.fillStyle = '#fb7185';
-    ctx.fillRect(Math.round(e.x - 8), Math.round(e.y - 12), Math.round(16 * pct), 1);
+    ctx.fillRect(e.x - 9, e.y - 15, 18 * pct, 1.2);
   }
 
   private renderPlayer(ctx: CanvasRenderingContext2D): void {
+    const art = getHDArt();
     const atlas = getAtlas();
-    // Blink slightly during post-hit i-frames
     if (this.invulnTimer > 0 && this.dashTimer <= 0 && Math.floor(this.time * 24) % 2 === 0) {
       return;
     }
 
-    const frame = Math.floor(this.walkAnim) % 2;
-    let spr = atlas.heroDown[frame];
-    if (this.facing === 'up') spr = atlas.heroUp[frame];
-    else if (this.facing === 'right') spr = atlas.heroRight[frame];
-    else if (this.facing === 'left') spr = atlas.heroLeft[frame];
-    if (this.playerFlashTimer > 0) spr = atlas.heroFlash;
+    const walking = this.walkAnim > 0;
+    const bob = walking ? Math.abs(Math.sin(this.walkAnim)) * 2.2 : Math.sin(this.time * 3) * 0.4;
+    const tilt = walking ? Math.sin(this.walkAnim) * 0.05 : 0;
 
-    drawPixelShadow(ctx, this.playerX, this.playerY + 7, 6, 3);
-    ctx.drawImage(spr, Math.round(this.playerX - 8), Math.round(this.playerY - 10));
-    drawGlow(ctx, this.playerX, this.playerY, 20, '#38e8d4', 0.14);
+    drawPixelShadow(ctx, this.playerX, this.playerY + 11, 8, 3.2, 0.5);
+
+    const hdSpr = this.playerFlashTimer > 0
+      ? art.heroFlash
+      : this.facing === 'up'
+        ? art.heroUp
+        : this.facing === 'right'
+          ? art.heroRight
+          : this.facing === 'left'
+            ? art.heroLeft
+            : art.heroDown;
+
+    if (hdSpr) {
+      ctx.save();
+      ctx.translate(this.playerX, this.playerY + 10 - bob);
+      ctx.rotate(tilt);
+      ctx.drawImage(hdSpr, -12, -26, 24, 28);
+      ctx.restore();
+    } else {
+      const frame = Math.floor(this.walkAnim) % 2;
+      let spr = atlas.heroDown[frame];
+      if (this.facing === 'up') spr = atlas.heroUp[frame];
+      else if (this.facing === 'right') spr = atlas.heroRight[frame];
+      else if (this.facing === 'left') spr = atlas.heroLeft[frame];
+      if (this.playerFlashTimer > 0) spr = atlas.heroFlash;
+      ctx.drawImage(spr, Math.round(this.playerX - 8), Math.round(this.playerY - 10));
+    }
+    drawGlow(ctx, this.playerX, this.playerY, 22, '#38e8d4', 0.16);
   }
 
   private renderMinimap(ctx: CanvasRenderingContext2D): void {
@@ -1545,11 +1601,10 @@ export class DungeonScene {
     ctx.fillStyle = 'rgba(10, 15, 26, 0.88)';
     ctx.fillRect(cx - 22, cy - 17, 44, 34);
     ctx.strokeStyle = '#475569';
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 0.8;
     ctx.strokeRect(cx - 21.5, cy - 16.5, 43, 33);
 
     for (const room of this.floor.rooms.values()) {
-      // Show visited rooms OR rooms adjacent to a visited room
       const adjVisited =
         room.visited ||
         this.floor.rooms.get(roomKey(room.gx + 1, room.gy))?.visited ||
@@ -1584,40 +1639,40 @@ export class DungeonScene {
     const pct = Math.max(0, boss.hp / boss.maxHp);
     const bw = 220;
     const bx = (VIRTUAL_WIDTH - bw) / 2;
-    const by = VIRTUAL_HEIGHT - 24;
+    const by = VIRTUAL_HEIGHT - 26;
 
-    ctx.fillStyle = 'rgba(12, 16, 26, 0.9)';
+    ctx.fillStyle = 'rgba(12, 16, 26, 0.92)';
     ctx.fillRect(bx - 4, by - 11, bw + 8, 19);
     ctx.strokeStyle = '#fb923c';
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 0.8;
     ctx.strokeRect(bx - 3.5, by - 10.5, bw + 7, 18);
 
     ctx.fillStyle = '#fde047';
-    ctx.font = 'bold 6px Silkscreen, monospace';
+    ctx.font = 'bold 5.5px Silkscreen, monospace';
     ctx.textAlign = 'center';
     ctx.fillText('CORE-WÄCHTER MK-IV', VIRTUAL_WIDTH / 2, by - 3);
 
     ctx.fillStyle = '#2a1822';
     ctx.fillRect(bx, by, bw, 5);
     ctx.fillStyle = '#f97316';
-    ctx.fillRect(bx, by, Math.round(bw * pct), 5);
+    ctx.fillRect(bx, by, bw * pct, 5);
     ctx.fillStyle = '#fde047';
-    ctx.fillRect(bx, by, Math.round(bw * pct), 1);
+    ctx.fillRect(bx, by, bw * pct, 1.2);
   }
 
   private renderPrompt(ctx: CanvasRenderingContext2D, text: string, x: number, y: number): void {
-    ctx.font = 'bold 6px Silkscreen, monospace';
-    const w = Math.max(54, Math.ceil(ctx.measureText(text).width) + 16);
-    const px = Math.max(8, Math.min(VIRTUAL_WIDTH - w - 8, Math.round(x - w / 2)));
-    const py = Math.max(8, Math.round(y - 8));
+    ctx.font = 'bold 5.5px Silkscreen, monospace';
+    const w = Math.max(54, Math.ceil(ctx.measureText(text).width) + 14);
+    const px = Math.max(8, Math.min(VIRTUAL_WIDTH - w - 8, x - w / 2));
+    const py = Math.max(8, y - 8);
 
-    ctx.fillStyle = 'rgba(14, 19, 32, 0.92)';
+    ctx.fillStyle = 'rgba(11, 16, 28, 0.94)';
     ctx.fillRect(px, py, w, 12);
     ctx.strokeStyle = '#38e8d4';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(px + 0.5, py + 0.5, w - 1, 11);
+    ctx.lineWidth = 0.8;
+    ctx.strokeRect(px, py, w, 12);
     ctx.fillStyle = '#f8fafc';
     ctx.textAlign = 'center';
-    ctx.fillText(text, px + w / 2, py + 8.5);
+    ctx.fillText(text, px + w / 2, py + 8);
   }
 }

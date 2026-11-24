@@ -1,4 +1,4 @@
-import { getAtlas } from '../assets/sprites';
+import { getHDArt } from '../assets/artLoader';
 import { getItemDef, ITEMS, RARITY_META } from '../data/items';
 import { UPGRADE_TRACKS } from '../data/upgrades';
 import { sound } from '../engine/audio';
@@ -165,6 +165,14 @@ export class UIManager {
     this.hudEl.innerHTML = `
       <div class="hud-top">
         <div class="hud-vitals">
+          ${
+            this.currentScene === 'shop'
+              ? `<div style="display:flex;justify-content:space-between;font-family:var(--font-pixel);font-size:9px;color:${this.shopIsOpen ? 'var(--accent-emerald)' : 'var(--accent-amber)'};margin-bottom:1px">
+                  <span>TAG ${this.state.day} · PORT SOLARIS</span>
+                  <span>${this.shopIsOpen ? 'OFFEN' : 'ZU'}</span>
+                </div>`
+              : ''
+          }
           <div class="hud-bar-row">
             <span class="hud-bar-label">HP</span>
             <div class="hud-bar-track">
@@ -186,9 +194,11 @@ export class UIManager {
         </div>
 
         <div class="hud-center">
-          <div class="hud-location-pill ${this.currentScene === 'shop' && this.shopIsOpen ? 'shop-open' : ''}">
-            ${locationText}
-          </div>
+          ${
+            this.currentScene === 'dungeon'
+              ? `<div class="hud-location-pill">${locationText}</div>`
+              : ''
+          }
         </div>
 
         <div class="hud-actions ${this.currentScene === 'dungeon' ? 'dungeon-offset' : ''}">
@@ -268,7 +278,7 @@ export class UIManager {
   }
 
   private renderInventoryModal(): void {
-    const atlas = getAtlas();
+    const art = getHDArt();
 
     const renderSlot = (container: ContainerId, index: number, isSafe = false): string => {
       const stack = this.state.inventory[container][index];
@@ -288,7 +298,7 @@ export class UIManager {
                 : '';
         inner = `
           ${modDot}
-          <img class="pixel-icon" src="${atlas.itemDataUrls[stack.itemId]}" alt="${def.name}" />
+          <img class="pixel-icon" src="${art.itemUrls[stack.itemId]}" alt="${def.name}" />
           <span class="slot-qty">${stack.qty}</span>
         `;
         title = `${def.name} (x${stack.qty})`;
@@ -317,7 +327,7 @@ export class UIManager {
           <div class="inspector-box">
             <div class="inspector-head">
               <div class="inspector-icon-wrap">
-                <img class="pixel-icon" src="${atlas.itemDataUrls[selDef.id]}" alt="${selDef.name}" />
+                <img class="pixel-icon" src="${art.itemUrls[selDef.id]}" alt="${selDef.name}" />
               </div>
               <div>
                 <div style="font-family:var(--font-pixel);font-size:12px;color:#fff">${selDef.name}</div>
@@ -419,7 +429,7 @@ export class UIManager {
             return `
               <div class="codex-card">
                 <div class="inspector-icon-wrap">
-                  <img class="pixel-icon" src="${atlas.itemDataUrls[item.id]}" alt="${item.name}" />
+                  <img class="pixel-icon" src="${art.itemUrls[item.id]}" alt="${item.name}" />
                 </div>
                 <div style="flex:1;min-width:0">
                   <div style="display:flex;justify-content:space-between;align-items:center;gap:6px">
@@ -567,7 +577,7 @@ export class UIManager {
   private renderPedestalModal(): void {
     const ped = this.activePedestal;
     if (!ped) return;
-    const atlas = getAtlas();
+    const art = getHDArt();
 
     // Aggregate counts by itemId across backpack + chest (plus whatever is already on this pedestal)
     const counts = new Map<string, number>();
@@ -593,7 +603,7 @@ export class UIManager {
               const total = counts.get(id) ?? 0;
               return `
                 <button class="picker-row ${this.pickedItemId === id ? 'selected' : ''}" data-item-id="${id}">
-                  <img src="${atlas.itemDataUrls[id]}" alt="${def.name}" />
+                  <img src="${art.itemUrls[id]}" alt="${def.name}" />
                   <div style="flex:1">
                     <div style="font-family:var(--font-pixel);font-size:11px;color:${rarity.color}">${def.name}</div>
                     <div style="font-size:11px;color:var(--text-muted)">Verfügbar: ${total}×</div>
@@ -759,7 +769,7 @@ export class UIManager {
 
   // ==================== EXO-WERKBANK UPGRADE MODAL ====================
   public openWorkbenchModal(): void {
-    const atlas = getAtlas();
+    const art = getHDArt();
 
     const cardsHtml = UPGRADE_TRACKS.map((track) => {
       const curLvl = this.state.upgrades[track.key];
@@ -773,7 +783,7 @@ export class UIManager {
           <div class="upgrade-card">
             <div class="upgrade-left">
               <div class="inspector-icon-wrap">
-                <img class="pixel-icon" src="${atlas.itemDataUrls[track.iconItemId]}" alt="${track.title}" />
+                <img class="pixel-icon" src="${art.itemUrls[track.iconItemId]}" alt="${track.title}" />
               </div>
               <div>
                 <div style="font-family:var(--font-pixel);font-size:11px;color:var(--accent-emerald)">
@@ -807,7 +817,7 @@ export class UIManager {
         <div class="upgrade-card">
           <div class="upgrade-left">
             <div class="inspector-icon-wrap">
-              <img class="pixel-icon" src="${atlas.itemDataUrls[track.iconItemId]}" alt="${track.title}" />
+              <img class="pixel-icon" src="${art.itemUrls[track.iconItemId]}" alt="${track.title}" />
             </div>
             <div>
               <div style="font-family:var(--font-pixel);font-size:11px;color:#fff">
