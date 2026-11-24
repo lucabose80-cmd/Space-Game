@@ -50,6 +50,12 @@ export interface HDArtAssets {
   slimeFlash: HTMLCanvasElement | null;
   drone: HTMLCanvasElement | null;
   droneFlash: HTMLCanvasElement | null;
+  droneArc: HTMLCanvasElement | null;
+  droneArcFlash: HTMLCanvasElement | null;
+  slimeMagma: HTMLCanvasElement | null;
+  slimeMagmaFlash: HTMLCanvasElement | null;
+  phaseStalker: HTMLCanvasElement | null;
+  phaseStalkerFlash: HTMLCanvasElement | null;
   shieldDrone: HTMLCanvasElement | null;
   shieldDroneFlash: HTMLCanvasElement | null;
   sporeSpitter: HTMLCanvasElement | null;
@@ -133,6 +139,12 @@ const art: HDArtAssets = {
   slimeFlash: null,
   drone: null,
   droneFlash: null,
+  droneArc: null,
+  droneArcFlash: null,
+  slimeMagma: null,
+  slimeMagmaFlash: null,
+  phaseStalker: null,
+  phaseStalkerFlash: null,
   shieldDrone: null,
   shieldDroneFlash: null,
   sporeSpitter: null,
@@ -222,6 +234,9 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
     chestOpenImg,
     slimeImg,
     droneImg,
+    droneArcImg,
+    slimeMagmaImg,
+    phaseStalkerImg,
     shieldDroneImg,
     sporeSpitterImg,
     turret0Img,
@@ -275,6 +290,9 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
     loadImage('/art/sprites/chest_open.png'),
     loadImage('/art/sprites/slime.png'),
     loadImage('/art/sprites/drone.png'),
+    loadImage('/art/sprites/enemy_drone_arc.png'),
+    loadImage('/art/sprites/enemy_slime_magma.png'),
+    loadImage('/art/sprites/enemy_phase_stalker.png'),
     loadImage('/art/sprites/enemy_shield_drone.png'),
     loadImage('/art/sprites/enemy_spore_spitter.png'),
     loadImage('/art/sprites/turret_0.png'),
@@ -340,6 +358,12 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
   art.slimeFlash = art.slime ? makeFlashSilhouette(art.slime, '#ffffff') : null;
   art.drone = imgToCanvas(droneImg);
   art.droneFlash = art.drone ? makeFlashSilhouette(art.drone, '#ffffff') : null;
+  art.droneArc = imgToCanvas(droneArcImg);
+  art.droneArcFlash = art.droneArc ? makeFlashSilhouette(art.droneArc, '#ffffff') : null;
+  art.slimeMagma = imgToCanvas(slimeMagmaImg);
+  art.slimeMagmaFlash = art.slimeMagma ? makeFlashSilhouette(art.slimeMagma, '#ffffff') : null;
+  art.phaseStalker = imgToCanvas(phaseStalkerImg);
+  art.phaseStalkerFlash = art.phaseStalker ? makeFlashSilhouette(art.phaseStalker, '#ffffff') : null;
   art.shieldDrone = imgToCanvas(shieldDroneImg);
   art.shieldDroneFlash = art.shieldDrone ? makeFlashSilhouette(art.shieldDrone, '#ffffff') : null;
   art.sporeSpitter = imgToCanvas(sporeSpitterImg);

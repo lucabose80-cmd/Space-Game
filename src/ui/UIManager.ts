@@ -17,6 +17,7 @@ import {
 import type { GameState } from '../systems/gameState';
 import {
   addItemAnywhere,
+  addItemToBackpack,
   countBackpackItems,
   countItemTotal,
   depositAllCargoToChest,
@@ -28,6 +29,7 @@ import {
 } from '../systems/inventory';
 import type {
   CompanionId,
+  ItemStack,
   MusicTrack,
   PedestalSlot,
   RunSummary,
@@ -35,6 +37,7 @@ import type {
   UpgradeKey,
   WeaponId,
 } from '../types';
+import type { RoomChest } from '../world/dungeonGen';
 
 export interface UIHooks {
   onStartNewGame: () => void;
@@ -1869,6 +1872,298 @@ export class UIManager {
         this.toast(`♫ Jukebox spielt jetzt: ${MUSIC_TRACK_META[tid].title}`, 'good');
         this.openJukeboxModal();
       });
+    });
+  }
+
+  // ==================== INTERAKTIVE DUNGEON-RELIKT-TRUHE (MOONLIGHTER-STYLE) ====================
+  private activeDungeonChest: RoomChest | null = null;
+  private chestSelected: { side: 'loot' | 'cargo'; index: number } | null = null;
+
+  public openDungeonChestModal(chest: RoomChest): void {
+    if (!chest.slots) {
+      chest.slots = new Array(8).fill(null);
+    }
+    this.activeDungeonChest = chest;
+    // Auto-select first available item in the loot chest so details are immediately visible!
+    const firstIdx = chest.slots.findIndex((s) => s !== null);
+    this.chestSelected = firstIdx >= 0 ? { side: 'loot', index: firstIdx } : null;
+    this.renderDungeonChestModal();
+  }
+
+  private renderDungeonChestModal(): void {
+    const chest = this.activeDungeonChest;
+    if (!chest || !chest.slots) return;
+    const lootSlots = chest.slots;
+    const cargoSlots = this.state.inventory.cargo;
+    const art = getHDArt();
+
+    const renderSlot = (side: 'loot' | 'cargo', index: number, stack: ItemStack | null): string => {
+      const isSelected = this.chestSelected?.side === side && this.chestSelected?.index === index;
+      let inner = '';
+      let title = 'Leerer Slot';
+      if (stack) {
+        const def = getItemDef(stack.itemId);
+        let modBadge = '';
+        if (def.modifier === 'warp_anchor') {
+          modBadge = `<span class="slot-mod-badge" style="background:#34d399" title="Warp-Anker (→)">→</span>`;
+        } else if (def.modifier === 'mirror_clone') {
+          modBadge = `<span class="slot-mod-badge" style="background:#38e8d4" title="Klon-Matrix (↑)">↑</span>`;
+        } else if (def.modifier === 'row_curse') {
+          const unsafe = side === 'cargo' && index >= 5;
+          modBadge = `<span class="slot-mod-badge" style="background:${unsafe ? '#fb7185' : '#c084fc'}" title="Phasen-Fluch (▲)">▲</span>`;
+        } else if (def.modifier === 'volatile_boost') {
+          modBadge = `<span class="slot-mod-badge" style="background:#fbbf24" title="Resonanz (←)">←</span>`;
+        } else if (def.modifier === 'fragile') {
+          modBadge = `<span class="slot-mod-dot" style="background:#fb7185" title="Zerbrechlich"></span>`;
+        }
+        const pinNeed = this.state.getPinnedItemNeed(stack.itemId);
+        const pinBadge = pinNeed
+          ? `<span class="slot-pin-badge" title="Merkliste (${pinNeed.owned}/${pinNeed.required})">📌</span>`
+          : '';
+        inner = `
+          ${pinBadge}
+          ${modBadge}
+          <img class="pixel-icon" src="${art.itemUrls[stack.itemId]}" alt="${def.name}" />
+          <span class="slot-qty">${stack.qty}</span>
+        `;
+        title = `${def.name} (x${stack.qty})${pinNeed ? ` · 📌 Gebraucht (${pinNeed.owned}/${pinNeed.required})` : ''}`;
+      }
+      return `
+        <button class="inv-slot ${side === 'loot' ? 'safe' : ''} ${isSelected ? 'selected' : ''}"
+          data-side="${side}" data-index="${index}" title="${title}">
+          ${inner}
+        </button>
+      `;
+    };
+
+    const selStack = this.chestSelected
+      ? this.chestSelected.side === 'loot'
+        ? lootSlots[this.chestSelected.index]
+        : cargoSlots[this.chestSelected.index]
+      : null;
+    const selDef = selStack ? getItemDef(selStack.itemId) : null;
+    const selRarity = selDef ? RARITY_META[selDef.rarity] : null;
+    const selEntry = selDef ? this.state.codex[selDef.id] : null;
+    const selPin = selDef ? this.state.getPinnedItemNeed(selDef.id) : null;
+    const lootRemaining = lootSlots.reduce((acc, s) => acc + (s ? s.qty : 0), 0);
+
+    const inspectorHtml =
+      selDef && selStack && selRarity && selEntry
+        ? `
+        <div class="inspector-box" style="margin-top:10px">
+          <div class="inspector-head">
+            <div class="inspector-icon-wrap" style="border-color:${selRarity.border}">
+              <img class="pixel-icon" src="${art.itemUrls[selDef.id]}" alt="${selDef.name}" />
+            </div>
+            <div>
+              <div style="font-family:var(--font-pixel);font-size:11.5px;color:#fff">${selDef.name}</div>
+              <span class="rarity-badge" style="color:${selRarity.color};background:${selRarity.bg};border-color:${selRarity.border}">
+                ${selRarity.label}
+              </span>
+            </div>
+          </div>
+          <p style="font-size:12px;color:var(--text-muted);line-height:1.4">${selDef.description}</p>
+          ${
+            selPin
+              ? `<div class="modifier-box" style="border-left-color:#fbbf24;color:#fde047">
+                   📌 <strong>Merkliste (${selPin.owned}/${selPin.required}):</strong> Gebraucht für ${selPin.recipeTitles.join(', ')}
+                 </div>`
+              : ''
+          }
+          ${selDef.modifierLabel ? `<div class="modifier-box">⚡ ${selDef.modifierLabel}</div>` : ''}
+          <div style="font-size:11px;color:var(--text-muted)">
+            ${
+              selEntry.maxFairPrice !== null
+                ? `Bekannter Fair-Preis: <strong style="color:var(--accent-emerald)">${selEntry.minFairPrice}–${selEntry.maxFairPrice} Cr</strong>`
+                : 'Marktwert noch unbekannt — im Shop testen!'
+            }
+          </div>
+          <button id="btn-chest-quick-move" class="btn ${this.chestSelected?.side === 'loot' ? 'btn-amber' : ''}" style="width:100%;margin-top:4px">
+            ${this.chestSelected?.side === 'loot' ? '→ In Rucksack nehmen' : '← In Truhe zurücklassen'}
+          </button>
+        </div>
+      `
+        : `
+        <div class="inspector-box" style="margin-top:10px;text-align:center;color:var(--text-muted);font-size:12px">
+          Klicke auf einen Slot, um Relikte gezielt mitzunehmen, gegen Schrott aus dem Rucksack zu tauschen oder zurückzulassen!
+        </div>
+      `;
+
+    this.showModalHtml(`
+      <div class="modal-window">
+        <div class="modal-header">
+          <span class="modal-title" style="color:var(--accent-amber)">RELIKT-TRUHE · BEUTE WÄHLEN</span>
+          <button id="modal-close-btn" class="modal-close">ESC ✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="inv-layout">
+            <div>
+              <div class="section-label">
+                <span>SCHATZTRUHE (${lootRemaining} ITEMS)</span>
+                <span style="color:var(--accent-amber)">Bleibt im Raum liegen</span>
+              </div>
+              <div class="slot-grid" style="grid-template-columns:repeat(4,1fr)">
+                ${lootSlots.map((s, i) => renderSlot('loot', i, s)).join('')}
+              </div>
+              <div style="display:flex;gap:8px;margin-top:8px">
+                <button id="btn-chest-take-all" class="btn btn-primary" style="flex:1" ${lootRemaining > 0 ? '' : 'disabled'}>
+                  Alles mitnehmen
+                </button>
+                <button id="btn-chest-done" class="btn">Fertig</button>
+              </div>
+              ${inspectorHtml}
+            </div>
+            <div>
+              <div class="section-label">
+                <span>EXPEDITIONS-RUCKSACK (${countBackpackItems(this.state.inventory)} Items)</span>
+                <span style="color:var(--accent-coral)">Klick zum Tauschen</span>
+              </div>
+              <div class="slot-grid">
+                ${cargoSlots.map((s, i) => renderSlot('cargo', i, s)).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `);
+
+    const swapChestSlots = (
+      fromSide: 'loot' | 'cargo',
+      fromIdx: number,
+      toSide: 'loot' | 'cargo',
+      toIdx: number,
+    ): void => {
+      const srcArr = fromSide === 'loot' ? lootSlots : cargoSlots;
+      const dstArr = toSide === 'loot' ? lootSlots : cargoSlots;
+      const src = srcArr[fromIdx];
+      const dst = dstArr[toIdx];
+      if (!src) return;
+      if (dst && dst.itemId === src.itemId) {
+        const maxStack = getItemDef(src.itemId).maxStack;
+        const space = maxStack - dst.qty;
+        if (space > 0) {
+          const move = Math.min(space, src.qty);
+          dst.qty += move;
+          src.qty -= move;
+          if (src.qty <= 0) srcArr[fromIdx] = null;
+          return;
+        }
+      }
+      dstArr[toIdx] = src;
+      srcArr[fromIdx] = dst;
+    };
+
+    this.modalEl.querySelectorAll<HTMLElement>('.inv-slot').forEach((el) => {
+      el.addEventListener('click', () => {
+        const side = el.dataset.side as 'loot' | 'cargo';
+        const index = Number(el.dataset.index);
+        const arr = side === 'loot' ? lootSlots : cargoSlots;
+        if (!this.chestSelected) {
+          if (arr[index]) {
+            this.chestSelected = { side, index };
+            sound.playUiClick();
+            this.renderDungeonChestModal();
+          }
+        } else if (this.chestSelected.side === side && this.chestSelected.index === index) {
+          this.chestSelected = null;
+          sound.playUiClick();
+          this.renderDungeonChestModal();
+        } else {
+          swapChestSlots(this.chestSelected.side, this.chestSelected.index, side, index);
+          this.chestSelected = null;
+          sound.playPickup();
+          this.state.save();
+          this.renderHud();
+          this.renderDungeonChestModal();
+        }
+      });
+    });
+
+    this.modalEl.querySelector('#btn-chest-quick-move')?.addEventListener('click', () => {
+      if (!this.chestSelected) return;
+      const { side, index } = this.chestSelected;
+      if (side === 'loot') {
+        const stack = lootSlots[index];
+        if (!stack) return;
+        const rem = addItemToBackpack(this.state.inventory, stack.itemId, stack.qty);
+        if (rem < stack.qty) {
+          sound.playPickup();
+          if (rem === 0) lootSlots[index] = null;
+          else stack.qty = rem;
+          this.chestSelected = null;
+          this.state.save();
+          this.renderHud();
+          this.renderDungeonChestModal();
+        } else {
+          sound.playReaction('expensive');
+          this.toast('Rucksack ist voll! Klicke auf ein Rucksack-Item, um es in der Truhe zu tauschen.', 'warn');
+        }
+      } else {
+        const stack = cargoSlots[index];
+        if (!stack) return;
+        let rem = stack.qty;
+        const maxStack = getItemDef(stack.itemId).maxStack;
+        for (const s of lootSlots) {
+          if (s && s.itemId === stack.itemId && s.qty < maxStack && rem > 0) {
+            const take = Math.min(maxStack - s.qty, rem);
+            s.qty += take;
+            rem -= take;
+          }
+        }
+        for (let i = 0; i < lootSlots.length && rem > 0; i++) {
+          if (!lootSlots[i]) {
+            const take = Math.min(maxStack, rem);
+            lootSlots[i] = { itemId: stack.itemId, qty: take };
+            rem -= take;
+          }
+        }
+        if (rem < stack.qty) {
+          sound.playUiClick();
+          if (rem === 0) cargoSlots[index] = null;
+          else stack.qty = rem;
+          this.chestSelected = null;
+          this.state.save();
+          this.renderHud();
+          this.renderDungeonChestModal();
+        } else {
+          sound.playReaction('expensive');
+          this.toast('Truhe ist voll!', 'warn');
+        }
+      }
+    });
+
+    this.modalEl.querySelector('#btn-chest-take-all')?.addEventListener('click', () => {
+      let moved = 0;
+      let full = false;
+      for (let i = 0; i < lootSlots.length; i++) {
+        const s = lootSlots[i];
+        if (!s) continue;
+        const rem = addItemToBackpack(this.state.inventory, s.itemId, s.qty);
+        moved += s.qty - rem;
+        if (rem === 0) {
+          lootSlots[i] = null;
+        } else {
+          s.qty = rem;
+          full = true;
+        }
+      }
+      if (moved > 0) {
+        sound.playPickup();
+        this.state.save();
+        this.renderHud();
+      }
+      if (full) {
+        this.toast('Rucksack voll — übrige Relikte bleiben sicher in der Truhe (zum Tauschen anklicken!).', 'warn');
+        this.renderDungeonChestModal();
+      } else {
+        this.toast(`Alle ${moved} Relikte aus der Truhe mitgenommen!`, 'good');
+        this.closeModal();
+      }
+    });
+
+    this.modalEl.querySelector('#btn-chest-done')?.addEventListener('click', () => {
+      sound.playUiClick();
+      this.closeModal();
     });
   }
 }

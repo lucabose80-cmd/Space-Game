@@ -26,6 +26,7 @@ import {
   type DoorSide,
   type DungeonFloor,
   type DungeonRoom,
+  type RoomChest,
 } from '../world/dungeonGen';
 
 type BossState =
@@ -111,10 +112,13 @@ interface Enemy {
   id: number;
   kind:
     | 'slime'
+    | 'slime_magma'
     | 'drone'
+    | 'drone_arc'
     | 'turret'
     | 'shield_drone'
     | 'spore_spitter'
+    | 'phase_stalker'
     | 'boss_breacher'
     | 'boss'
     | 'boss_leviathan';
@@ -272,6 +276,7 @@ interface FloatingNum {
 
 export interface DungeonCallbacks {
   onReturnToHub: (summary: RunSummary) => void;
+  onOpenDungeonChest?: (chest: RoomChest) => void;
   onToast: (msg: string, tone?: 'info' | 'good' | 'warn') => void;
   onHudDirty: () => void;
 }
@@ -549,9 +554,18 @@ export class DungeonScene {
       const e = makeBase(Math.round(46 * baseScale), 8);
       e.aiTimer = 0.35 + Math.random() * 0.35;
       this.enemies.push(e);
+    } else if (kind === 'slime_magma') {
+      const e = makeBase(Math.round(68 * baseScale), 9);
+      e.aiTimer = 0.4 + Math.random() * 0.35;
+      this.enemies.push(e);
     } else if (kind === 'drone') {
       const e = makeBase(Math.round(52 * baseScale), 8);
       e.aiTimer = 0.9 + Math.random() * 0.6;
+      e.phase = Math.random() * Math.PI * 2;
+      this.enemies.push(e);
+    } else if (kind === 'drone_arc') {
+      const e = makeBase(Math.round(66 * baseScale), 9);
+      e.aiTimer = 0.95 + Math.random() * 0.45;
       e.phase = Math.random() * Math.PI * 2;
       this.enemies.push(e);
     } else if (kind === 'turret') {
@@ -569,6 +583,11 @@ export class DungeonScene {
       const e = makeBase(Math.round(72 * baseScale), 9);
       e.aiTimer = 1.0 + Math.random() * 0.5;
       e.scurryTimer = 0;
+      this.enemies.push(e);
+    } else if (kind === 'phase_stalker') {
+      const e = makeBase(Math.round(84 * baseScale), 10);
+      e.aiTimer = 1.0 + Math.random() * 0.45;
+      e.aimAngle = Math.atan2(this.playerY - y, this.playerX - x);
       this.enemies.push(e);
     } else if (kind === 'boss_breacher') {
       const e = makeBase(Math.round(255 * (1 + Math.min(2, this.state.bossDefeatedCount) * 0.08)), 16);
@@ -2399,6 +2418,195 @@ export class DungeonScene {
             e.telegraphTimer = 0.5;
           }
         }
+      } else if (e.kind === 'drone_arc') {
+        // Floor II/III Overcharged Arc-Drone: agile orbital strafing + 3-bolt electric arc fan!
+        e.phase += dt * 2.4;
+        const desiredDist = 104;
+        const radial = dist > desiredDist + 16 ? 1 : dist < desiredDist - 16 ? -1 : 0;
+        const tx = -ny * Math.sin(e.phase * 0.7) * 68;
+        const ty = nx * Math.sin(e.phase * 0.7) * 68;
+        e.vx = nx * radial * 52 + tx;
+        e.vy = ny * radial * 52 + ty;
+        if (e.telegraphTimer > 0) {
+          e.vx *= 0.22;
+          e.vy *= 0.22;
+          e.telegraphTimer -= dt;
+          if (Math.random() < dt * 16) {
+            this.particles.push({
+              x: e.x + (Math.random() - 0.5) * 14,
+              y: e.y + (Math.random() - 0.5) * 14,
+              vx: (Math.random() - 0.5) * 26,
+              vy: (Math.random() - 0.5) * 26,
+              color: Math.random() < 0.5 ? '#c084fc' : '#38e8d4',
+              size: 1.6,
+              life: 0.2,
+              maxLife: 0.2,
+            });
+          }
+          if (e.telegraphTimer <= 0) {
+            const baseAng = Math.atan2(dy, dx);
+            for (const offset of [-0.25, 0, 0.25]) {
+              const a = baseAng + offset;
+              this.projectiles.push({
+                x: e.x + Math.cos(a) * 10,
+                y: e.y + Math.sin(a) * 10,
+                vx: Math.cos(a) * 148,
+                vy: Math.sin(a) * 148,
+                fromPlayer: false,
+                damage: 14,
+                color: offset === 0 ? '#38e8d4' : '#c084fc',
+                radius: 3.4,
+                life: 1.7,
+              });
+            }
+            this.spawnBurst(e.x, e.y, '#c084fc', 8);
+            e.aiTimer = 1.65 + Math.random() * 0.45;
+          }
+        } else {
+          e.aiTimer -= dt;
+          if (e.aiTimer <= 0) {
+            e.telegraphTimer = 0.48;
+          }
+        }
+      } else if (e.kind === 'slime_magma') {
+        // Floor III Reactor Magma-Slime: aggressive flaming hops leaving molten ember decals + 2-shot ember burst on pounce!
+        if (e.chargeActive > 0) {
+          e.chargeActive -= dt;
+          e.vx = e.chargeDirX * 138;
+          e.vy = e.chargeDirY * 138;
+          if (Math.random() < dt * 22) {
+            this.particles.push({
+              x: e.x,
+              y: e.y + 4,
+              vx: (Math.random() - 0.5) * 26,
+              vy: (Math.random() - 0.5) * 26,
+              color: Math.random() < 0.5 ? '#fb923c' : '#fde047',
+              size: 2.0,
+              life: 0.28,
+              maxLife: 0.28,
+            });
+          }
+          if (e.chargeActive <= 0) {
+            // Molten landing impact: fire decal + 2 flanking sparks!
+            this.decals.push({
+              x: e.x,
+              y: e.y + 5,
+              r: 13,
+              color: 'rgba(249, 115, 22, 0.36)',
+              life: 3.4,
+              maxLife: 3.4,
+            });
+            const ang = Math.atan2(dy, dx);
+            for (const off of [-0.45, 0.45]) {
+              this.projectiles.push({
+                x: e.x,
+                y: e.y,
+                vx: Math.cos(ang + off) * 116,
+                vy: Math.sin(ang + off) * 116,
+                fromPlayer: false,
+                damage: 13,
+                color: '#fb923c',
+                radius: 3.6,
+                life: 1.15,
+              });
+            }
+            this.spawnBurst(e.x, e.y, '#f97316', 9);
+            e.aiTimer = 0.85 + Math.random() * 0.35;
+          }
+        } else if (e.telegraphTimer > 0) {
+          e.vx *= 0.2;
+          e.vy *= 0.2;
+          e.telegraphTimer -= dt;
+          if (e.telegraphTimer <= 0) {
+            e.chargeDirX = nx;
+            e.chargeDirY = ny;
+            e.chargeActive = 0.34;
+          }
+        } else {
+          e.vx = nx * 44;
+          e.vy = ny * 44;
+          e.aiTimer -= dt;
+          if (e.aiTimer <= 0) {
+            e.telegraphTimer = 0.38;
+          }
+        }
+      } else if (e.kind === 'phase_stalker') {
+        // Brand-new Floor III Phase-Stalker: stalks, telegraphs a magenta phase-blink near the player's flank, teleports & lunges with twin plasma blades!
+        if (e.chargeActive > 0) {
+          e.chargeActive -= dt;
+          e.vx = e.chargeDirX * 195;
+          e.vy = e.chargeDirY * 195;
+          if (Math.random() < dt * 28) {
+            this.particles.push({
+              x: e.x,
+              y: e.y,
+              vx: -e.chargeDirX * 22,
+              vy: -e.chargeDirY * 22,
+              color: '#f43f5e',
+              size: 2.0,
+              life: 0.24,
+              maxLife: 0.24,
+            });
+          }
+          if (e.chargeActive <= 0) {
+            e.aiTimer = 1.25 + Math.random() * 0.45;
+          }
+        } else if (e.telegraphTimer > 0) {
+          e.vx *= 0.15;
+          e.vy *= 0.15;
+          e.telegraphTimer -= dt;
+          if (e.telegraphTimer <= 0) {
+            // Execute phase-blink to telegraphed flank spot, then strike toward hero!
+            this.spawnBurst(e.x, e.y, '#e879f9', 10);
+            const tx = Math.max(ROOM_LEFT + 18, Math.min(ROOM_RIGHT - 18, e.bossTargetX ?? e.x));
+            const ty = Math.max(ROOM_TOP + 18, Math.min(ROOM_BOTTOM - 18, e.bossTargetY ?? e.y));
+            if (!this.collidesRoomObstacle(tx, ty, e.radius)) {
+              e.x = tx;
+              e.y = ty;
+            }
+            this.spawnBurst(e.x, e.y, '#f43f5e', 12);
+            const sdx = this.playerX - e.x;
+            const sdy = this.playerY - e.y;
+            const sd = Math.max(1, Math.hypot(sdx, sdy));
+            e.chargeDirX = sdx / sd;
+            e.chargeDirY = sdy / sd;
+            e.aimAngle = Math.atan2(sdy, sdx);
+            e.chargeActive = 0.24;
+            // Also fire a crisp twin-blade energy wave on dash!
+            this.projectiles.push({
+              x: e.x + e.chargeDirX * 10,
+              y: e.y + e.chargeDirY * 10,
+              vx: e.chargeDirX * 175,
+              vy: e.chargeDirY * 175,
+              fromPlayer: false,
+              damage: 15,
+              color: '#f43f5e',
+              radius: 4.0,
+              life: 0.65,
+            });
+          }
+        } else {
+          // Agile flanking stalk
+          const ang = Math.atan2(dy, dx);
+          e.aimAngle = ang;
+          e.vx = nx * 48 - ny * 26 * e.moveDirX;
+          e.vy = ny * 48 + nx * 26 * e.moveDirX;
+          e.aiTimer -= dt;
+          if (e.aiTimer <= 0) {
+            // Choose a telegraphed blink position ~58px beside/behind hero
+            const flankAngle = ang + Math.PI + (Math.random() < 0.5 ? 0.9 : -0.9);
+            e.bossTargetX = Math.max(
+              ROOM_LEFT + 22,
+              Math.min(ROOM_RIGHT - 22, this.playerX + Math.cos(flankAngle) * 58),
+            );
+            e.bossTargetY = Math.max(
+              ROOM_TOP + 22,
+              Math.min(ROOM_BOTTOM - 22, this.playerY + Math.sin(flankAngle) * 52),
+            );
+            e.telegraphTimer = 0.54;
+            e.moveDirX = -e.moveDirX;
+          }
+        }
       } else if (e.kind === 'boss_breacher') {
         this.updateBreacherAI(e, dt, dx, dy, nx, ny);
       } else if (e.kind === 'boss') {
@@ -2416,6 +2624,7 @@ export class DungeonScene {
         if (
           !this.collidesRoomObstacle(ex, e.y, e.radius * 0.85) ||
           e.kind === 'drone' ||
+          e.kind === 'drone_arc' ||
           e.kind === 'shield_drone' ||
           airborne
         ) {
@@ -2427,6 +2636,7 @@ export class DungeonScene {
         if (
           !this.collidesRoomObstacle(e.x, ey, e.radius * 0.85) ||
           e.kind === 'drone' ||
+          e.kind === 'drone_arc' ||
           e.kind === 'shield_drone' ||
           airborne
         ) {
@@ -3591,18 +3801,38 @@ export class DungeonScene {
         'good',
       );
       this.state.save();
-    } else if (Math.random() < 0.82) {
-      this.spawnLootDrop(e.x, e.y, rollLootItem(lootDepth, false, nightBoost, luckBonus));
-      if (this.state.equippedCompanion === 'puck' && Math.random() < 0.25) {
-        this.spawnLootDrop(e.x + 6, e.y - 4, rollLootItem(lootDepth, false, nightBoost, luckBonus));
-        this.floats.push({
-          x: this.companionX,
-          y: this.companionY - 10,
-          text: '+1 BEUTE (PUCK)',
-          color: '#fbbf24',
-          life: 1.0,
-          maxLife: 1.0,
-        });
+    } else {
+      if (e.kind === 'slime_magma') {
+        // Molten Reactor Slime death eruption: 4 diagonal embers!
+        this.spawnBurst(e.x, e.y, '#f97316', 14);
+        for (let k = 0; k < 4; k++) {
+          const a = Math.PI / 4 + k * (Math.PI / 2);
+          this.projectiles.push({
+            x: e.x,
+            y: e.y,
+            vx: Math.cos(a) * 112,
+            vy: Math.sin(a) * 112,
+            fromPlayer: false,
+            damage: 13,
+            color: '#fb923c',
+            radius: 3.6,
+            life: 0.9,
+          });
+        }
+      }
+      if (Math.random() < 0.84) {
+        this.spawnLootDrop(e.x, e.y, rollLootItem(lootDepth, false, nightBoost, luckBonus));
+        if (this.state.equippedCompanion === 'puck' && Math.random() < 0.25) {
+          this.spawnLootDrop(e.x + 6, e.y - 4, rollLootItem(lootDepth, false, nightBoost, luckBonus));
+          this.floats.push({
+            x: this.companionX,
+            y: this.companionY - 10,
+            text: '+1 BEUTE (PUCK)',
+            color: '#fbbf24',
+            life: 1.0,
+            maxLife: 1.0,
+          });
+        }
       }
     }
 
@@ -4101,35 +4331,63 @@ export class DungeonScene {
     }
 
     const chest = this.currentRoom.chest;
-    if (chest && !chest.opened) {
-      if (Math.hypot(this.playerX - chest.x, this.playerY - chest.y) < 28) {
+    if (chest) {
+      if (Math.hypot(this.playerX - chest.x, this.playerY - chest.y) < 30) {
+        const remaining = chest.slots
+          ? chest.slots.reduce((acc, s) => acc + (s ? s.qty : 0), 0)
+          : 0;
         this.activePrompt = {
-          label: '[E] Relikt-Truhe öffnen',
+          label: !chest.opened
+            ? '[E] Relikt-Truhe öffnen'
+            : remaining > 0
+              ? `[E] Relikt-Truhe durchsuchen (${remaining} übrig)`
+              : '[E] Relikt-Truhe (Leer · Ablegen möglich)',
           x: chest.x,
           y: chest.y - 20,
         };
         if (input.interactPressed()) {
-          chest.opened = true;
-          sound.playUpgrade();
-          const nightBoost = this.state.timeOfDay === 'night';
-          const luckBonus = this.state.getStats().lootLuckBonus;
-          const d = Math.min(3, 1 + this.currentFloor);
-          this.spawnBurst(chest.x, chest.y, '#fbbf24', 20);
-          this.spawnLootDrop(chest.x, chest.y, rollLootItem(d, true, nightBoost, luckBonus));
-          this.spawnLootDrop(chest.x, chest.y, rollLootItem(d, true, nightBoost, luckBonus));
-          this.spawnLootDrop(chest.x, chest.y, rollLootItem(d, false, nightBoost, luckBonus));
-          if (this.state.equippedCompanion === 'puck' && Math.random() < 0.25) {
-            this.spawnLootDrop(chest.x + 8, chest.y + 4, rollLootItem(d, true, nightBoost, luckBonus));
-            this.floats.push({
-              x: this.companionX,
-              y: this.companionY - 10,
-              text: '+1 EXTRA-RELIKT (PUCK)',
-              color: '#fbbf24',
-              life: 1.1,
-              maxLife: 1.1,
-            });
+          if (!chest.opened) {
+            chest.opened = true;
+            sound.playUpgrade();
+            const nightBoost = this.state.timeOfDay === 'night';
+            const luckBonus = this.state.getStats().lootLuckBonus;
+            const d = Math.min(3, 1 + this.currentFloor);
+            const slots: Array<{ itemId: string; qty: number } | null> = new Array(8).fill(null);
+            const rolled: string[] = [
+              rollLootItem(d, true, nightBoost, luckBonus),
+              rollLootItem(d, true, nightBoost, luckBonus),
+              rollLootItem(d, false, nightBoost, luckBonus),
+              rollLootItem(d, Math.random() < 0.55, nightBoost, luckBonus),
+            ];
+            if (this.state.equippedCompanion === 'puck' && Math.random() < 0.25) {
+              rolled.push(rollLootItem(d, true, nightBoost, luckBonus));
+              this.floats.push({
+                x: this.companionX,
+                y: this.companionY - 10,
+                text: '+1 EXTRA-RELIKT (PUCK)',
+                color: '#fbbf24',
+                life: 1.1,
+                maxLife: 1.1,
+              });
+            }
+            for (const itemId of rolled) {
+              this.state.markDiscovered(itemId);
+              const existing = slots.find((s) => s && s.itemId === itemId && s.qty < getItemDef(itemId).maxStack);
+              if (existing) {
+                existing.qty += 1;
+              } else {
+                const emptyIdx = slots.findIndex((s) => s === null);
+                if (emptyIdx >= 0) slots[emptyIdx] = { itemId, qty: 1 };
+              }
+            }
+            chest.slots = slots;
+            this.spawnBurst(chest.x, chest.y, '#fbbf24', 20);
+          } else {
+            sound.playUiClick();
           }
-          this.callbacks.onToast('Uralte Relikt-Truhe geplündert!', 'good');
+          if (this.callbacks.onOpenDungeonChest) {
+            this.callbacks.onOpenDungeonChest(chest);
+          }
         }
       }
     }
@@ -5981,6 +6239,18 @@ export class DungeonScene {
         ctx.drawImage(spr, Math.round(e.x - 8), Math.round(e.y - 8));
       }
       drawGlow(ctx, e.x, e.y, 16, e.telegraphTimer > 0 ? '#f472b6' : '#c084fc', e.telegraphTimer > 0 ? 0.45 : 0.22);
+    } else if (e.kind === 'slime_magma') {
+      const hop = Math.abs(Math.sin(e.anim * 5.2)) * (e.chargeActive > 0 ? 5.2 : 2.6);
+      const sq = e.telegraphTimer > 0 ? 0.22 : Math.sin(e.anim * 5.2) * 0.1;
+      const spr = e.flashTimer > 0 ? art.slimeMagmaFlash ?? art.slimeFlash : art.slimeMagma ?? art.slime;
+      if (spr) {
+        ctx.save();
+        ctx.translate(e.x, e.y + 7 - hop);
+        ctx.scale(1 + sq, 1 - sq);
+        ctx.drawImage(spr, -12, -20, 24, 21);
+        ctx.restore();
+      }
+      drawGlow(ctx, e.x, e.y, e.telegraphTimer > 0 ? 22 : 17, '#f97316', e.telegraphTimer > 0 ? 0.56 : 0.34);
     } else if (e.kind === 'drone') {
       const hover = Math.sin(this.time * 6.5 + e.id) * 2.6;
       const bank = Math.max(-0.22, Math.min(0.22, e.vx * 0.0025));
@@ -5996,6 +6266,66 @@ export class DungeonScene {
       }
       if (e.telegraphTimer > 0) drawGlow(ctx, e.x, e.y + hover, 18, '#fb7185', 0.55);
       else drawGlow(ctx, e.x, e.y + hover, 13, '#38e8d4', 0.22);
+    } else if (e.kind === 'drone_arc') {
+      const hover = Math.sin(this.time * 7.2 + e.id) * 2.8;
+      const bank = Math.max(-0.24, Math.min(0.24, e.vx * 0.0028));
+      const spr = e.flashTimer > 0 ? art.droneArcFlash ?? art.droneFlash : art.droneArc ?? art.drone;
+      if (spr) {
+        ctx.save();
+        ctx.translate(e.x, e.y + hover);
+        ctx.rotate(bank);
+        ctx.drawImage(spr, -12.5, -13, 25, 25);
+        ctx.restore();
+      }
+      drawGlow(
+        ctx,
+        e.x,
+        e.y + hover,
+        e.telegraphTimer > 0 ? 22 : 16,
+        e.telegraphTimer > 0 ? '#38e8d4' : '#c084fc',
+        e.telegraphTimer > 0 ? 0.6 : 0.32,
+      );
+    } else if (e.kind === 'phase_stalker') {
+      // Draw pulsing magenta teleport landing telegraph ring right before phase-blink!
+      if (e.telegraphTimer > 0 && e.bossTargetX !== undefined && e.bossTargetY !== undefined) {
+        const p = 1 - Math.max(0, e.telegraphTimer / 0.54);
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = `rgba(244, 63, 94, ${0.45 + p * 0.5})`;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.arc(e.bossTargetX, e.bossTargetY, 15 - p * 6, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.strokeStyle = `rgba(232, 121, 249, ${0.35 + p * 0.45})`;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(e.x, e.y);
+        ctx.lineTo(e.bossTargetX, e.bossTargetY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+        drawGlow(ctx, e.bossTargetX, e.bossTargetY, 18, '#f43f5e', 0.3 + p * 0.25);
+      }
+      const hover = Math.sin(this.time * 6 + e.id) * 1.4;
+      const spr = e.flashTimer > 0 ? art.phaseStalkerFlash : art.phaseStalker;
+      if (spr) {
+        ctx.save();
+        if (e.telegraphTimer > 0) {
+          ctx.globalAlpha = 0.45 + 0.4 * Math.sin(this.time * 36);
+        }
+        ctx.translate(e.x, e.y + 10 - hover);
+        ctx.drawImage(spr, -13, -27, 26, 28);
+        ctx.restore();
+      }
+      drawGlow(
+        ctx,
+        e.x,
+        e.y,
+        e.chargeActive > 0 ? 22 : 16,
+        e.chargeActive > 0 ? '#f43f5e' : '#e879f9',
+        e.chargeActive > 0 ? 0.52 : 0.28,
+      );
     } else if (e.kind === 'shield_drone') {
       const hover = Math.sin(this.time * 5.2 + e.id) * 2.2;
       const spr = e.flashTimer > 0 ? art.shieldDroneFlash : art.shieldDrone;

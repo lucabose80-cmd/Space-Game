@@ -185,6 +185,7 @@ class StarlighterGame {
 
     this.dungeonScene = new DungeonScene(this.state, {
       onReturnToHub: (summary) => this.handleReturnFromDungeon(summary),
+      onOpenDungeonChest: (chest) => this.ui.openDungeonChestModal(chest),
       onToast: (msg, tone) => this.ui.toast(msg, tone),
       onHudDirty: () => {
         this.ui.dungeonFloor = this.dungeonScene.currentFloor;

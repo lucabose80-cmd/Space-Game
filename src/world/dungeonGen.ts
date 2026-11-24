@@ -1,3 +1,5 @@
+import type { ItemStack } from '../types';
+
 export type RoomType = 'start' | 'combat' | 'treasure' | 'boss';
 
 export type DoorSide = 'north' | 'south' | 'east' | 'west';
@@ -23,6 +25,7 @@ export interface RoomChest {
   y: number;
   opened: boolean;
   rare: boolean;
+  slots?: Array<ItemStack | null>;
 }
 
 export interface HazardVent {
@@ -35,10 +38,13 @@ export interface HazardVent {
 export interface EnemySpawn {
   kind:
     | 'slime'
+    | 'slime_magma'
     | 'drone'
+    | 'drone_arc'
     | 'turret'
     | 'shield_drone'
     | 'spore_spitter'
+    | 'phase_stalker'
     | 'boss_breacher'
     | 'boss'
     | 'boss_leviathan';
@@ -322,24 +328,27 @@ export function generateSector1Floor(floorIndex: 1 | 2 | 3 = 1, customRooms?: nu
         const r = Math.random();
         let kind: EnemySpawn['kind'] = 'slime';
         if (floorIndex === 1) {
+          // Floor I (Frachtdeck): Classic Corvette Patrol
           if (depth >= 2 && r > 0.74) kind = 'turret';
           else if (r > 0.44) kind = 'drone';
           else kind = 'slime';
         } else if (floorIndex === 2) {
-          // Floor II introduces Schild-Drohne & Sporen-Spucker prominently!
-          if (i === 0) kind = Math.random() < 0.55 ? 'shield_drone' : 'spore_spitter';
-          else if (r > 0.72) kind = 'spore_spitter';
-          else if (r > 0.46) kind = 'shield_drone';
-          else if (r > 0.25) kind = 'turret';
+          // Floor II (Maschinen-Deck): Schild-Drohne, Sporen-Spucker & neue Blitz-Drohne (Variante!)
+          if (i === 0) kind = Math.random() < 0.45 ? 'drone_arc' : Math.random() < 0.55 ? 'shield_drone' : 'spore_spitter';
+          else if (r > 0.74) kind = 'drone_arc';
+          else if (r > 0.50) kind = 'spore_spitter';
+          else if (r > 0.28) kind = 'shield_drone';
+          else if (r > 0.14) kind = 'turret';
           else kind = 'drone';
         } else {
-          // Floor III: Elite Reactor Guard mix!
-          if (i === 0) kind = 'shield_drone';
-          else if (i === 1) kind = 'spore_spitter';
-          else if (r > 0.65) kind = 'shield_drone';
-          else if (r > 0.38) kind = 'spore_spitter';
-          else if (r > 0.18) kind = 'turret';
-          else kind = 'drone';
+          // Floor III (Reaktor-Kern): Neuer Phasen-Stalker & glühender Magma-Slime + Elite-Mix!
+          if (i === 0) kind = 'phase_stalker';
+          else if (i === 1) kind = Math.random() < 0.62 ? 'slime_magma' : 'drone_arc';
+          else if (r > 0.74) kind = 'phase_stalker';
+          else if (r > 0.50) kind = 'slime_magma';
+          else if (r > 0.30) kind = 'drone_arc';
+          else if (r > 0.14) kind = 'shield_drone';
+          else kind = 'spore_spitter';
         }
         spawns.push({ kind, x: spot.x, y: spot.y });
       }
