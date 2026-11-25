@@ -27,6 +27,7 @@ import {
 } from 'firebase/firestore';
 import type { GameState } from '../systems/gameState';
 import type { ActivityFeedEntry, LeaderboardEntry, SaveData } from '../types';
+import { DEFAULT_FIREBASE_CONFIG } from './firebaseConfig';
 
 export interface CloudUserInfo {
   uid: string;
@@ -53,12 +54,15 @@ export function formatRelativeTime(ts: number): string {
 
 function readFirebaseConfig() {
   const env = import.meta.env;
-  const apiKey = (env.VITE_FIREBASE_API_KEY as string | undefined)?.trim();
-  const authDomain = (env.VITE_FIREBASE_AUTH_DOMAIN as string | undefined)?.trim();
-  const projectId = (env.VITE_FIREBASE_PROJECT_ID as string | undefined)?.trim();
-  const storageBucket = (env.VITE_FIREBASE_STORAGE_BUCKET as string | undefined)?.trim();
-  const messagingSenderId = (env.VITE_FIREBASE_MESSAGING_SENDER_ID as string | undefined)?.trim();
-  const appId = (env.VITE_FIREBASE_APP_ID as string | undefined)?.trim();
+  const apiKey = (env.VITE_FIREBASE_API_KEY as string | undefined)?.trim() || DEFAULT_FIREBASE_CONFIG.apiKey;
+  const authDomain =
+    (env.VITE_FIREBASE_AUTH_DOMAIN as string | undefined)?.trim() || DEFAULT_FIREBASE_CONFIG.authDomain;
+  const projectId = (env.VITE_FIREBASE_PROJECT_ID as string | undefined)?.trim() || DEFAULT_FIREBASE_CONFIG.projectId;
+  const storageBucket =
+    (env.VITE_FIREBASE_STORAGE_BUCKET as string | undefined)?.trim() || DEFAULT_FIREBASE_CONFIG.storageBucket;
+  const messagingSenderId =
+    (env.VITE_FIREBASE_MESSAGING_SENDER_ID as string | undefined)?.trim() || DEFAULT_FIREBASE_CONFIG.messagingSenderId;
+  const appId = (env.VITE_FIREBASE_APP_ID as string | undefined)?.trim() || DEFAULT_FIREBASE_CONFIG.appId;
 
   if (!apiKey || !authDomain || !projectId || !appId) {
     return null;
