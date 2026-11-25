@@ -2,9 +2,9 @@
 // Immer Exit-Code 0 – es ist ein Hinweis, kein Fehler. Mit --strict Exit 1 bei fehlenden Dateien.
 import { existsSync, readFileSync } from 'node:fs';
 const src = readFileSync(new URL('../src/assets/artLoader.ts', import.meta.url), 'utf8');
-const block = src.match(/M10_OPTIONAL_SPRITES = \{([\s\S]*?)\} as const/);
 const missing = [];
-if (block) {
+// Alle `export const <NAME>_OPTIONAL_SPRITES = { … } as const`-Blöcke lesen
+for (const block of src.matchAll(/export const \w*OPTIONAL_SPRITES = \{([\s\S]*?)\} as const/g)) {
   for (const m of block[1].matchAll(/(\w+):\s*'([^']+)'/g)) {
     if (!existsSync(new URL(`../public/art/sprites/${m[2]}.png`, import.meta.url))) missing.push({ key: m[1], file: `${m[2]}.png` });
   }

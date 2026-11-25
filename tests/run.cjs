@@ -2,7 +2,7 @@
 const { spawnSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
-const all = fs.readdirSync(__dirname).filter((f) => /^(t\d|m\d+p).*\.cjs$/.test(f)).map((f) => f.replace('.cjs', '')).sort();
+const all = fs.readdirSync(__dirname).filter((f) => /^(t\d|m\d+[a-z]?p).*\.cjs$/.test(f)).map((f) => f.replace('.cjs', '')).sort();
 const wanted = process.argv.slice(2);
 const names = wanted.length ? wanted : all;
 let failed = 0;
