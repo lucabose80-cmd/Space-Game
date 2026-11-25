@@ -9,6 +9,7 @@ import {
   SUIT_THEME_ORDER,
   SUIT_THEMES,
 } from '../data/companions';
+import { GHOST_GREETING_MAX, sanitizeGreeting } from '../data/ghostGreetings';
 import { ALCHEMY_BUFFS } from '../data/guildMarket';
 import { getInfusionDef, INFUSIONS } from '../data/infusions';
 import { getTodayMarketTrend } from '../data/marketTrends';
@@ -3071,6 +3072,20 @@ export class UIManager {
         </div>
       `;
 
+      const greetingEditorHtml = `
+        <div class="inspector-box" style="gap:7px">
+          <div style="font-family:var(--font-pixel);font-size:10.5px;color:#7dd3fc">👻 DEIN HOLO-GRUSS (GEISTER-KAPITÄN)</div>
+          <div style="font-size:11px;color:var(--text-muted);line-height:1.45">
+            Andere Kapitäne sehen dich als Holo-Kunden in ihrem Laden und lesen diesen Gruß (max. ${GHOST_GREETING_MAX} Zeichen).
+          </div>
+          <div style="display:flex;gap:8px">
+            <input id="input-ghost-greeting" type="text" maxlength="${GHOST_GREETING_MAX}" placeholder="z. B. Schöne Podeste — bis bald!" value="${escapeHtml(this.state.ghostGreeting)}"
+              style="flex:1;min-width:0;background:rgba(8,13,24,0.9);color:#f8fafc;border:1px solid var(--border-steel);padding:6px 8px;font-size:12px" />
+            <button id="btn-save-greeting" class="btn btn-primary">Speichern</button>
+          </div>
+        </div>
+      `;
+
       const cloudSectionHtml = !configured
         ? `
           <div class="inspector-box" style="gap:7px;border-color:rgba(251,191,36,0.45)">
@@ -3126,6 +3141,7 @@ export class UIManager {
         <div style="display:flex;flex-direction:column;gap:10px">
           ${personalRecordsHtml}
           ${nameEditorHtml}
+          ${greetingEditorHtml}
           ${cloudSectionHtml}
         </div>
       `;
@@ -3213,6 +3229,20 @@ export class UIManager {
       });
       sound.playUpgrade();
       this.toast(`★ Kapitäns-Name gespeichert: ${next}`, 'good');
+      this.renderGuildBoardModal();
+    });
+
+    this.modalEl.querySelector('#btn-save-greeting')?.addEventListener('click', () => {
+      const inp = this.modalEl.querySelector('#input-ghost-greeting') as HTMLInputElement | null;
+      this.state.ghostGreeting = sanitizeGreeting(inp?.value ?? '');
+      this.state.save();
+      sound.playUpgrade();
+      this.toast(
+        this.state.ghostGreeting
+          ? `👻 Holo-Gruß gespeichert: „${this.state.ghostGreeting}“`
+          : '👻 Holo-Gruß entfernt — es wird ein Standard-Gruß verwendet.',
+        'good',
+      );
       this.renderGuildBoardModal();
     });
 

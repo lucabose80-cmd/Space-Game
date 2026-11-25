@@ -1,11 +1,13 @@
 import { getHDArt } from '../assets/artLoader';
 import { drawGlow, drawPixelShadow } from '../assets/pixelArt';
 import { getAtlas } from '../assets/sprites';
-import { COMPANION_DEFS, MARKET_EVENT_META } from '../data/companions';
+import { COMPANION_DEFS, MARKET_EVENT_META, SUIT_THEMES } from '../data/companions';
 import { PATRON_DEFS, PATRON_ORDER } from '../data/guildMarket';
 import { getItemDef } from '../data/items';
 import { sound } from '../engine/audio';
 import { VIRTUAL_HEIGHT, VIRTUAL_WIDTH, type InputManager } from '../engine/input';
+import { firebaseService } from '../services/firebaseService';
+import { galacticNetwork, type GhostCaptain } from '../services/galacticNetwork';
 import { evaluatePrice, recordPriceReaction } from '../systems/economy';
 import type { GameState } from '../systems/gameState';
 import { addItemToChest } from '../systems/inventory';
@@ -54,6 +56,7 @@ interface Customer {
   isThief: boolean;
   isVip: boolean;
   patronId: PatronId | null;
+  ghost: GhostCaptain | null;
   stasisSlowTimer: number;
   assistantTimer: number;
   x: number;
@@ -160,6 +163,7 @@ export class ShopScene {
   private shiftThievesEscaped = 0;
   private shiftSaleBoxCredits = 0;
   private shiftPatronVisits = new Set<PatronId>();
+  private shiftGhostUids = new Set<string>();
   private shiftTopItemName: string | null = null;
   private shiftTopItemPrice = 0;
 
@@ -208,6 +212,7 @@ export class ShopScene {
     this.floats = [];
     this.dashTimer = 0;
     this.dashCooldown = 0;
+    galacticNetwork.prefetchGhostCaptains();
     if (from === 'hub') {
       this.playerX = 408;
       this.playerY = 152;
@@ -249,6 +254,7 @@ export class ShopScene {
       this.shiftThievesEscaped = 0;
       this.shiftSaleBoxCredits = 0;
       this.shiftPatronVisits.clear();
+      this.shiftGhostUids.clear();
       this.shiftTopItemName = null;
       this.shiftTopItemPrice = 0;
       this.spawnTimer = 0.9;
@@ -629,7 +635,7 @@ export class ShopScene {
     return { x: px, y: iy1 + minDist };
   }
 
-  private spawnCustomer(): void {
+  private spawnCustomer(forceGhost = false): void {
     const hasStockedPed = this.state.pedestals.some((p) => p.itemId !== null && p.qty > 0);
     const hasActiveThief = this.customers.some((c) => c.isThief);
     const hasActivePatron = this.customers.some((c) => c.patronId !== null);
@@ -650,8 +656,21 @@ export class ShopScene {
         : 0.14 + (this.state.upgrades.shopTier ?? 0) * 0.06) + rixBonus;
     const isVip = !isThief && patronId === null && Math.random() < vipChance;
 
+    // Milestone 9: Geister-Kapitäne — echte Spieler besuchen deinen Laden als Holo-Kunden
+    let ghost: GhostCaptain | null = null;
+    if (
+      !isThief &&
+      patronId === null &&
+      !isVip &&
+      hasStockedPed &&
+      !this.customers.some((c) => c.ghost !== null) &&
+      (forceGhost || Math.random() < 0.12)
+    ) {
+      ghost = galacticNetwork.pickGhostCaptain(firebaseService.currentUser?.uid ?? null, this.shiftGhostUids);
+    }
+
     const patronDef = patronId ? PATRON_DEFS[patronId] : null;
-    const basePatience = isVip || patronId ? 34 : 26;
+    const basePatience = isVip || patronId || ghost ? 34 : 26;
 
     const c: Customer = {
       id: this.nextCustomerId++,
@@ -659,6 +678,7 @@ export class ShopScene {
       isThief,
       isVip,
       patronId,
+      ghost,
       stasisSlowTimer: 0,
       assistantTimer: 0,
       x: SHOP_DOOR_POS.x + (Math.random() - 0.5) * 10,
@@ -684,6 +704,12 @@ export class ShopScene {
       sound.playVipChime();
       this.spawnBurst(c.x, c.y - 6, patronDef.accentColor, 12);
       this.callbacks.onToast(`${patronDef.shortTag} ${patronDef.name}: ${patronDef.greetings[tier]}`, 'info');
+    } else if (ghost) {
+      const suit = SUIT_THEMES[ghost.suitTheme] ?? SUIT_THEMES.classic;
+      this.shiftGhostUids.add(ghost.uid);
+      sound.playVipChime();
+      this.spawnBurst(c.x, c.y - 6, suit.auraColor, 12);
+      this.callbacks.onToast(`👻 Holo-Kapitän ${ghost.name}: „${ghost.greeting}“`, 'info');
     } else if (isVip) {
       sound.playVipChime();
       this.spawnBurst(c.x, c.y - 6, '#fbbf24', 10);
@@ -1009,6 +1035,7 @@ export class ShopScene {
 
   private isHaggleEligible(waiter: Customer): boolean {
     if (!waiter.carriedItemId) return false;
+    if (waiter.ghost) return false; // Geister: schneller Verkauf ohne Feilschen
     if (waiter.isVip || waiter.patronId !== null) return true;
     const def = getItemDef(waiter.carriedItemId);
     return def.rarity === 'epic' || def.sector === 5 || def.baseValue >= 180;
@@ -1094,7 +1121,8 @@ export class ShopScene {
       // 10% droid convenience fee — manual checkout still earns 100% + full tip!
       total = Math.max(1, Math.round(rawBase * 0.9));
     } else {
-      tipBonus = Math.round(rawBase * (this.state.getStats().shopTipBonus + patronTierTip));
+      const ghostTip = waiter.ghost ? 0.1 : 0; // +10 % Gilden-Trinkgeld der Geister-Kapitäne
+      tipBonus = Math.round(rawBase * (this.state.getStats().shopTipBonus + patronTierTip + ghostTip));
       total = rawBase + tipBonus;
     }
 
@@ -1135,14 +1163,24 @@ export class ShopScene {
         : vipBonus > 0
           ? `+${total} Cr (VIP +${vipBonus})`
           : tipBonus > 0
-            ? `+${total} Cr (+${tipBonus} Tipp)`
+            ? waiter.ghost
+              ? `+${total} Cr (+${tipBonus} GILDEN-TIPP)`
+              : `+${total} Cr (+${tipBonus} Tipp)`
             : `+${total} Cr`;
 
     this.floats.push({
       x: byAssistant ? CLERK_BOT_POS.x : CHECKOUT_SPOT.x,
       y: byAssistant ? CLERK_BOT_POS.y - 18 : CHECKOUT_SPOT.y - 26,
       text: popupText,
-      color: pDef ? pDef.accentColor : waiter.isVip ? '#fde047' : byAssistant ? '#7dd3fc' : '#fde047',
+      color: pDef
+        ? pDef.accentColor
+        : waiter.ghost
+          ? (SUIT_THEMES[waiter.ghost.suitTheme] ?? SUIT_THEMES.classic).auraColor
+          : waiter.isVip
+            ? '#fde047'
+            : byAssistant
+              ? '#7dd3fc'
+              : '#fde047',
       life: 1.5,
       maxLife: 1.5,
     });
@@ -1166,6 +1204,11 @@ export class ShopScene {
           'good',
         );
       }
+    } else if (waiter.ghost) {
+      this.callbacks.onToast(
+        `👻 Holo-Kapitän ${waiter.ghost.name} zahlt ${total} Cr für ${itemDef.name}${tipBonus > 0 ? ` (inkl. Gilden-Trinkgeld)` : ''}!`,
+        'good',
+      );
     } else if (waiter.isVip) {
       this.callbacks.onToast(`★ VIP-Sammler zahlt ${total} Cr (+${vipBonus} VIP-Bonus) für ${itemDef.name}!`, 'good');
     } else if (byAssistant) {
@@ -1964,6 +2007,19 @@ export class ShopScene {
       ctx.stroke();
       drawGlow(ctx, c.x, c.y - 2, 20, '#fbbf24', 0.24 + vipPulse * 0.12);
       ctx.restore();
+    } else if (c.ghost) {
+      // Holo-Kapitän: Aura in der Anzug-Farbe des echten Spielers
+      const gSuit = SUIT_THEMES[c.ghost.suitTheme] ?? SUIT_THEMES.classic;
+      const gPulse = 0.5 + 0.5 * Math.sin(this.time * 4.2 + c.id);
+      ctx.save();
+      ctx.strokeStyle = gSuit.accent;
+      ctx.globalAlpha = 0.55 + gPulse * 0.3;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.ellipse(c.x, c.y + 10, 11 + gPulse * 2, 4.6 + gPulse, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      drawGlow(ctx, c.x, c.y - 2, 20, gSuit.auraColor, 0.2 + gPulse * 0.12);
+      ctx.restore();
     }
 
     // Cyan stasis slow ring on zapped thieves
@@ -1994,6 +2050,9 @@ export class ShopScene {
 
     drawPixelShadow(ctx, c.x, c.y + 11, 8, 3.2, 0.48);
 
+    const ghostAlphaPrev = ctx.globalAlpha;
+    if (c.ghost) ctx.globalAlpha = ghostAlphaPrev * 0.82;
+
     const thiefSpr = c.isThief ? art.custThief : null;
     if (thiefSpr) {
       ctx.save();
@@ -2011,6 +2070,20 @@ export class ShopScene {
     } else {
       const frames = atlas.customers[c.speciesIndex % atlas.customers.length];
       ctx.drawImage(frames[Math.floor(c.walkAnim) % 2], Math.round(c.x - 8), Math.round(c.y - 10));
+    }
+
+    ctx.globalAlpha = ghostAlphaPrev;
+    if (c.ghost) {
+      // Holo-Scanlines: 3 horizontale 1-px-Linien wandern über die Figur
+      const gSuit = SUIT_THEMES[c.ghost.suitTheme] ?? SUIT_THEMES.classic;
+      ctx.save();
+      ctx.fillStyle = gSuit.auraColor;
+      ctx.globalAlpha = 0.28;
+      for (let k = 0; k < 3; k++) {
+        const ly = c.y - 24 + ((this.time * 16 + k * 9) % 28);
+        ctx.fillRect(c.x - 11, Math.round(ly), 22, 1);
+      }
+      ctx.restore();
     }
 
     // Named Patron or Golden VIP crown badge hovering above head!
@@ -2037,6 +2110,20 @@ export class ShopScene {
       ctx.font = 'bold 4.8px Silkscreen, monospace';
       ctx.textAlign = 'center';
       ctx.fillText('★ VIP', c.x, c.y - 23 + cbob);
+    } else if (c.ghost) {
+      const gSuit = SUIT_THEMES[c.ghost.suitTheme] ?? SUIT_THEMES.classic;
+      const cbob = Math.sin(this.time * 4 + c.id) * 1.0;
+      const label = c.ghost.name.length > 14 ? `${c.ghost.name.slice(0, 13)}…` : c.ghost.name;
+      ctx.font = 'bold 4.8px Silkscreen, monospace';
+      const tw = Math.max(26, Math.ceil(ctx.measureText(label).width) + 8);
+      ctx.fillStyle = 'rgba(10, 18, 32, 0.92)';
+      ctx.fillRect(c.x - tw / 2, c.y - 30 + cbob, tw, 8.5);
+      ctx.strokeStyle = gSuit.accent;
+      ctx.lineWidth = 0.8;
+      ctx.strokeRect(c.x - tw / 2, c.y - 30 + cbob, tw, 8.5);
+      ctx.fillStyle = gSuit.auraColor;
+      ctx.textAlign = 'center';
+      ctx.fillText(label, c.x, c.y - 23.5 + cbob);
     }
 
     // Carried item (either buying or stolen loot!)
