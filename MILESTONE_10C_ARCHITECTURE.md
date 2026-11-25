@@ -23,11 +23,11 @@
 | U1 | UI | **Kampf-HUD außerhalb von Dungeons** | HP/EN/Stim/Waffe/Bot nur im Dungeon. Sonst kompakte Status-Pille (Zeit · Credits · Laden-Status) | niedrig |
 | U2 | UI | **Minimap im Run überdeckt** | Im Dungeon: Aktions-Buttons **unter** die Minimap (Positionen in % der Spielfläche), Musik+SFX → ein Button | niedrig |
 | U3 | UI | **Waffenschrank** | Neues Loadout-Panel mit zwei großen Slots ①/②, Tauschen-Knopf, „→①/→②“ je Waffe. Im Hinterzimmer-Waffenschrank, in der Fracht und in der Schmiede | niedrig |
-| G1 | Gameplay | **Tag/Nacht-Schleife automatisch** | Laden nur **nachts** · Ende der Ladenschicht → **Tag** · Rückkehr aus dem Dungeon → **Nacht** | mittel |
+| G1 | Gameplay | **Tag/Nacht-Schleife automatisch** | Laden nur **nachts** · Ende der Ladenschicht → **Tag** · Run am Tag → danach **Nacht** · Run in der Nacht (mehr Beute) → danach **Tag**, die Ladenschicht fällt aus | mittel |
 | G2 | Gameplay | **Heim-Teleport entfernen** | `R`-Warp & Touch-„WARP“ weg. Rückkehr nur über Teleporter (nach Bossen, Start-Raum, 1 Notfall-Bake ab Ebene II) | mittel |
 | G3 | Gameplay | **Einzigartige Bosse** | Jede Ebene (S1–S4 × F1–F3) bekommt eigenes Aussehen **und** eigenes Angriffsmuster. 7 neue Bewegungs-Sets, 7 optionale Sprites mit Fallback | **hoch** |
 | G4 | Gameplay | **Gegner-Schilde mit Counterplay** | Frontal 100 % Block, aber: Schild fällt beim eigenen Angriff, überhitzt nach X Blocks, Rücken/Seite voll verwundbar | mittel |
-| BA1 | Balancing | **Ökonomie & Power-Scaling** | Verkaufspreise ×0,65 · Waffen-Stufen an Fortschritt gekoppelt · Boss-HP an Ziel-Kampfdauer kalibriert · Boss-Treffer-Deckel | mittel |
+| BA1 | Balancing | **Ökonomie & Power-Scaling** | Verkaufspreise ×0,65 (iterativ nachjustierbar) · flachere frühe Waffen-Stufen · teurere frühe Upgrades · Waffen-Stufen an Fortschritt gekoppelt · Boss-HP an Ziel-Kampfdauer kalibriert | mittel |
 | BA2 | Balancing | **Bot-Freischaltung** | Deutlich höhere Hürden (Tabelle §4.10). Bereits freigeschaltete Bots bleiben | niedrig |
 | BA3 | Balancing | **Riss-Schwierigkeit** | Rift-Kammer: HP/Schaden-Multiplikator nach Sektor & Ebene, mehr Wellen, Elite-Affix | niedrig |
 
@@ -51,13 +51,13 @@
 
 | # | Frage | Entscheidung |
 | :--- | :--- | :--- |
-| E1 | Darf man nachts in den Dungeon? | **Nein.** Nachts zeigt das Hangar-Tor: „Erst die Nachtschicht im Laden — oder in der Koje schlafen (Schicht fällt aus)“. Die Schlafkoje bleibt als „Schicht überspringen → Morgen“. |
-| E2 | Was passiert mit dem bisherigen Nacht-Loot-Bonus (+35 % Rar-Loot)? | Entfällt im Dungeon (Runs sind jetzt immer tagsüber). Ersatz: **Nachtschicht-Bonus** im Laden — Stammkunden kommen nachts 15 % häufiger. `rollLootItem(..., nightBoost, ...)` bekommt immer `false`. |
-| E3 | Darf man den Laden ohne Kunden (leer) schließen, um Zeit zu sparen? | Ja, Schließen beendet immer die Nacht → Tag (auch ohne Verkäufe). Bisherige Sonderregel „nur bei Aktivität“ entfällt. |
+| E1 | Darf man nachts in den Dungeon? | **Ja.** Ein Nacht-Run behält den Nacht-Bonus (+35 % seltene Beute), **kostet aber die Ladenschicht**: Nach der Rückkehr ist es direkt **Tag** (neuer Tag). Tagsüber kann der Laden nicht geöffnet und nicht geschlafen werden. Das Hangar-Tor weist nachts darauf hin. |
+| E2 | Nacht-Loot-Bonus (+35 % Rar-Loot) | **Bleibt unverändert** (`nightBoost` wie heute). |
+| E3 | Darf man den Laden ohne Kunden (leer) schließen? | Ja, Schließen beendet immer die Nacht → Tag (auch ohne Verkäufe). Bisherige Sonderregel „nur bei Aktivität“ entfällt. Die Koje bietet nachts „Schicht überspringen → Morgen“, tagsüber nichts. |
 | E4 | Wie oft Notfall-Extraktion ohne Boss? | Start-Raum jeder Ebene (wie bisher, gratis) **+** ab Ebene II genau **eine** „Notfall-Bake“ in einem zufälligen Kampfraum (einmal nutzbar, nach Raum-Clear). Kein Warp per Taste mehr. |
-| E5 | Boss-One-Shots verhindern | **Treffer-Deckel:** Ein einzelner Treffer macht bei Bossen höchstens **7 % der Max-HP**. Kein Deckel bei normalen Gegnern. |
-| E6 | Frühes Waffen-Scaling | Schadenstabellen bleiben. Stattdessen **Fortschritts-Sperren** für Waffen-Stufen (§4.9). |
-| E7 | Verkaufspreise | Ein zentraler Faktor `SELL_PRICE_MULT = 0.65` auf den Basiswert; Kopfgelder (Bounties) ×0,75. Material-Anforderungen unverändert. |
+| E5 | Boss-One-Shots | **Kein Treffer-Deckel.** Der Spieler soll sich stark fühlen. Ursache wird an der Wurzel behoben: frühe Waffenwerte und Upgrade-Tempo (E6), danach Boss-HP über die Kampfdauer kalibrieren. |
+| E6 | Frühes Waffen-Scaling & Upgrade-Tempo | (a) **Flachere frühe Schadensstufen** (Stufen 1–3), Stufen 4–7 unverändert. (b) **Frühe Upgrades teurer** (Material-Mengen der Stufen 1–3 ×1,5, ab Stufe 2 mindestens ein Material aus Sektor 1 Ebene II). (c) **Fortschritts-Sperren** für Waffen-Stufen. Details §4.9. |
+| E7 | Verkaufspreise | Ein zentraler Faktor `SELL_PRICE_MULT = 0.65` auf den Basiswert; Kopfgelder ×0,75. Ökonomie ist **iterativ**: alle Stellschrauben in `src/data/balance.ts`, ein Ökonomie-Bericht im Test (§4.9), Nachjustieren in späteren Sitzungen ausdrücklich erwünscht (Eintrag in `HANDOFF.md`). |
 | E8 | Gegner-Schilde: durchdringende Angriffe | Durchdringen weiterhin vollständig (bewusster Konter, z. B. Speer-Lanze). |
 
 ---
@@ -166,24 +166,27 @@ export function bindLoadout(root: HTMLElement, state: GameState, onChange: () =>
 **Neue Regel (Moonlighter umgedreht):**
 | Zustand | Erlaubt | Übergang |
 | :--- | :--- | :--- |
-| ☀ **Tag** | Dungeon, Promenade, Schmiede, Terrasse … | **Rückkehr aus dem Dungeon** (Sieg, Extraktion, Niederlage, Spirale) → **Nacht** |
-| 🌙 **Nacht** | Laden öffnen, Promenade, Hinterzimmer | **Laden schließen** (Timer abgelaufen oder manuell) → **Tag** (neuer Tag: Aufträge, Nyx, Events) · Koje „Schicht überspringen“ → Tag |
+| ☀ **Tag** | Dungeon, Promenade, Schmiede, Terrasse … — **kein** Laden, **kein** Schlafen | **Rückkehr aus dem Dungeon** (Sieg, Extraktion, Niederlage, Spirale) → **Nacht** |
+| 🌙 **Nacht** | Laden öffnen, Dungeon (Nacht-Run, +35 % seltene Beute), Promenade, Hinterzimmer | **Laden schließen** (Timer abgelaufen oder manuell) → **Tag** (neuer Tag: Aufträge, Nyx, Events) · **Rückkehr aus einem Nacht-Run** → **Tag** (neuer Tag, Ladenschicht fällt aus) · Koje „Schicht überspringen“ → Tag |
 
 Umsetzung:
 - `GameState`: zwei klar benannte Methoden statt des Umschalters:
   - `startNight(): AdvanceResult` — nur wenn `timeOfDay === 'day'`; setzt Nacht, `restoreFullVitals()`, Bank-Tick wie heute.
   - `startDay(): AdvanceResult` — nur wenn `timeOfDay === 'night'`; Logik des heutigen Nacht→Tag-Zweigs (Tag +1, Bounties, Nyx, Event, Demand-Decay).
   - `advanceTimeOfDay()` bleibt als dünner Wrapper (Kompatibilität), ruft je nach Zustand eine der beiden.
-- `main.ts handleReturnFromDungeon()`: am Ende `state.startNight()` + Toast `🌙 Die Nacht bricht an — Zeit, den Laden zu öffnen!`. **Nicht** in der Wöchentlichen Prüfung (dort ändert sich nichts an der Zeit).
+- `main.ts handleReturnFromDungeon()`: Zeit **beim Start** des Runs merken (`runStartedAtNight`, nur im Speicher, kein Save-Feld; bei Neuladen mitten im Run zählt die aktuelle Zeit). Am Ende:
+  - Run startete am Tag → `state.startNight()` + Toast `🌙 Die Nacht bricht an — Zeit, den Laden zu öffnen!`
+  - Run startete in der Nacht → `state.startDay()` + Toast `☀ Der Morgen graut — die Ladenschicht ist ausgefallen. Tag {n} beginnt!`
+  - **Nicht** in der Wöchentlichen Prüfung (dort ändert sich nichts an der Zeit).
 - `ShopScene.toggleShopOpen()`: tagsüber Öffnen ablehnen → Toast `☀ Tagsüber ist der Laden zu — erst nachts öffnen. Zeit für einen Run!`
 - `ShopScene.closeShop()`: **immer** `state.startDay()` (E3) + bestehender Toast.
-- `BackroomScene` Koje: tagsüber Prompt `[E] Ruhen → Nacht` entfällt (Nacht kommt nur nach dem Run). Nachts: `[E] Schicht überspringen → Morgen (Tag n+1)`.
-- Hangar-/Dungeon-Start: nachts blockiert (E1) — Prompt am Schiff `🌙 Nachts bleibt das Schiff im Dock — erst die Ladenschicht!`.
-- E2: Nacht-Loot-Bonus im Dungeon entfernen (`nightBoost` → `false`, Toasts mit „+35 %“ anpassen: `DungeonScene` ~Zeile 440–500, `BackroomScene`, `ShopScene`). Ersatz: in `ShopScene` Stammkunden-Spawnchance nachts ×1,15.
+- `BackroomScene` Koje: tagsüber **kein** Prompt zum Schlafen (Hinweis-Prompt stattdessen: `☀ Tagsüber wird nicht geschlafen — ab in den Dungeon!`). Nachts: `[E] Schicht überspringen → Morgen (Tag n+1)`.
+- Hangar/Schiff nachts: Start erlaubt, Prompt-Zusatz `🌙 Nacht-Run: +35 % seltene Beute · Ladenschicht fällt aus`. Tagsüber wie heute.
+- E2: Nacht-Loot-Bonus bleibt (`nightBoost` unverändert). Bestehende Toasts, die „Nacht“ erwähnen, auf die neue Regel prüfen (`DungeonScene` ~Zeile 440–500, `BackroomScene`, `ShopScene`).
 - Alte Spielstände: wer tagsüber mit vollem Laden steht, kann trotzdem in den Dungeon. Wer nachts gespeichert hat, öffnet den Laden. Nichts zu migrieren.
 - Musik: `syncMusic()` nach jedem Wechsel aufrufen (wie heute).
 
-**Akzeptanz:** `m10cp5`: Zustandsfolge Tag → Run beenden → Nacht → Laden auf/zu → Tag (Tag +1) → Run → Nacht. Laden tagsüber öffnen → abgelehnt. Prüfung: Zeit unverändert. Story-Kapitel/Festival bleiben unberührt.
+**Akzeptanz:** `m10cp5`: Zustandsfolge Tag → Run beenden → Nacht → Laden auf/zu → Tag (Tag +1) → Run → Nacht → **Nacht-Run** → Tag (Tag +1, kein Laden dazwischen). Laden tagsüber öffnen → abgelehnt. Koje tagsüber → kein Zeitwechsel. Nacht-Run erhält `nightBoost = true`. Prüfung: Zeit unverändert. Story-Kapitel/Festival bleiben unberührt.
 
 ### 4.7 G2 — Heim-Teleport entfernen
 
@@ -253,7 +256,8 @@ Einzigartig sind heute nur 5 von 12 (S1 F2/F3, S2 F1–F3). **Ziel:** jede Ebene
 ```ts
 export const SELL_PRICE_MULT = 0.65;      // E7
 export const BOUNTY_REWARD_MULT = 0.75;
-export const BOSS_HIT_CAP_PCT = 0.07;      // E5
+export const EARLY_TIER_DAMAGE_STEPS = [1.0, 1.2, 1.4, 1.6]; // E6a: Faktor auf Stufe 0 für Stufen 0–3
+export const EARLY_UPGRADE_MATERIAL_MULT = 1.5;               // E6b: Stufen 1–3
 export const WEAPON_TIER_GATES: Record<number, TierGate> = { /* s.u. */ };
 export const BOSS_HP: Record<BossKind, number> = { /* Phase 8 */ };
 export const RIFT_SCALING = { /* §4.11 */ };
@@ -261,7 +265,9 @@ export const RIFT_SCALING = { /* §4.11 */ };
 
 1. **Verkaufspreise:** Alle Stellen, die `item.baseValue` als Geldwert benutzen, über eine Funktion `getBaseValue(item)` (= `Math.round(baseValue * SELL_PRICE_MULT)`) leiten. Fundorte: `rg -n "baseValue" src/` — mindestens `systems/economy.ts`, `systems/haggle.ts`, Markt-Terrasse/`guildMarket.ts`, Nyx-Ankauf, Bank. Codex-Preise bestehender Saves: Bekannte Preise (`codex`) sind gelernte Werte → beim Laden einmalig ×0,65 skalieren, **nur** wenn eine Markierung fehlt (`codex._priceScaleV2`). Braucht das ein neues Save-Feld → optional, Default `false`, Save v12.
 2. **Kopfgelder:** Belohnung ×`BOUNTY_REWARD_MULT` bei der Erzeugung neuer Aufträge.
-3. **Waffen-Stufen-Sperren (E6):** Stufe = Index in den Schadenstabellen (`upgrades.ts` ~Zeile 1056 ff.).
+3. **Flachere frühe Schadensstufen (E6a):** In `getPlayerCombatStats()` (`upgrades.ts` ~Zeile 1056 ff.) für **jede** Waffe die Stufen 1–3 neu = `round(Stufe0 × EARLY_TIER_DAMAGE_STEPS[i])`, Stufen 0 und 4–7 bleiben. Beispiel Klinge: heute `20, 28, 38, 52, 70 …` → neu `20, 24, 28, 32, 70 …`. Der Sprung auf Stufe 4 ist gewollt: Stufe 4 gibt es erst nach Sektor 1 (Sperre unten) und fühlt sich wie eine Belohnung an. Blaster-Cooldowns und Reichweiten bleiben. Die Tabellen dafür nicht kopieren, sondern im Code aus den bestehenden Arrays ableiten (Hilfsfunktion `flattenEarly(arr)`).
+4. **Frühe Upgrades teurer (E6b):** Material-Mengen der Waffen-Stufen 1–3 ×`EARLY_UPGRADE_MATERIAL_MULT` (aufrunden). Ab Stufe 2 muss mindestens **ein** Material aus Sektor 1 Ebene II stammen (ein passendes vorhandenes Item aus `items.ts` wählen, das erst ab Ebene II droppt; Auswahl in §9 notieren). Credit-Kosten unverändert (Geld ist nicht knapp).
+5. **Waffen-Stufen-Sperren (E6c):** Stufe = Index in den Schadenstabellen.
    | Ziel-Stufe | Bedingung |
    | :--- | :--- |
    | 1–2 | keine |
@@ -271,16 +277,17 @@ export const RIFT_SCALING = { /* §4.11 */ };
    | 6 | Sektor 2 abgeschlossen |
    | 7 | Sektor 3 abgeschlossen |
    - Prüfung in `canAffordUpgrade`/`purchaseUpgrade` (nur Waffen-Tracks), Anzeige in der Schmiede: `🔒 Benötigt: Sektor 1 abgeschlossen`. Bereits gekaufte Stufen bleiben.
-4. **Boss-Treffer-Deckel (E5):** in `damageEnemy()`: wenn `isBossKind(e.kind)` → `finalAmt = Math.min(finalAmt, Math.ceil(e.maxHp * BOSS_HIT_CAP_PCT))`. Gilt auch für Leviathan-Arme (deren eigenes HP).
-5. **Boss-HP kalibrieren** (Phase 8): Playwright-Test `m10cp8` importiert im Browser `getPlayerCombatStats()` und berechnet je Waffe die DPS = `Schaden / Angriffs-Cooldown` (Tabellen **nicht** duplizieren). **Erwartete Ausrüstung** je Boss = höchste Stufe, die laut Sperre an dem Punkt kaufbar ist, Durchschnitt über die 3 besten Waffen. Ziel-Kampfdauer (reine Schadenszeit, ohne Ausweichen):
+6. **Boss-HP kalibrieren** (Phase 8, **nach** 3–5): Playwright-Test `m10cp8` importiert im Browser `getPlayerCombatStats()` und berechnet je Waffe die DPS = `Schaden / Angriffs-Cooldown` (Tabellen **nicht** duplizieren). **Erwartete Ausrüstung** je Boss = höchste Stufe, die laut Sperre an dem Punkt kaufbar ist, Durchschnitt über die 3 besten Waffen. Ziel-Kampfdauer (reine Schadenszeit, ohne Ausweichen):
    | Boss | Ziel-TTK | 
    | :--- | :--- |
-   | Ebene I | 30–40 s |
-   | Ebene II | 40–55 s |
-   | Ebene III (Endboss) | 60–80 s |
-   HP so setzen, dass die erwartete TTK in der Mitte des Bandes liegt; Werte in `BOSS_HP` eintragen und `spawnEnemy()` liest sie (bestehende Multiplikatoren für Ebene/NG+/bossCount bleiben). **Startwerte**, falls die Messung scheitert: S1 F1 480 · F2 720 · F3 1250; S2–S4 jeweils heutiger Wert ×1,6.
+   | Ebene I | 20–30 s |
+   | Ebene II | 30–45 s |
+   | Ebene III (Endboss) | 45–65 s |
+   Zusatz-Check normale Gegner: mit erwarteter Ausrüstung braucht ein Standard-Gegner der jeweiligen Ebene **2–4 Treffer** (Spieler soll sich stark fühlen, aber nicht alles mit einem Schlag umhauen).
+   HP so setzen, dass die erwartete TTK in der Mitte des Bandes liegt; Werte in `BOSS_HP` eintragen und `spawnEnemy()` liest sie (bestehende Multiplikatoren für Ebene/NG+/bossCount bleiben). **Startwerte**, falls die Messung scheitert: S1 F1 380 · F2 560 · F3 950; S2–S4 jeweils heutiger Wert ×1,3.
+7. **Ökonomie-Bericht (E7):** `m10cp8` schreibt zusätzlich `tests/out/economy.json`: Verkaufspreis von 10 Referenz-Items (je Seltenheit), Kosten der Waffen-Stufen 1–4 (Credits + Materialien), Kopfgeld-Spanne. Der Bericht **schlägt nicht fehl** — er ist die Grundlage für spätere Nachjustierungen. In `HANDOFF.md` unter „Offene Punkte“: „Ökonomie regelmäßig anhand `tests/out/economy.json` und Spielgefühl nachjustieren (`src/data/balance.ts`).“
 
-**Akzeptanz:** `m10cp8` gibt eine TTK-Tabelle aus (auch in `tests/out/ttk.json`) und schlägt fehl, wenn ein Boss außerhalb seines Bandes liegt. Kein Treffer > 7 % Max-HP auf Bosse. Verkaufspreis eines Referenz-Items sinkt um 35 % (±1 CR Rundung).
+**Akzeptanz:** `m10cp8` gibt eine TTK-Tabelle aus (auch in `tests/out/ttk.json`) und schlägt fehl, wenn ein Boss außerhalb seines Bandes liegt oder ein Standard-Gegner außerhalb 2–4 Treffern. Bestehende Saves: bereits gekaufte Stufen behalten ihre Stufe (der Schaden folgt der neuen Tabelle). Verkaufspreis eines Referenz-Items sinkt um 35 % (±1 CR Rundung).
 
 ### 4.10 BA2 — Bot-Freischaltung
 
@@ -343,7 +350,7 @@ Jede Phase: Code → neuer Test `tests/m10cp<N>.cjs` → `npm run verify` → Sc
 ### Phase 0 — Fundament
 - `tests/run.cjs`: Dateinamen-Filter auf `/^(t\d|m\d+[a-z]?p)/` erweitern (damit `m10cp*` mitläuft).
 - `scripts/check-sprites.mjs`: alle `export const <NAME>_OPTIONAL_SPRITES = { … } as const`-Blöcke lesen (Regex über alle Treffer).
-- `src/data/balance.ts` mit den Konstanten aus §4.9/§4.11 anlegen (noch ungenutzt → keine `noUnusedLocals`-Fehler, da `export`).
+- `src/data/balance.ts` mit den Konstanten aus §4.9/§4.11 anlegen (ohne Treffer-Deckel) (noch ungenutzt → keine `noUnusedLocals`-Fehler, da `export`).
 - Test `m10cp0`: `balance.ts` importierbar, check-sprites findet weiterhin 12 M10-Sprites.
 
 ### Phase 1 — B1 Navigation
@@ -388,7 +395,7 @@ Jede Phase: Code → neuer Test `tests/m10cp<N>.cjs` → `npm run verify` → Sc
 
 ## 7. Gesamt-Verifikation vor dem finalen Push
 - `npm run verify` grün (Build, Invarianten, Sprite-Check, **alle** Tests inkl. M9/M10-A).
-- Manuell per Screenshot: Laden nachts offen, Tag-Prompt am Schiff, Dungeon-HUD mit freier Minimap (Hoch/Quer), Waffenschrank-Modal, jeder neue Boss mit Telegraphie, Portal-Raum, Notfall-Bake, Rift-Kammer Ebene III mit Elite.
+- Manuell per Screenshot: Laden nachts offen, Nacht-Run-Hinweis am Schiff, Koje tagsüber ohne Schlafen, Dungeon-HUD mit freier Minimap (Hoch/Quer), Waffenschrank-Modal, jeder neue Boss mit Telegraphie, Portal-Raum, Notfall-Bake, Rift-Kammer Ebene III mit Elite.
 - `rg -n "Math\.random" src/dungeon/mechanicsGen.ts src/dungeon/navGrid.ts` → 0 Treffer.
 
 ---
@@ -402,7 +409,8 @@ Jede Phase: Code → neuer Test `tests/m10cp<N>.cjs` → `npm run verify` → Sc
 | HUD-Prozentwerte stimmen nicht, wenn `#hud-layer` Padding hat | Positionen auf ein inneres absolut positioniertes Element ohne Padding beziehen oder Padding herausrechnen; mit `getBoundingClientRect` testen. |
 | Tag/Nacht: Story-Festival/Kapitel-Toasts erwarten alte Reihenfolge | Bestehende M10-Tests laufen lassen; Festival hängt am Betreten der Promenade, nicht an der Zeit. |
 | Laden-Tests (t-Serie) öffnen den Laden tagsüber | Im Test vorher `state.timeOfDay = 'night'` setzen — **nicht** die Regel aufweichen. |
-| Treffer-Deckel macht Leviathan-Arme unbesiegbar langsam | Deckel auf **Arm-HP** beziehen, TTK-Test deckt Leviathan ab. |
+| Flachere frühe Stufen machen Sektor 1 Ebene III zäh | TTK-Test deckt den Leviathan inkl. Arme ab; Boss-HP an das neue Band anpassen, nicht die Tabellen. |
+| Nacht-Run: Zeit beim Run-Start vergessen → falscher Übergang | `runStartedAtNight` beim Start in `main.ts` setzen, im Test beide Wege prüfen. |
 | Codex-Preise doppelt skaliert | Markierung `_priceScaleV2` prüfen, Test lädt einen alten Save zweimal. |
 | Neue Boss-KI wird in der Prüfung mit NG+ skaliert | Prüfung setzt NG+ auf 0 (bestehend) — nichts tun, nur testen. |
 
