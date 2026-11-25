@@ -6,7 +6,16 @@
  */
 import { sound } from '../engine/audio';
 import type { DungeonScene } from '../scenes/DungeonScene';
-import { ROOM_BOTTOM, ROOM_LEFT, ROOM_RIGHT, ROOM_TOP, type CrystalPrism, type FlameJet, type MagnetPlate } from '../world/dungeonGen';
+import {
+  ROOM_BOTTOM,
+  ROOM_LEFT,
+  ROOM_RIGHT,
+  ROOM_TOP,
+  type CrystalPrism,
+  type FlameJet,
+  type MagnetPlate,
+  type TeleportPad,
+} from '../world/dungeonGen';
 import type { Enemy, Projectile } from './dungeonTypes';
 
 export type ProjectileResult = 'pass' | 'reflected' | 'split' | 'absorbed';
@@ -29,6 +38,12 @@ export const PLATE_REACH = 34;
 export const PLATE_PLAYER_SPEED = 70;
 export const PLATE_ENEMY_SPEED = 90;
 export const PLATE_PROJECTILE_TURN = 0.436; // 25°/s in rad
+
+// ---------- S4: Astral-Teleporter ----------
+export const PAD_RADIUS = 9;
+export const PAD_DWELL_SEC = 0.25;
+export const PAD_LOCK_SEC = 1.2;
+export const PAD_COLORS = ['#38e8d4', '#fde047', '#c084fc'] as const;
 
 export type JetState = 'safe' | 'warn' | 'active';
 
@@ -58,6 +73,11 @@ export class RoomMechanicsSystem {
   private jetAcc = new Map<number, number>();
   private jetFlushTimer = 0;
   private jetSparkAcc = 0;
+  // S4: Verweildauer auf dem aktuellen Pad, Sperren je Pad, „erst absteigen“-Sicherung gegen Ping-Pong
+  private padDwellId: number | null = null;
+  private padDwell = 0;
+  private padLock = new Map<number, number>();
+  private padArmed = true;
 
   constructor(scene: DungeonScene) {
     this.scene = scene;
@@ -74,6 +94,10 @@ export class RoomMechanicsSystem {
     this.jetAcc.clear();
     this.jetFlushTimer = 0;
     this.jetSparkAcc = 0;
+    this.padDwellId = null;
+    this.padDwell = 0;
+    this.padLock.clear();
+    this.padArmed = true;
   }
 
   public update(dt: number): void {
@@ -88,6 +112,63 @@ export class RoomMechanicsSystem {
     if (!room) return;
     this.updateJets(dt);
     this.updatePlates(dt);
+    this.updateTeleporters(dt);
+  }
+
+  // ---------- S4: Astral-Teleporter ----------
+  /** Anteil (0..1) der Verweil-Aufladung für den Renderer. */
+  public getPadCharge(pad: TeleportPad): number {
+    return this.padDwellId === pad.id ? Math.min(1, this.padDwell / PAD_DWELL_SEC) : 0;
+  }
+
+  public isPadLocked(pad: TeleportPad): boolean {
+    return (this.padLock.get(pad.id) ?? 0) > 0;
+  }
+
+  private updateTeleporters(dt: number): void {
+    const pads = this.scene.currentRoom.teleporters;
+    if (!pads || pads.length < 2) return;
+    const sc = this.scene;
+    for (const [id, v] of this.padLock) {
+      if (v - dt <= 0) this.padLock.delete(id);
+      else this.padLock.set(id, v - dt);
+    }
+    const under = pads.find((p) => Math.hypot(sc.playerX - p.x, sc.playerY - p.y) < PAD_RADIUS);
+    // Nach einem Teleport muss der Spieler erst von den Pads absteigen (kein Ping-Pong)
+    if (!under) {
+      const near = pads.some((p) => Math.hypot(sc.playerX - p.x, sc.playerY - p.y) < PAD_RADIUS + 3);
+      if (!near) this.padArmed = true;
+      this.padDwellId = null;
+      this.padDwell = 0;
+      return;
+    }
+    if (!this.padArmed || sc.dashTimer > 0 || this.isPadLocked(under)) {
+      this.padDwellId = null;
+      this.padDwell = 0;
+      return;
+    }
+    if (this.padDwellId !== under.id) {
+      this.padDwellId = under.id;
+      this.padDwell = 0;
+    }
+    this.padDwell += dt;
+    if (this.padDwell < PAD_DWELL_SEC) return;
+    const partner = pads.find((p) => p.pairId === under.pairId && p.id !== under.id);
+    this.padDwellId = null;
+    this.padDwell = 0;
+    if (!partner) return;
+    // Teleport: Gegner werden NICHT mitgenommen (Aggro-Abbau ist der taktische Kern)
+    sc.spawnBurst(under.x, under.y, PAD_COLORS[under.colorIdx], 14);
+    sc.playerX = partner.x;
+    sc.playerY = partner.y;
+    sc.lastSafeX = partner.x;
+    sc.lastSafeY = partner.y;
+    sc.invulnTimer = Math.max(sc.invulnTimer, 0.3);
+    sc.spawnBurst(partner.x, partner.y, PAD_COLORS[partner.colorIdx], 14);
+    sound.playWarp();
+    this.padLock.set(under.id, PAD_LOCK_SEC);
+    this.padLock.set(partner.id, PAD_LOCK_SEC);
+    this.padArmed = false;
   }
 
   public getJetState(j: FlameJet): JetState {

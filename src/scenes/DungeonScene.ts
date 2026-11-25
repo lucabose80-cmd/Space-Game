@@ -22,7 +22,7 @@ import type {
   WeeklyTrialInfo,
 } from '../types';
 import { withSeededRandom } from '../systems/seededRng';
-import { formatWeekLabel, getTrialFloorSeed, TRIAL_FLOORS } from '../systems/weeklyTrial';
+import { formatWeekLabel, getTrialFloorSeed, TRIAL_FLOORS, trialHasMechanics } from '../systems/weeklyTrial';
 import {
   generateEndlessRiftFloor,
   generateSector1Floor,
@@ -371,7 +371,8 @@ export class DungeonScene {
     if (this.isWeeklyTrial && this.trialInfo) {
       // Identisches Layout für alle Spieler: NUR die synchrone Generierung läuft geseedet.
       const seed = getTrialFloorSeed(this.trialInfo.weekId, floorIndex);
-      this.floor = withSeededRandom(seed, () => generateSectorFloor(sector, floorIndex));
+      const mechanics = trialHasMechanics(this.trialInfo.weekId);
+      this.floor = withSeededRandom(seed, () => generateSectorFloor(sector, floorIndex, undefined, { mechanics }));
       // Keine Rift-Risse in der Prüfung (Beute/Progression sind aus)
       for (const [key, room] of [...this.floor.rooms.entries()]) {
         if (room.isRiftChamber) this.floor.rooms.delete(key);

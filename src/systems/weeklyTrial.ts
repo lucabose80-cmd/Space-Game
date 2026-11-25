@@ -64,6 +64,17 @@ export const TRIAL_SECTOR_NAMES: Record<1 | 2 | 3 | 4, string> = {
 };
 
 export const TRIAL_FLOORS = 3;
+
+/**
+ * Meilenstein 10-A: Sektor-Raum-Mechaniken erscheinen in der Wochen-Prüfung erst AB dieser ISO-Woche,
+ * damit sich eine laufende Wertungswoche nicht mitten in der Woche ändert (= die Woche NACH dem Merge).
+ * Als String-Literal fest eingetragen (Format YYYY-Www, lexikografisch vergleichbar).
+ */
+export const TRIAL_MECHANICS_FROM_WEEK = '2026-W49';
+
+export function trialHasMechanics(weekId: string): boolean {
+  return weekId >= TRIAL_MECHANICS_FROM_WEEK;
+}
 export const TRIAL_MAX_TIME_SEC = 10800;
 const BADGE_HISTORY_MAX = 52;
 const BADGE_RANK: Record<TrialBadge, number> = { bronze: 1, silver: 2, gold: 3 };

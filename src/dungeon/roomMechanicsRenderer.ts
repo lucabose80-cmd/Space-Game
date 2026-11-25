@@ -6,7 +6,7 @@
  */
 import { drawGlow, drawPixelShadow } from '../assets/pixelArt';
 import type { DungeonScene } from '../scenes/DungeonScene';
-import { jetEnds, PLATE_PERIOD, PLATE_REACH } from './roomMechanics';
+import { jetEnds, PAD_COLORS, PAD_RADIUS, PLATE_PERIOD, PLATE_REACH } from './roomMechanics';
 
 export interface MechanicsDrawable {
   y: number;
@@ -221,8 +221,74 @@ function renderPlates(ctx: CanvasRenderingContext2D, scene: DungeonScene): void 
   }
 }
 
+function renderPads(ctx: CanvasRenderingContext2D, scene: DungeonScene): void {
+  const pads = scene.currentRoom.teleporters;
+  if (!pads) return;
+  for (const pad of pads) {
+    const locked = scene.mechanics.isPadLocked(pad);
+    const charge = scene.mechanics.getPadCharge(pad);
+    const color = locked ? '#64748b' : PAD_COLORS[pad.colorIdx];
+    const rx = PAD_RADIUS + 2;
+    const ry = (PAD_RADIUS + 2) * 0.62; // 3/4-Draufsicht → Ellipse
+    ctx.save();
+    // Sockel
+    ctx.fillStyle = 'rgba(8, 13, 24, 0.82)';
+    ctx.beginPath();
+    ctx.ellipse(pad.x, pad.y, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = locked ? 1 : 1.6;
+    ctx.stroke();
+    // rotierender Runen-Ring
+    ctx.setLineDash([2.2, 2.2]);
+    ctx.lineDashOffset = -scene.time * (locked ? 2 : 9);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.ellipse(pad.x, pad.y, rx * 0.72, ry * 0.72, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // Paar-Symbol (auch ohne Farbsehen unterscheidbar): ○ ◇ △
+    ctx.fillStyle = color;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1;
+    const cx = pad.x;
+    const cy = pad.y;
+    if (pad.colorIdx === 0) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, 2, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (pad.colorIdx === 1) {
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - 2.6);
+      ctx.lineTo(cx + 2.6, cy);
+      ctx.lineTo(cx, cy + 2.6);
+      ctx.lineTo(cx - 2.6, cy);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - 2.6);
+      ctx.lineTo(cx + 2.4, cy + 1.8);
+      ctx.lineTo(cx - 2.4, cy + 1.8);
+      ctx.closePath();
+      ctx.fill();
+    }
+    // Ladering (0 → 0,25 s)
+    if (charge > 0) {
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, rx + 2, ry + 2, 0, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * charge);
+      ctx.stroke();
+    }
+    ctx.restore();
+    if (!locked) drawGlow(ctx, cx, cy - 2, rx * 1.9, color, 0.2 + charge * 0.35);
+  }
+}
+
 /** Boden-Layer: wird direkt nach dem Vent-Block gezeichnet (Düsen-Schienen, Magnetplatten, Teleporter-Pads). */
 export function renderMechanicsGround(ctx: CanvasRenderingContext2D, scene: DungeonScene): void {
+  renderPads(ctx, scene);
   renderPlates(ctx, scene);
   renderJets(ctx, scene);
 }
