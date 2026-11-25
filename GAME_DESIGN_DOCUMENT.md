@@ -80,6 +80,8 @@ flowchart LR
 ## 5. Nächste Schritte — Offene Phase-2-Roadmap (Meilensteine 9 & 10-A)
 
 ### 🔜 Meilenstein 9 (Empfohlener nächster Schritt): Galaktisches Netzwerk & Lebendige Community
+> 📐 **Architektur- & Vorgehensplan:** [MILESTONE_9_ARCHITECTURE.md](MILESTONE_9_ARCHITECTURE.md)
+
 Nutzt die bereits aktive Firebase-Anbindung (`starlighter-15b1f`), um das Online-Erlebnis noch lebendiger direkt im Spiel zu machen:
 1. **Geister-Kapitäne als Kunden in deinem Shop:** Angemeldete Spieler aus Firestore (`leaderboard`) besuchen regelmäßig mit ihrem Kapitäns-Namen und ihrem Anzug-Farbschema deinen *Astro-Barter*-Laden, zahlen +10 % Gilden-Trinkgeld und hinterlassen kleine Grüße.
 2. **Wöchentliche „Galaktische Prüfung“ (Seeded Challenge Run):** Deterministischer Wochen-Seed (`YYYY-Www`) am 5. Tor mit identischem Layout und normierter Ausrüstung für faire Vergleiche zwischen Neulingen und NG+-Veteranen + eigene Wochen-Rangliste & Gilden-Abzeichen.
