@@ -1,4 +1,5 @@
 import type { UpgradeLevels, UpgradeTrack, WeaponId } from '../types';
+import { EARLY_UPGRADE_MATERIAL_MULT, flattenEarlyDamage } from './balance';
 
 export const WEAPON_META: Record<
   WeaponId,
@@ -1053,18 +1054,18 @@ export const UPGRADE_TRACKS: UpgradeTrack[] = [
 ];
 
 export function getPlayerCombatStats(upgrades: UpgradeLevels) {
-  const bladeDamages = [20, 28, 38, 52, 70, 94, 124, 162];
+  const bladeDamages = flattenEarlyDamage([20, 28, 38, 52, 70, 94, 124, 162]);
   const bladeRanges = [31, 35, 39, 43, 47, 51, 55, 59];
-  const spearDamages = [22, 31, 42, 56, 74, 98, 130, 170];
+  const spearDamages = flattenEarlyDamage([22, 31, 42, 56, 74, 98, 130, 170]);
   const spearRanges = [46, 50, 54, 58, 62, 66, 70, 74];
-  const fistsDamages = [14, 20, 27, 36, 48, 65, 86, 112];
+  const fistsDamages = flattenEarlyDamage([14, 20, 27, 36, 48, 65, 86, 112]);
   const fistsRanges = [25, 27, 29, 31, 34, 37, 40, 43];
-  const discusDamages = [17, 24, 33, 45, 60, 80, 106, 140];
+  const discusDamages = flattenEarlyDamage([17, 24, 33, 45, 60, 80, 106, 140]);
   const discusRanges = [190, 210, 230, 250, 275, 300, 325, 355];
   const discusBounceCounts = [3, 4, 4, 5, 6, 7, 8, 9];
-  const blasterDamages = [15, 22, 30, 42, 56, 75, 98, 128];
+  const blasterDamages = flattenEarlyDamage([15, 22, 30, 42, 56, 75, 98, 128]);
   const blasterCooldowns = [0.29, 0.25, 0.21, 0.17, 0.145, 0.125, 0.11, 0.095];
-  const hammerDamages = [34, 46, 62, 82, 108, 142, 188, 246];
+  const hammerDamages = flattenEarlyDamage([34, 46, 62, 82, 108, 142, 188, 246]);
   const hammerRanges = [36, 40, 44, 48, 52, 56, 60, 64];
   const maxHps = [100, 140, 185, 245, 320, 420, 540, 680];
   const stimCharges = [2, 3, 4, 5];
@@ -1120,4 +1121,43 @@ export function getPlayerCombatStats(upgrades: UpgradeLevels) {
     hasSaleBox: tier >= 1,
     maxCustomers: 3 + tier * 2 + aura,
   };
+}
+
+// ---------------- M10-C Balancing: frühe Waffen-Upgrades ----------------
+// E6b: Material-Mengen der Stufen 1–3 ×1,5; Stufe 2 braucht zusätzlich ein Material ab Ebene II (reactor_shard).
+// Credit-Kosten bleiben (Geld ist nicht knapp). Die Schadens-Angaben der Labels folgen den abgeflachten Tabellen.
+const DEFAULT_LEVELS: UpgradeLevels = {
+  blade: 0, spear: 0, fists: 0, discus: 0, blaster: 0, hammer: 0, suit: 0, stimpack: 0, bioRegen: 0,
+  shopTier: 0, shopAura: 0, shopScanner: 0, shopAssistant: 0, modCrit: 0, modThruster: 0, modLuck: 0,
+};
+
+(() => {
+  const dmg: Record<string, number[]> = {
+    blade: getDamageArray('blade'),
+    spear: getDamageArray('spear'),
+    fists: getDamageArray('fists'),
+    discus: getDamageArray('discus'),
+    blaster: getDamageArray('blaster'),
+    hammer: getDamageArray('hammer'),
+  };
+  for (const track of UPGRADE_TRACKS) {
+    if (!track.weaponId) continue;
+    const arr = dmg[track.weaponId];
+    track.tiers.forEach((tier, idx) => {
+      if (idx > 2) return;
+      tier.materials = tier.materials.map((m) => ({ ...m, qty: Math.ceil(m.qty * EARLY_UPGRADE_MATERIAL_MULT) }));
+      if (idx === 1 && !tier.materials.some((m) => m.itemId === 'reactor_shard')) tier.materials.push({ itemId: 'reactor_shard', qty: 1 });
+      tier.statLabel = tier.statLabel.replace(/Schaden: \d+ → \d+/, `Schaden: ${arr[idx]} → ${arr[idx + 1]}`);
+    });
+  }
+})();
+
+function getDamageArray(weapon: WeaponId): number[] {
+  // aus getPlayerCombatStats ableiten, damit die Tabellen nicht dupliziert werden
+  const out: number[] = [];
+  for (let lvl = 0; lvl <= 4; lvl++) {
+    const stats = getPlayerCombatStats({ ...DEFAULT_LEVELS, [weapon]: lvl } as UpgradeLevels);
+    out.push(stats[`${weapon}Damage` as keyof typeof stats] as number);
+  }
+  return out;
 }

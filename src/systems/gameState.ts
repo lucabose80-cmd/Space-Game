@@ -1,3 +1,4 @@
+import { BOUNTY_REWARD_MULT, SELL_PRICE_MULT, scaledSellValue, WEAPON_TIER_GATES } from '../data/balance';
 import { COMPANION_ORDER, evaluateCompanionUnlock, SUIT_THEME_ORDER } from '../data/companions';
 import {
   ALCHEMY_BUFFS,
@@ -257,6 +258,8 @@ export class GameState {
   // Milestone 9: Galaktisches Netzwerk (Save v10)
   // Milestone 10-A: Story (Save v11)
   public story: StoryProgress = createEmptyStory();
+  /** M10-C: gelernte Codex-/Podest-Preise wurden einmalig auf den neuen Preisfaktor skaliert (Altspielstände) */
+  public priceScaleV2 = true;
   public ghostGreeting = '';
   public weeklyTrial: WeeklyTrialRecord | null = null;
   public trialBadgeHistory: Record<string, TrialBadge> = {};
@@ -669,7 +672,7 @@ export class GameState {
           : item.rarity === 'uncommon'
             ? 1 + Math.floor(Math.random() * 2)
             : 1;
-      const rawReward = item.baseValue * qty * 1.65;
+      const rawReward = item.baseValue * qty * 1.65 * BOUNTY_REWARD_MULT;
       const rewardCredits = Math.max(45, Math.round(rawReward / 5) * 5);
       return {
         id: `bounty_d${this.day}_${idx}_${item.id}`,
@@ -760,7 +763,7 @@ export class GameState {
     if (idx === -1) return null;
     const stack = this.saleBox[idx];
     const def = getItemDef(stack.itemId);
-    const price = Math.max(10, Math.round(def.baseValue * 0.7));
+    const price = Math.max(5, Math.round(scaledSellValue(def.baseValue) * 0.7));
 
     stack.qty -= 1;
     if (stack.qty <= 0) {
@@ -841,10 +844,30 @@ export class GameState {
     return true;
   }
 
+  /** M10-C (E6c): Sperrtext, solange die Waffen-Stufe noch nicht freigespielt ist — sonst null. */
+  public getWeaponTierLock(key: UpgradeKey): string | null {
+    const track = UPGRADE_TRACKS.find((t) => t.key === key);
+    if (!track?.weaponId) return null;
+    const nextTier = track.tiers[this.upgrades[key]];
+    if (!nextTier) return null;
+    const gate = WEAPON_TIER_GATES[nextTier.level];
+    if (!gate) return null;
+    return gate.check({
+      deepestFloor: this.deepestFloor,
+      deepestFloorS2: this.deepestFloorS2,
+      sector1Cleared: this.sector1Cleared,
+      sector2Cleared: this.sector2Cleared,
+      sector3Cleared: this.sector3Cleared,
+    })
+      ? null
+      : gate.text;
+  }
+
   public canAffordUpgrade(key: UpgradeKey): boolean {
     const track = UPGRADE_TRACKS.find((t) => t.key === key);
     if (!track) return false;
     if (track.weaponId && !this.unlockedWeapons[track.weaponId]) return false;
+    if (this.getWeaponTierLock(key)) return false;
     if (track.requiresShopTier !== undefined && (this.upgrades.shopTier ?? 0) < track.requiresShopTier) {
       return false;
     }
@@ -1651,6 +1674,7 @@ export class GameState {
       lastPedestalItems: this.lastPedestalItems,
       haggleWinsTotal: this.haggleWinsTotal,
       story: this.story,
+      priceScaleV2: this.priceScaleV2,
       ghostGreeting: this.ghostGreeting,
       weeklyTrial: this.weeklyTrial ?? undefined,
       trialBadgeHistory: this.trialBadgeHistory,
@@ -1846,6 +1870,22 @@ export class GameState {
         }
       }
       this.codex = baseCodex;
+      // M10-C Altspielstände: bereits gelernte Preise einmalig auf den neuen Preisfaktor skalieren
+      this.priceScaleV2 = parsed.priceScaleV2 === true;
+      const needsPriceScale = !this.priceScaleV2;
+      if (needsPriceScale) {
+        const sc = (v: number | null): number | null => (v === null || v === undefined ? v : Math.max(5, Math.round((v * SELL_PRICE_MULT) / 5) * 5));
+        for (const id of Object.keys(this.codex)) {
+          const c = this.codex[id];
+          c.maxCheapPrice = sc(c.maxCheapPrice);
+          c.minFairPrice = sc(c.minFairPrice);
+          c.maxFairPrice = sc(c.maxFairPrice);
+          c.minExpensivePrice = sc(c.minExpensivePrice);
+          c.minOutrageousPrice = sc(c.minOutrageousPrice);
+          c.lastSetPrice = sc(c.lastSetPrice);
+        }
+        this.priceScaleV2 = true;
+      }
 
       const tierIdx = Math.max(0, Math.min(SHOP_PEDESTAL_TIERS.length - 1, this.upgrades.shopTier));
       const coords = SHOP_PEDESTAL_TIERS[tierIdx];
@@ -1857,7 +1897,7 @@ export class GameState {
           y: c.y,
           itemId: saved?.itemId ?? null,
           qty: saved?.qty ?? 0,
-          price: saved?.price ?? 0,
+          price: needsPriceScale && saved?.price ? Math.max(5, Math.round((saved.price * SELL_PRICE_MULT) / 5) * 5) : saved?.price ?? 0,
         };
       });
 

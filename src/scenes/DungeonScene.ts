@@ -45,7 +45,7 @@ import { DungeonEnemyAi } from '../dungeon/enemyAi';
 import { RoomMechanicsSystem } from '../dungeon/roomMechanics';
 import { NavGrid } from '../dungeon/navGrid';
 import { BossFx } from '../dungeon/bosses/bossFx';
-import { ENEMY_SHIELDS } from '../data/balance';
+import { BOSS_HP, ENEMY_SHIELDS } from '../data/balance';
 import { findFreeSpotSpiral } from '../dungeon/mechanicsGen';
 import { DungeonRenderer } from '../dungeon/dungeonRenderer';
 import type {
@@ -852,7 +852,7 @@ export class DungeonScene {
       e.aimAngle = Math.random() * Math.PI * 2;
       this.enemies.push(e);
     } else if (kind === 'boss_slag_overlord') {
-      const e = makeBase(Math.round(680 * ngMult), 19);
+      const e = makeBase(Math.round(BOSS_HP.boss_slag_overlord * ngMult), 19);
       e.bossState = 's2_idle';
       e.bossStateTimer = 0.85;
       e.bossStateMax = 0.85;
@@ -860,7 +860,7 @@ export class DungeonScene {
       e.bossStatusText = 'SCHLACKEN-KERN AKTIV';
       this.enemies.push(e);
     } else if (kind === 'boss_forge_warden') {
-      const e = makeBase(Math.round(920 * ngMult), 19);
+      const e = makeBase(Math.round(BOSS_HP.boss_forge_warden * ngMult), 19);
       e.bossState = 's2_idle';
       e.bossStateTimer = 0.8;
       e.bossStateMax = 0.8;
@@ -869,7 +869,7 @@ export class DungeonScene {
       e.bossStatusText = 'SCHMELZOFEN AKTIV';
       this.enemies.push(e);
     } else if (kind === 'boss_vulkan_titan') {
-      const e = makeBase(Math.round(1580 * ngMult), 25);
+      const e = makeBase(Math.round(BOSS_HP.boss_vulkan_titan * ngMult), 25);
       e.bossState = 's2_idle';
       e.bossStateTimer = 0.9;
       e.bossStateMax = 0.9;
@@ -882,7 +882,7 @@ export class DungeonScene {
       e.bossStatusText = 'VULKAN-TITAN AKTIV';
       this.enemies.push(e);
     } else if (kind === 'boss_chrono_sentinel') {
-      const e = makeBase(Math.round(980 * ngMult), 19);
+      const e = makeBase(Math.round(BOSS_HP.boss_chrono_sentinel * ngMult), 19);
       e.bossState = 's2_idle';
       e.bossStateTimer = 0.82;
       e.bossStateMax = 0.82;
@@ -891,7 +891,7 @@ export class DungeonScene {
       e.bossStatusText = 'CHRONO-FELD AKTIV';
       this.enemies.push(e);
     } else if (kind === 'boss_monolith_colossus') {
-      const e = makeBase(Math.round(1340 * ngMult), 20);
+      const e = makeBase(Math.round(BOSS_HP.boss_monolith_colossus * ngMult), 20);
       e.bossState = 's2_idle';
       e.bossStateTimer = 0.8;
       e.bossStateMax = 0.8;
@@ -900,7 +900,7 @@ export class DungeonScene {
       e.bossStatusText = 'MONOLITH-KERN AKTIV';
       this.enemies.push(e);
     } else if (kind === 'boss_star_archon') {
-      const e = makeBase(Math.round(2180 * ngMult), 25);
+      const e = makeBase(Math.round(BOSS_HP.boss_star_archon * ngMult), 25);
       e.bossState = 's2_idle';
       e.bossStateTimer = 0.85;
       e.bossStateMax = 0.85;
@@ -913,7 +913,7 @@ export class DungeonScene {
       e.bossStatusText = 'STERNEN-ARCHON AKTIV';
       this.enemies.push(e);
     } else if (kind === 'boss_omega_archon') {
-      const e = makeBase(Math.round(2950 * ngMult), 27);
+      const e = makeBase(Math.round(BOSS_HP.boss_omega_archon * ngMult), 27);
       e.bossState = 's2_idle';
       e.bossStateTimer = 0.8;
       e.bossStateMax = 0.8;
@@ -926,7 +926,7 @@ export class DungeonScene {
       e.bossStatusText = 'OMEGA-ANOMALIE AKTIV';
       this.enemies.push(e);
     } else if (kind === 'boss_quartz_golem') {
-      const e = makeBase(Math.round(440 * ngMult * (1 + Math.min(2, bossCount) * 0.06)), 18);
+      const e = makeBase(Math.round(BOSS_HP.boss_quartz_golem * ngMult * (1 + Math.min(2, bossCount) * 0.06)), 18);
       e.bossState = 's2_idle';
       e.bossStateTimer = 0.9;
       e.bossStateMax = 0.9;
@@ -934,7 +934,7 @@ export class DungeonScene {
       e.bossStatusText = 'QUARZ-KERN AKTIV';
       this.enemies.push(e);
     } else if (kind === 'boss_prism_weaver') {
-      const e = makeBase(Math.round(620 * ngMult * (1 + Math.min(2, bossCount) * 0.06)), 17);
+      const e = makeBase(Math.round(BOSS_HP.boss_prism_weaver * ngMult * (1 + Math.min(2, bossCount) * 0.06)), 17);
       e.bossState = 's2_idle';
       e.bossStateTimer = 0.85;
       e.bossStateMax = 0.85;
@@ -943,7 +943,7 @@ export class DungeonScene {
       e.bossStatusText = 'PRISMA-NETZ AKTIV';
       this.enemies.push(e);
     } else if (kind === 'boss_prisma_archon') {
-      const e = makeBase(Math.round(1080 * ngMult * (1 + Math.min(2, bossCount) * 0.05)), 24);
+      const e = makeBase(Math.round(BOSS_HP.boss_prisma_archon * ngMult * (1 + Math.min(2, bossCount) * 0.05)), 24);
       e.bossState = 's2_idle';
       e.bossStateTimer = 0.95;
       e.bossStateMax = 0.95;
@@ -956,7 +956,7 @@ export class DungeonScene {
       e.bossStatusText = 'PRISMA-ARCHON AKTIV';
       this.enemies.push(e);
     } else if (kind === 'boss_breacher') {
-      const e = makeBase(Math.round(255 * ngMult * (1 + Math.min(2, bossCount) * 0.08)), 16);
+      const e = makeBase(Math.round(BOSS_HP.boss_breacher * ngMult * (1 + Math.min(2, bossCount) * 0.08)), 16);
       e.bossState = 'stalk';
       e.bossStateTimer = 0.85;
       e.bossStateMax = 0.85;
@@ -966,7 +966,7 @@ export class DungeonScene {
       e.bossAfterimageTick = 0;
       this.enemies.push(e);
     } else if (kind === 'boss') {
-      const e = makeBase(Math.round(420 * ngMult * (1 + Math.min(2, bossCount) * 0.08)), 16);
+      const e = makeBase(Math.round(BOSS_HP.boss * ngMult * (1 + Math.min(2, bossCount) * 0.08)), 16);
       e.bossState = 'stalk';
       e.bossStateTimer = 0.95;
       e.bossStateMax = 0.95;
@@ -984,7 +984,7 @@ export class DungeonScene {
       this.enemies.push(e);
     } else {
       // Gigantic Sector-1 Endboss: A.E.G.I.S. LEVIATHAN!
-      const e = makeBase(Math.round(760 * ngMult * (1 + Math.min(2, bossCount) * 0.06)), 28);
+      const e = makeBase(Math.round(BOSS_HP.boss_leviathan * ngMult * (1 + Math.min(2, bossCount) * 0.06)), 28);
       e.bossState = 'lev_idle';
       e.bossStateTimer = 1.05;
       e.bossStateMax = 1.05;

@@ -463,6 +463,8 @@ export interface SaveData {
   haggleWinsTotal?: number;
   // Milestone 10-A: Story (Save v11)
   story?: StoryProgress;
+  /** M10-C: Preise einmalig auf SELL_PRICE_MULT skaliert (optional, Altspielstände → false) */
+  priceScaleV2?: boolean;
   // Milestone 9: Galaktisches Netzwerk (Save v10)
   ghostGreeting?: string;
   weeklyTrial?: WeeklyTrialRecord;

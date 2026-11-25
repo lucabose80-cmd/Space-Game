@@ -1,3 +1,4 @@
+import { scaledSellValue } from '../data/balance';
 import { getHDArt } from '../assets/artLoader';
 import {
   ACHIEVEMENT_DEFS,
@@ -1574,8 +1575,10 @@ export class UIManager {
         }
 
         const canAfford = this.state.canAffordUpgrade(track.key);
+        const weaponLock = this.state.getWeaponTierLock(track.key); // M10-C: Fortschritts-Sperre
         const tierLocked =
-          track.requiresShopTier !== undefined && (this.state.upgrades.shopTier ?? 0) < track.requiresShopTier;
+          (track.requiresShopTier !== undefined && (this.state.upgrades.shopTier ?? 0) < track.requiresShopTier) ||
+          weaponLock !== null;
         const tierPrice = this.state.getForgeCreditCost(nextTier.creditCost, track.shop);
         const hasCredits = this.state.credits >= tierPrice;
         const pinKey = `upgrade:${track.key}`;
@@ -1604,7 +1607,7 @@ export class UIManager {
                 </div>
                 ${
                   tierLocked
-                    ? `<div style="font-size:11px;color:var(--accent-coral);margin-top:4px">🔒 Benötigt zuerst: Shop-Vergrößerung Stufe II (Astro-Barter Galerie)</div>`
+                    ? `<div style="font-size:11px;color:var(--accent-coral);margin-top:4px">🔒 ${weaponLock !== null ? `Benötigt: ${weaponLock}` : 'Benötigt zuerst: Shop-Vergrößerung Stufe II (Astro-Barter Galerie)'}</div>`
                     : `<div class="mat-list">
                         <span class="mat-pill ${hasCredits ? 'ok' : 'missing'}">${tierPrice} Cr</span>
                         ${matsHtml}
@@ -2124,7 +2127,7 @@ export class UIManager {
             .map((s, idx) => {
               const def = getItemDef(s.itemId);
               const rarity = RARITY_META[def.rarity];
-              const salePrice = Math.max(10, Math.round(def.baseValue * 0.7));
+              const salePrice = Math.max(5, Math.round(scaledSellValue(def.baseValue) * 0.7));
               return `
                 <div class="picker-row" style="justify-content:space-between;cursor:default">
                   <div style="display:flex;align-items:center;gap:8px;min-width:0">
@@ -2150,7 +2153,7 @@ export class UIManager {
               const def = getItemDef(id);
               const rarity = RARITY_META[def.rarity];
               const total = counts.get(id) ?? 0;
-              const salePrice = Math.max(10, Math.round(def.baseValue * 0.7));
+              const salePrice = Math.max(5, Math.round(scaledSellValue(def.baseValue) * 0.7));
               const pinNeed = this.state.getPinnedItemNeed(id);
               return `
                 <div class="picker-row" style="justify-content:space-between;cursor:default">
