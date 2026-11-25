@@ -109,6 +109,8 @@ export class SoundEngine {
   private jukeboxOverride: MusicTrack | null = null;
   private musicStep = 0;
   private musicTimer: number | null = null;
+  /** Meilenstein 10-A: Boss-Phase-2-Intensität (0 = normal, 1 = Phase 2). Wirkt nur beim Track 'boss'. */
+  private musicIntensity: 0 | 1 = 0;
 
   public setMuted(muted: boolean): void {
     this.muted = muted;
@@ -137,6 +139,25 @@ export class SoundEngine {
       this.ensureMusicLoop();
     }
     return this.musicMuted;
+  }
+
+  public getMusicIntensity(): 0 | 1 {
+    return this.musicIntensity;
+  }
+
+  /** Intensität wirkt nur, wenn der aktive Track 'boss' ist (Jukebox-Override eingeschlossen). */
+  private isIntense(): boolean {
+    return this.musicIntensity === 1 && this.getActiveMusicTrack() === 'boss';
+  }
+
+  /**
+   * Boss-Phase-2: Tempo +18 %, Hi-Hat-Puls, Oktav-Lead, Bass-Akzente.
+   * Nur bei echter Wertänderung wird das Intervall neu gesetzt; `musicStep` läuft weiter (Takt bleibt erhalten).
+   */
+  public setMusicIntensity(level: 0 | 1): void {
+    if (level === this.musicIntensity) return;
+    this.musicIntensity = level;
+    if (this.getActiveMusicTrack() === 'boss') this.restartMusicLoop();
   }
 
   public getActiveMusicTrack(): MusicTrack {
@@ -183,7 +204,7 @@ export class SoundEngine {
   private ensureMusicLoop(): void {
     if (this.musicTimer !== null || typeof window === 'undefined') return;
     const pat = TRACK_PATTERNS[this.getActiveMusicTrack()];
-    this.musicTimer = window.setInterval(() => this.tickMusic(), pat.stepMs);
+    this.musicTimer = window.setInterval(() => this.tickMusic(), Math.round(pat.stepMs * (this.isIntense() ? 0.82 : 1)));
   }
 
   private restartMusicLoop(): void {
@@ -201,16 +222,53 @@ export class SoundEngine {
     const idx = this.musicStep % pat.lead.length;
     this.musicStep = (this.musicStep + 1) % pat.lead.length;
 
-    const dur = (pat.stepMs / 1000) * 0.88;
+    const intense = this.isIntense();
+    const dur = ((pat.stepMs * (intense ? 0.82 : 1)) / 1000) * 0.88;
     const leadMidi = pat.lead[idx];
     const bassMidi = pat.bass[idx];
 
     if (leadMidi !== null) {
       this.playMusicVoice(midiToFreq(leadMidi), dur, pat.leadType, pat.leadVol);
+      // Phase 2: Oktav-Lead leise gedoppelt
+      if (intense) this.playMusicVoice(midiToFreq(leadMidi + 12), dur, 'square', pat.leadVol * 0.45);
     }
     if (bassMidi !== null) {
       this.playMusicVoice(midiToFreq(bassMidi), dur * 1.15, pat.bassType, pat.bassVol, 680);
+      // Phase 2: Bass-Akzent (+12 Halbtöne) auf Schritt 0 und 8
+      if (intense && (idx === 0 || idx === 8)) {
+        this.playMusicVoice(midiToFreq(bassMidi + 12), dur, pat.bassType, pat.bassVol * 0.8, 900);
+      }
     }
+    // Phase 2: Hi-Hat-Puls auf jedem 2. Schritt
+    if (intense && idx % 2 === 1) this.playMusicNoise(0.035, 7200, 0.025);
+  }
+
+  /** Musik-Rauschen (Hi-Hat): respektiert — anders als SFX-Rauschen — auch „Musik aus“. */
+  private playMusicNoise(duration: number, filterFreq: number, volume: number): void {
+    if (this.muted || this.musicMuted) return;
+    const ctx = this.ctx;
+    if (!ctx || ctx.state !== 'running' || !this.noiseBuffer) return;
+    const now = ctx.currentTime;
+    const src = ctx.createBufferSource();
+    src.buffer = this.noiseBuffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.setValueAtTime(filterFreq, now);
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(volume, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    src.start(now);
+    src.stop(now + duration + 0.02);
+  }
+
+  /** Einmaliger Phasen-Sting beim Wechsel eines Bosses in Phase 2 (SFX: respektiert „SFX aus“). */
+  public playPhaseShiftSting(): void {
+    this.playTone(880, 110, 0.5, 'sawtooth', 0.09);
+    this.playNoise(0.3, 900, 0.12);
+    this.playTone(55, 55, 0.6, 'sine', 0.12);
   }
 
   private playMusicVoice(

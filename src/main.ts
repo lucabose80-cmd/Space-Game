@@ -376,6 +376,9 @@ class StarlighterGame {
     });
   }
 
+  /** Letzter Stand der Boss-Phase-2 (für den einmaligen Sting pro Wechsel). */
+  private lastBossPhase2 = false;
+
   private syncMusic(): void {
     let desired: MusicTrack;
     if (this.activeScene === 'dungeon') {
@@ -400,6 +403,12 @@ class StarlighterGame {
       desired = this.state.timeOfDay === 'night' ? 'shop_night' : 'shop_day';
     }
     sound.setMusicTrack(desired);
+
+    // Milestone 10-A: Boss-Phase-2 → Musik-Intensität + einmaliger Sting pro Wechsel
+    const phase2 = this.activeScene === 'dungeon' && this.dungeonScene.isBossPhase2Active();
+    if (phase2 && !this.lastBossPhase2) sound.playPhaseShiftSting();
+    this.lastBossPhase2 = phase2;
+    sound.setMusicIntensity(phase2 ? 1 : 0);
   }
 
   private handleAdvanceTime(): void {

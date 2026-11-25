@@ -213,6 +213,11 @@ export class DungeonScene {
     this.callbacks = callbacks;
   }
 
+  /** Milestone 10-A: Ein Boss ist in Phase 2 (steuert die Musik-Intensität in main.ts). */
+  public isBossPhase2Active(): boolean {
+    return this.enemies.some((e) => this.isBossKind(e.kind) && e.bossPhase2 === true);
+  }
+
   public isInBossFight(): boolean {
     return this.currentRoom?.type === 'boss' && this.enemies.some((e) => this.isBossKind(e.kind));
   }
