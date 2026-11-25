@@ -33,6 +33,8 @@
    - Run `npm run build` (`tsc && vite build`) → 0 errors.
    - Verify Zero-Dungeon-Credits invariant.
    - Run Headless Chrome CDP logic + live screenshot check and **visually inspect** screenshots before committing and pushing to `origin main`.
+7. **Fehlende Sprites melden:** Legst du einen prozeduralen Fallback / Platzhalter anstelle eines Sprites an (z. B. weil kein Bildgenerator verfügbar ist), dann **musst** du (a) den Sprite-Key in `M10_OPTIONAL_SPRITES` (bzw. dem passenden optionalen Block in `artLoader.ts`) registrieren, damit `npm run check:sprites` ihn listet, (b) den Prompt in `ART_AND_DESIGN_GUIDE.md` §7 ergänzen und (c) im Abschnitt „Fehlende Sprites“ von `HANDOFF.md` eintragen. In deiner Abschlussmeldung weist du den Projektinhaber ausdrücklich darauf hin, dass neue Sprites benötigt werden.
+8. **Übergabe:** Aktualisiere am Ende jeder Sitzung `HANDOFF.md`. Prüfe mit `npm run verify`, bevor du pushst (gilt für jedes Werkzeug; Claude Code liest `CLAUDE.md`, das auf diese Datei verweist).
 
 ---
 
@@ -74,5 +76,8 @@
 ## 5. Key Commands
 ```bash
 npm run build      # TypeScript check + Vite production build (index, dungeon & firebase chunks)
+npm run verify     # Build + Invarianten + Sprite-Check + alle Headless-Tests (vor jedem Push)
+npm test -- m10p3  # einzelne Tests (tests/*.cjs, Playwright)
+npm run check:sprites  # listet fehlende optionale Sprites (Fallbacks aktiv)
 npm run dev        # Local Vite dev server (use --host 127.0.0.1 --strictPort in Headless Chrome tests)
 ```

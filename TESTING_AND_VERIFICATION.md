@@ -154,3 +154,11 @@ Wenn neue Items, Props, Gegner oder Schiffe per Bildgenerierung erstellt werden:
 
 - [GAME_DESIGN_DOCUMENT.md](GAME_DESIGN_DOCUMENT.md) — Aktueller Stand (v1.1), Design-Invariants, Codebase-Karte & offene Phase-2-Roadmap.
 - [firestore.rules](firestore.rules) — Sicherheitsregeln für Firebase Cloud-Save, Rangliste & Aktivitäts-Feed.
+
+
+---
+
+## Automatisierte Tests im Repo (seit M10-A)
+
+- `tests/*.cjs` (Playwright, Vite-Dev-Server auf Port 4197) laufen über `npm test` (alle) bzw. `npm test -- m10p3 t5` (einzelne). `tests/harness.cjs` startet Vite + Chromium; Screenshots landen in `tests/out/` (gitignored). Einmalig `npx playwright install chromium`.
+- `npm run check:invariants` prüft die harten Regeln aus AGENTS.md (ohne `rg`), `npm run check:sprites` listet fehlende optionale Sprites, `npm run verify` führt alles zusammen aus.

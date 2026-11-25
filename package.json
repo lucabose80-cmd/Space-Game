@@ -6,13 +6,21 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node tests/run.cjs",
+    "check:invariants": "node scripts/check-invariants.mjs",
+    "check:sprites": "node scripts/check-sprites.mjs",
+    "verify": "npm run build && npm run check:invariants && npm run check:sprites && npm test"
   },
   "devDependencies": {
     "typescript": "~7.0.2",
-    "vite": "^8.3.6"
+    "vite": "^8.3.6",
+    "playwright": "1.63.0"
   },
   "dependencies": {
     "firebase": "^13.4.0"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }
