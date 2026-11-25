@@ -309,25 +309,35 @@ export class HubEvolutionRenderer {
     if (spr) {
       drawSpriteFoot(ctx, spr, x, y, 34, 44);
     } else {
-      rect(ctx, x - 9, y - 5, 18, 5, '#1e293b', OUTLINE);
-      poly(ctx, [[x - 6, y - 5], [x + 6, y - 5], [x + 4, y - 36], [x - 4, y - 36]], '#0f172a', '#38e8d4');
-      poly(ctx, [[x + 1, y - 5], [x + 6, y - 5], [x + 4, y - 36], [x + 1, y - 36]], '#16223a');
-      poly(ctx, [[x - 4, y - 36], [x + 4, y - 36], [x, y - 43]], '#0f172a', '#38e8d4');
-      for (let i = 0; i < 4; i++) {
-        const a = 0.45 + 0.5 * Math.sin(time * 2 + i * 1.3);
-        ctx.globalAlpha = Math.max(0.15, a);
-        rect(ctx, x - 1.5, y - 12 - i * 7, 3, 1, '#38e8d4');
+      // Sockel (Stufen)
+      rect(ctx, x - 10, y - 3, 20, 3, '#1e293b', OUTLINE);
+      rect(ctx, x - 8, y - 6, 16, 3, '#2a3850', OUTLINE);
+      // Schaft: Licht links, Schatten rechts
+      poly(ctx, [[x - 6, y - 6], [x + 6, y - 6], [x + 4, y - 36], [x - 4, y - 36]], '#1b2a47', OUTLINE);
+      poly(ctx, [[x, y - 6], [x + 6, y - 6], [x + 4, y - 36], [x, y - 36]], '#0b1322');
+      rect(ctx, x - 5, y - 34, 1, 26, '#35517f');
+      rect(ctx, x - 0.5, y - 34, 1, 28, 'rgba(56, 232, 212, 0.35)');
+      // Spitze
+      poly(ctx, [[x - 4, y - 36], [x + 4, y - 36], [x, y - 45]], '#26385c', OUTLINE);
+      poly(ctx, [[x, y - 36], [x + 4, y - 36], [x, y - 45]], '#0b1322');
+      rect(ctx, x - 0.5, y - 47, 1, 2, '#a5f3fc');
+      // pulsierende Glyphen
+      for (let i = 0; i < 5; i++) {
+        ctx.globalAlpha = Math.max(0.2, 0.5 + 0.5 * Math.sin(time * 2.2 + i * 1.3));
+        rect(ctx, x - 3.5, y - 11 - i * 5.5, 2, 1, '#38e8d4');
+        rect(ctx, x + 1.5, y - 13.5 - i * 5.5, 2, 1, '#38e8d4');
+        rect(ctx, x - 1.5, y - 12 - i * 5.5, 1, 3, '#22d3ee');
       }
       ctx.globalAlpha = 1;
       // schwebender Holo-Ring der Ältesten
       ctx.save();
       ctx.strokeStyle = '#fde047';
-      ctx.globalAlpha = 0.85;
+      ctx.globalAlpha = 0.9;
       ctx.lineWidth = 1;
       ctx.setLineDash([3, 2]);
       ctx.lineDashOffset = -time * 8;
       ctx.beginPath();
-      ctx.ellipse(x, y - 22, 12, 3.6, 0, 0, Math.PI * 2);
+      ctx.ellipse(x, y - 22 + Math.sin(time * 1.6) * 1.2, 12, 3.6, 0, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
     }
@@ -364,16 +374,24 @@ export class HubEvolutionRenderer {
     if (spr) {
       drawSpriteFoot(ctx, spr, x, y, 26, 26);
     } else {
-      rect(ctx, x - 1, y - 8, 2, 8, '#334155', OUTLINE);
-      rect(ctx, x - 10, y - 26, 20, 14, 'rgba(8, 47, 73, 0.78)', '#38e8d4');
-      ctx.fillStyle = 'rgba(56, 232, 212, 0.28)';
-      for (let i = 0; i < 3; i++) ctx.fillRect(x - 9, y - 25 + ((time * 9 + i * 4.5) % 12), 18, 1);
+      // Standfuß & Mast
+      rect(ctx, x - 5, y - 2, 10, 2, '#334155', OUTLINE);
+      rect(ctx, x - 1, y - 11, 2, 9, '#64748b', OUTLINE);
+      // Panel mit Rahmen
+      rect(ctx, x - 13, y - 30, 26, 19, 'rgba(8, 47, 73, 0.86)', '#38e8d4');
+      rect(ctx, x - 12, y - 29, 24, 17, 'rgba(12, 74, 110, 0.35)');
+      for (const [cx, cy] of [[x - 13, y - 30], [x + 12, y - 30], [x - 13, y - 12], [x + 12, y - 12]]) rect(ctx, cx - 0.5, cy - 0.5, 2, 2, '#a5f3fc');
+      ctx.fillStyle = 'rgba(56, 232, 212, 0.26)';
+      for (let i = 0; i < 3; i++) ctx.fillRect(x - 12, y - 29 + ((time * 9 + i * 5.5) % 17), 24, 1);
     }
     ctx.save();
-    ctx.font = 'bold 4.6px Silkscreen, monospace';
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#a5f3fc';
-    ctx.fillText(`ZYKLUS ${Math.max(1, this.state.ngPlusLevel)}`, x, y - 17);
+    ctx.fillStyle = '#7dd3fc';
+    ctx.font = 'bold 3.4px Silkscreen, monospace';
+    ctx.fillText('ZYKLUS', x, y - 24);
+    ctx.fillStyle = '#e0f2fe';
+    ctx.font = 'bold 8px Silkscreen, monospace';
+    ctx.fillText(`${Math.max(1, this.state.ngPlusLevel)}`, x, y - 15.5);
     ctx.restore();
     drawGlow(ctx, x, y - 19, 16, '#38e8d4', 0.2);
   }
@@ -448,21 +466,44 @@ export class HubEvolutionRenderer {
     if (spr) {
       drawSpriteFoot(ctx, spr, x, y, 30, 40);
     } else {
-      rect(ctx, x - 5, y - 4, 10, 4, '#334155', OUTLINE);
-      rect(ctx, x - 1, y - 28, 2, 24, '#94a3b8', OUTLINE);
-      ctx.save();
-      ctx.translate(x + 3, y - 25);
-      ctx.rotate(-0.5);
-      ctx.fillStyle = '#cbd5e1';
-      ctx.strokeStyle = OUTLINE;
-      ctx.lineWidth = 0.8;
+      // Sockel & Mast mit Streben
+      rect(ctx, x - 7, y - 3, 14, 3, '#334155', OUTLINE);
+      rect(ctx, x - 4, y - 7, 8, 4, '#475569', OUTLINE);
+      rect(ctx, x - 1, y - 28, 2, 21, '#94a3b8', OUTLINE);
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.ellipse(0, 0, 6, 2.8, 0, 0, Math.PI * 2);
+      ctx.moveTo(x - 5, y - 4); ctx.lineTo(x - 1, y - 18);
+      ctx.moveTo(x + 5, y - 4); ctx.lineTo(x + 1, y - 18);
+      ctx.stroke();
+      // Parabolschüssel (Rand hell, Innenfläche dunkel) mit Feedhorn
+      ctx.save();
+      ctx.translate(x + 2, y - 19);
+      ctx.rotate(-0.55);
+      ctx.fillStyle = '#e2e8f0';
+      ctx.strokeStyle = OUTLINE;
+      ctx.lineWidth = 0.9;
+      ctx.beginPath();
+      ctx.arc(0, 0, 7.5, 0.15, Math.PI - 0.15);
+      ctx.closePath();
       ctx.fill();
       ctx.stroke();
+      ctx.fillStyle = '#64748b';
+      ctx.beginPath();
+      ctx.arc(0, 0, 5.6, 0.3, Math.PI - 0.3);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.beginPath();
+      ctx.moveTo(0, 0); ctx.lineTo(0, 7);
+      ctx.stroke();
+      rect(ctx, -1, 6.5, 2, 2, '#fb7185');
       ctx.restore();
-      rect(ctx, x - 3, y - 36, 6, 6, '#6d28d9', '#c4b5fd');
-      rect(ctx, x - 1, y - 38, 2, 2, blink ? '#fb7185' : '#38e8d4');
+      // Energiespule oben
+      rect(ctx, x - 3.5, y - 38, 7, 9, '#3b1a7a', '#c4b5fd');
+      rect(ctx, x - 3, y - 36, 6, 1, '#a78bfa');
+      rect(ctx, x - 3, y - 33, 6, 1, '#a78bfa');
+      rect(ctx, x - 1, y - 41, 2, 3, blink ? '#fb7185' : '#38e8d4');
     }
     // Lichtstrahl nach oben (Forschungs-Leuchtfeuer)
     const grad = ctx.createLinearGradient(0, y - 38, 0, y - 86);
@@ -479,28 +520,32 @@ export class HubEvolutionRenderer {
     if (spr) {
       drawSpriteFoot(ctx, spr, x, y, 26, 24);
     } else {
+      // Dreibein mit Füßen
       ctx.strokeStyle = '#64748b';
-      ctx.lineWidth = 1.2;
+      ctx.lineWidth = 1.3;
       ctx.beginPath();
-      ctx.moveTo(x - 7, y);
-      ctx.lineTo(x - 2, y - 10);
-      ctx.moveTo(x + 7, y);
-      ctx.lineTo(x + 2, y - 10);
-      ctx.moveTo(x, y);
-      ctx.lineTo(x, y - 10);
+      ctx.moveTo(x - 8, y); ctx.lineTo(x - 3, y - 11);
+      ctx.moveTo(x + 8, y); ctx.lineTo(x + 3, y - 11);
+      ctx.moveTo(x, y - 1); ctx.lineTo(x, y - 11);
       ctx.stroke();
-      rect(ctx, x - 10, y - 24, 20, 14, '#0b1220', '#38e8d4');
+      rect(ctx, x - 10, y - 1, 3, 1.5, '#334155');
+      rect(ctx, x + 7, y - 1, 3, 1.5, '#334155');
+      // Tafel mit Rahmen & Schema
+      rect(ctx, x - 13, y - 28, 26, 18, '#0a1424', '#38e8d4');
+      rect(ctx, x - 12, y - 27, 24, 16, '#0d1d33');
+      const pts: Array<[number, number]> = [[x - 8, y - 22], [x - 2, y - 16], [x + 3, y - 23]];
       ctx.strokeStyle = '#7dd3fc';
       ctx.lineWidth = 0.8;
       ctx.beginPath();
-      ctx.arc(x - 4, y - 18, 3, 0, Math.PI * 2);
-      ctx.moveTo(x, y - 18);
-      ctx.lineTo(x + 7, y - 18);
-      ctx.moveTo(x - 7, y - 13);
-      ctx.lineTo(x + 7, y - 13);
+      ctx.moveTo(pts[0][0], pts[0][1]);
+      ctx.lineTo(pts[1][0], pts[1][1]);
+      ctx.lineTo(pts[2][0], pts[2][1]);
       ctx.stroke();
+      for (const [px, py] of pts) rect(ctx, px - 1.5, py - 1.5, 3, 3, '#22d3ee', '#a5f3fc');
+      for (let i = 0; i < 3; i++) rect(ctx, x + 6 + i * 2, y - 15 - (i + 1) * 2.2, 1.5, (i + 1) * 2.2, '#38e8d4');
+      rect(ctx, x - 10, y - 13, 12, 1, '#1e4f63');
       ctx.fillStyle = 'rgba(56, 232, 212, 0.3)';
-      ctx.fillRect(x - 9, y - 23 + ((time * 6) % 12), 18, 1);
+      ctx.fillRect(x - 12, y - 27 + ((time * 6) % 16), 24, 1);
     }
     drawGlow(ctx, x, y - 17, 14, '#38e8d4', 0.2);
   }
