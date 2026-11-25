@@ -2,39 +2,50 @@
 
 Ein **Cozy Retro-Sci-Fi Action-RPG & Space-Shop-Spiel** im Browser, inspiriert von *Moonlighter 1*.
 
-Bei Tag betreibst du deinen Relikt- und Bergungsladen **Astro-Barter** auf der Frontier-Raumstation **Port Solaris** – bei Nacht (oder auf Expedition) plünderst du in **Sektor 1: Verlassene Korvette** prozedurale Raumschiff-Wracks nach wertvollen Alien-Relikten.
+Bei Tag betreibst du deinen Relikt- und Bergungsladen **Astro-Barter** auf der Frontier-Raumstation **Port Solaris** – bei Nacht (oder auf Expedition) plünderst du prozedurale Raumschiff-Wracks, Kristall-Nebel, Solar-Gießereien, Ältesten-Monolithen und instabile Dimensions-Rifts nach wertvoller Alien-Technologie.
 
-## Features
+## Features (Version 1.1)
 
-- **Vierteiliger Moonlighter-Gameplay-Loop:**
-  - **Lebendiger Space-Shop (*Astro-Barter*):** Stufenweise **Shop-Vergrößerung (Stufe I → II → III)** mit **4 → 6 → 8 Holo-Podesten**, automatischer **Sonderangebots-Kiste (Sale-Box)** ab Stufe II, **Handels-Droide (MK-I Auto-Kasse & MK-II Dieb-Stasis)** hinter dem Tresen, **goldenen VIP-Sammlern (+40 % Relikt-Bonus)**, **Tages-Events** (*Solaris Handelsmesse*, *VIP-Sammler-Besuch*, *Schmuggler-Ansturm*), **Weltraum-Dieben**, **Auftrags-Pinnwand** & **Scan-Codex**.
-  - **Privates Hinterzimmer (*Kapitäns-Quartier & Lager*):** Eigener Raumzugang oben links im Shop mit **Chrono-Ruhekapsel (Tag ↔ Nacht)**, **Drohnen-Dockstation (4 freischaltbare Begleiter-Bots)**, **Sternen-Jukebox (Retro-Synth Soundtrack)**, mitwachsenden **Lagertruhen (28 → 36 → 48 Slots)**, **Waffen-Ständer** und **Sektor-1-Trophäen-Sockel**.
-  - **Atmosphärische Retro-Synth-Musik:** Prozeduraler Web-Audio-Soundtrack mit 5 eigenen Zonen- & Boss-Themes (`Tag-Shop`, `Nacht-Quartier`, `Port Solaris`, `Sektor 1`, `Boss-Alarm`), separatem Musik-Schalter (`M`) und Jukebox-Wahl im Hinterzimmer.
-  - **Stations-Promenade (*Port Solaris*):** Begehbare Frontier-Promenade mit **Kael's Exo-Schmiede** (6 Waffenklassen & Anzug bis **MK-V**), **Dr. Lyra's Med-Bay**, **Nyx' Schwarzmarkt** (täglich rotierende seltene Crafting-Teile), **Vex' Tech-Labor** (3 passive Module) und dem Sektor-1-Warp-Gate.
-  - **Vollständiger Sektor 1 (*Verlassene Korvette* — 3 Ebenen & 3 Bosse):** Ebene I (**Schott-Brecher MK-II**) → Ebene II (**Core-Wächter MK-IV**) → Ebene III (**A.E.G.I.S. LEVIATHAN**).
-- **6 Moonlighter-Waffenklassen bis MK-V (bei Schmied Kael):**
-  - **Plasma-Klinge** (+ Hex-Aegis Kinetik-Schild & Perfekt-Parade), **Ionen-Speer** (+ Lanzen-Vorstoß), **Kinetik-Fäuste** (blitzschnelle 4er-Kombo + Kometen-Sprung mit Schildbruch), **Phasen-Diskus** (abprallender Bumerang-Diskus + Magnet-Rückruf / Klingen-Orbit), **Puls-Blaster** (+ Durchschuss-Laser) & **Grav-Hammer** (+ 360°-Schockwelle).
-- **4 Freischaltbare Begleiter-Bots (*Familiars* — am Drohnen-Dock):**
-  - **Sammel-Bot „Puck“** (15 Verkäufe oder Shop Stufe II → 2,6× Loot-Magnet & +8–15 Cr Bonus), **Kampf-Bot „Spark“** (Breacher + 30 Gegner → Auto-Plasma-Schütze), **Heil-Bot „Luma“** (Core-Wächter → +10 HP alle 2 Kampfräume & +15 % EN-Regen), **Aegis-Bot „Halo“** (Leviathan besiegt → absorbiert alle 12 Sek. 1 Treffer komplett!).
-- **Taktischer Cargo-Rucksack & Extraktions-Risiko:**
-  - 20-Slot Expeditions-Rucksack + 28/36/48-Slot sichere Lagertruhen im Hinterzimmer mit Cargo-Synergien (**Warp-Anker**, **Klon-Matrix**, **Resonanz**, **Phasen-Fluch**).
-- **HD-Pixel-Art (`960×540`) & Mobile-Steuerung:** Hochauflösende Pixel-Art-Hintergründe & Sprites, responsiver virtueller Analog-Stick + kontextsensitive Touch-Buttons, Web Audio Synth & automatisches Speichern (`localStorage`).
+- **Vollständige Galaxie (4 Sektoren + 5. Tiefenraum-Tor + Endlos-Rift):**
+  - **Sektor 1 (*Verlassene Korvette*):** 3 Ebenen & 3 Bosse (*Schott-Brecher MK-II* → *Core-Wächter MK-IV* → **A.E.G.I.S. LEVIATHAN**).
+  - **Sektor 2 (*Kristall-Nebel*):** 3 Ebenen & 3 Bosse (Endboss **★ PRISMA-ARCHON**).
+  - **Sektor 3 (*Solar-Gießerei*):** 3 Ebenen & 3 Bosse (Endboss **★ VULKAN-TITAN**).
+  - **Sektor 4 (*Ältesten-Monolith*):** 3 Ebenen & 3 Bosse (Endboss **★ DER STERNEN-ARCHON**).
+  - **5. Tiefenraum-Tor:** Wählbar zwischen der **🌌 Omega-Anomalie** (Story-Finale & **New Game+**) und der **🌀 ∞ Unendlichen Spirale** (endlose Rift-Ebenen mit 4 Mutatoren, Bossen alle 3 Ebenen & Singularitäts-Relikten).
+  - **🌀 Instabile Rift-Risse & Geheime Fallgruben-Kammern:** Seltene 2-Wellen-Anomalien mitten in regulären Sektoren sowie versteckte Schatzkammern unter Schluchten.
+- **6 Moonlighter-Waffenklassen bis MK-VIII + 4 Elementar-Prägungen (bei Schmied Kael):**
+  - **Plasma-Klinge** (+ Hex-Aegis-Schild & Perfekt-Parade), **Ionen-Speer** (+ Lanzen-Vorstoß), **Kinetik-Fäuste** (+ Kometen-Sprung), **Phasen-Diskus** (+ Magnet-Rückruf & Klingen-Orbit), **Puls-Blaster** (+ Durchschuss-Laser) & **Grav-Hammer** (+ 360°-Schockwelle).
+  - **🔥 Elementar-Prägungen:** *Solar-Brand* (DoT + Kill-Nova), *Kryo-Stasis* (-42 % Verlangsamung), *Ionen-Kette* (Kettenblitze) & *Leeren-Siphon* (zielsuchende HP/EN-Orbs).
+- **Lebendiger Space-Shop (*Astro-Barter*) & Kapitäns-Quartier:**
+  - 3 Shop-Stufen (4 → 6 → 8 Holo-Podeste, 28 → 36 → 48 Truhen-Slots), Sale-Box, Handels-Droide, VIP-Sammler, Tages-Events, Weltraum-Diebe, Auftrags-Pinnwand, Scan-Codex & Material-Merkliste (`📌`).
+  - Privates Hinterzimmer mit Chrono-Ruhekapsel (Tag ↔ Nacht), **4 Begleiter-Drohnen** (*Puck*, *Spark*, *Luma*, *Halo*), **Sternen-Jukebox**, **5 Anzug-Farbschemata** & Trophäen-Sockel.
+- **Firebase Cloud-Save & In-Game Kapitäns-Tafel (`Port Solaris`):**
+  - Direkt begehbares **★ Kapitäns-Tafel**-Terminal auf der Promenade mit **Google- & E-Mail-Login**, automatischem **Handy ↔ PC Cloud-Sync**, **Live-Expeditionstimer (`⏱ mm:ss`)**, **Tag/Nacht-Rekorden**, **Live-Aktivitäts-Feed** & Ranglisten (*Fortschritt*, *🌀 Tiefster Rift*, *Sektor-Zeit*, *Tage*, *Händler*).
+- **HD-Pixel-Art (`960×540`), Mobile-Touch & Gamepad:**
+  - Gestochen scharfe Pixel-Art, responsiver virtueller Analog-Stick, nativer HTML5-Controller-Support, Web-Audio-Synth-Soundtrack & JSON-Savegame-Export/Import.
 
 ## Steuerung
 
-| Aktion | Tasten / Touch |
+| Aktion | Tasten / Touch / Controller |
 | :--- | :--- |
-| Bewegen | `W A S D` / Pfeiltasten / Virtueller Stick |
-| Jetpack-Dash (Ausweichen) | `Leertaste` / `Shift` / `DASH` |
-| Aktive Waffe (Angriff) | `Linksklick` / `J` / Waffen-Button |
-| Spezial (Schild / Komet / Rückruf / Lanze / Laser / Schock) | `Rechtsklick` / `K` / Spezial-Button |
-| Waffe wechseln (2. Slot) | `C` / `WECHSELN` |
-| Interagieren / Shops / Kasse | `E` / `Enter` / `AKTION` |
+| Bewegen | `W A S D` / Pfeiltasten / Virtueller Stick / Linker Stick |
+| Jetpack-Dash (Ausweichen) | `Leertaste` / `Shift` / `DASH` / `B` |
+| Aktive Waffe (Angriff) | `Linksklick` / `J` / Waffen-Button / `A` |
+| Spezial-Fähigkeit | `Rechtsklick` / `K` / Spezial-Button / `X` |
+| Waffe wechseln (2. Slot) | `C` / `WECHSELN` / `LB` |
+| Interagieren / Shops / Kasse | `E` / `Enter` / `AKTION` / `Y` |
 | Laden öffnen / schließen | `O` (im Shop) |
-| Stimpack (Heilen) | `Q` / `HEIL` |
-| Fracht, Truhe & Scan-Codex | `I` oder `Tab` |
+| Stimpack (Heilen) | `Q` / `HEIL` / `RB` |
+| Fracht, Truhe, Codex & Logbuch | `I` oder `Tab` / `Start` |
 | Warp-Beacon (Extraktion) | `R` gedrückt halten / `WARP` |
 | Musik an / aus | `M` |
+
+## Projekt-Dokumentation (für Entwickler & KI-Agents)
+
+- **[AGENTS.md](AGENTS.md)** — Einstiegs-Leitfaden für KI-Coding-Agents (Regeln, Architektur-Kurzreferenz & „How to Add X“).
+- **[GAME_DESIGN_DOCUMENT.md](GAME_DESIGN_DOCUMENT.md)** — Aktueller Stand (v1.1), Meilensteine 1–7, Codebase-Karte & Phase-2-Roadmap (M8–M10).
+- **[ART_AND_DESIGN_GUIDE.md](ART_AND_DESIGN_GUIDE.md)** — HD-Pixel-Art-Prompt-Formeln, Flood-Fill-Freistellung, Farbpaletten & UI-Regeln.
+- **[TESTING_AND_VERIFICATION.md](TESTING_AND_VERIFICATION.md)** — Build-, Invarianten- & Headless-Chrome-CDP-Test-Playbook.
 
 ## Lokal starten
 
@@ -43,7 +54,7 @@ npm install
 npm run dev
 ```
 
-Für einen Produktions-Build:
+Produktions-Build (`tsc && vite build`):
 
 ```bash
 npm run build
