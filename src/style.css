@@ -1,4 +1,5 @@
 :root {
+  --touch-scale: 1; /* M10-A: Touch-Größe (Buttons & Joystick), siehe systems/deviceSettings.ts */
   --bg-void: #0a0d14;
   --panel-bg: #141a28;
   --panel-bg-soft: #1b2436;
@@ -925,7 +926,7 @@ body.touch-device .hud-hint {
     display: flex;
     width: 100%;
     flex: 1;
-    max-height: 290px;
+    max-height: min(560px, calc(290px * var(--touch-scale)));
     align-items: center;
     justify-content: space-between;
     padding: 10px 14px;
@@ -977,8 +978,8 @@ body.touch-device .hud-hint {
 /* Virtual Analog Joystick */
 .joy-base {
   position: relative;
-  width: 118px;
-  height: 118px;
+  width: calc(118px * var(--touch-scale));
+  height: calc(118px * var(--touch-scale));
   border-radius: 50%;
   background: radial-gradient(circle, rgba(24, 34, 54, 0.72), rgba(12, 18, 30, 0.9));
   border: 2px solid var(--border-steel);
@@ -995,7 +996,7 @@ body.touch-device .hud-hint {
 
 .joy-ring {
   position: absolute;
-  inset: 14px;
+  inset: calc(14px * var(--touch-scale));
   border-radius: 50%;
   border: 1px dashed rgba(107, 127, 158, 0.45);
   pointer-events: none;
@@ -1005,8 +1006,8 @@ body.touch-device .hud-hint {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 48px;
-  height: 48px;
+  width: calc(48px * var(--touch-scale));
+  height: calc(48px * var(--touch-scale));
   border-radius: 50%;
   transform: translate(-50%, -50%);
   background: radial-gradient(circle at 35% 30%, #7ef6e7, #15998d 65%, #0d5e58);
@@ -1018,18 +1019,18 @@ body.touch-device .hud-hint {
 /* Context-Aware Tactile Action Buttons */
 .touch-pad-grid {
   display: grid;
-  gap: 8px;
+  gap: calc(8px * var(--touch-scale));
   touch-action: none;
 }
 
 .touch-pad-grid.shop-pad {
-  grid-template-columns: repeat(2, 74px);
-  grid-template-rows: 46px 64px;
+  grid-template-columns: repeat(2, calc(74px * var(--touch-scale)));
+  grid-template-rows: calc(46px * var(--touch-scale)) calc(64px * var(--touch-scale));
 }
 
 .touch-pad-grid.dungeon-pad {
-  grid-template-columns: repeat(3, 60px);
-  grid-template-rows: 44px 62px;
+  grid-template-columns: repeat(3, calc(60px * var(--touch-scale)));
+  grid-template-rows: calc(44px * var(--touch-scale)) calc(62px * var(--touch-scale));
 }
 
 .tbtn {
@@ -1040,7 +1041,7 @@ body.touch-device .hud-hint {
   gap: 2px;
   border-radius: 10px;
   font-family: var(--font-pixel);
-  font-size: 9px;
+  font-size: calc(9px * min(var(--touch-scale), 1.15));
   letter-spacing: 0.03em;
   color: var(--text-main);
   background: rgba(25, 34, 52, 0.92);
@@ -1051,7 +1052,7 @@ body.touch-device .hud-hint {
 }
 
 .tbtn small {
-  font-size: 8px;
+  font-size: calc(8px * min(var(--touch-scale), 1.15));
   opacity: 0.8;
 }
 
@@ -1093,14 +1094,14 @@ body.touch-device .hud-hint {
 .touch-right-stack {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: calc(6px * var(--touch-scale));
 }
 
 .tbtn-swap-strip {
   width: 100%;
-  height: 28px;
+  height: calc(28px * var(--touch-scale));
   border-radius: 7px;
-  font-size: 8.5px;
+  font-size: calc(8.5px * min(var(--touch-scale), 1.15));
   background: rgba(20, 32, 52, 0.92);
   border-color: var(--accent-cyan);
   color: var(--accent-cyan);
@@ -1188,7 +1189,7 @@ body.touch-device #hud-shop-toggle {
 @media (orientation: portrait) and (max-width: 760px) {
   body.touch-device #toast-layer {
     position: fixed;
-    bottom: 306px;
+    bottom: calc(16px + 290px * var(--touch-scale));
     width: 92vw;
   }
 
@@ -1859,4 +1860,38 @@ body.touch-device .m10-hint {
   .m10-hint {
     display: none;
   }
+}
+
+/* M10-A: Wenn Joystick + Buttons bei großer Touch-Skalierung nicht nebeneinander passen (Hochformat),
+   stapelt TouchControls.ts sie untereinander (Klasse wird per JS gesetzt). */
+body.touch-device #touch-deck.touch-stacked {
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+}
+body.touch-device #touch-deck.touch-stacked .touch-left,
+body.touch-device #touch-deck.touch-stacked .touch-right {
+  flex: 0 0 auto;
+}
+
+/* Einstellungs-Abschnitt „⚙ Steuerung“ (Hilfe-Tab) */
+.m10-setting-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 7px 0;
+  border-top: 1px dashed rgba(71, 85, 105, 0.5);
+}
+.m10-setting-row:first-of-type {
+  border-top: none;
+}
+.m10-setting-btns {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.m10-setting-btns .btn {
+  padding: 5px 9px;
+  font-size: 9.5px;
+  white-space: nowrap;
 }

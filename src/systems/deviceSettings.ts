@@ -71,6 +71,32 @@ export function onDeviceSettingsChange(cb: (s: DeviceSettings) => void): () => v
   return () => listeners.delete(cb);
 }
 
+/** Im Querformat verdeckt das Touch-Deck sonst zu viel vom Spielfeld → Obergrenze 115 %. */
+export const LANDSCAPE_TOUCH_CAP = 1.15;
+
+/** Wirksame Touch-Skalierung für die aktuelle Ausrichtung (rein, testbar). */
+export function effectiveTouchScale(scale: number, landscape: boolean): number {
+  return landscape ? Math.min(scale, LANDSCAPE_TOUCH_CAP) : scale;
+}
+
+export function isLandscapeNow(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.matchMedia('(orientation: landscape)').matches;
+  } catch {
+    return window.innerWidth > window.innerHeight;
+  }
+}
+
+/** Setzt die CSS-Variable `--touch-scale` (Buttons & Joystick). Gibt den wirksamen Wert zurück. */
+export function applyTouchScale(scale: number = getDeviceSettings().touchScale): number {
+  const eff = effectiveTouchScale(scale, isLandscapeNow());
+  if (typeof document !== 'undefined') {
+    document.documentElement.style.setProperty('--touch-scale', String(eff));
+  }
+  return eff;
+}
+
 /** Nur für Tests: Cache verwerfen. */
 export function resetDeviceSettingsCacheForTest(): void {
   cached = null;

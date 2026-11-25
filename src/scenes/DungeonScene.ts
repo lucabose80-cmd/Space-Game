@@ -21,6 +21,7 @@ import type {
   WeaponId,
   WeeklyTrialInfo,
 } from '../types';
+import { getDeviceSettings } from '../systems/deviceSettings';
 import { withSeededRandom } from '../systems/seededRng';
 import { formatWeekLabel, getTrialFloorSeed, TRIAL_FLOORS, trialHasMechanics } from '../systems/weeklyTrial';
 import {
@@ -536,6 +537,7 @@ export class DungeonScene {
     this.activePrompt = null;
     this.mechanicsClock = 0;
     this.mechanics.resetForRoom();
+    this.aimTargetId = null;
     this.roomFade = 0.22;
 
     if (enteredFrom === 'north') {
@@ -1101,6 +1103,8 @@ export class DungeonScene {
     }
 
     this.updatePlayer(dt, input);
+    // Smart-Zielhilfe: Ziel jedes Frame aktualisieren (Fadenkreuz sichtbar, Haftung greift)
+    if (getDeviceSettings().aimAssist === 'smart' && !input.isMouseActive()) this.getAimAngle(input);
     this.updateCompanion(dt);
     this.enemyAi.updateHazardsAndDebris(dt);
     this.mechanicsClock += dt;
@@ -1144,12 +1148,51 @@ export class DungeonScene {
     this.callbacks.onHudDirty();
   }
 
+  /** Milestone 10-A: aktuell anvisierter Gegner im Smart-Modus (Enemy-id; Leviathan-Arme: 1 000 000 + id·10 + Index). */
+  public aimTargetId: number | null = null;
+  private aimSmartActive = false;
+
+  /** Position des anvisierten Ziels (nur Smart-Zielhilfe ohne Maus) — für das Fadenkreuz im Renderer. */
+  public getAimTarget(): { x: number; y: number; r: number } | null {
+    if (!this.aimSmartActive || this.aimTargetId === null) return null;
+    if (this.aimTargetId >= 1_000_000) {
+      const eid = Math.floor((this.aimTargetId - 1_000_000) / 10);
+      const idx = (this.aimTargetId - 1_000_000) % 10;
+      const boss = this.enemies.find((e) => e.id === eid);
+      const arm = boss?.levArms?.[idx];
+      return arm ? { x: arm.x, y: arm.y, r: 12 } : null;
+    }
+    const e = this.enemies.find((x) => x.id === this.aimTargetId && x.hp > 0);
+    return e ? { x: e.x, y: e.y, r: e.radius } : null;
+  }
+
   public getAimAngle(input: InputManager): number {
     if (input.isMouseActive()) {
+      this.aimSmartActive = false;
       const m = input.getMousePos();
       return Math.atan2(m.y - this.playerY, m.x - this.playerX);
     }
 
+    // Milestone 10-A: Zielhilfe-Modus (pro Gerät) — gilt für alle Nicht-Maus-Eingaben (Touch, Gamepad, Tastatur)
+    const mode = getDeviceSettings().aimAssist;
+    if (mode === 'off') {
+      this.aimSmartActive = false;
+      this.aimTargetId = null;
+      return this.aimMoveOrFacing(input);
+    }
+    if (mode === 'smart') {
+      this.aimSmartActive = true;
+      const a = this.aimSmart(input);
+      if (a !== null) return a;
+      return this.aimPodsOrFallback(input, null);
+    }
+    this.aimSmartActive = false;
+    this.aimTargetId = null;
+    return this.aimStandard(input);
+  }
+
+  /** „Standard“: exakt das bisherige Verhalten (nächster Gegner < 185 px, Leviathan-Arme, Pods < 56 px). */
+  private aimStandard(input: InputManager): number {
     // Smart auto-aim on touch / keyboard-only: lock onto nearest enemy (or grounded Leviathan gauntlet!)
     let bestDist = 185;
     let bestAngle: number | null = null;
@@ -1170,7 +1213,11 @@ export class DungeonScene {
       }
     }
     if (bestAngle !== null) return bestAngle;
+    return this.aimPodsOrFallback(input, null);
+  }
 
+  private aimPodsOrFallback(input: InputManager, bestAngleIn: number | null): number {
+    let bestAngle = bestAngleIn;
     let podDist = 56;
     for (const pod of this.currentRoom.pods) {
       if (pod.broken) continue;
@@ -1181,16 +1228,53 @@ export class DungeonScene {
       }
     }
     if (bestAngle !== null) return bestAngle;
+    return this.aimMoveOrFacing(input);
+  }
 
+  /** Laufrichtung, sonst letzte Blickrichtung (auch Zielhilfe „Aus“). */
+  private aimMoveOrFacing(input: InputManager): number {
     const mv = input.getMoveVector();
     if (Math.hypot(mv.x, mv.y) > 0.2) {
       return Math.atan2(mv.y, mv.x);
     }
-
     if (this.facing === 'right') return 0;
     if (this.facing === 'down') return Math.PI / 2;
     if (this.facing === 'left') return Math.PI;
     return -Math.PI / 2;
+  }
+
+  /**
+   * „Smart“: Score = Distanz + Blickwinkel-Abweichung·70 − (niedrige HP ? 25 : 0) − (kein Boss ? 10 : 0).
+   * Ziel-Haftung: Das bisherige Ziel bleibt, solange es lebt, < 230 px entfernt ist und höchstens 35 Punkte schlechter ist.
+   */
+  private aimSmart(input: InputManager): number | null {
+    const look = this.aimMoveOrFacing(input);
+    type Cand = { id: number; x: number; y: number; d: number; score: number };
+    const cands: Cand[] = [];
+    const push = (id: number, x: number, y: number, boss: boolean, lowHp: boolean): void => {
+      const d = Math.hypot(x - this.playerX, y - this.playerY);
+      if (d > 230) return;
+      const diff = Math.abs(this.normalizeAngle(Math.atan2(y - this.playerY, x - this.playerX) - look));
+      cands.push({ id, x, y, d, score: d + diff * 70 - (lowHp ? 25 : 0) - (boss ? 0 : 10) });
+    };
+    for (const e of this.enemies) {
+      if (e.hp <= 0) continue;
+      const boss = this.isBossKind(e.kind);
+      push(e.id, e.x, e.y, boss, e.hp / Math.max(1, e.maxHp) < 0.3);
+      if (e.kind === 'boss_leviathan' && e.levArms) {
+        e.levArms.forEach((arm, i) => push(1_000_000 + e.id * 10 + i, arm.x, arm.y, true, false));
+      }
+    }
+    if (cands.length === 0) {
+      this.aimTargetId = null;
+      return null;
+    }
+    const fresh = cands.filter((c) => c.d <= 210);
+    const best = (fresh.length > 0 ? fresh : cands).reduce((a, b) => (b.score < a.score ? b : a));
+    const current = cands.find((c) => c.id === this.aimTargetId);
+    const chosen = current && current.score - best.score <= 35 ? current : best;
+    this.aimTargetId = chosen.id;
+    return Math.atan2(chosen.y - this.playerY, chosen.x - this.playerX);
   }
 
   public updatePlayer(dt: number, input: InputManager): void {

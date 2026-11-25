@@ -30,6 +30,15 @@ import {
 import type { StoryScene } from '../data/story/storyTypes';
 import type { GameState } from '../systems/gameState';
 import { getSceneById } from '../systems/storyEngine';
+import {
+  AIM_MODES,
+  getDeviceSettings,
+  isLandscapeNow,
+  LANDSCAPE_TOUCH_CAP,
+  saveDeviceSettings,
+  TEXT_SPEEDS,
+  TOUCH_SCALES,
+} from '../systems/deviceSettings';
 import { getCurrentWeeklyTrial } from '../systems/weeklyTrial';
 import {
   addItemAnywhere,
@@ -548,6 +557,41 @@ export class UIManager {
     });
   }
 
+  // ==================== MEILENSTEIN 10-A: GERÄTE-EINSTELLUNGEN (Hilfe-Tab) ====================
+  private renderDeviceSettingsHtml(): string {
+    const s = getDeviceSettings();
+    const touchActive = document.body.classList.contains('touch-device');
+    const capped = isLandscapeNow() && s.touchScale > LANDSCAPE_TOUCH_CAP;
+    const btn = (attr: string, val: string | number, label: string, active: boolean): string =>
+      `<button class="btn ${active ? 'btn-primary' : ''}" ${attr}="${val}">${label}</button>`;
+    const aimLabel: Record<string, string> = { off: 'Aus', standard: 'Standard', smart: 'Smart' };
+    const aimInfo: Record<string, string> = {
+      off: 'Aus: Angriffe zielen in deine Laufrichtung — keine automatische Zielerfassung.',
+      standard: 'Standard: nächster Gegner in Reichweite wird automatisch anvisiert (wie bisher).',
+      smart: 'Smart: bevorzugt Gegner in deiner Blickrichtung, bleibt am Ziel haften und zeigt ein Fadenkreuz.',
+    };
+    const speedLabel: Record<string, string> = { normal: 'Normal', fast: 'Schnell', instant: 'Sofort' };
+    return `
+      <div class="inspector-box" style="gap:4px;border-color:rgba(56,232,212,0.45)">
+        <div style="font-family:var(--font-pixel);font-size:11px;color:#38e8d4">⚙ STEUERUNG (DIESES GERÄT)</div>
+        <div class="m10-setting-row">
+          <div style="font-size:12px"><strong>Touch-Größe</strong> <span class="m9-file-sub">(Buttons &amp; Joystick${touchActive ? '' : ' — Touch-Steuerung auf diesem Gerät nicht aktiv'})</span></div>
+          <div class="m10-setting-btns">${TOUCH_SCALES.map((v) => btn('data-dev-scale', v, `${Math.round(v * 100)} %`, s.touchScale === v)).join('')}</div>
+          ${capped ? `<div class="m9-file-sub" style="color:#fbbf24">Im Querformat max. ${Math.round(LANDSCAPE_TOUCH_CAP * 100)} %</div>` : ''}
+        </div>
+        <div class="m10-setting-row">
+          <div style="font-size:12px"><strong>Zielhilfe</strong> <span class="m9-file-sub">(ohne Maus: Touch, Gamepad &amp; Tastatur)</span></div>
+          <div class="m10-setting-btns">${AIM_MODES.map((m) => btn('data-dev-aim', m, aimLabel[m], s.aimAssist === m)).join('')}</div>
+          <div class="m9-file-sub">${aimInfo[s.aimAssist]}</div>
+        </div>
+        <div class="m10-setting-row">
+          <div style="font-size:12px"><strong>Textgeschwindigkeit</strong> <span class="m9-file-sub">(Gespräche auf Port Solaris)</span></div>
+          <div class="m10-setting-btns">${TEXT_SPEEDS.map((m) => btn('data-dev-text', m, speedLabel[m], s.textSpeed === m)).join('')}</div>
+        </div>
+        <div class="m9-file-sub">Diese Einstellungen gelten nur für dieses Gerät und werden nicht in der Cloud gespeichert.</div>
+      </div>`;
+  }
+
   // ==================== MEILENSTEIN 10-A: STORY-GESPRÄCHE ====================
   private getStoryHost(): StoryHost {
     return {
@@ -877,6 +921,7 @@ export class UIManager {
       `;
     } else {
       bodyHtml = `
+        ${this.renderDeviceSettingsHtml()}
         <div class="inspector-box" style="gap:10px">
           <div style="font-family:var(--font-pixel);font-size:12px;color:var(--accent-cyan)">SO SPIELST DU STARLIGHTER</div>
           <p style="font-size:13px;line-height:1.5;color:var(--text-muted)">
@@ -928,6 +973,29 @@ export class UIManager {
           this.toast(`★ Anzug-Stil aktiviert: ${SUIT_THEMES[sid].name}!`, 'good');
           this.renderInventoryModal();
         }
+      });
+    });
+
+    // M10-A: Geräte-Einstellungen (nur localStorage, wirken live)
+    this.modalEl.querySelectorAll<HTMLElement>('[data-dev-scale]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        sound.playUiClick();
+        saveDeviceSettings({ touchScale: Number(btn.dataset.devScale) as (typeof TOUCH_SCALES)[number] });
+        this.renderInventoryModal();
+      });
+    });
+    this.modalEl.querySelectorAll<HTMLElement>('[data-dev-aim]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        sound.playUiClick();
+        saveDeviceSettings({ aimAssist: btn.dataset.devAim as (typeof AIM_MODES)[number] });
+        this.renderInventoryModal();
+      });
+    });
+    this.modalEl.querySelectorAll<HTMLElement>('[data-dev-text]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        sound.playUiClick();
+        saveDeviceSettings({ textSpeed: btn.dataset.devText as (typeof TEXT_SPEEDS)[number] });
+        this.renderInventoryModal();
       });
     });
 

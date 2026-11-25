@@ -504,6 +504,25 @@ export class DungeonRenderer {
     drawables.sort((a, b) => a.y - b.y);
     for (const d of drawables) d.draw();
 
+    // Milestone 10-A: Smart-Zielhilfe — pulsierendes Fadenkreuz unter dem anvisierten Ziel
+    const aim = this.scene.getAimTarget();
+    if (aim) {
+      const pulse = 0.5 + 0.5 * Math.sin(this.scene.time * 9);
+      const rr = aim.r + 5 + pulse * 1.5;
+      ctx.save();
+      ctx.strokeStyle = `rgba(253, 224, 71, ${0.65 + pulse * 0.3})`;
+      ctx.lineWidth = 1.2;
+      const k = 3.5;
+      for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) {
+        ctx.beginPath();
+        ctx.moveTo(aim.x + sx * rr, aim.y + sy * (rr - k));
+        ctx.lineTo(aim.x + sx * rr, aim.y + sy * rr);
+        ctx.lineTo(aim.x + sx * (rr - k), aim.y + sy * rr);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
     // Active Aegis-Bot Halo golden orbital shield ring around hero when charged!
     if (this.scene.activeCompanion === 'halo' && this.scene.haloShieldReady) {
       const hp = 0.5 + 0.5 * Math.sin(this.scene.time * 5.2);

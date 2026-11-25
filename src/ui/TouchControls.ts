@@ -1,5 +1,6 @@
 import { WEAPON_META } from '../data/upgrades';
 import { sound } from '../engine/audio';
+import { applyTouchScale, onDeviceSettingsChange } from '../systems/deviceSettings';
 import type { InputManager } from '../engine/input';
 import type { SceneId, WeaponId } from '../types';
 
@@ -22,12 +23,24 @@ export class TouchControls {
   private hasSecondary = false;
   private joyPointerId: number | null = null;
   private joyCenter = { x: 0, y: 0 };
-  private readonly joyMaxRadius = 38;
+  /** Skaliert mit der Touch-Größe (Basis 38 px bei 100 %). */
+  private joyMaxRadius = 38;
 
   constructor(input: InputManager, hooks: TouchHooks) {
     this.container = document.getElementById('touch-deck')!;
     this.input = input;
     this.hooks = hooks;
+
+    // Milestone 10-A: Touch-Größe pro Gerät (CSS-Variable + Joystick-Radius), reagiert live auf Einstellungen & Drehen
+    const refreshScale = (): void => {
+      const eff = applyTouchScale();
+      this.joyMaxRadius = 38 * eff;
+      this.updateStacked();
+    };
+    refreshScale();
+    onDeviceSettingsChange(refreshScale);
+    window.addEventListener('resize', refreshScale);
+    window.addEventListener('orientationchange', refreshScale);
 
     const coarse =
       window.matchMedia?.('(pointer: coarse)').matches ||
@@ -176,6 +189,21 @@ export class TouchControls {
 
     this.bindJoystick();
     this.bindButtons();
+    this.updateStacked();
+  }
+
+  /** Passen Joystick und Buttons bei der gewählten Größe nicht nebeneinander (Hochformat), werden sie gestapelt. */
+  private updateStacked(): void {
+    const deck = this.container;
+    deck.classList.remove('touch-stacked');
+    const left = deck.querySelector<HTMLElement>('.touch-left');
+    const right = deck.querySelector<HTMLElement>('.touch-right');
+    if (!left || !right || deck.clientWidth === 0) return;
+    const style = getComputedStyle(deck);
+    const inner = deck.clientWidth - parseFloat(style.paddingLeft || '0') - parseFloat(style.paddingRight || '0');
+    if (left.scrollWidth + right.scrollWidth + 12 > inner && window.matchMedia('(orientation: portrait)').matches) {
+      deck.classList.add('touch-stacked');
+    }
   }
 
   private bindJoystick(): void {
