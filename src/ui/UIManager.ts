@@ -337,15 +337,31 @@ export class UIManager {
       buffPillHtml +
       bankPillHtml;
 
+    // M10-C (U1): Kampf-HUD (HP/EN/Stim/Waffe/Bot) nur im Dungeon; sonst kompakte Status-Pille
+    const combatHud = this.currentScene === 'dungeon';
+    const pinCollapsed = !combatHud && this.readPinCollapsed();
+    const statusPillHtml = `
+          <div class="hud-status-pill" title="${this.state.credits} Credits">
+            <span style="color:${timeColor}">${timeLabel}</span>
+            <span class="hud-status-sep">·</span>
+            <span class="hud-credits">${this.state.credits} CR</span>
+            ${
+              this.currentScene === 'shop'
+                ? `<span class="hud-status-sep">·</span><span style="color:${this.shopIsOpen ? 'var(--accent-emerald)' : 'var(--text-muted)'}">${this.shopIsOpen ? 'OFFEN' : 'ZU'}</span>`
+                : ''
+            }
+          </div>
+          ${eventPillHtml}`;
+
     const pinnedList = this.state.getPinnedRecipeDetails();
     const pinTrackerHtml =
       pinnedList.length > 0
         ? `
         <div class="hud-pin-tracker">
-          <div class="hud-pin-head">
-            <span>📌 MERKLISTE (${pinnedList.length})</span>
+          <div class="hud-pin-head ${combatHud ? '' : 'toggleable'}" ${combatHud ? '' : 'data-pin-toggle="1"'}>
+            <span>📌 MERKLISTE (${pinnedList.length})${combatHud ? '' : pinCollapsed ? ' ▸' : ' ▾'}</span>
           </div>
-          ${pinnedList
+          ${pinCollapsed ? '' : pinnedList
             .map(
               (rec) => `
             <div class="hud-pin-entry">
@@ -370,9 +386,11 @@ export class UIManager {
         : '';
 
     this.hudEl.innerHTML = `
-      <div class="hud-top">
+      <div class="hud-top ${combatHud ? 'dungeon-layout' : ''}">
         <div style="display:flex;flex-direction:column;align-items:flex-start">
-          <div class="hud-vitals">
+          ${
+            combatHud
+              ? `          <div class="hud-vitals">
             ${
               this.currentScene === 'shop'
                 ? `<div style="display:flex;justify-content:space-between;gap:6px;font-family:var(--font-pixel);font-size:8.5px;margin-bottom:1px">
@@ -420,7 +438,9 @@ export class UIManager {
               }
             </div>
             ${eventPillHtml}
-          </div>
+          </div>`
+              : statusPillHtml
+          }
           ${pinTrackerHtml}
         </div>
 
@@ -440,7 +460,7 @@ export class UIManager {
           }
         </div>
 
-        <div class="hud-actions ${this.currentScene === 'dungeon' ? 'dungeon-offset' : ''}">
+        <div class="hud-actions ${combatHud ? 'dungeon-stack' : ''}">
           ${
             this.currentScene === 'shop'
               ? `<button id="hud-shop-toggle" class="hud-btn ${this.shopIsOpen ? 'active-open' : 'primary'}">
@@ -449,12 +469,18 @@ export class UIManager {
               : ''
           }
           <button id="hud-bag-btn" class="hud-btn">[I] Fracht (${bagCount})</button>
-          <button id="hud-music-btn" class="hud-btn" title="Musik umschalten [M]">
-            ${sound.isMusicMuted() || sound.isMuted() ? '♪ AUS' : '♪ MUSIK'}
-          </button>
-          <button id="hud-mute-btn" class="hud-btn" title="Alle Töne stumm/an">
-            ${sound.isMuted() ? 'TON AUS' : 'SFX AN'}
-          </button>
+          ${
+            combatHud
+              ? `<button id="hud-sound-btn" class="hud-btn" title="Ton: ${sound.isMuted() ? 'alles aus' : sound.isMusicMuted() ? 'nur Effekte' : 'Musik + Effekte'} (Klick: weiterschalten · [M] Musik)">
+                  ${sound.isMuted() ? '🔇' : sound.isMusicMuted() ? '🔉' : '🔊'}
+                </button>`
+              : `<button id="hud-music-btn" class="hud-btn" title="Musik umschalten [M]">
+                  ${sound.isMusicMuted() || sound.isMuted() ? '♪ AUS' : '♪ MUSIK'}
+                </button>
+                <button id="hud-mute-btn" class="hud-btn" title="Alle Töne stumm/an">
+                  ${sound.isMuted() ? 'TON AUS' : 'SFX AN'}
+                </button>`
+          }
         </div>
       </div>
 
@@ -503,6 +529,23 @@ export class UIManager {
     this.hudEl.querySelector('#hud-music-btn')?.addEventListener('click', () => {
       sound.unlock();
       this.hooks.onMusicToggle();
+    });
+    // M10-C (U2): ein einziger Ton-Button im Dungeon: Musik+Effekte → nur Effekte → aus → …
+    this.hudEl.querySelector('#hud-sound-btn')?.addEventListener('click', () => {
+      sound.unlock();
+      if (sound.isMuted()) {
+        this.hooks.onMuteToggle();
+        if (sound.isMusicMuted()) this.hooks.onMusicToggle();
+      } else if (sound.isMusicMuted()) {
+        this.hooks.onMuteToggle();
+      } else {
+        this.hooks.onMusicToggle();
+      }
+    });
+    this.hudEl.querySelector('[data-pin-toggle]')?.addEventListener('click', () => {
+      sound.playUiClick();
+      this.writePinCollapsed(!this.readPinCollapsed());
+      this.renderHud();
     });
     this.hudEl.querySelector('#hud-mute-btn')?.addEventListener('click', () => {
       this.hooks.onMuteToggle();
@@ -2919,6 +2962,23 @@ export class UIManager {
   }
 
   // ==================== GALAKTISCHE KAPITÄNS-TAFEL (FIREBASE SCOREBOARD, REKORDE & CLOUD-SYNC) ====================
+  /** M10-C: Merkliste außerhalb des Dungeons standardmäßig eingeklappt (nur pro Gerät, localStorage). */
+  private readPinCollapsed(): boolean {
+    try {
+      return localStorage.getItem('starlighter_pin_collapsed') !== '0';
+    } catch {
+      return true;
+    }
+  }
+
+  private writePinCollapsed(collapsed: boolean): void {
+    try {
+      localStorage.setItem('starlighter_pin_collapsed', collapsed ? '1' : '0');
+    } catch {
+      /* ohne Speicher weiter */
+    }
+  }
+
   private modalCloseHook: (() => void) | null = null;
   private activeStory: StoryDialogController | null = null;
   private guildTab: GuildTab = 'leaderboard';

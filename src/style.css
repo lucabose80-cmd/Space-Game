@@ -199,8 +199,42 @@ body {
   pointer-events: auto;
 }
 
-.hud-actions.dungeon-offset {
-  margin-right: 126px;
+/* M10-C: im Dungeon liegen die Buttons UNTER der Minimap (rechts oben, Canvas: x 432–476, y 5–50 von 480×270) */
+.hud-actions.dungeon-stack {
+  position: absolute;
+  right: 0.8%;
+  top: 20.5%;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.hud-top.dungeon-layout .hud-center {
+  flex: 1;
+  min-width: 0;
+  margin-right: 10%;
+}
+
+.hud-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  font-family: var(--font-pixel);
+  font-size: 8.5px;
+  background: rgba(14, 20, 32, 0.84);
+  border: 1px solid var(--border-steel);
+  padding: 4px 8px;
+  max-width: 100%;
+}
+
+.hud-status-sep {
+  color: var(--text-muted);
+}
+
+.hud-pin-head.toggleable {
+  cursor: pointer;
+  pointer-events: auto;
 }
 
 .hud-btn {
@@ -1149,8 +1183,10 @@ body.touch-device #hud-shop-toggle {
     flex-shrink: 0;
   }
 
-  .hud-actions.dungeon-offset {
-    margin-right: 48px;
+  .hud-status-pill {
+    font-size: 7.5px;
+    padding: 3px 6px;
+    gap: 4px;
   }
 
   #hud-weapon-chip {
