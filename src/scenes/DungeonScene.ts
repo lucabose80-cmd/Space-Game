@@ -3842,6 +3842,7 @@ export class DungeonScene {
     }
     sound.playWarp();
     const res = processSafeReturnEffects(this.state.inventory);
+    const consumedBuff = this.state.consumeAlchemyBuff();
     // ZERO direct credits from dungeons — all wealth comes from selling relics in Astro-Barter!
     this.state.checkAchievements(false);
     this.state.save();
@@ -3865,6 +3866,7 @@ export class DungeonScene {
       isEndlessRift: this.isEndlessRift,
       riftDepthReached: this.isEndlessRift ? this.riftDepth : undefined,
       riftLootMultiplier: this.isEndlessRift ? this.riftLootMultiplier : undefined,
+      consumedAlchemyBuff: consumedBuff,
       sector1Cleared: this.sector1ClearedInRun,
       sector2Cleared: this.sector2ClearedInRun,
       sector3Cleared: this.sector3ClearedInRun,
@@ -3878,6 +3880,7 @@ export class DungeonScene {
     this.finished = true;
     sound.playWarp();
     const res = processDefeatPenalty(this.state.inventory);
+    const consumedBuff = this.state.consumeAlchemyBuff();
     this.state.save();
     this.callbacks.onReturnToHub({
       victory: false,
@@ -3894,6 +3897,7 @@ export class DungeonScene {
       runDurationSec: Math.max(1, Math.round(this.runElapsedSec)),
       isEndlessRift: this.isEndlessRift,
       riftDepthReached: this.isEndlessRift ? this.riftDepth : undefined,
+      consumedAlchemyBuff: consumedBuff,
       sector1Cleared: false,
       sector2Cleared: false,
       sector3Cleared: false,

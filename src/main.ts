@@ -8,6 +8,7 @@ import { BackroomScene } from './scenes/BackroomScene';
 import { DungeonScene } from './scenes/DungeonScene';
 import { HangarScene } from './scenes/HangarScene';
 import { HubScene } from './scenes/HubScene';
+import { MarketTerraceScene } from './scenes/MarketTerraceScene';
 import { ShopScene } from './scenes/ShopScene';
 import { firebaseService } from './services/firebaseService';
 import { GameState } from './systems/gameState';
@@ -28,6 +29,7 @@ class StarlighterGame {
   private backroomScene: BackroomScene;
   private hubScene: HubScene;
   private hangarScene: HangarScene;
+  private marketTerraceScene: MarketTerraceScene;
   private dungeonScene: DungeonScene;
 
   private activeScene: SceneId = 'shop';
@@ -153,6 +155,16 @@ class StarlighterGame {
       onEnterBackroom: () => this.transitionTo('backroom', 'shop'),
       onOpenBounties: () => this.ui.openBountiesModal(),
       onOpenSaleBox: () => this.ui.openSaleBoxModal(),
+      onOpenHaggle: (payload) =>
+        this.ui.openHaggleModal(payload, (res) => {
+          this.shopScene.resolveHaggleCheckout(
+            payload.customerId,
+            res.accepted,
+            res.finalPrice,
+            res.bonusCredits,
+          );
+        }),
+      onOpenShiftSummary: (summary) => this.ui.openShiftSummaryModal(summary),
       onEnterDungeon: () => this.transitionTo('hub', 'shop'),
       onToast: (msg, tone) => this.ui.toast(msg, tone),
       onHudDirty: () => {
@@ -179,7 +191,16 @@ class StarlighterGame {
       onOpenTechLab: () => this.ui.openTechLabModal(),
       onOpenBlackMarket: () => this.ui.openBlackMarketModal(),
       onOpenGuildBoard: () => this.ui.openGuildBoardModal(),
+      onEnterMarketTerrace: () => this.transitionTo('market_terrace', 'hub'),
       onEnterDungeon: () => this.transitionTo('hangar', 'hub'),
+      onToast: (msg, tone) => this.ui.toast(msg, tone),
+    });
+
+    this.marketTerraceScene = new MarketTerraceScene(this.state, {
+      onReturnToHub: () => this.transitionTo('hub', 'market_terrace'),
+      onOpenAlchemyBar: () => this.ui.openAlchemyBarModal(),
+      onOpenPatrons: () => this.ui.openPatronsModal(false),
+      onOpenTradeBank: () => this.ui.openTradeBankModal(),
       onToast: (msg, tone) => this.ui.toast(msg, tone),
     });
 
@@ -290,7 +311,11 @@ class StarlighterGame {
             : this.dungeonScene.currentSector === 2
               ? 'dungeon_s2'
               : 'dungeon';
-    } else if (this.activeScene === 'hub' || this.activeScene === 'hangar') {
+    } else if (
+      this.activeScene === 'hub' ||
+      this.activeScene === 'hangar' ||
+      this.activeScene === 'market_terrace'
+    ) {
       desired = 'hub';
     } else if (this.activeScene === 'backroom') {
       desired = 'shop_night';
@@ -320,6 +345,12 @@ class StarlighterGame {
         this.ui.toast(
           `🌙 Es wird Nacht (Tag ${res.day}) — Alle Sektoren bieten jetzt +35 % seltene & epische Beute!`,
           'info',
+        );
+      }
+      if (res.maturedBankCount > 0) {
+        this.ui.toast(
+          `🏦 ${res.maturedBankCount} Handelsroute(n) abgeschlossen! Auszahlung auf der Marktplatz-Terrasse abholen!`,
+          'good',
         );
       }
     };
@@ -375,9 +406,18 @@ class StarlighterGame {
       } else if (scene === 'hangar') {
         this.ui.shopIsOpen = false;
         this.hangarScene.onEnter(from === 'dungeon' ? 'dungeon' : 'hub', this.lastReturnedSector);
+      } else if (scene === 'market_terrace') {
+        this.ui.shopIsOpen = false;
+        this.marketTerraceScene.onEnter();
       } else if (scene === 'hub') {
         this.ui.shopIsOpen = false;
-        this.hubScene.onEnter(from === 'hangar' || from === 'dungeon' ? 'dungeon' : 'shop');
+        this.hubScene.onEnter(
+          from === 'hangar' || from === 'dungeon'
+            ? 'dungeon'
+            : from === 'market_terrace'
+              ? 'market_terrace'
+              : 'shop',
+        );
       } else if (scene === 'backroom') {
         this.ui.shopIsOpen = false;
         this.backroomScene.onEnter();
@@ -468,6 +508,8 @@ class StarlighterGame {
       if (!this.ui.modalOpen && !this.ui.titleVisible) this.backroomScene.update(dt, this.input);
     } else if (this.activeScene === 'hub') {
       if (!this.ui.modalOpen && !this.ui.titleVisible) this.hubScene.update(dt, this.input);
+    } else if (this.activeScene === 'market_terrace') {
+      if (!this.ui.modalOpen && !this.ui.titleVisible) this.marketTerraceScene.update(dt, this.input);
     } else if (this.activeScene === 'hangar') {
       if (!this.ui.modalOpen && !this.ui.titleVisible) this.hangarScene.update(dt, this.input);
     } else if (!this.ui.modalOpen && !this.ui.titleVisible) {
@@ -485,6 +527,8 @@ class StarlighterGame {
       this.backroomScene.render(this.ctx);
     } else if (this.activeScene === 'hub') {
       this.hubScene.render(this.ctx);
+    } else if (this.activeScene === 'market_terrace') {
+      this.marketTerraceScene.render(this.ctx);
     } else if (this.activeScene === 'hangar') {
       this.hangarScene.render(this.ctx);
     } else {

@@ -13,7 +13,8 @@
 ## 2. Documentation Map (Read When Relevant)
 | Document | When to Read |
 | :--- | :--- |
-| [GAME_DESIGN_DOCUMENT.md](GAME_DESIGN_DOCUMENT.md) | Current milestone status (M1–M7 + Firebase + Architecture Split live), full feature list, Phase 2 Roadmap (M8, M9, M10-A), and codebase directory map. |
+| [GAME_DESIGN_DOCUMENT.md](GAME_DESIGN_DOCUMENT.md) | Current milestone status (M1–M8 + Firebase + Architecture Split live), full feature list, Phase 2 Roadmap (M9, M10-A), and codebase directory map. |
+| [MILESTONE_8_ARCHITECTURE.md](MILESTONE_8_ARCHITECTURE.md) | Architecture & subsystem spec for Milestone 8 (Haggling, Patron Reputation, Market Terrace, Alchemy Bar, Solaris Trade Bank & Save v9). |
 | [ART_AND_DESIGN_GUIDE.md](ART_AND_DESIGN_GUIDE.md) | Generating new pixel-art sprites/backgrounds (prompt templates, color palettes, Python flood-fill extraction script, `artLoader.ts` & UI rules). |
 | [TESTING_AND_VERIFICATION.md](TESTING_AND_VERIFICATION.md) | Running `npm run build`, checking invariants, Headless Chrome CDP verification harness, visual screenshot QA, and known pitfalls. |
 | [firestore.rules](firestore.rules) | Production Firestore security rules (`saves/{uid}`, `leaderboard/{uid}`, `activities`). |
@@ -22,8 +23,8 @@
 
 ## 3. Non-Negotiable Rules (Do & Don't)
 1. **Zero-Dungeon-Credits Rule:** **NEVER** add `state.credits +=` inside `src/scenes/DungeonScene.ts`, `src/dungeon/enemyAi.ts`, or `src/dungeon/dungeonRenderer.ts`. Credits are earned exclusively through selling relics in *Astro-Barter*, bounties, and trade.
-2. **Everything In-Game:** Never build external out-of-game menus. Every feature (Cloud-Save/Scoreboard, Jukebox, Infusions, Companions, Endless Rift) must live as an interactive station/terminal/NPC inside the game world.
-3. **Backward-Compatible Saves:** Current `SAVE_VERSION = 8` in `src/systems/gameState.ts`. Any new field in `SaveData` (`src/types.ts`) must be optional (`?`) and safely defaulted in `GameState.load()`.
+2. **Everything In-Game:** Never build external out-of-game menus. Every feature (Cloud-Save/Scoreboard, Jukebox, Infusions, Companions, Endless Rift, Market Terrace) must live as an interactive station/terminal/NPC inside the game world.
+3. **Backward-Compatible Saves:** Current `SAVE_VERSION = 9` in `src/systems/gameState.ts`. Any new field in `SaveData` (`src/types.ts`) must be optional (`?`) and safely defaulted in `GameState.load()`.
 4. **Firebase Config Policy:** Public Firebase web config for `starlighter-15b1f` intentionally lives in `src/services/firebaseConfig.ts` (with `VITE_FIREBASE_*` env override support) because Vercel Free does not allow env var configuration. Security is enforced server-side via `firestore.rules` + Firebase Authorized Domains.
 5. **Strict TypeScript:** `tsconfig.json` enforces `verbatimModuleSyntax`, `erasableSyntaxOnly`, `noUnusedLocals`, and `noUnusedParameters`. Always use `import type` for type-only imports.
 6. **Mandatory Verification Before Every Push:**

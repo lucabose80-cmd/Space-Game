@@ -268,4 +268,6 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
   { id: 'ng_plus', icon: '♾️', title: 'Sternen-Legende (NG+)', desc: 'Starte einen New-Game+-Durchlauf.' },
   { id: 'infusion_master', icon: '🔥', title: 'Elementar-Schmied', desc: 'Präge eine Waffe bei Kael mit einer Rift-Elementarkraft.' },
   { id: 'spiral_walker', icon: '🌀', title: 'Spiral-Läufer', desc: 'Erreiche Ebene 6 in der Unendlichen Spirale (Endlos-Rift).' },
+  { id: 'master_haggler', icon: '🤝', title: 'Meister-Feilscher', desc: 'Schließe 10 Verhandlungen in Astro-Barter erfolgreich ab.' },
+  { id: 'guild_patron', icon: '🏛️', title: 'Gilden-Ehrengast', desc: 'Erreiche Rufstufe 3 bei einem Stammkunden der Händler-Gilde.' },
 ];

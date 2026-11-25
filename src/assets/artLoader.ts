@@ -10,6 +10,7 @@ export interface HDArtAssets {
   backroomBg: HTMLImageElement | null;
   hubBg: HTMLImageElement | null;
   hangarBg: HTMLImageElement | null;
+  marketTerraceBg: HTMLImageElement | null;
   dungeonBg: HTMLImageElement | null;
   dungeonBgS2: HTMLImageElement | null;
   dungeonBgS3: HTMLImageElement | null;
@@ -126,6 +127,7 @@ const art: HDArtAssets = {
   backroomBg: null,
   hubBg: null,
   hangarBg: null,
+  marketTerraceBg: null,
   dungeonBg: null,
   dungeonBgS2: null,
   dungeonBgS3: null,

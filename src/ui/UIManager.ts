@@ -9,6 +9,7 @@ import {
   SUIT_THEME_ORDER,
   SUIT_THEMES,
 } from '../data/companions';
+import { ALCHEMY_BUFFS } from '../data/guildMarket';
 import { getInfusionDef, INFUSIONS } from '../data/infusions';
 import { getItemDef, ITEMS, RARITY_META } from '../data/items';
 import { UPGRADE_TRACKS, WEAPON_META } from '../data/upgrades';
@@ -39,6 +40,7 @@ import {
 import type {
   ActivityFeedEntry,
   CompanionId,
+  HagglePayload,
   InfusionId,
   ItemStack,
   LeaderboardEntry,
@@ -47,11 +49,20 @@ import type {
   RunSummary,
   SceneId,
   SectorId,
+  ShiftSummary,
   SuitThemeId,
   UpgradeKey,
   WeaponId,
 } from '../types';
 import type { RoomChest } from '../world/dungeonGen';
+import {
+  renderAlchemyBarModal,
+  renderHaggleModal,
+  renderPatronsModal,
+  renderShiftSummaryModal,
+  renderTradeBankModal,
+  type MarketModalHost,
+} from './MarketModals';
 
 export interface UIHooks {
   onStartNewGame: () => void;
@@ -230,13 +241,15 @@ export class UIManager {
           ? `${timeLabel} · KAPITÄNS-QUARTIER`
           : this.currentScene === 'hub'
             ? `${timeLabel} · PORT SOLARIS`
-            : this.currentScene === 'hangar'
-              ? `${timeLabel} · RAUMHAFEN (DOCKS I–IV & 5. TOR)`
-              : this.dungeonSector === 5
-                ? `🌌 ${floorTag}${ngTag}`
-                : isNight
-                  ? `🌙 S${this.dungeonSector} · ${floorTag} (+35% RAR)`
-                  : `SEKTOR ${this.dungeonSector} · ${floorTag}`;
+            : this.currentScene === 'market_terrace'
+              ? `${timeLabel} · MARKTPLATZ-TERRASSE`
+              : this.currentScene === 'hangar'
+                ? `${timeLabel} · RAUMHAFEN (DOCKS I–IV & 5. TOR)`
+                : this.dungeonSector === 5
+                  ? `🌌 ${floorTag}${ngTag}`
+                  : isNight
+                    ? `🌙 S${this.dungeonSector} · ${floorTag} (+35% RAR)`
+                    : `SEKTOR ${this.dungeonSector} · ${floorTag}`;
 
     const keysUnlocked =
       (this.state.sector1Cleared ? 1 : 0) +
@@ -247,24 +260,37 @@ export class UIManager {
     const hintText =
       this.currentScene === 'shop'
         ? this.shopIsOpen
-          ? 'Kunden stöbern! Geh rechts hinter den Tresen [E] · VIP-Sammler zahlen +40 % · Diebe fangen [SPACE]!'
-          : 'Podeste [E] · Oben links: Hinterzimmer (Bett, Truhen, Drohnen & Logbuch) · Laden [O]'
+          ? 'Kunden stöbern! Geh rechts hinter den Tresen [E] (VIP/Stammkunden: Feilschen!) · Diebe fangen [SPACE]!'
+          : 'Podeste [E] · Schnell-Nachfüllen [F] · Hinten links: Quartier · Laden öffnen [O]'
         : this.currentScene === 'backroom'
           ? 'Kapitäns-Quartier: Ruhekoje, Drohnen-Dock, Trophäen-Altar, Jukebox, Anzug-Stil/Logbuch & Lagertruhen!'
           : this.currentScene === 'hub'
             ? isNight
-              ? '🌙 Nacht-Bonus aktiv: +35 % seltener Loot · Rechts: Raumhafen (Docks I–IV) · Unten links: Nyx!'
-              : 'Oben: Kael (MK-VIII), Kapitäns-Tafel & Lyra · Unten: Nyx & Vex · Rechts: Raumhafen!'
-            : this.currentScene === 'hangar'
-              ? keysUnlocked >= 4
-                ? '★ ALLE 4 SCHLÜSSEL AKTIV! Betritt das leuchtende 5. Tor in der Mitte für die OMEGA-ANOMALIE!'
-                : `Raumhafen: Docks I–IV starten in die 4 Sektoren · 5. Tor (Mitte): ${keysUnlocked}/4 Sektor-Schlüssel aktiv!`
-              : `${wMeta.name} (${this.state.equippedWeapon === 'blade' ? 'Schild verbraucht EN · Perfekt-Parade!' : wMeta.secondaryLabel}) · [R] Extraktion`;
+              ? '🌙 Nacht-Bonus (+35 % Rar-Loot) · Unten: Marktplatz-Terrasse (Alchemie & Bank) · Rechts: Raumhafen!'
+              : 'Oben: Kael, Kapitäns-Tafel & Lyra · Unten: Nyx, Marktplatz-Terrasse & Vex · Rechts: Raumhafen!'
+            : this.currentScene === 'market_terrace'
+              ? 'Marktplatz-Terrasse: Links Milo’s Alchemie-Bar (Run-Elixiere) · Mitte Händler-Gilde · Rechts Solaris-Handelsbank!'
+              : this.currentScene === 'hangar'
+                ? keysUnlocked >= 4
+                  ? '★ ALLE 4 SCHLÜSSEL AKTIV! Betritt das leuchtende 5. Tor in der Mitte für die OMEGA-ANOMALIE!'
+                  : `Raumhafen: Docks I–IV starten in die 4 Sektoren · 5. Tor (Mitte): ${keysUnlocked}/4 Sektor-Schlüssel aktiv!`
+                : `${wMeta.name} (${this.state.equippedWeapon === 'blade' ? 'Schild verbraucht EN · Perfekt-Parade!' : wMeta.secondaryLabel}) · [R] Extraktion`;
+
+    const activeBuffDef = this.state.activeAlchemyBuff ? ALCHEMY_BUFFS[this.state.activeAlchemyBuff] : null;
+    const buffPillHtml = activeBuffDef
+      ? `<div style="margin-top:2px;padding:2px 6px;border:1px solid ${activeBuffDef.color};background:rgba(15,23,42,0.88);font-family:var(--font-pixel);font-size:8px;color:${activeBuffDef.color};text-align:center" title="${activeBuffDef.name}: ${activeBuffDef.effectSummary}">${activeBuffDef.icon} ${activeBuffDef.shortName} AKTIV</div>`
+      : '';
+    const bankPillHtml =
+      this.state.hasReadyBankPayout() && this.currentScene !== 'dungeon'
+        ? `<div style="margin-top:2px;padding:2px 6px;border:1px solid #4ade80;background:rgba(6,58,40,0.88);font-family:var(--font-pixel);font-size:8px;color:#4ade80;text-align:center" title="Handelsroute abgeschlossen — auf der Marktplatz-Terrasse abholen!">🏦 AUSZAHLUNG BEREIT</div>`
+        : '';
 
     const eventPillHtml =
-      this.state.marketEvent !== 'normal' && (this.currentScene === 'shop' || this.currentScene === 'hub')
+      (this.state.marketEvent !== 'normal' && (this.currentScene === 'shop' || this.currentScene === 'hub')
         ? `<div style="margin-top:2px;padding:2px 6px;border:1px solid ${evMeta.color};background:rgba(15,23,42,0.85);font-family:var(--font-pixel);font-size:8px;color:${evMeta.color};text-align:center" title="${evMeta.description}">★ ${evMeta.shortBadge}</div>`
-        : '';
+        : '') +
+      buffPillHtml +
+      bankPillHtml;
 
     const pinnedList = this.state.getPinnedRecipeDetails();
     const pinTrackerHtml =
@@ -1154,6 +1180,7 @@ export class UIManager {
         ped.qty = taken;
         ped.price = this.pickedPrice;
         this.state.codex[this.pickedItemId].lastSetPrice = this.pickedPrice;
+        this.state.lastPedestalItems[ped.id] = this.pickedItemId;
         this.state.save();
         sound.playPickup();
         this.toast(
@@ -1782,6 +1809,7 @@ export class UIManager {
       })
       .join('');
 
+    const readyOrdersBadge = this.state.hasReadyBigOrder() ? ' ★' : '';
     this.showModalHtml(`
       <div class="modal-window">
         <div class="modal-header">
@@ -1790,6 +1818,10 @@ export class UIManager {
           <button id="modal-close-btn" class="modal-close">ESC ✕</button>
         </div>
         <div class="modal-body">
+          <div class="modal-tabs" style="margin-bottom:10px">
+            <button class="tab-btn active">📋 Tages-Aufträge</button>
+            <button class="tab-btn" id="tab-goto-patrons">🏛️ Stammkunden & Großaufträge${readyOrdersBadge}</button>
+          </div>
           <div class="modifier-box" style="border-left-color:var(--accent-cyan);background:rgba(56,232,212,0.08);color:#cffafe">
             ★ Bewohner von Port Solaris zahlen <strong>+65 % Bonus-Marktwert</strong> für gezielte Lieferungen!
             Jeden neuen Morgen (nach der Nacht-Ruhe) erscheinen 3 frische Sonderaufträge.
@@ -1798,6 +1830,11 @@ export class UIManager {
         </div>
       </div>
     `);
+
+    this.modalEl.querySelector('#tab-goto-patrons')?.addEventListener('click', () => {
+      sound.playUiClick();
+      this.openPatronsModal(true);
+    });
 
     this.modalEl.querySelectorAll<HTMLElement>('.btn-complete-bounty').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -1814,6 +1851,42 @@ export class UIManager {
         }
       });
     });
+  }
+
+  // ==================== MEILENSTEIN 8 MODALS (DELEGATED TO MarketModals.ts) ====================
+  private getMarketModalHost(): MarketModalHost {
+    return {
+      state: this.state,
+      modalEl: this.modalEl,
+      showModalHtml: (html) => this.showModalHtml(html),
+      closeModal: () => this.closeModal(),
+      renderHud: () => this.renderHud(),
+      toast: (msg, tone) => this.toast(msg, tone),
+      openBountiesModal: () => this.openBountiesModal(),
+    };
+  }
+
+  public openShiftSummaryModal(summary: ShiftSummary): void {
+    renderShiftSummaryModal(this.getMarketModalHost(), summary);
+  }
+
+  public openHaggleModal(
+    payload: HagglePayload,
+    onComplete: (result: { accepted: boolean; finalPrice: number; bonusCredits: number }) => void,
+  ): void {
+    renderHaggleModal(this.getMarketModalHost(), payload, onComplete);
+  }
+
+  public openPatronsModal(showBountiesTab = false): void {
+    renderPatronsModal(this.getMarketModalHost(), showBountiesTab);
+  }
+
+  public openAlchemyBarModal(): void {
+    renderAlchemyBarModal(this.getMarketModalHost());
+  }
+
+  public openTradeBankModal(): void {
+    renderTradeBankModal(this.getMarketModalHost());
   }
 
   // ==================== SONDERANGEBOTS-KISTE (SALE-BOX, STUFE II+) ====================
@@ -2105,12 +2178,14 @@ export class UIManager {
       this.state.nyxStock = this.state.generateNyxStock();
     }
 
+    const hasRixDiscount = Boolean(this.state.patronProgress?.rix?.bigOrderCompleted);
     const cardsHtml = this.state.nyxStock
       .map((offer) => {
         const def = getItemDef(offer.itemId);
         const rarity = RARITY_META[def.rarity];
         const soldOut = offer.stock <= 0;
-        const canBuy = !soldOut && this.state.credits >= offer.price;
+        const effectivePrice = this.state.getNyxOfferPrice(offer);
+        const canBuy = !soldOut && this.state.credits >= effectivePrice;
         const owned = countItemTotal(this.state.inventory, offer.itemId);
         const pinNeed = this.state.getPinnedItemNeed(offer.itemId);
         return `
@@ -2131,7 +2206,7 @@ export class UIManager {
                 </div>
                 <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${def.description}</div>
                 <div class="mat-list">
-                  <span class="mat-pill ${this.state.credits >= offer.price ? 'ok' : 'missing'}">${offer.price} Cr</span>
+                  <span class="mat-pill ${this.state.credits >= effectivePrice ? 'ok' : 'missing'}">${effectivePrice} Cr${hasRixDiscount ? ' (-15 % Rix)' : ''}</span>
                   <span class="mat-pill" style="color:var(--text-muted)">Vorrat: ${offer.stock}</span>
                   <span class="mat-pill" style="color:var(--accent-cyan)">Im Besitz: ${owned}</span>
                 </div>

@@ -125,7 +125,12 @@ export class TouchControls {
           <button class="tbtn tbtn-primary tbtn-big" data-code="KeyE">AKTION<small>[E]</small></button>
         </div>
       `;
-    } else if (this.scene === 'hub' || this.scene === 'backroom' || this.scene === 'hangar') {
+    } else if (
+      this.scene === 'hub' ||
+      this.scene === 'backroom' ||
+      this.scene === 'hangar' ||
+      this.scene === 'market_terrace'
+    ) {
       buttonsHtml = `
         <div class="touch-pad-grid shop-pad">
           <button class="tbtn tbtn-util" data-cb="bag">FRACHT</button>

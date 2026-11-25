@@ -130,6 +130,17 @@ export function getSuggestedStartPrice(itemId: string, entry?: CodexEntry): numb
   return Math.max(10, Math.round((def.baseValue * 0.9) / 5) * 5);
 }
 
+/**
+ * Returns the best known Scan-Codex price for [F] Quick-Refill on pedestals:
+ * prefers maxFairPrice, then lastSetPrice, then minFairPrice, else suggested price.
+ */
+export function getOptimalCodexPrice(itemId: string, entry?: CodexEntry): number {
+  if (entry?.maxFairPrice !== null && entry?.maxFairPrice !== undefined) return entry.maxFairPrice;
+  if (entry?.lastSetPrice !== null && entry?.lastSetPrice !== undefined) return entry.lastSetPrice;
+  if (entry?.minFairPrice !== null && entry?.minFairPrice !== undefined) return entry.minFairPrice;
+  return getSuggestedStartPrice(itemId, entry);
+}
+
 export function getReactionMeta(reaction: PriceReaction): {
   label: string;
   symbol: string;

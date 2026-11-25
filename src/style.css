@@ -1341,5 +1341,124 @@ body.touch-device #hud-shop-toggle {
   }
 }
 
+/* ==================== MEILENSTEIN 8: FEILSCHEN, BILANZ, STAMMKUNDEN & MARKTPLATZ ==================== */
+.m8-shift-banner {
+  padding: 10px 12px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+.m8-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.m8-stat-card {
+  padding: 8px 10px;
+  background: rgba(15, 23, 42, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.m8-stat-label {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  color: var(--text-muted);
+}
+
+.m8-stat-val {
+  font-family: var(--font-pixel);
+  font-size: 13px;
+}
+
+.m8-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: rgba(15, 23, 42, 0.85);
+  border-radius: 4px;
+  font-family: var(--font-pixel);
+  font-size: 9px;
+}
+
+.m8-haggle-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.m8-patience-wrap {
+  margin-bottom: 10px;
+}
+
+.m8-bar-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.m8-bar-fill {
+  height: 100%;
+  transition: width 0.22s ease;
+}
+
+.m8-dialogue-box {
+  padding: 10px 12px;
+  background: rgba(30, 41, 59, 0.8);
+  border-left: 3px solid #fbbf24;
+  border-radius: 4px;
+  font-size: 12.5px;
+  color: #f8fafc;
+  font-style: italic;
+  margin-bottom: 12px;
+}
+
+.m8-haggle-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.m8-haggle-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 9px 8px;
+  text-align: center;
+}
+
+.m8-haggle-btn small {
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  opacity: 0.9;
+}
+
+.m8-bigorder-box {
+  margin-top: 6px;
+  padding: 8px 10px;
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  border-radius: 5px;
+}
+
+@media (max-width: 540px) {
+  .m8-haggle-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 
 

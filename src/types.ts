@@ -1,4 +1,4 @@
-export type SceneId = 'shop' | 'backroom' | 'hub' | 'hangar' | 'dungeon';
+export type SceneId = 'shop' | 'backroom' | 'hub' | 'hangar' | 'market_terrace' | 'dungeon';
 
 export type SectorId = 1 | 2 | 3 | 4 | 5;
 
@@ -15,6 +15,21 @@ export type RiftMutatorId = 'overcharged' | 'armored' | 'vampiric' | 'hasted';
 export type CompanionId = 'puck' | 'spark' | 'luma' | 'halo';
 
 export type MarketEventId = 'normal' | 'trade_fair' | 'collector_visit' | 'night_rush';
+
+export type PatronId = 'vance' | 'zora' | 'rix' | 'tala';
+
+export type AlchemyBuffId =
+  | 'solar_espresso'
+  | 'aegis_tonic'
+  | 'nebula_nectar'
+  | 'chrono_fizz'
+  | 'void_elixir';
+
+export type TradeRouteId =
+  | 'solaris_shuttle'
+  | 'crystal_convoy'
+  | 'foundry_freight'
+  | 'elder_expedition';
 
 export type MusicTrack =
   | 'shop_day'
@@ -215,6 +230,65 @@ export interface ActivityFeedEntry {
   createdAt: number;
 }
 
+export interface PatronProgress {
+  xp: number;
+  tier: 0 | 1 | 2 | 3;
+  visits: number;
+  bigOrderCompleted: boolean;
+  decoUnlocked: boolean;
+}
+
+export interface BigOrderContract {
+  patronId: PatronId;
+  title: string;
+  items: Array<{ itemId: string; qty: number }>;
+  rewardCredits: number;
+  rewardXp: number;
+  completed: boolean;
+}
+
+export interface BankInvestment {
+  id: string;
+  routeId: TradeRouteId;
+  principal: number;
+  cyclesTotal: number;
+  cyclesRemaining: number;
+  minReturnMult: number;
+  maxReturnMult: number;
+  maturedPayout: number | null;
+  outcomeLabel?: string;
+}
+
+export interface ShiftSummary {
+  day: number;
+  timeOfDay: TimeOfDay;
+  itemsSold: number;
+  totalCredits: number;
+  vipSales: number;
+  haggleWins: number;
+  haggleBonusCredits: number;
+  thievesCaught: number;
+  thievesEscaped: number;
+  saleBoxCredits: number;
+  patronVisits: PatronId[];
+  topItemName: string | null;
+  topItemPrice: number;
+  newDay: boolean;
+  nextDay: number;
+  nextTimeOfDay: TimeOfDay;
+  nextMarketEvent: MarketEventId;
+  maturedBankCount: number;
+}
+
+export interface HagglePayload {
+  customerId: number;
+  customerTitle: string;
+  patronId: PatronId | null;
+  isVip: boolean;
+  itemId: string;
+  basePrice: number;
+}
+
 export interface RunSummary {
   victory: boolean;
   reason: 'warp' | 'boss_victory' | 'defeat';
@@ -224,6 +298,7 @@ export interface RunSummary {
   isEndlessRift?: boolean;
   riftDepthReached?: number;
   riftLootMultiplier?: number;
+  consumedAlchemyBuff?: AlchemyBuffId | null;
   sector1Cleared?: boolean;
   sector2Cleared?: boolean;
   sector3Cleared?: boolean;
@@ -283,6 +358,12 @@ export interface SaveData {
   secondaryWeapon: WeaponId | null;
   weaponInfusions?: Record<WeaponId, InfusionId>;
   unlockedInfusions?: Record<WeaponId, InfusionId[]>;
+  // Milestone 8: Händler-Gilde, Verhandeln & Port-Solaris-Marktplatz
+  patronProgress?: Record<PatronId, PatronProgress>;
+  activeAlchemyBuff?: AlchemyBuffId | null;
+  bankInvestments?: BankInvestment[];
+  lastPedestalItems?: Record<number, string>;
+  haggleWinsTotal?: number;
   muted: boolean;
   musicMuted?: boolean;
 }

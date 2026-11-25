@@ -68,11 +68,16 @@ flowchart LR
   - 4 aktive Waffen-Prägungen bei Kael (`🔥 Solar-Brand`, `❄️ Kryo-Stasis`, `⚡ Ionen-Kette`, `🟣 Leeren-Siphon`) für alle 6 Waffenklassen.
   - 4 neue HD-Rift-Relikte (*Rift-Katalysator*, *Phasen-Geode*, *Äther-Prismakern*, *Singularitäts-Relikt*).
   - Instabile `🌀 RIFT-RISS`-Portale in regulären Sektoren (2 Elite-Wellen + garantierter Katalysator).
-  - Endlos-Modus **∞ Die Unendliche Spirale** am 5. Tor mit 4 Rift-Mutatoren (`⚡ Überladen`, `🛡 Gepanzert`, `🩸 Vampirisch`, `💨 Beschleunigt`), skalierenden Bossen alle 3 Ebenen, eigenem Ranglisten-Filter (`🌀 Tiefster Rift`) & 2 neuen Erfolgen (*Elementar-Schmied* & *Spiral-Läufer*, gesamt 12).
+  - Endlos-Modus **∞ Die Unendliche Spirale** am 5. Tor mit 4 Rift-Mutatoren (`⚡ Überladen`, `🛡 Gepanzert`, `🩸 Vampirisch`, `💨 Beschleunigt`), skalierenden Bossen alle 3 Ebenen, eigenem Ranglisten-Filter (`🌀 Tiefster Rift`) & 2 neuen Erfolgen (*Elementar-Schmied* & *Spiral-Läufer*).
+- **✅ Meilenstein 8 — Händler-Gilde, Verhandeln & Port-Solaris-Marktplatz (Save v9):**
+  - **2-Runden-Verhandlungssystem („Feilschen“):** Optional beim Kassieren von VIPs, Stammkunden & seltenen/epischen Relikten (+15 % bis +40 % Bonus-Profit, Geduldsleiste, kein Item-Verlust bei Abbruch) via `src/systems/haggle.ts`.
+  - **Stammkunden-Ruf (4 Named NPCs):** *Admiral Vance*, *Kuratorin Zora*, *Schmuggler Rix* und *Ingenieurin Tala* mit 3 Rufstufen, eigenen Shop-Auren & Dialogen, **4 sichtbaren Shop-Deko-Objekten** ab Stufe 2 und **Großaufträgen mit permanenten Gilden-Perks** ab Stufe 3 (`src/data/guildMarket.ts`).
+  - **Marktplatz-Terrasse (`MarketTerraceScene.ts`):** Begehbarer Bereich südlich der Promenade mit **Milo's Alchemie-Bar** (5 Run-Elixiere aus Sektor-Materialien), **Händler-Gilden-Schaukasten** und **Solaris-Handelsbank** (4 Handelsrouten über 2–4 Tag/Nacht-Zyklen).
+  - **Shop-Komfort (QoL) & 2 neue Erfolge:** `[F]` Schnell-Nachfüllen an Holo-Podesten zum Scan-Codex-Optimalpreis, **Schicht-Bilanz-Abschlusskarte** am Schichtende & Erfolge *Meister-Feilscher* + *Gilden-Ehrengast* (gesamt 14).
 
 ---
 
-## 5. Nächste Schritte — Offene Phase-2-Roadmap (Meilensteine 8–10)
+## 5. Nächste Schritte — Offene Phase-2-Roadmap (Meilensteine 9 & 10-A)
 
 ### 🔜 Meilenstein 9 (Empfohlener nächster Schritt): Galaktisches Netzwerk & Lebendige Community
 Nutzt die bereits aktive Firebase-Anbindung (`starlighter-15b1f`), um das Online-Erlebnis noch lebendiger direkt im Spiel zu machen:
@@ -80,13 +85,6 @@ Nutzt die bereits aktive Firebase-Anbindung (`starlighter-15b1f`), um das Online
 2. **Wöchentliche „Galaktische Prüfung“ (Seeded Challenge Run):** Deterministischer Wochen-Seed (`YYYY-Www`) am 5. Tor mit identischem Layout und normierter Ausrüstung für faire Vergleiche zwischen Neulingen und NG+-Veteranen + eigene Wochen-Rangliste & Gilden-Abzeichen.
 3. **Klickbare Kapitäns-Akten:** Klick auf einen Eintrag in der Kapitäns-Tafel zeigt Detailprofil (Lieblingswaffe + Prägung, alle 5 Sektor-Bestzeiten, schnellste Tage, tiefster Rift, Erfolge).
 4. **Globale Markt-Konjunktur:** Deterministischer weltweiter Tages-Wirtschaftstrend (z. B. *„Kristall-Boom: S2-Relikte +25 %“*), sichtbar an der Kapitäns-Tafel und im Scan-Codex.
-
-### 🔜 Meilenstein 8: Händler-Gilde, Verhandeln & Port-Solaris-Marktplatz
-Vertieft die gemütliche *Moonlighter*-Shop-Hälfte auch fürs Late-Game:
-1. **Verhandlungs-System („Feilschen“):** Optionales 2-Runden-Gegenangebot bei VIP- und Boss-/Anomalie-Relikt-Verkäufen (+15 % bis +40 % Profit bei gutem Gespür).
-2. **Stammkunden-Ruf (3–4 Named NPCs):** Wiederkehrende Charaktere (*Admiral Vance*, *Kuratorin Zora*, *Schmuggler Rix*, *Ingenieurin Tala*) mit eigenen Dialogen, 3 Rufstufen, exklusiver Shop-Deko & Großaufträgen.
-3. **Port-Solaris-Erweiterung („Marktplatz-Terrasse“):** Separater begehbarer Bereich neben der Promenade mit **Milo's Alchemie-Bar** (Run-Buffs aus überschüssigen Sektor-Materialien) und **Solaris-Handelsbank** (Handelsrouten-Investments über 2–4 Tag/Nacht-Zyklen).
-4. **Shop-Komfort (QoL):** `[F]` Schnell-Nachfüllen an Podesten zum Scan-Codex-Optimalpreis + Tagesbilanz-Abschlusskarte am Schichtende.
 
 ### 🔜 Meilenstein 10-A: Story-Tiefe, Sektor-Rätsel & Audio-/Mobile-Feinschliff
 1. **Fortschreitende NPC-Dialogkapitel & visuelle Stations-Entwicklung** auf Port Solaris nach jedem Boss-/Omega-Sieg.
@@ -108,31 +106,36 @@ src/
 │   ├── items.ts                # 46 Relikte (S1–S4 + 4 Rift-Relikte) & Loot-Tables
 │   ├── upgrades.ts             # 6 Waffenklassen bis MK-VIII, Suit, Med-Bay, Shop, Tech-Labor
 │   ├── infusions.ts            # 4 Elementar-Prägungen & 4 Rift-Mutatoren
-│   └── companions.ts           # 4 Begleiter-Drohnen, 5 Anzug-Stile, 12 Erfolge, Events, Jukebox
+│   ├── guildMarket.ts          # 4 Stammkunden, Shop-Deko, Großaufträge, 5 Elixiere & 4 Bank-Routen
+│   └── companions.ts           # 4 Begleiter-Drohnen, 5 Anzug-Stile, 14 Erfolge, Events, Jukebox
 ├── dungeon/
 │   ├── dungeonTypes.ts         # Enemy, BossState, Projectile, LightningArcFx, SiphonOrbFx …
 │   ├── enemyAi.ts              # DungeonEnemyAi (inkl. Burn-DoT, Kryo-Slow, Hasted & alle Bosse)
 │   └── dungeonRenderer.ts      # DungeonRenderer (S1–S4, Rift-Risse, Blitze, Orbs, Minimap, Timer)
 ├── scenes/
 │   ├── DungeonScene.ts         # Kampf, Waffen-Combos, Prägungen, Rift-Kammern, ∞ Spirale
-│   ├── ShopScene.ts            # Astro-Barter Verkauf, Kunden-KI, Diebe, Handels-Droide
+│   ├── ShopScene.ts            # Astro-Barter Verkauf, Feilschen, Stammkunden, Deko, [F] Refill
 │   ├── BackroomScene.ts        # Kapitäns-Quartier (Schlaf, Truhen, Jukebox, Drohnen, Stile)
 │   ├── HubScene.ts             # Port Solaris Promenade (Kael, Lyra, Vex, Nyx, Kapitäns-Tafel)
+│   ├── MarketTerraceScene.ts   # Marktplatz-Terrasse (Milo's Alchemie-Bar, Gilde, Handelsbank)
 │   └── HangarScene.ts          # Raumhafen (Docks I–IV & 5. Tiefenraum-Tor)
 ├── services/
 │   ├── firebaseConfig.ts       # Öffentliche Web-App-Config (starlighter-15b1f)
 │   └── firebaseService.ts      # Auth (Google + E-Mail), Cloud-Save, Leaderboard & Activity Feed
 ├── systems/
-│   ├── gameState.ts            # Zentraler State, Save/Load v8, Rekorde, Prägungen, Auto-Sync
-│   ├── economy.ts              # Scan-Codex, Preisreaktionen & Nachfrage-Decay
+│   ├── gameState.ts            # Zentraler State, Save/Load v9, Rekorde, Prägungen, Bank & Ruf
+│   ├── economy.ts              # Scan-Codex, Preisreaktionen, Optimalpreis & Nachfrage-Decay
+│   ├── haggle.ts               # 2-Runden-Feilschen State Machine
 │   └── inventory.ts            # Cargo, Truhe & richtungsabhängige Synergien
 ├── ui/
-│   └── UIManager.ts            # HUD & alle In-Game-Modals (Inventar, Schmiede/Prägungen, Tafel …)
+│   ├── UIManager.ts            # HUD & In-Game-Modals (Inventar, Schmiede/Prägungen, Tafel …)
+│   └── MarketModals.ts         # M8-Modals (Feilschen, Schichtbilanz, Stammkunden, Alchemie, Bank)
 └── world/
     └── dungeonGen.ts           # Prozedurale Sektor-Ebenen, Schluchten, Geheimkammern, Rifts & ∞ Spirale
 ```
 
 - **Build & Deploy:** `npm run build` (`tsc && vite build`), Push auf `main` triggert automatisches Vercel-Deployment.
+- **Meilenstein-8-Architektur:** [MILESTONE_8_ARCHITECTURE.md](MILESTONE_8_ARCHITECTURE.md) (Detail-Spezifikation zu Feilschen, Stammkunden-Ruf, Marktplatz-Terrasse, Alchemie-Bar, Handelsbank & Save v9).
 - **Art-, Sprite- & UI-Design-Guide:** [ART_AND_DESIGN_GUIDE.md](ART_AND_DESIGN_GUIDE.md) (Prompt-Formeln, Flood-Fill-Freistellung, Farbpaletten & UI-Regeln für gleichbleibende HD-Pixel-Art-Qualität).
 - **Test- & Verifikations-Workflow:** [TESTING_AND_VERIFICATION.md](TESTING_AND_VERIFICATION.md) (Build-Checks, Design-Invarianten, Headless-Chrome-CDP-Harness, Screenshot-QA & bekannte Stolperfallen).
 - **Firestore-Regeln:** [firestore.rules](firestore.rules) (Owner-only `saves/{uid}`, Public-Read/Owner-Write `leaderboard/{uid}`, Public-Read/Auth-Create `activities`).

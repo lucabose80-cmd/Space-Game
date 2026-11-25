@@ -2,13 +2,21 @@ import { getHDArt } from '../assets/artLoader';
 import { drawGlow, drawPixelShadow } from '../assets/pixelArt';
 import { getAtlas } from '../assets/sprites';
 import { COMPANION_DEFS, MARKET_EVENT_META } from '../data/companions';
+import { PATRON_DEFS, PATRON_ORDER } from '../data/guildMarket';
 import { getItemDef } from '../data/items';
 import { sound } from '../engine/audio';
 import { VIRTUAL_HEIGHT, VIRTUAL_WIDTH, type InputManager } from '../engine/input';
 import { evaluatePrice, recordPriceReaction } from '../systems/economy';
 import type { GameState } from '../systems/gameState';
 import { addItemToChest } from '../systems/inventory';
-import type { Direction, PedestalSlot, PriceReaction } from '../types';
+import type {
+  Direction,
+  HagglePayload,
+  PatronId,
+  PedestalSlot,
+  PriceReaction,
+  ShiftSummary,
+} from '../types';
 
 interface FloatingText {
   x: number;
@@ -45,6 +53,7 @@ interface Customer {
   speciesIndex: number;
   isThief: boolean;
   isVip: boolean;
+  patronId: PatronId | null;
   stasisSlowTimer: number;
   assistantTimer: number;
   x: number;
@@ -69,6 +78,8 @@ export interface ShopCallbacks {
   onEnterBackroom: () => void;
   onOpenBounties: () => void;
   onOpenSaleBox: () => void;
+  onOpenHaggle: (payload: HagglePayload) => void;
+  onOpenShiftSummary: (summary: ShiftSummary) => void;
   onEnterDungeon: () => void;
   onToast: (msg: string, tone?: 'info' | 'good' | 'warn') => void;
   onHudDirty: () => void;
@@ -141,6 +152,16 @@ export class ShopScene {
   public readonly shopDuration = 95;
   public daySalesCount = 0;
   public daySalesCredits = 0;
+
+  private shiftVipSales = 0;
+  private shiftHaggleWins = 0;
+  private shiftHaggleBonusCredits = 0;
+  private shiftThievesCaught = 0;
+  private shiftThievesEscaped = 0;
+  private shiftSaleBoxCredits = 0;
+  private shiftPatronVisits = new Set<PatronId>();
+  private shiftTopItemName: string | null = null;
+  private shiftTopItemPrice = 0;
 
   private customers: Customer[] = [];
   private nextCustomerId = 1;
@@ -221,6 +242,15 @@ export class ShopScene {
       this.shopTimer = this.shopDuration;
       this.daySalesCount = 0;
       this.daySalesCredits = 0;
+      this.shiftVipSales = 0;
+      this.shiftHaggleWins = 0;
+      this.shiftHaggleBonusCredits = 0;
+      this.shiftThievesCaught = 0;
+      this.shiftThievesEscaped = 0;
+      this.shiftSaleBoxCredits = 0;
+      this.shiftPatronVisits.clear();
+      this.shiftTopItemName = null;
+      this.shiftTopItemPrice = 0;
       this.spawnTimer = 0.9;
       this.saleBoxTimer = 6.5;
       sound.playShopBell();
@@ -239,6 +269,9 @@ export class ShopScene {
     if (!this.shopOpen) return;
     this.shopOpen = false;
 
+    const prevDay = this.state.day;
+    const prevTimeOfDay = this.state.timeOfDay;
+
     for (const c of this.customers) {
       if (c.carriedItemId) {
         addItemToChest(this.state.inventory, c.carriedItemId, 1);
@@ -249,7 +282,13 @@ export class ShopScene {
     }
 
     sound.playShopBell();
-    if (this.daySalesCount > 0 || !manual) {
+    const hadActivity =
+      this.daySalesCount > 0 ||
+      this.shiftThievesCaught > 0 ||
+      this.shiftThievesEscaped > 0 ||
+      this.shiftPatronVisits.size > 0;
+
+    if (hadActivity || !manual) {
       const res = this.state.advanceTimeOfDay();
       const evMeta = MARKET_EVENT_META[res.marketEvent];
       const evNote = res.newDay && res.marketEvent !== 'normal' ? ` ★ Event: ${evMeta.name}!` : '';
@@ -269,6 +308,34 @@ export class ShopScene {
           'info',
         );
       }
+
+      if (res.maturedBankCount > 0) {
+        this.callbacks.onToast(
+          `🏦 ${res.maturedBankCount} Handelsroute(n) abgeschlossen! Auszahlung auf der Marktplatz-Terrasse abholen!`,
+          'good',
+        );
+      }
+
+      this.callbacks.onOpenShiftSummary({
+        day: prevDay,
+        timeOfDay: prevTimeOfDay,
+        itemsSold: this.daySalesCount,
+        totalCredits: this.daySalesCredits,
+        vipSales: this.shiftVipSales,
+        haggleWins: this.shiftHaggleWins,
+        haggleBonusCredits: this.shiftHaggleBonusCredits,
+        thievesCaught: this.shiftThievesCaught,
+        thievesEscaped: this.shiftThievesEscaped,
+        saleBoxCredits: this.shiftSaleBoxCredits,
+        patronVisits: Array.from(this.shiftPatronVisits),
+        topItemName: this.shiftTopItemName,
+        topItemPrice: this.shiftTopItemPrice,
+        newDay: res.newDay,
+        nextDay: res.day,
+        nextTimeOfDay: res.timeOfDay,
+        nextMarketEvent: res.marketEvent,
+        maturedBankCount: res.maturedBankCount,
+      });
     } else {
       this.callbacks.onToast('Laden geschlossen.', 'info');
     }
@@ -389,6 +456,7 @@ export class ShopScene {
             if (sale) {
               this.daySalesCount += 1;
               this.daySalesCredits += sale.price;
+              this.shiftSaleBoxCredits += sale.price;
               sound.playRegister();
               this.spawnBurst(SALE_BOX_POS.x, SALE_BOX_POS.y - 4, '#fb923c', 12);
               this.floats.push({
@@ -564,20 +632,33 @@ export class ShopScene {
   private spawnCustomer(): void {
     const hasStockedPed = this.state.pedestals.some((p) => p.itemId !== null && p.qty > 0);
     const hasActiveThief = this.customers.some((c) => c.isThief);
+    const hasActivePatron = this.customers.some((c) => c.patronId !== null);
     const thiefChance = this.state.marketEvent === 'night_rush' ? 0.28 : 0.2;
     const isThief = hasStockedPed && !hasActiveThief && Math.random() < thiefChance;
 
+    const rixBonus = this.state.patronProgress?.rix?.decoUnlocked ? 0.08 : 0;
+    const patronChance =
+      (this.state.marketEvent === 'collector_visit' ? 0.28 : 0.18) + rixBonus;
+    let patronId: PatronId | null = null;
+    if (!isThief && !hasActivePatron && hasStockedPed && Math.random() < patronChance) {
+      patronId = PATRON_ORDER[Math.floor(Math.random() * PATRON_ORDER.length)];
+    }
+
     const vipChance =
-      this.state.marketEvent === 'collector_visit'
+      (this.state.marketEvent === 'collector_visit'
         ? 0.48
-        : 0.14 + (this.state.upgrades.shopTier ?? 0) * 0.06;
-    const isVip = !isThief && Math.random() < vipChance;
+        : 0.14 + (this.state.upgrades.shopTier ?? 0) * 0.06) + rixBonus;
+    const isVip = !isThief && patronId === null && Math.random() < vipChance;
+
+    const patronDef = patronId ? PATRON_DEFS[patronId] : null;
+    const basePatience = isVip || patronId ? 34 : 26;
 
     const c: Customer = {
       id: this.nextCustomerId++,
-      speciesIndex: Math.floor(Math.random() * 3),
+      speciesIndex: patronDef ? patronDef.speciesIndex : Math.floor(Math.random() * 3),
       isThief,
       isVip,
+      patronId,
       stasisSlowTimer: 0,
       assistantTimer: 0,
       x: SHOP_DOOR_POS.x + (Math.random() - 0.5) * 10,
@@ -592,11 +673,18 @@ export class ShopScene {
       carriedPrice: 0,
       emote: null,
       emoteTimer: 0,
-      patience: (isVip ? 32 : 26) * this.state.getStats().customerPatienceBonus,
-      maxPatience: (isVip ? 32 : 26) * this.state.getStats().customerPatienceBonus,
+      patience: basePatience * this.state.getStats().customerPatienceBonus,
+      maxPatience: basePatience * this.state.getStats().customerPatienceBonus,
     };
     this.customers.push(c);
-    if (isVip) {
+    if (patronId && patronDef) {
+      this.state.recordPatronVisit(patronId);
+      this.shiftPatronVisits.add(patronId);
+      const tier = this.state.patronProgress[patronId]?.tier ?? 0;
+      sound.playVipChime();
+      this.spawnBurst(c.x, c.y - 6, patronDef.accentColor, 12);
+      this.callbacks.onToast(`${patronDef.shortTag} ${patronDef.name}: ${patronDef.greetings[tier]}`, 'info');
+    } else if (isVip) {
       sound.playVipChime();
       this.spawnBurst(c.x, c.y - 6, '#fbbf24', 10);
     }
@@ -607,6 +695,13 @@ export class ShopScene {
       (p) => p.itemId !== null && p.qty > 0 && !c.visitedPedestals.has(p.id),
     );
     if (occupied.length === 0) return null;
+    if (c.patronId) {
+      const pDef = PATRON_DEFS[c.patronId];
+      const favs = occupied.filter((p) => p.itemId && pDef.isFavoriteItem(getItemDef(p.itemId)));
+      if (favs.length > 0) {
+        return favs[Math.floor(Math.random() * favs.length)];
+      }
+    }
     if (c.isVip) {
       const luxury = occupied.filter((p) => {
         const rarity = p.itemId ? getItemDef(p.itemId).rarity : 'common';
@@ -643,9 +738,11 @@ export class ShopScene {
       c.carriedItemId = null;
     }
 
-    const bounty = 35;
+    const vanceBountyMult = this.state.patronProgress?.vance?.decoUnlocked ? 1.1 : 1.0;
+    const bounty = Math.round(35 * vanceBountyMult);
     this.state.credits += bounty;
     this.state.totalEarned += bounty;
+    this.shiftThievesCaught += 1;
     this.state.save();
 
     sound.playThiefCaught();
@@ -801,6 +898,7 @@ export class ShopScene {
       } else if (c.state === 'fleeing') {
         // Reached the exit door — thief escaped with the relic!
         const lostName = c.carriedItemId ? getItemDef(c.carriedItemId).name : 'einem Relikt';
+        this.shiftThievesEscaped += 1;
         sound.playReaction('outrageous');
         this.callbacks.onToast(`Der Weltraum-Dieb ist mit ${lostName} entkommen!`, 'warn');
         this.customers.splice(i, 1);
@@ -825,11 +923,11 @@ export class ShopScene {
 
           c.visitedPedestals.add(ped.id);
           const entry = this.state.codex[ped.itemId];
-          // Solaris Handelsmesse & VIP Collectors are more generous when judging prices!
+          // Solaris Handelsmesse, VIP Collectors & Named Patrons are more generous when judging prices!
           const effectiveEvalPrice =
             this.state.marketEvent === 'trade_fair'
               ? Math.max(1, Math.round(ped.price * 0.91))
-              : c.isVip
+              : c.isVip || c.patronId
                 ? Math.max(1, Math.round(ped.price * 0.88))
                 : ped.price;
           const evalRes = evaluatePrice(ped.itemId, effectiveEvalPrice, entry);
@@ -909,19 +1007,86 @@ export class ShopScene {
     }
   }
 
+  private isHaggleEligible(waiter: Customer): boolean {
+    if (!waiter.carriedItemId) return false;
+    if (waiter.isVip || waiter.patronId !== null) return true;
+    const def = getItemDef(waiter.carriedItemId);
+    return def.rarity === 'epic' || def.sector === 5 || def.baseValue >= 180;
+  }
+
   private checkoutNextCustomer(): boolean {
     const waiter = this.customers.find((c) => c.state === 'waiting_checkout');
     if (!waiter || !waiter.carriedItemId) return false;
+
+    if (this.isHaggleEligible(waiter)) {
+      const pDef = waiter.patronId ? PATRON_DEFS[waiter.patronId] : null;
+      const customerTitle = pDef
+        ? `${pDef.shortTag} ${pDef.name} (${pDef.role})`
+        : waiter.isVip
+          ? '★ Goldener VIP-Sammler'
+          : 'Käufer (Seltenes Relikt)';
+      this.callbacks.onOpenHaggle({
+        customerId: waiter.id,
+        customerTitle,
+        patronId: waiter.patronId,
+        isVip: waiter.isVip,
+        itemId: waiter.carriedItemId,
+        basePrice: waiter.carriedPrice,
+      });
+      return true;
+    }
+
     return this.checkoutCustomer(waiter, false);
   }
 
-  private checkoutCustomer(waiter: Customer, byAssistant: boolean): boolean {
+  public resolveHaggleCheckout(
+    customerId: number,
+    accepted: boolean,
+    finalPrice: number,
+    bonusCredits: number,
+  ): void {
+    const waiter = this.customers.find((c) => c.id === customerId && c.state === 'waiting_checkout');
+    if (!waiter || !waiter.carriedItemId) return;
+
+    if (!accepted) {
+      addItemToChest(this.state.inventory, waiter.carriedItemId, 1);
+      waiter.carriedItemId = null;
+      waiter.emote = 'outrageous';
+      waiter.emoteTimer = 1.6;
+      waiter.state = 'leaving';
+      waiter.waypoints = this.planPath(waiter.x, waiter.y, SHOP_DOOR_POS.x, SHOP_DOOR_POS.y + 10);
+      this.callbacks.onToast('Verhandlung gescheitert — Relikt sicher zurück in der Truhe.', 'warn');
+      this.state.save();
+      this.callbacks.onHudDirty();
+      return;
+    }
+
+    waiter.carriedPrice = finalPrice;
+    const haggledUp = bonusCredits > 0;
+    if (haggledUp) {
+      this.shiftHaggleWins += 1;
+      this.shiftHaggleBonusCredits += bonusCredits;
+      this.state.haggleWinsTotal += 1;
+    }
+    this.checkoutCustomer(waiter, false, haggledUp, bonusCredits);
+  }
+
+  private checkoutCustomer(
+    waiter: Customer,
+    byAssistant: boolean,
+    haggled = false,
+    haggleBonus = 0,
+  ): boolean {
     if (!waiter.carriedItemId) return false;
 
-    const itemDef = getItemDef(waiter.carriedItemId);
+    const itemId = waiter.carriedItemId;
+    const itemDef = getItemDef(itemId);
     const isRareOrEpic = itemDef.rarity === 'rare' || itemDef.rarity === 'epic';
     const vipBonus = waiter.isVip ? Math.round(waiter.carriedPrice * (isRareOrEpic ? 0.4 : 0.2)) : 0;
-    const rawBase = waiter.carriedPrice + vipBonus;
+    const patronPerkMult = this.state.getPatronSaleBonusMult(itemId);
+    const patronTierTip =
+      waiter.patronId && (this.state.patronProgress[waiter.patronId]?.tier ?? 0) >= 1 ? 0.1 : 0;
+    const rawBase = Math.round((waiter.carriedPrice + vipBonus) * patronPerkMult);
 
     let total: number;
     let tipBonus = 0;
@@ -929,7 +1094,7 @@ export class ShopScene {
       // 10% droid convenience fee — manual checkout still earns 100% + full tip!
       total = Math.max(1, Math.round(rawBase * 0.9));
     } else {
-      tipBonus = Math.round(rawBase * this.state.getStats().shopTipBonus);
+      tipBonus = Math.round(rawBase * (this.state.getStats().shopTipBonus + patronTierTip));
       total = rawBase + tipBonus;
     }
 
@@ -938,6 +1103,11 @@ export class ShopScene {
     this.state.totalSold += 1;
     this.daySalesCount += 1;
     this.daySalesCredits += total;
+    if (waiter.isVip) this.shiftVipSales += 1;
+    if (total > this.shiftTopItemPrice) {
+      this.shiftTopItemPrice = total;
+      this.shiftTopItemName = itemDef.name;
+    }
 
     waiter.carriedItemId = null;
     waiter.emote = 'fair';
@@ -945,36 +1115,58 @@ export class ShopScene {
     waiter.state = 'leaving';
     waiter.waypoints = this.planPath(waiter.x, waiter.y, SHOP_DOOR_POS.x, SHOP_DOOR_POS.y + 10);
 
-    if (waiter.isVip) {
+    if (waiter.isVip || waiter.patronId || haggled) {
       sound.playVipChime();
     } else {
       sound.playRegister();
     }
+    const pDef = waiter.patronId ? PATRON_DEFS[waiter.patronId] : null;
     this.spawnBurst(
       byAssistant ? CLERK_BOT_POS.x : CHECKOUT_SPOT.x,
       byAssistant ? CLERK_BOT_POS.y - 6 : CHECKOUT_SPOT.y - 16,
-      waiter.isVip ? '#fde047' : byAssistant ? '#38bdf8' : '#fbbf24',
+      pDef ? pDef.accentColor : waiter.isVip ? '#fde047' : byAssistant ? '#38bdf8' : '#fbbf24',
       16,
     );
 
     const popupText = byAssistant
       ? `+${total} Cr (DROIDE)`
-      : vipBonus > 0
-        ? `+${total} Cr (VIP +${vipBonus})`
-        : tipBonus > 0
-          ? `+${total} Cr (+${tipBonus} Tipp)`
-          : `+${total} Cr`;
+      : haggled
+        ? `+${total} Cr (DEAL +${haggleBonus})`
+        : vipBonus > 0
+          ? `+${total} Cr (VIP +${vipBonus})`
+          : tipBonus > 0
+            ? `+${total} Cr (+${tipBonus} Tipp)`
+            : `+${total} Cr`;
 
     this.floats.push({
       x: byAssistant ? CLERK_BOT_POS.x : CHECKOUT_SPOT.x,
       y: byAssistant ? CLERK_BOT_POS.y - 18 : CHECKOUT_SPOT.y - 26,
       text: popupText,
-      color: waiter.isVip ? '#fde047' : byAssistant ? '#7dd3fc' : '#fde047',
+      color: pDef ? pDef.accentColor : waiter.isVip ? '#fde047' : byAssistant ? '#7dd3fc' : '#fde047',
       life: 1.5,
       maxLife: 1.5,
     });
 
-    if (waiter.isVip) {
+    if (pDef && waiter.patronId) {
+      const rep = this.state.recordPatronSale(waiter.patronId, itemId, haggled);
+      this.callbacks.onToast(
+        `${pDef.shortTag} ${pDef.name} zahlt ${total} Cr für ${itemDef.name} (+${rep.xpGained} Ruf)!`,
+        'good',
+      );
+      if (rep.unlockedDeco) {
+        sound.playCompanionUnlock();
+        this.callbacks.onToast(
+          `🏛️ ${pDef.name} Stufe 2! Neue Shop-Deko freigeschaltet: ${pDef.decoName} (${pDef.decoBonusText})!`,
+          'good',
+        );
+      } else if (rep.unlockedBigOrder) {
+        sound.playCompanionUnlock();
+        this.callbacks.onToast(
+          `★ ${pDef.name} ist jetzt EHRENGAST (Stufe 3)! Großauftrag an der Pinnwand / Marktplatz-Terrasse freigeschaltet!`,
+          'good',
+        );
+      }
+    } else if (waiter.isVip) {
       this.callbacks.onToast(`★ VIP-Sammler zahlt ${total} Cr (+${vipBonus} VIP-Bonus) für ${itemDef.name}!`, 'good');
     } else if (byAssistant) {
       this.callbacks.onToast(`🤖 Handels-Droide kassiert ${itemDef.name} ab (+${total} Cr).`, 'info');
@@ -982,7 +1174,7 @@ export class ShopScene {
       this.callbacks.onToast(`${itemDef.name} verkauft für ${total} Cr!`, 'good');
     }
 
-    // Check live Companion Bot unlocks (e.g. Sammel-Bot Puck at 15 sales!)
+    // Check live Companion Bot unlocks & Achievements!
     const newlyUnlocked = this.state.checkCompanionUnlocks();
     for (const cid of newlyUnlocked) {
       sound.playCompanionUnlock();
@@ -991,6 +1183,7 @@ export class ShopScene {
         'good',
       );
     }
+    this.state.checkAchievements(false);
 
     this.state.save();
     this.callbacks.onHudDirty();
@@ -1005,8 +1198,9 @@ export class ShopScene {
     // 1. Checkout Counter — authentic Moonlighter rule: walk behind the counter to ring up buyers!
     const behind = this.isBehindCounter();
     if (waitingCustomer && behind) {
+      const canHaggle = this.isHaggleEligible(waitingCustomer);
       this.activePrompt = {
-        label: '[E] Kassieren!',
+        label: canHaggle ? '[E] 🤝 Kassieren / Feilschen!' : '[E] Kassieren!',
         x: 240,
         y: 112,
       };
@@ -1024,7 +1218,7 @@ export class ShopScene {
       return;
     }
 
-    // 2. Holo-Pedestals
+    // 2. Holo-Pedestals (+ [F] Quick-Refill zum Scan-Codex-Optimalpreis!)
     let nearestPed: PedestalSlot | null = null;
     let bestPedDist = 27;
     for (const p of this.state.pedestals) {
@@ -1035,10 +1229,29 @@ export class ShopScene {
       }
     }
     if (nearestPed) {
-      const label = nearestPed.itemId
+      const refillInfo = this.state.canQuickRefillPedestal(nearestPed.id);
+      const baseLabel = nearestPed.itemId
         ? `[E] ${getItemDef(nearestPed.itemId).name} (${nearestPed.price} Cr)`
         : '[E] Holo-Podest bestücken';
+      const label = refillInfo.can ? `${baseLabel} · [F] Nachfüllen` : baseLabel;
       this.activePrompt = { label, x: nearestPed.x, y: nearestPed.y - 24 };
+      if (refillInfo.can && input.wasPressed('KeyF')) {
+        const res = this.state.quickRefillPedestal(nearestPed.id);
+        if (res.ok) {
+          sound.playPickup();
+          this.spawnBurst(nearestPed.x, nearestPed.y - 8, '#38e8d4', 10);
+          this.floats.push({
+            x: nearestPed.x,
+            y: nearestPed.y - 22,
+            text: `+1 REFILL (${res.price} Cr)`,
+            color: '#38e8d4',
+            life: 1.2,
+            maxLife: 1.2,
+          });
+          this.callbacks.onHudDirty();
+        }
+        return;
+      }
       if (input.interactPressed()) {
         sound.playUiClick();
         this.callbacks.onOpenPedestal(nearestPed);
@@ -1078,12 +1291,13 @@ export class ShopScene {
       return;
     }
 
-    // 5. Auftrags-Pinnwand (Sonderaufträge / Bounties!)
+    // 5. Auftrags-Pinnwand (Sonderaufträge / Bounties & Stammkunden!)
     if (Math.hypot(this.playerX - BOUNTY_BOARD_POS.x, this.playerY - BOUNTY_BOARD_POS.y) < 28) {
+      const anyReady = this.state.hasReadyBounty() || this.state.hasReadyBigOrder();
       this.activePrompt = {
-        label: this.state.hasReadyBounty()
-          ? '[E] ★ Sonderauftrag abliefern!'
-          : '[E] Auftrags-Pinnwand (Bounties)',
+        label: anyReady
+          ? '[E] ★ Auftrag / Großauftrag abliefern!'
+          : '[E] Aufträge & Stammkunden-Ruf',
         x: BOUNTY_BOARD_POS.x - 16,
         y: BOUNTY_BOARD_POS.y - 18,
       };
@@ -1218,6 +1432,9 @@ export class ShopScene {
 
     // Backroom Doorway mounted flush on upper-left wall (leading to Captain's Quarters!)
     this.renderBackroomDoor(ctx, pulse);
+
+    // Unlocked Patron Tier-2 Shop Decorations (Vance Banner, Zora Crystal Case, Rix Lantern, Tala Holo-Globe)
+    this.renderPatronDecorations(ctx, pulse);
 
     // Subtle crisp status pills (Door, Promenade, Shop-Ausbau, Quartier, Auftrags-Pinnwand!)
     this.renderStationBadges(ctx, pulse);
@@ -1480,10 +1697,10 @@ export class ShopScene {
     ctx.fillStyle = '#fde047';
     ctx.fillText('QUARTIER', qx, qy + 2);
 
-    // Auftrags-Pinnwand (Bounties Board) compact pinned wall badge right below cork board
+    // Auftrags-Pinnwand (Bounties Board & Patron Big Orders) compact pinned wall badge right below cork board
     const bx = BOUNTY_BOARD_POS.x - 4;
     const by = 82;
-    const ready = this.state.hasReadyBounty();
+    const ready = this.state.hasReadyBounty() || this.state.hasReadyBigOrder();
     ctx.fillStyle = 'rgba(15, 22, 36, 0.92)';
     ctx.fillRect(bx - 22, by - 5, 44, 10);
     ctx.strokeStyle = ready ? '#4ade80' : '#fbbf24';
@@ -1502,6 +1719,75 @@ export class ShopScene {
       ctx.fillStyle = '#0f172a';
       ctx.font = 'bold 6px Silkscreen, monospace';
       ctx.fillText('!', bx + 22, by - 4 + bob);
+    }
+  }
+
+  private renderPatronDecorations(ctx: CanvasRenderingContext2D, pulse: number): void {
+    const pp = this.state.patronProgress;
+    if (!pp) return;
+
+    // 1. Admiral Vance — Flotten-Standarte (upper-left wall)
+    if (pp.vance?.decoUnlocked) {
+      const { x, y } = PATRON_DEFS.vance.decoPos;
+      drawGlow(ctx, x, y + 6, 16, '#fbbf24', 0.2 + pulse * 0.08);
+      ctx.fillStyle = '#1e3a8a';
+      ctx.fillRect(x - 6, y - 4, 12, 18);
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillRect(x - 7, y - 6, 14, 2.5);
+      ctx.fillRect(x - 2, y + 1, 4, 4);
+      ctx.strokeStyle = '#fde047';
+      ctx.lineWidth = 0.7;
+      ctx.strokeRect(x - 6, y - 4, 12, 18);
+    }
+
+    // 2. Kuratorin Zora — Kristall-Vitrine (upper-right wall)
+    if (pp.zora?.decoUnlocked) {
+      const { x, y } = PATRON_DEFS.zora.decoPos;
+      drawGlow(ctx, x, y + 4, 18, '#c084fc', 0.24 + pulse * 0.1);
+      ctx.fillStyle = 'rgba(30, 27, 75, 0.85)';
+      ctx.fillRect(x - 7, y - 5, 14, 17);
+      ctx.strokeStyle = '#38e8d4';
+      ctx.lineWidth = 0.8;
+      ctx.strokeRect(x - 7, y - 5, 14, 17);
+      const bob = Math.sin(this.time * 4) * 1.2;
+      ctx.fillStyle = '#e879f9';
+      ctx.beginPath();
+      ctx.moveTo(x, y - 2 + bob);
+      ctx.lineTo(x + 3.5, y + 3 + bob);
+      ctx.lineTo(x, y + 8 + bob);
+      ctx.lineTo(x - 3.5, y + 3 + bob);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // 3. Schmuggler Rix — Schmuggler-Laterne (beside front door)
+    if (pp.rix?.decoUnlocked) {
+      const { x, y } = PATRON_DEFS.rix.decoPos;
+      drawGlow(ctx, x, y - 2, 16, '#f472b6', 0.28 + pulse * 0.14);
+      ctx.fillStyle = '#1e1b4b';
+      ctx.fillRect(x - 4, y - 6, 8, 9);
+      ctx.fillStyle = '#f472b6';
+      ctx.fillRect(x - 2.5, y - 4.5, 5, 6);
+      ctx.strokeStyle = '#e879f9';
+      ctx.lineWidth = 0.7;
+      ctx.strokeRect(x - 4, y - 6, 8, 9);
+    }
+
+    // 4. Ingenieurin Tala — Holo-Konjunktur-Globus (on counter)
+    if (pp.tala?.decoUnlocked) {
+      const { x, y } = PATRON_DEFS.tala.decoPos;
+      const gbob = Math.sin(this.time * 3.5) * 1.1;
+      drawGlow(ctx, x, y - 2 + gbob, 14, '#38e8d4', 0.26 + pulse * 0.12);
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(x - 4, y + 3, 8, 3);
+      ctx.strokeStyle = '#38e8d4';
+      ctx.lineWidth = 0.9;
+      ctx.beginPath();
+      ctx.arc(x, y - 2 + gbob, 4.5, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.ellipse(x, y - 2 + gbob, 4.5, 1.8, 0, 0, Math.PI * 2);
+      ctx.stroke();
     }
   }
 
@@ -1654,8 +1940,21 @@ export class ShopScene {
     const bob = walking ? Math.abs(Math.sin(c.walkAnim)) * 2.2 : Math.sin(this.time * 2.8 + c.id) * 0.5;
     const tilt = walking ? Math.sin(c.walkAnim) * (c.state === 'fleeing' ? 0.12 : 0.06) : 0;
 
-    // Golden VIP Collector aura & shimmer ring!
-    if (c.isVip) {
+    // Named Patron aura & shimmer ring!
+    const pDef = c.patronId ? PATRON_DEFS[c.patronId] : null;
+    if (pDef) {
+      const pPulse = 0.5 + 0.5 * Math.sin(this.time * 5.5 + c.id);
+      ctx.save();
+      ctx.strokeStyle = pDef.accentColor;
+      ctx.globalAlpha = 0.65 + pPulse * 0.3;
+      ctx.lineWidth = 1.3;
+      ctx.beginPath();
+      ctx.ellipse(c.x, c.y + 10, 11.5 + pPulse * 2, 4.8 + pPulse, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      drawGlow(ctx, c.x, c.y - 2, 22, pDef.auraColor, 0.24 + pPulse * 0.12);
+      ctx.restore();
+    } else if (c.isVip) {
+      // Golden VIP Collector aura & shimmer ring!
       const vipPulse = 0.5 + 0.5 * Math.sin(this.time * 6 + c.id);
       ctx.save();
       ctx.strokeStyle = `rgba(253, 224, 71, ${0.55 + vipPulse * 0.35})`;
@@ -1714,8 +2013,20 @@ export class ShopScene {
       ctx.drawImage(frames[Math.floor(c.walkAnim) % 2], Math.round(c.x - 8), Math.round(c.y - 10));
     }
 
-    // Golden VIP crown badge hovering above VIP Collector!
-    if (c.isVip) {
+    // Named Patron or Golden VIP crown badge hovering above head!
+    if (pDef) {
+      const cbob = Math.sin(this.time * 5 + c.id) * 1.2;
+      ctx.font = 'bold 4.8px Silkscreen, monospace';
+      const tw = Math.max(28, Math.ceil(ctx.measureText(pDef.shortTag).width) + 8);
+      ctx.fillStyle = 'rgba(15, 18, 32, 0.94)';
+      ctx.fillRect(c.x - tw / 2, c.y - 30 + cbob, tw, 8.5);
+      ctx.strokeStyle = pDef.accentColor;
+      ctx.lineWidth = 0.85;
+      ctx.strokeRect(c.x - tw / 2, c.y - 30 + cbob, tw, 8.5);
+      ctx.fillStyle = pDef.accentColor;
+      ctx.textAlign = 'center';
+      ctx.fillText(pDef.shortTag, c.x, c.y - 23.5 + cbob);
+    } else if (c.isVip) {
       const cbob = Math.sin(this.time * 5 + c.id) * 1.2;
       ctx.fillStyle = 'rgba(28, 20, 6, 0.92)';
       ctx.fillRect(c.x - 12, c.y - 29 + cbob, 24, 8);

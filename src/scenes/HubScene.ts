@@ -34,6 +34,7 @@ export interface HubCallbacks {
   onOpenTechLab: () => void;
   onOpenBlackMarket: () => void;
   onOpenGuildBoard: () => void;
+  onEnterMarketTerrace: () => void;
   onEnterDungeon: () => void;
   onToast: (msg: string, tone?: 'info' | 'good' | 'warn') => void;
 }
@@ -51,6 +52,7 @@ const GUILD_BOARD_POS = { x: 240, y: 84 };
 const MEDBAY_POS = { x: 348, y: 126 };
 const NYX_NPC_POS = { x: 185, y: 178 };
 const TECHLAB_NPC_POS = { x: 295, y: 178 };
+const MARKET_TERRACE_POS = { x: 240, y: 222 };
 const WARP_GATE_POS = { x: 414, y: 144 };
 
 export class HubScene {
@@ -107,7 +109,7 @@ export class HubScene {
     ];
   }
 
-  public onEnter(from: 'shop' | 'dungeon'): void {
+  public onEnter(from: 'shop' | 'dungeon' | 'market_terrace'): void {
     this.state.restoreFullVitals();
     this.dashTimer = 0;
     this.dashCooldown = 0;
@@ -117,6 +119,10 @@ export class HubScene {
       this.playerY = 136;
       this.facing = 'left';
       this.spawnBurst(414, 144, '#38e8d4', 18);
+    } else if (from === 'market_terrace') {
+      this.playerX = 240;
+      this.playerY = 202;
+      this.facing = 'up';
     } else {
       this.playerX = 96;
       this.playerY = 138;
@@ -386,7 +392,27 @@ export class HubScene {
       return;
     }
 
-    // 6. Gateway to Port Solaris Raumhafen & Sektor-Docks (Docks I–IV & 5. Tor!)
+    // 6. South Gateway to Marktplatz-Terrasse (Milo's Alchemie-Bar, Händler-Gilde & Solaris-Handelsbank!)
+    if (Math.hypot(this.playerX - MARKET_TERRACE_POS.x, this.playerY - MARKET_TERRACE_POS.y) < 32) {
+      const readyNote =
+        this.state.hasReadyBankPayout()
+          ? ' ★ Auszahlung!'
+          : this.state.hasReadyBigOrder()
+            ? ' ★ Großauftrag!'
+            : '';
+      this.activePrompt = {
+        label: `[E] ↓ Marktplatz-Terrasse (Alchemie & Bank)${readyNote}`,
+        x: MARKET_TERRACE_POS.x,
+        y: MARKET_TERRACE_POS.y - 22,
+      };
+      if (input.interactPressed()) {
+        sound.playUiClick();
+        this.callbacks.onEnterMarketTerrace();
+      }
+      return;
+    }
+
+    // 7. Gateway to Port Solaris Raumhafen & Sektor-Docks (Docks I–IV & 5. Tor!)
     if (Math.hypot(this.playerX - WARP_GATE_POS.x, this.playerY - WARP_GATE_POS.y) < 38) {
       this.activePrompt = {
         label: '[E] Raumhafen · Sektor-Docks I–IV & 5. Tor →',
@@ -598,6 +624,15 @@ export class HubScene {
       { text: 'SCHWARZMARKT', x: 120, y: 148, color: '#c084fc' },
       { text: 'TECH-LABOR', x: 358, y: 148, color: '#38e8d4' },
       { text: 'RAUMHAFEN →', x: 416, y: 90, color: '#38e8d4' },
+      {
+        text:
+          this.state.hasReadyBankPayout() || this.state.hasReadyBigOrder()
+            ? '↓ TERRASSE · ★ BEREIT!'
+            : '↓ MARKTPLATZ-TERRASSE',
+        x: 240,
+        y: 222,
+        color: this.state.hasReadyBankPayout() ? '#4ade80' : '#fbbf24',
+      },
     ];
     const keysLit =
       (this.state.sector1Cleared ? 1 : 0) +

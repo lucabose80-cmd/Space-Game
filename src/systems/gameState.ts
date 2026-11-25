@@ -1,9 +1,22 @@
 import { COMPANION_ORDER, evaluateCompanionUnlock, SUIT_THEME_ORDER } from '../data/companions';
+import {
+  ALCHEMY_BUFFS,
+  ALCHEMY_BUFF_ORDER,
+  createInitialPatronProgress,
+  getPatronTier,
+  MAX_ACTIVE_BANK_INVESTMENTS,
+  PATRON_DEFS,
+  PATRON_ORDER,
+  TRADE_ROUTES,
+  TRADE_ROUTE_ORDER,
+} from '../data/guildMarket';
 import { getInfusionDef } from '../data/infusions';
 import { getItemDef, ITEMS } from '../data/items';
 import { getPlayerCombatStats, UPGRADE_TRACKS } from '../data/upgrades';
 import { firebaseService, formatDurationSec } from '../services/firebaseService';
 import type {
+  AlchemyBuffId,
+  BankInvestment,
   BlackMarketOffer,
   BountyContract,
   CaptainRecords,
@@ -13,16 +26,19 @@ import type {
   InventoryData,
   ItemStack,
   MarketEventId,
+  PatronId,
+  PatronProgress,
   PedestalSlot,
   SaveData,
   SectorId,
   SuitThemeId,
   TimeOfDay,
+  TradeRouteId,
   UpgradeKey,
   UpgradeLevels,
   WeaponId,
 } from '../types';
-import { createInitialCodex, decayDemandForNewDay } from './economy';
+import { createInitialCodex, decayDemandForNewDay, getOptimalCodexPrice } from './economy';
 import {
   addItemAnywhere,
   addItemToChest,
@@ -35,7 +51,7 @@ import {
 
 const SAVE_KEY = 'starlighter_save_v2';
 const LEGACY_SAVE_KEY = 'starlighter_save_v1';
-const SAVE_VERSION = 8;
+const SAVE_VERSION = 9;
 
 function createEmptyRecords(): CaptainRecords {
   return {
@@ -202,6 +218,12 @@ export class GameState {
   public secondaryWeapon: WeaponId | null = null;
   public weaponInfusions: Record<WeaponId, InfusionId> = createEmptyWeaponInfusions();
   public unlockedInfusions: Record<WeaponId, InfusionId[]> = createEmptyUnlockedInfusions();
+  // Milestone 8: Händler-Gilde, Verhandeln & Port-Solaris-Marktplatz
+  public patronProgress: Record<PatronId, PatronProgress> = createInitialPatronProgress();
+  public activeAlchemyBuff: AlchemyBuffId | null = null;
+  public bankInvestments: BankInvestment[] = [];
+  public lastPedestalItems: Record<number, string> = {};
+  public haggleWinsTotal = 0;
   public muted = false;
   public musicMuted = false;
 
@@ -281,6 +303,11 @@ export class GameState {
     this.secondaryWeapon = null;
     this.weaponInfusions = createEmptyWeaponInfusions();
     this.unlockedInfusions = createEmptyUnlockedInfusions();
+    this.patronProgress = createInitialPatronProgress();
+    this.activeAlchemyBuff = null;
+    this.bankInvestments = [];
+    this.lastPedestalItems = {};
+    this.haggleWinsTotal = 0;
     this.pedestals = [];
     this.syncShopCapacity();
 
@@ -298,7 +325,39 @@ export class GameState {
   }
 
   public getStats() {
-    return getPlayerCombatStats(this.upgrades);
+    const base = getPlayerCombatStats(this.upgrades);
+    const buff = this.activeAlchemyBuff;
+    const dmgMult = buff === 'solar_espresso' ? 1.2 : 1.0;
+    const maxHpMult = buff === 'aegis_tonic' ? 1.25 : 1.0;
+    const extraStim = buff === 'aegis_tonic' ? 1 : 0;
+    const extraLuck = buff === 'nebula_nectar' ? 0.35 : 0;
+    const extraSpeedMult = buff === 'chrono_fizz' ? 1.18 : 1.0;
+    const extraDashCdMult = buff === 'chrono_fizz' ? 0.8 : 1.0;
+    const extraCrit = buff === 'void_elixir' ? 0.15 : 0;
+    const extraEnergyMult = buff === 'void_elixir' ? 1.25 : 1.0;
+
+    // Patron Tier 2 Shop Decoration Passives
+    const vanceTipBonus = this.patronProgress?.vance?.decoUnlocked ? 0.05 : 0;
+    const zoraPatienceBonus = this.patronProgress?.zora?.decoUnlocked ? 0.15 : 0;
+
+    return {
+      ...base,
+      bladeDamage: Math.round(base.bladeDamage * dmgMult),
+      spearDamage: Math.round(base.spearDamage * dmgMult),
+      fistsDamage: Math.round(base.fistsDamage * dmgMult),
+      discusDamage: Math.round(base.discusDamage * dmgMult),
+      blasterDamage: Math.round(base.blasterDamage * dmgMult),
+      hammerDamage: Math.round(base.hammerDamage * dmgMult),
+      maxHp: Math.round(base.maxHp * maxHpMult),
+      maxStimCharges: base.maxStimCharges + extraStim,
+      lootLuckBonus: base.lootLuckBonus + extraLuck,
+      moveSpeedMult: base.moveSpeedMult * extraSpeedMult,
+      dashCooldownMult: base.dashCooldownMult * extraDashCdMult,
+      critChance: Math.min(0.85, base.critChance + extraCrit),
+      energyRegenMult: base.energyRegenMult * extraEnergyMult,
+      shopTipBonus: base.shopTipBonus + vanceTipBonus,
+      customerPatienceBonus: base.customerPatienceBonus + zoraPatienceBonus,
+    };
   }
 
   public getCompanionProgressSnapshot() {
@@ -397,13 +456,21 @@ export class GameState {
     timeOfDay: TimeOfDay;
     newDay: boolean;
     marketEvent: MarketEventId;
+    maturedBankCount: number;
   } {
     this.records.totalCyclesPlayed += 1;
+    const maturedBankCount = this.tickBankInvestments();
     if (this.timeOfDay === 'day') {
       this.timeOfDay = 'night';
       this.restoreFullVitals();
       this.save();
-      return { day: this.day, timeOfDay: this.timeOfDay, newDay: false, marketEvent: this.marketEvent };
+      return {
+        day: this.day,
+        timeOfDay: this.timeOfDay,
+        newDay: false,
+        marketEvent: this.marketEvent,
+        maturedBankCount,
+      };
     }
     this.timeOfDay = 'day';
     this.day += 1;
@@ -413,7 +480,13 @@ export class GameState {
     this.marketEvent = this.rollDailyMarketEvent();
     this.restoreFullVitals();
     this.save();
-    return { day: this.day, timeOfDay: this.timeOfDay, newDay: true, marketEvent: this.marketEvent };
+    return {
+      day: this.day,
+      timeOfDay: this.timeOfDay,
+      newDay: true,
+      marketEvent: this.marketEvent,
+      maturedBankCount,
+    };
   }
 
   public advanceDay(): void {
@@ -481,15 +554,23 @@ export class GameState {
     });
   }
 
+  public getNyxOfferPrice(offer: BlackMarketOffer): number {
+    if (this.patronProgress?.rix?.bigOrderCompleted) {
+      return Math.max(20, Math.round((offer.price * 0.85) / 5) * 5);
+    }
+    return offer.price;
+  }
+
   public buyFromNyx(offerId: string): { ok: boolean; reason?: string; itemName?: string } {
     const offer = this.nyxStock.find((o) => o.id === offerId);
     if (!offer || offer.stock <= 0) return { ok: false, reason: 'Ausverkauft!' };
-    if (this.credits < offer.price) return { ok: false, reason: 'Nicht genug Credits!' };
+    const finalPrice = this.getNyxOfferPrice(offer);
+    if (this.credits < finalPrice) return { ok: false, reason: 'Nicht genug Credits!' };
 
     const rem = addItemAnywhere(this.inventory, offer.itemId, 1);
     if (rem > 0) return { ok: false, reason: 'Frachtraum & Truhe voll!' };
 
-    this.credits -= offer.price;
+    this.credits -= finalPrice;
     offer.stock -= 1;
     this.markDiscovered(offer.itemId);
     this.save();
@@ -872,6 +953,7 @@ export class GameState {
     const allComp = Object.values(this.unlockedCompanions).every(Boolean);
     const allWeps = Object.values(this.unlockedWeapons).every(Boolean);
     const anyInfusion = Object.values(this.unlockedInfusions).some((arr) => arr.length > 0);
+    const anyTier3Patron = PATRON_ORDER.some((pid) => (this.patronProgress[pid]?.tier ?? 0) >= 3);
 
     grant('first_sale', this.totalSold >= 1);
     grant('master_merchant', (this.upgrades.shopTier ?? 0) >= 2 && this.totalSold >= 30);
@@ -885,11 +967,267 @@ export class GameState {
     grant('ng_plus', this.ngPlusLevel >= 1);
     grant('infusion_master', anyInfusion);
     grant('spiral_walker', (this.records.deepestRiftFloor ?? 0) >= 6);
+    grant('master_haggler', this.haggleWinsTotal >= 10);
+    grant('guild_patron', anyTier3Patron);
 
     if (persist && newly.length > 0) {
       this.save();
     }
     return newly;
+  }
+
+  // ==================== MEILENSTEIN 8: STAMMKUNDEN, ALCHEMIE-BAR, HANDELSBANK & QUICK-REFILL ====================
+  public recordPatronVisit(patronId: PatronId): void {
+    const p = this.patronProgress[patronId];
+    if (!p) return;
+    p.visits += 1;
+  }
+
+  public recordPatronSale(
+    patronId: PatronId,
+    itemId: string,
+    haggled: boolean,
+  ): { xpGained: number; prevTier: number; newTier: number; unlockedDeco: boolean; unlockedBigOrder: boolean } {
+    const p = this.patronProgress[patronId];
+    const def = PATRON_DEFS[patronId];
+    const itemDef = getItemDef(itemId);
+    const isFav = def.isFavoriteItem(itemDef);
+    const xpGained = (isFav ? 25 : 15) + (haggled ? 10 : 0);
+
+    const prevTier = p.tier;
+    p.xp = Math.min(300, p.xp + xpGained);
+    const newTier = getPatronTier(p.xp);
+    p.tier = newTier;
+
+    let unlockedDeco = false;
+    if (newTier >= 2 && !p.decoUnlocked) {
+      p.decoUnlocked = true;
+      unlockedDeco = true;
+    }
+    const unlockedBigOrder = prevTier < 3 && newTier >= 3;
+    if (unlockedBigOrder) {
+      this.logMilestone(
+        `Erreichte Rufstufe 3 (Ehrengast) bei ${def.name}!`,
+        def.shortTag,
+        def.accentColor,
+      );
+    }
+    this.checkAchievements(false);
+    this.save();
+    return { xpGained, prevTier, newTier, unlockedDeco, unlockedBigOrder };
+  }
+
+  public getPatronSaleBonusMult(itemId: string): number {
+    const def = getItemDef(itemId);
+    const sec = def.sector ?? 1;
+    let mult = 1.0;
+    if (this.patronProgress?.vance?.bigOrderCompleted && (sec === 1 || sec === 3)) {
+      mult += 0.05;
+    }
+    if (this.patronProgress?.zora?.bigOrderCompleted && (sec === 2 || sec === 4)) {
+      mult += 0.05;
+    }
+    return mult;
+  }
+
+  public canCompleteBigOrder(patronId: PatronId): boolean {
+    const p = this.patronProgress[patronId];
+    if (!p || p.tier < 3 || p.bigOrderCompleted) return false;
+    const order = PATRON_DEFS[patronId].bigOrder;
+    return order.items.every((req) => countItemTotal(this.inventory, req.itemId) >= req.qty);
+  }
+
+  public hasReadyBigOrder(): boolean {
+    return PATRON_ORDER.some((pid) => this.canCompleteBigOrder(pid));
+  }
+
+  public completeBigOrder(patronId: PatronId): { ok: boolean; rewardCredits?: number; patronName?: string } {
+    if (!this.canCompleteBigOrder(patronId)) return { ok: false };
+    const def = PATRON_DEFS[patronId];
+    const order = def.bigOrder;
+    for (const req of order.items) {
+      if (!consumeItemTotal(this.inventory, req.itemId, req.qty)) return { ok: false };
+    }
+    const p = this.patronProgress[patronId];
+    p.bigOrderCompleted = true;
+    p.xp = Math.min(300, p.xp + order.rewardXp);
+    p.tier = getPatronTier(p.xp);
+
+    this.credits += order.rewardCredits;
+    this.totalEarned += order.rewardCredits;
+    this.totalSold += order.items.reduce((sum, r) => sum + r.qty, 0);
+    this.logMilestone(
+      `Lieferte Großauftrag „${order.title}“ für ${def.name}!`,
+      'GROSSAUFTRAG',
+      def.accentColor,
+    );
+    this.checkCompanionUnlocks(false);
+    this.checkAchievements(false);
+    this.save();
+    return { ok: true, rewardCredits: order.rewardCredits, patronName: def.name };
+  }
+
+  // ---- Milo's Alchemie-Bar (Run-Buffs) ----
+  public canBrewAlchemyBuff(buffId: AlchemyBuffId): boolean {
+    if (this.activeAlchemyBuff === buffId) return false;
+    const def = ALCHEMY_BUFFS[buffId];
+    if (!def) return false;
+    if (this.credits < def.creditCost) return false;
+    return def.materials.every((m) => countItemTotal(this.inventory, m.itemId) >= m.qty);
+  }
+
+  public brewAlchemyBuff(buffId: AlchemyBuffId): { ok: boolean; reason?: string; buffName?: string } {
+    const def = ALCHEMY_BUFFS[buffId];
+    if (!def) return { ok: false, reason: 'Unbekanntes Elixier.' };
+    if (this.activeAlchemyBuff === buffId) return { ok: false, reason: 'Dieses Elixier wirkt bereits!' };
+    if (this.credits < def.creditCost) return { ok: false, reason: 'Nicht genug Credits!' };
+    if (!def.materials.every((m) => countItemTotal(this.inventory, m.itemId) >= m.qty)) {
+      return { ok: false, reason: 'Fehlende Sektor-Zutaten!' };
+    }
+
+    this.credits -= def.creditCost;
+    for (const m of def.materials) {
+      consumeItemTotal(this.inventory, m.itemId, m.qty);
+    }
+    this.activeAlchemyBuff = buffId;
+    this.restoreFullVitals();
+    this.save();
+    return { ok: true, buffName: def.name };
+  }
+
+  public consumeAlchemyBuff(): AlchemyBuffId | null {
+    const prev = this.activeAlchemyBuff;
+    if (!prev) return null;
+    this.activeAlchemyBuff = null;
+    return prev;
+  }
+
+  // ---- Solaris-Handelsbank (Handelsrouten-Investments) ----
+  public isTradeRouteUnlocked(routeId: TradeRouteId): boolean {
+    if (routeId === 'solaris_shuttle') return true;
+    if (routeId === 'crystal_convoy') return this.sector1Cleared || (this.upgrades.shopTier ?? 0) >= 1;
+    if (routeId === 'foundry_freight') return this.sector2Cleared;
+    return this.sector3Cleared;
+  }
+
+  public canInvestTradeRoute(routeId: TradeRouteId): boolean {
+    if (!this.isTradeRouteUnlocked(routeId)) return false;
+    if (this.bankInvestments.length >= MAX_ACTIVE_BANK_INVESTMENTS) return false;
+    const def = TRADE_ROUTES[routeId];
+    if (!def) return false;
+    return this.credits >= def.principal;
+  }
+
+  public startBankInvestment(routeId: TradeRouteId): { ok: boolean; reason?: string } {
+    if (!this.isTradeRouteUnlocked(routeId)) return { ok: false, reason: 'Handelsroute noch gesperrt!' };
+    if (this.bankInvestments.length >= MAX_ACTIVE_BANK_INVESTMENTS) {
+      return { ok: false, reason: `Maximal ${MAX_ACTIVE_BANK_INVESTMENTS} aktive Routen gleichzeitig!` };
+    }
+    const def = TRADE_ROUTES[routeId];
+    if (!def) return { ok: false, reason: 'Unbekannte Route.' };
+    if (this.credits < def.principal) return { ok: false, reason: 'Nicht genug Credits!' };
+
+    this.credits -= def.principal;
+    this.bankInvestments.push({
+      id: `inv_${Date.now()}_${Math.floor(Math.random() * 9999)}`,
+      routeId,
+      principal: def.principal,
+      cyclesTotal: def.cycles,
+      cyclesRemaining: def.cycles,
+      minReturnMult: def.minReturnMult,
+      maxReturnMult: def.maxReturnMult,
+      maturedPayout: null,
+    });
+    this.save();
+    return { ok: true };
+  }
+
+  public tickBankInvestments(): number {
+    let newlyMatured = 0;
+    const talaBonus = this.patronProgress?.tala?.bigOrderCompleted ? 0.05 : 0;
+    for (const inv of this.bankInvestments) {
+      if (inv.maturedPayout !== null) continue;
+      inv.cyclesRemaining = Math.max(0, inv.cyclesRemaining - 1);
+      if (inv.cyclesRemaining === 0) {
+        const roll = Math.random();
+        const mult = inv.minReturnMult + roll * (inv.maxReturnMult - inv.minReturnMult) + talaBonus;
+        const payout = Math.round((inv.principal * mult) / 5) * 5;
+        const pct = Math.round(((payout - inv.principal) / Math.max(1, inv.principal)) * 100);
+        inv.maturedPayout = payout;
+        inv.outcomeLabel =
+          roll > 0.72
+            ? `Boom-Konjunktur (+${pct} %)`
+            : roll > 0.35
+              ? `Günstiger Sonnenwind (+${pct} %)`
+              : `Stabile Passage (+${pct} %)`;
+        newlyMatured += 1;
+      }
+    }
+    return newlyMatured;
+  }
+
+  public hasReadyBankPayout(): boolean {
+    return this.bankInvestments.some((inv) => inv.maturedPayout !== null);
+  }
+
+  public claimBankInvestment(invId: string): { ok: boolean; payout?: number; profit?: number; routeName?: string } {
+    const idx = this.bankInvestments.findIndex((i) => i.id === invId);
+    if (idx === -1) return { ok: false };
+    const inv = this.bankInvestments[idx];
+    if (inv.maturedPayout === null) return { ok: false };
+
+    const payout = inv.maturedPayout;
+    const profit = Math.max(0, payout - inv.principal);
+    const routeName = TRADE_ROUTES[inv.routeId]?.name ?? 'Handelsroute';
+    this.bankInvestments.splice(idx, 1);
+
+    this.credits += payout;
+    this.totalEarned += profit;
+    this.save();
+    return { ok: true, payout, profit, routeName };
+  }
+
+  // ---- [F] Schnell-Nachfüllen am Holo-Podest ----
+  public canQuickRefillPedestal(pedestalId: number): { can: boolean; itemId: string | null; price: number } {
+    const ped = this.pedestals.find((p) => p.id === pedestalId);
+    if (!ped) return { can: false, itemId: null, price: 0 };
+
+    if (ped.itemId && ped.qty > 0) {
+      const def = getItemDef(ped.itemId);
+      if (ped.qty >= Math.min(5, def.maxStack)) return { can: false, itemId: ped.itemId, price: ped.price };
+      const owned = countItemTotal(this.inventory, ped.itemId);
+      return { can: owned >= 1, itemId: ped.itemId, price: ped.price };
+    }
+
+    const remembered = this.lastPedestalItems[pedestalId];
+    if (!remembered) return { can: false, itemId: null, price: 0 };
+    const owned = countItemTotal(this.inventory, remembered);
+    const price = getOptimalCodexPrice(remembered, this.codex[remembered]);
+    return { can: owned >= 1, itemId: remembered, price };
+  }
+
+  public quickRefillPedestal(
+    pedestalId: number,
+  ): { ok: boolean; itemName?: string; price?: number; qty?: number } {
+    const check = this.canQuickRefillPedestal(pedestalId);
+    if (!check.can || !check.itemId) return { ok: false };
+    const ped = this.pedestals.find((p) => p.id === pedestalId);
+    if (!ped) return { ok: false };
+
+    if (!consumeItemTotal(this.inventory, check.itemId, 1)) return { ok: false };
+
+    if (ped.itemId === check.itemId && ped.qty > 0) {
+      ped.qty += 1;
+    } else {
+      ped.itemId = check.itemId;
+      ped.qty = 1;
+      ped.price = check.price;
+      const entry = this.codex[check.itemId];
+      if (entry) entry.lastSetPrice = check.price;
+    }
+    this.lastPedestalItems[pedestalId] = check.itemId;
+    this.save();
+    return { ok: true, itemName: getItemDef(check.itemId).name, price: ped.price, qty: ped.qty };
   }
 
   // ==================== ELEMENTAR-PRÄGUNGEN (MEILENSTEIN 7) ====================
@@ -1094,6 +1432,11 @@ export class GameState {
       secondaryWeapon: this.secondaryWeapon,
       weaponInfusions: this.weaponInfusions,
       unlockedInfusions: this.unlockedInfusions,
+      patronProgress: this.patronProgress,
+      activeAlchemyBuff: this.activeAlchemyBuff,
+      bankInvestments: this.bankInvestments,
+      lastPedestalItems: this.lastPedestalItems,
+      haggleWinsTotal: this.haggleWinsTotal,
       muted: this.muted,
       musicMuted: this.musicMuted,
     };
@@ -1315,6 +1658,56 @@ export class GameState {
       this.pinnedRecipes = Array.isArray(parsed.pinnedRecipes)
         ? parsed.pinnedRecipes.filter((k): k is string => typeof k === 'string').slice(0, 4)
         : [];
+
+      // Milestone 8: Defensives Laden für nahtlose v8 -> v9 Migration
+      const basePatrons = createInitialPatronProgress();
+      if (parsed.patronProgress && typeof parsed.patronProgress === 'object') {
+        for (const pid of PATRON_ORDER) {
+          const rawP = parsed.patronProgress[pid];
+          if (rawP && typeof rawP === 'object') {
+            const xp = Math.max(0, Math.min(300, Math.floor(rawP.xp ?? 0)));
+            const tier = getPatronTier(xp);
+            basePatrons[pid] = {
+              xp,
+              tier,
+              visits: Math.max(0, Math.floor(rawP.visits ?? 0)),
+              bigOrderCompleted: Boolean(rawP.bigOrderCompleted),
+              decoUnlocked: Boolean(rawP.decoUnlocked || tier >= 2),
+            };
+          }
+        }
+      }
+      this.patronProgress = basePatrons;
+
+      this.activeAlchemyBuff =
+        parsed.activeAlchemyBuff && ALCHEMY_BUFF_ORDER.includes(parsed.activeAlchemyBuff)
+          ? parsed.activeAlchemyBuff
+          : null;
+
+      this.bankInvestments = Array.isArray(parsed.bankInvestments)
+        ? parsed.bankInvestments
+            .filter(
+              (inv): inv is BankInvestment =>
+                Boolean(inv) &&
+                typeof inv.id === 'string' &&
+                TRADE_ROUTE_ORDER.includes(inv.routeId) &&
+                typeof inv.principal === 'number',
+            )
+            .slice(0, MAX_ACTIVE_BANK_INVESTMENTS)
+        : [];
+
+      const loadedLast: Record<number, string> = {};
+      if (parsed.lastPedestalItems && typeof parsed.lastPedestalItems === 'object') {
+        for (const [k, v] of Object.entries(parsed.lastPedestalItems)) {
+          const idx = Number(k);
+          if (!Number.isNaN(idx) && typeof v === 'string') {
+            loadedLast[idx] = v;
+          }
+        }
+      }
+      this.lastPedestalItems = loadedLast;
+      this.haggleWinsTotal = Math.max(0, Math.floor(parsed.haggleWinsTotal ?? 0));
+
       this.prunePinnedRecipes();
       this.checkAchievements(false);
 
