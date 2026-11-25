@@ -11,7 +11,18 @@ import {
   processDefeatPenalty,
   processSafeReturnEffects,
 } from '../systems/inventory';
-import type { Direction, RiftMutatorId, SectorId, WeaponId } from '../types';
+import type {
+  CompanionId,
+  Direction,
+  RiftMutatorId,
+  RunSummary,
+  SectorId,
+  TrialOutcome,
+  WeaponId,
+  WeeklyTrialInfo,
+} from '../types';
+import { withSeededRandom } from '../systems/seededRng';
+import { formatWeekLabel, getTrialFloorSeed, TRIAL_FLOORS } from '../systems/weeklyTrial';
 import {
   generateEndlessRiftFloor,
   generateSector1Floor,
@@ -157,6 +168,15 @@ export class DungeonScene {
   public activeRiftMutator: RiftMutatorId | null = null;
   public riftLootMultiplier = 1;
 
+  // Milestone 9: Wöchentliche Galaktische Prüfung (Seeded Challenge Run)
+  public isWeeklyTrial = false;
+  public trialInfo: WeeklyTrialInfo | null = null;
+
+  /** Begleiter-Drohne — in der Prüfung immer deaktiviert (faire Ausgangslage). */
+  public get activeCompanion(): CompanionId | null {
+    return this.isWeeklyTrial ? null : this.state.equippedCompanion;
+  }
+
   // Juice & transitions
   public hitStop = 0;
   public shakeTimer = 0;
@@ -190,54 +210,65 @@ export class DungeonScene {
     return this.currentRoom?.type === 'boss' && this.enemies.some((e) => this.isBossKind(e.kind));
   }
 
+  /** Gemeinsame Lauf-Zurücksetzung (Normal-, Spiralen- und Prüfungs-Läufe). */
+  private resetRunTelemetry(): void {
+    this.siphonHitCounter = 0;
+    this.lightningArcs = [];
+    this.siphonOrbs = [];
+    this.state.restoreFullVitals();
+    this.runElapsedSec = 0;
+    this.roomsCleared = 0;
+    this.enemiesDefeated = 0;
+    this.maxFloorReached = 1;
+    this.sector1ClearedInRun = false;
+    this.sector2ClearedInRun = false;
+    this.sector3ClearedInRun = false;
+    this.sector4ClearedInRun = false;
+    this.omegaClearedInRun = false;
+    this.lumaRoomCounter = 0;
+    this.haloShieldReady = this.activeCompanion === 'halo';
+    this.haloChargeTimer = 0;
+    this.finished = false;
+  }
+
+  private clearTrialState(): void {
+    this.isWeeklyTrial = false;
+    this.trialInfo = null;
+    this.state.activeTrial = null;
+  }
+
   public startRun(sector: SectorId = 1): void {
+    this.clearTrialState();
     this.currentSector = sector;
     this.isEndlessRift = false;
     this.riftDepth = 0;
     this.activeRiftMutator = null;
     this.riftLootMultiplier = 1;
-    this.siphonHitCounter = 0;
-    this.lightningArcs = [];
-    this.siphonOrbs = [];
-    this.state.restoreFullVitals();
-    this.runElapsedSec = 0;
-    this.roomsCleared = 0;
-    this.enemiesDefeated = 0;
-    this.maxFloorReached = 1;
-    this.sector1ClearedInRun = false;
-    this.sector2ClearedInRun = false;
-    this.sector3ClearedInRun = false;
-    this.sector4ClearedInRun = false;
-    this.omegaClearedInRun = false;
-    this.lumaRoomCounter = 0;
-    this.haloShieldReady = this.state.equippedCompanion === 'halo';
-    this.haloChargeTimer = 0;
-    this.finished = false;
+    this.resetRunTelemetry();
     this.startFloor(sector === 5 ? 3 : 1, true, sector);
   }
 
   public startEndlessRift(): void {
+    this.clearTrialState();
     this.currentSector = 5;
     this.isEndlessRift = true;
     this.riftDepth = 1;
-    this.siphonHitCounter = 0;
-    this.lightningArcs = [];
-    this.siphonOrbs = [];
-    this.state.restoreFullVitals();
-    this.runElapsedSec = 0;
-    this.roomsCleared = 0;
-    this.enemiesDefeated = 0;
-    this.maxFloorReached = 1;
-    this.sector1ClearedInRun = false;
-    this.sector2ClearedInRun = false;
-    this.sector3ClearedInRun = false;
-    this.sector4ClearedInRun = false;
-    this.omegaClearedInRun = false;
-    this.lumaRoomCounter = 0;
-    this.haloShieldReady = this.state.equippedCompanion === 'halo';
-    this.haloChargeTimer = 0;
-    this.finished = false;
+    this.resetRunTelemetry();
     this.startEndlessRiftFloor(1, true);
+  }
+
+  /** Galaktische Prüfung: normierte Ausrüstung, geseedete Ebenen, keine Beute/Progression. */
+  public startWeeklyTrial(info: WeeklyTrialInfo): void {
+    this.isWeeklyTrial = true;
+    this.trialInfo = info;
+    this.state.activeTrial = info; // VOR restoreFullVitals → normierte Max-HP
+    this.currentSector = info.sector;
+    this.isEndlessRift = false;
+    this.riftDepth = 0;
+    this.activeRiftMutator = info.mutator;
+    this.riftLootMultiplier = 1;
+    this.resetRunTelemetry();
+    this.startFloor(1, true, info.sector);
   }
 
   public startEndlessRiftFloor(depth: number, freshRun = false): void {
@@ -264,7 +295,7 @@ export class DungeonScene {
     this.shieldOpenAnim = 0;
     this.shieldOverheatTimer = 0;
     this.shieldOverheatMsgCd = 0;
-    this.haloShieldReady = this.state.equippedCompanion === 'halo';
+    this.haloShieldReady = this.activeCompanion === 'halo';
     this.haloChargeTimer = 0;
     this.enterRoom(this.floor.startKey, null);
     this.spawnBurst(this.playerX, this.playerY, '#c084fc', 28);
@@ -309,7 +340,9 @@ export class DungeonScene {
     this.currentSector = sector;
     this.currentFloor = floorIndex;
     this.maxFloorReached = Math.max(this.maxFloorReached, floorIndex);
-    if (sector === 4) {
+    if (this.isWeeklyTrial) {
+      // Prüfung: keine Fortschritts-Rekorde
+    } else if (sector === 4) {
       if (floorIndex > this.state.deepestFloorS4) {
         this.state.deepestFloorS4 = floorIndex;
         this.state.save();
@@ -328,7 +361,18 @@ export class DungeonScene {
       this.state.deepestFloor = floorIndex;
       this.state.save();
     }
-    this.floor = generateSectorFloor(sector, floorIndex);
+    if (this.isWeeklyTrial && this.trialInfo) {
+      // Identisches Layout für alle Spieler: NUR die synchrone Generierung läuft geseedet.
+      const seed = getTrialFloorSeed(this.trialInfo.weekId, floorIndex);
+      this.floor = withSeededRandom(seed, () => generateSectorFloor(sector, floorIndex));
+      // Keine Rift-Risse in der Prüfung (Beute/Progression sind aus)
+      for (const [key, room] of [...this.floor.rooms.entries()]) {
+        if (room.isRiftChamber) this.floor.rooms.delete(key);
+        else if (room.riftPortal) room.riftPortal = undefined;
+      }
+    } else {
+      this.floor = generateSectorFloor(sector, floorIndex);
+    }
     this.floorBossDefeated = false;
     this.warpChannel = 0;
     this.invulnTimer = 0.55;
@@ -343,7 +387,7 @@ export class DungeonScene {
     this.shieldOpenAnim = 0;
     this.shieldOverheatTimer = 0;
     this.shieldOverheatMsgCd = 0;
-    this.haloShieldReady = this.state.equippedCompanion === 'halo';
+    this.haloShieldReady = this.activeCompanion === 'halo';
     this.haloChargeTimer = 0;
     this.enterRoom(this.floor.startKey, null);
     this.spawnBurst(
@@ -363,7 +407,15 @@ export class DungeonScene {
       24,
     );
 
-    if (sector === 5) {
+    if (this.isWeeklyTrial && this.trialInfo) {
+      const mut = RIFT_MUTATORS[this.trialInfo.mutator];
+      this.callbacks.onToast(
+        freshRun
+          ? `🏅 GALAKTISCHE PRÜFUNG ${formatWeekLabel(this.trialInfo.weekId)} — Sektor ${sector} · Mutator ${mut.icon} ${mut.name}! Normierte Ausrüstung, keine Beute — nur Ruhm!`
+          : `🏅 Prüfung · Ebene ${floorIndex} von ${TRIAL_FLOORS} · ${mut.icon} ${mut.name}`,
+        floorIndex === TRIAL_FLOORS ? 'warn' : 'info',
+      );
+    } else if (sector === 5) {
       this.callbacks.onToast(
         '🌌 5. TIEFENRAUM-TOR · OMEGA-ANOMALIE! Elite-Prüfung aller 4 Sektoren → ★ OMEGA STERNEN-ARCHON!',
         'warn',
@@ -610,18 +662,25 @@ export class DungeonScene {
   }
 
   public spawnEnemy(kind: Enemy['kind'], x: number, y: number): void {
-    const ngMult = 1 + this.state.ngPlusLevel * 0.35;
+    const trial = this.isWeeklyTrial;
+    const ngLevel = trial ? 0 : this.state.ngPlusLevel; // Prüfung: keine NG+-Skalierung
+    const bossCount = trial ? 1 : this.state.bossDefeatedCount; // Prüfung: fester Boss-Faktor
+    const ngMult = 1 + ngLevel * 0.35;
     const floorScale = (this.currentFloor === 1 ? 1.0 : this.currentFloor === 2 ? 1.24 : 1.48) * ngMult;
-    const baseScale = floorScale * (1 + Math.min(3, this.state.bossDefeatedCount) * 0.08);
+    const baseScale = floorScale * (1 + Math.min(3, bossCount) * 0.08);
     const inRiftChamber = Boolean(this.currentRoom?.isRiftChamber);
-    const riftMutator: RiftMutatorId | undefined = this.isEndlessRift
+    const riftMutator: RiftMutatorId | undefined = this.isEndlessRift || trial
       ? (this.activeRiftMutator ?? undefined)
       : inRiftChamber
         ? RIFT_MUTATOR_LIST[Math.floor(Math.random() * RIFT_MUTATOR_LIST.length)]
         : undefined;
     const riftHpMult = this.isEndlessRift
       ? (1 + Math.max(0, this.riftDepth - 1) * 0.24) * (riftMutator === 'armored' ? 1.3 : 1.0)
-      : inRiftChamber
+      : trial
+        ? riftMutator === 'armored'
+          ? 1.3
+          : 1.0
+        : inRiftChamber
         ? 1.16 * (riftMutator === 'armored' ? 1.25 : 1.0)
         : 1.0;
 
@@ -839,7 +898,7 @@ export class DungeonScene {
       e.bossStatusText = 'OMEGA-ANOMALIE AKTIV';
       this.enemies.push(e);
     } else if (kind === 'boss_quartz_golem') {
-      const e = makeBase(Math.round(440 * ngMult * (1 + Math.min(2, this.state.bossDefeatedCount) * 0.06)), 18);
+      const e = makeBase(Math.round(440 * ngMult * (1 + Math.min(2, bossCount) * 0.06)), 18);
       e.bossState = 's2_idle';
       e.bossStateTimer = 0.9;
       e.bossStateMax = 0.9;
@@ -847,7 +906,7 @@ export class DungeonScene {
       e.bossStatusText = 'QUARZ-KERN AKTIV';
       this.enemies.push(e);
     } else if (kind === 'boss_prism_weaver') {
-      const e = makeBase(Math.round(620 * ngMult * (1 + Math.min(2, this.state.bossDefeatedCount) * 0.06)), 17);
+      const e = makeBase(Math.round(620 * ngMult * (1 + Math.min(2, bossCount) * 0.06)), 17);
       e.bossState = 's2_idle';
       e.bossStateTimer = 0.85;
       e.bossStateMax = 0.85;
@@ -856,7 +915,7 @@ export class DungeonScene {
       e.bossStatusText = 'PRISMA-NETZ AKTIV';
       this.enemies.push(e);
     } else if (kind === 'boss_prisma_archon') {
-      const e = makeBase(Math.round(1080 * ngMult * (1 + Math.min(2, this.state.bossDefeatedCount) * 0.05)), 24);
+      const e = makeBase(Math.round(1080 * ngMult * (1 + Math.min(2, bossCount) * 0.05)), 24);
       e.bossState = 's2_idle';
       e.bossStateTimer = 0.95;
       e.bossStateMax = 0.95;
@@ -869,7 +928,7 @@ export class DungeonScene {
       e.bossStatusText = 'PRISMA-ARCHON AKTIV';
       this.enemies.push(e);
     } else if (kind === 'boss_breacher') {
-      const e = makeBase(Math.round(255 * ngMult * (1 + Math.min(2, this.state.bossDefeatedCount) * 0.08)), 16);
+      const e = makeBase(Math.round(255 * ngMult * (1 + Math.min(2, bossCount) * 0.08)), 16);
       e.bossState = 'stalk';
       e.bossStateTimer = 0.85;
       e.bossStateMax = 0.85;
@@ -879,7 +938,7 @@ export class DungeonScene {
       e.bossAfterimageTick = 0;
       this.enemies.push(e);
     } else if (kind === 'boss') {
-      const e = makeBase(Math.round(420 * ngMult * (1 + Math.min(2, this.state.bossDefeatedCount) * 0.08)), 16);
+      const e = makeBase(Math.round(420 * ngMult * (1 + Math.min(2, bossCount) * 0.08)), 16);
       e.bossState = 'stalk';
       e.bossStateTimer = 0.95;
       e.bossStateMax = 0.95;
@@ -897,7 +956,7 @@ export class DungeonScene {
       this.enemies.push(e);
     } else {
       // Gigantic Sector-1 Endboss: A.E.G.I.S. LEVIATHAN!
-      const e = makeBase(Math.round(760 * ngMult * (1 + Math.min(2, this.state.bossDefeatedCount) * 0.06)), 28);
+      const e = makeBase(Math.round(760 * ngMult * (1 + Math.min(2, bossCount) * 0.06)), 28);
       e.bossState = 'lev_idle';
       e.bossStateTimer = 1.05;
       e.bossStateMax = 1.05;
@@ -984,7 +1043,7 @@ export class DungeonScene {
       }
     } else {
       const regenRate = this.shieldOverheatTimer > 0 ? 11 : 16;
-      const lumaMult = this.state.equippedCompanion === 'luma' ? 1.15 : 1.0;
+      const lumaMult = this.activeCompanion === 'luma' ? 1.15 : 1.0;
       this.state.energy = Math.min(100, this.state.energy + regenRate * stats.energyRegenMult * lumaMult * dt);
     }
     if (Math.floor(this.state.energy) !== prevEnergy) {
@@ -2412,7 +2471,7 @@ export class DungeonScene {
 
   // ==================== COMPANION BOTS (FREISCHALTBARE BEGLEITER / FAMILIARS) ====================
   public updateCompanion(dt: number): void {
-    const comp = this.state.equippedCompanion;
+    const comp = this.activeCompanion;
     if (!comp) return;
 
     // Gentle orbital follow offset behind hero
@@ -2714,7 +2773,7 @@ export class DungeonScene {
     }
 
     this.enemiesDefeated += 1;
-    this.state.totalEnemiesDefeated += 1;
+    if (!this.isWeeklyTrial) this.state.totalEnemiesDefeated += 1;
     sound.playEnemyDefeat();
     const isBoss = this.isBossKind(e.kind);
     this.spawnBurst(e.x, e.y, isBoss ? '#fbbf24' : '#c084fc', isBoss ? 36 : 14);
@@ -2724,7 +2783,9 @@ export class DungeonScene {
     const lootDepth = this.currentRoom.depth + (this.currentFloor - 1);
     const sec = this.currentSector;
 
-    if (e.kind === 'boss_breacher') {
+    if (this.isWeeklyTrial && isBoss) {
+      this.handleTrialBossKilled(e);
+    } else if (e.kind === 'boss_breacher') {
       this.triggerShake(0.45, 5.0);
       this.shockwaves.push({
         x: e.x,
@@ -3038,7 +3099,7 @@ export class DungeonScene {
       }
       if (Math.random() < 0.84) {
         this.spawnLootDrop(e.x, e.y, rollLootItem(lootDepth, false, nightBoost, luckBonus, sec));
-        if (this.state.equippedCompanion === 'puck' && Math.random() < 0.25) {
+        if (this.activeCompanion === 'puck' && Math.random() < 0.25) {
           this.spawnLootDrop(e.x + 6, e.y - 4, rollLootItem(lootDepth, false, nightBoost, luckBonus, sec));
           this.floats.push({
             x: this.companionX,
@@ -3052,8 +3113,8 @@ export class DungeonScene {
       }
     }
 
-    // Check live Companion Bot milestone unlocks (Spark / Luma / Halo)!
-    const newlyUnlocked = this.state.checkCompanionUnlocks();
+    // Check live Companion Bot milestone unlocks (Spark / Luma / Halo)! (nicht in der Prüfung)
+    const newlyUnlocked = this.isWeeklyTrial ? [] : this.state.checkCompanionUnlocks();
     for (const cid of newlyUnlocked) {
       sound.playCompanionUnlock();
       this.callbacks.onToast(
@@ -3150,7 +3211,7 @@ export class DungeonScene {
         this.callbacks.onHudDirty();
       }
       // Heil-Bot Luma: heals +10 HP every 2nd cleared combat room!
-      if (this.state.equippedCompanion === 'luma' && this.currentRoom.type === 'combat') {
+      if (this.activeCompanion === 'luma' && this.currentRoom.type === 'combat') {
         this.lumaRoomCounter += 1;
         if (this.lumaRoomCounter % 2 === 0 && this.state.hp < stats.maxHp) {
           const lumaHeal = Math.min(stats.maxHp - this.state.hp, 10);
@@ -3171,6 +3232,62 @@ export class DungeonScene {
     }
   }
 
+  /** Prüfungs-Boss besiegt: nur Effekte + Ebenen-Ausgang — KEINE Progression, KEINE Beute. */
+  private handleTrialBossKilled(e: Enemy): void {
+    this.triggerShake(0.6, 6.0);
+    this.shockwaves.push({ x: e.x, y: e.y, maxRadius: 120, color: '#fde047', life: 0.5, maxLife: 0.5 });
+    this.spawnBurst(e.x, e.y, '#fde047', 34);
+    this.floorBossDefeated = true;
+    for (let j = this.enemies.length - 1; j >= 0; j--) {
+      if (!this.isBossKind(this.enemies[j].kind)) this.enemies.splice(j, 1);
+    }
+    this.callbacks.onToast(
+      this.currentFloor >= TRIAL_FLOORS
+        ? '🏅 PRÜFUNG GESCHAFFT! Tritt in den Sieges-Transporter, um dein Ergebnis zu melden!'
+        : `🏅 Ebene ${this.currentFloor} gemeistert! Links: Prüfung abbrechen · Rechts: Tiefen-Aufzug → Ebene ${this.currentFloor + 1}`,
+      'good',
+    );
+  }
+
+  /** Beendet die Prüfung: Ergebnis speichern, Inventar bleibt UNBERÜHRT (kein Verlust, keine Beute). */
+  public finishWeeklyTrial(outcome: TrialOutcome): void {
+    if (this.finished || !this.trialInfo) return;
+    this.finished = true;
+    sound.playWarp();
+    const info = this.trialInfo;
+    const completed = outcome === 'victory';
+    const timeSec = Math.max(1, Math.round(this.runElapsedSec));
+    const result = this.state.recordWeeklyTrialResult({
+      weekId: info.weekId,
+      sector: info.sector,
+      completed,
+      timeSec,
+      floorReached: this.maxFloorReached,
+      roomsCleared: this.roomsCleared,
+    });
+    const summary: RunSummary = {
+      victory: completed,
+      reason: completed ? 'boss_victory' : outcome === 'defeat' ? 'defeat' : 'warp',
+      sector: info.sector,
+      floorReached: this.maxFloorReached,
+      runDurationSec: timeSec,
+      roomsCleared: this.roomsCleared,
+      enemiesDefeated: this.enemiesDefeated,
+      itemsSaved: 0,
+      itemsLost: 0,
+      warpedToChest: [],
+      shatteredItems: [],
+      isWeeklyTrial: true,
+      trialOutcome: outcome,
+      trialResult: result,
+    };
+    this.state.activeTrial = null;
+    this.isWeeklyTrial = false;
+    this.trialInfo = null;
+    this.state.restoreFullVitals();
+    this.callbacks.onReturnToHub(summary);
+  }
+
   public damagePlayer(amount: number, kx: number, ky: number, attacker?: Enemy): void {
     if (this.invulnTimer > 0 || this.finished) return;
 
@@ -3185,7 +3302,7 @@ export class DungeonScene {
     }
 
     // Aegis-Bot Halo: golden orbital shield completely absorbs 1 incoming hit every 12s!
-    if (this.state.equippedCompanion === 'halo' && this.haloShieldReady) {
+    if (this.activeCompanion === 'halo' && this.haloShieldReady) {
       this.haloShieldReady = false;
       this.haloChargeTimer = 0;
       this.invulnTimer = 0.65;
@@ -3319,6 +3436,7 @@ export class DungeonScene {
   }
 
   public spawnLootDrop(x: number, y: number, itemId: string): void {
+    if (this.isWeeklyTrial) return; // Prüfung: keine Beute!
     let sx = x;
     let sy = y;
     if (this.collidesRoomChasm(sx, sy, 6) || this.collidesRoomObstacle(sx, sy, 6)) {
@@ -3475,7 +3593,7 @@ export class DungeonScene {
   }
 
   public updateDrops(dt: number): void {
-    const hasPuck = this.state.equippedCompanion === 'puck';
+    const hasPuck = this.activeCompanion === 'puck';
     const magnetRadius = hasPuck ? 116 : 44;
     const pullSpeed = hasPuck ? 185 : 135;
 
@@ -3580,7 +3698,9 @@ export class DungeonScene {
     if (this.currentRoom.type === 'start') {
       if (Math.hypot(this.playerX - ROOM_CENTER_X, this.playerY - (ROOM_CENTER_Y - 12)) < 28) {
         this.activePrompt = {
-          label: '[E] Extraktion: Raumhafen Port Solaris (Gratis)',
+          label: this.isWeeklyTrial
+            ? '[E] Prüfung abbrechen (zählt als Versuch)'
+            : '[E] Extraktion: Raumhafen Port Solaris (Gratis)',
           x: ROOM_CENTER_X,
           y: ROOM_CENTER_Y - 32,
         };
@@ -3674,7 +3794,9 @@ export class DungeonScene {
         const padY = ROOM_CENTER_Y + 6;
         if (Math.hypot(this.playerX - exX, this.playerY - padY) < 28) {
           this.activePrompt = {
-            label: '[E] Extraktion: Raumhafen Port Solaris (Beute sichern)',
+            label: this.isWeeklyTrial
+              ? '[E] Prüfung abbrechen (zählt als Versuch)'
+              : '[E] Extraktion: Raumhafen Port Solaris (Beute sichern)',
             x: exX,
             y: padY - 24,
           };
@@ -3717,8 +3839,9 @@ export class DungeonScene {
         const vy = ROOM_CENTER_Y + 12;
         if (Math.hypot(this.playerX - vx, this.playerY - vy) < 32) {
           this.activePrompt = {
-            label:
-              this.currentSector === 5
+            label: this.isWeeklyTrial
+              ? '[E] 🏅 PRÜFUNG GESCHAFFT! Sieges-Transporter → Ergebnis melden'
+              : this.currentSector === 5
                 ? '[E] 🌌 OMEGA-FINALE VOLLENDET! Zurück nach Port Solaris'
                 : this.currentSector === 4
                   ? '[E] 👑 Sektor-4-Sieg! 5. Omega-Tor im Raumhafen aktiv!'
@@ -3738,7 +3861,17 @@ export class DungeonScene {
       }
     }
 
-    const chest = this.currentRoom.chest;
+    if (this.isWeeklyTrial && this.currentRoom.chest) {
+      const sealed = this.currentRoom.chest;
+      if (Math.hypot(this.playerX - sealed.x, this.playerY - sealed.y) < 30) {
+        this.activePrompt = { label: '🏅 Prüfungs-Truhe versiegelt — hier zählt nur Ruhm!', x: sealed.x, y: sealed.y - 20 };
+        if (input.interactPressed()) {
+          sound.playUiClick();
+          this.callbacks.onToast('🏅 Prüfungs-Truhe versiegelt — hier zählt nur Ruhm!', 'info');
+        }
+      }
+    }
+    const chest = this.isWeeklyTrial ? undefined : this.currentRoom.chest;
     if (chest) {
       if (Math.hypot(this.playerX - chest.x, this.playerY - chest.y) < 30) {
         const remaining = chest.slots
@@ -3794,7 +3927,7 @@ export class DungeonScene {
                   rollLootItem(d, false, nightBoost, luckBonus, sec),
                   rollLootItem(d, Math.random() < 0.55, nightBoost, luckBonus, sec),
                 ];
-            if (this.state.equippedCompanion === 'puck' && Math.random() < 0.25) {
+            if (this.activeCompanion === 'puck' && Math.random() < 0.25) {
               rolled.push(rollLootItem(d, true, nightBoost, luckBonus, sec));
               this.floats.push({
                 x: this.companionX,
@@ -3835,6 +3968,12 @@ export class DungeonScene {
 
   public triggerSafeWarp(reason: 'warp' | 'boss_victory', chargeFee: boolean): void {
     if (this.finished) return;
+    if (this.isWeeklyTrial) {
+      // Prüfung: Sieg nur über den Sieges-Transporter nach dem Ebene-3-Boss, sonst Abbruch (keine Gebühr)
+      const won = reason === 'boss_victory' && this.currentFloor >= TRIAL_FLOORS && this.floorBossDefeated;
+      this.finishWeeklyTrial(won ? 'victory' : 'abort');
+      return;
+    }
     this.finished = true;
     if (chargeFee) {
       const fee = Math.min(this.state.credits, this.warpCost);
@@ -3877,6 +4016,10 @@ export class DungeonScene {
 
   public triggerDefeat(): void {
     if (this.finished) return;
+    if (this.isWeeklyTrial) {
+      this.finishWeeklyTrial('defeat');
+      return;
+    }
     this.finished = true;
     sound.playWarp();
     const res = processDefeatPenalty(this.state.inventory);

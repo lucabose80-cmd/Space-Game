@@ -16,6 +16,7 @@ import {
   type DungeonRoom,
 } from '../world/dungeonGen';
 import type { DungeonScene } from '../scenes/DungeonScene';
+import { formatWeekLabel } from '../systems/weeklyTrial';
 import type { Enemy, SpearThrustFx, WeaponSwing } from './dungeonTypes';
 
 export class DungeonRenderer {
@@ -491,14 +492,14 @@ export class DungeonRenderer {
       drawables.push({ y: sortY, draw: () => this.renderEnemy(ctx, e) });
     }
     drawables.push({ y: this.scene.playerY, draw: () => this.renderPlayer(ctx) });
-    if (this.scene.state.equippedCompanion) {
+    if (this.scene.activeCompanion) {
       drawables.push({ y: this.scene.companionY, draw: () => this.renderCompanion(ctx) });
     }
     drawables.sort((a, b) => a.y - b.y);
     for (const d of drawables) d.draw();
 
     // Active Aegis-Bot Halo golden orbital shield ring around hero when charged!
-    if (this.scene.state.equippedCompanion === 'halo' && this.scene.haloShieldReady) {
+    if (this.scene.activeCompanion === 'halo' && this.scene.haloShieldReady) {
       const hp = 0.5 + 0.5 * Math.sin(this.scene.time * 5.2);
       ctx.save();
       ctx.strokeStyle = `rgba(253, 224, 71, ${0.55 + hp * 0.35})`;
@@ -2899,7 +2900,7 @@ export class DungeonRenderer {
   }
 
   private renderCompanion(ctx: CanvasRenderingContext2D): void {
-    const compId = this.scene.state.equippedCompanion;
+    const compId = this.scene.activeCompanion;
     if (!compId) return;
     const art = getHDArt();
     const def = COMPANION_DEFS[compId];
@@ -3274,7 +3275,22 @@ export class DungeonRenderer {
       ctx.fillText(`${infDef.icon} ${infDef.shortName}`, cx, nextY + 6.2);
       nextY += 11;
     }
-    if (this.scene.isEndlessRift && this.scene.activeRiftMutator) {
+    if (this.scene.isWeeklyTrial && this.scene.trialInfo) {
+      ctx.fillStyle = 'rgba(28, 22, 6, 0.9)';
+      ctx.fillRect(cx - 22, nextY, 44, 9);
+      ctx.strokeStyle = '#fde047';
+      ctx.lineWidth = 0.6;
+      ctx.strokeRect(cx - 21.5, nextY + 0.5, 43, 8);
+      ctx.fillStyle = '#fde047';
+      ctx.font = 'bold 4.2px Silkscreen, monospace';
+      ctx.fillText(
+        `🏅 ${formatWeekLabel(this.scene.trialInfo.weekId)} E${this.scene.currentFloor}/3`,
+        cx,
+        nextY + 6.2,
+      );
+      nextY += 11;
+    }
+    if ((this.scene.isEndlessRift || this.scene.isWeeklyTrial) && this.scene.activeRiftMutator) {
       const mut = RIFT_MUTATORS[this.scene.activeRiftMutator];
       ctx.fillStyle = 'rgba(20, 10, 34, 0.9)';
       ctx.fillRect(cx - 22, nextY, 44, 9);
@@ -3283,7 +3299,11 @@ export class DungeonRenderer {
       ctx.strokeRect(cx - 21.5, nextY + 0.5, 43, 8);
       ctx.fillStyle = mut.color;
       ctx.font = 'bold 4.1px Silkscreen, monospace';
-      ctx.fillText(`${mut.icon} E${this.scene.riftDepth}`, cx, nextY + 6.2);
+      ctx.fillText(
+        this.scene.isWeeklyTrial ? `${mut.icon} ${mut.name}`.slice(0, 11) : `${mut.icon} E${this.scene.riftDepth}`,
+        cx,
+        nextY + 6.2,
+      );
     }
   }
 
