@@ -577,6 +577,61 @@ export const ITEMS: ItemDef[] = [
     minDepth: 3,
     sector: 4,
   },
+  // ==================== RIFT-ANOMALIE & ENDLOS-SPIRALE RELIKTE ====================
+  {
+    id: 'rift_catalyst',
+    name: 'Rift-Katalysator',
+    rarity: 'rare',
+    baseValue: 640,
+    maxStack: 5,
+    modifier: 'none',
+    description: 'Instabiler Dimensionskern aus einem Raum-Zeit-Riss. Essenziell für Elementar-Waffenprägungen bei Kael!',
+    glowColor: '#c084fc',
+    dropWeight: 18,
+    minDepth: 0,
+    sector: 5,
+  },
+  {
+    id: 'phase_geode',
+    name: 'Phasen-Geode',
+    rarity: 'rare',
+    baseValue: 920,
+    maxStack: 5,
+    modifier: 'warp_anchor',
+    modifierLabel: 'Warp-Anker (→): Rettet den RECHTEN Nachbar-Slot sogar bei Tod in die Truhe!',
+    description: 'Aufgebrochene Obsidian-Geode voller schimmernder Sternenlicht-Kristalle aus der Zwischen-Dimension.',
+    glowColor: '#e879f9',
+    dropWeight: 14,
+    minDepth: 0,
+    sector: 5,
+  },
+  {
+    id: 'aether_prisma',
+    name: 'Äther-Prismakern',
+    rarity: 'epic',
+    baseValue: 1650,
+    maxStack: 5,
+    modifier: 'smuggler',
+    modifierLabel: 'Schmuggler-Bonus: +15 % höherer Marktwert im Shop!',
+    description: 'Geometrisches Gold-Amethyst-Oktaeder aus den tiefen Schichten der Unendlichen Spirale.',
+    glowColor: '#38e8d4',
+    dropWeight: 10,
+    minDepth: 1,
+    sector: 5,
+  },
+  {
+    id: 'singularity_relic',
+    name: 'Singularitäts-Relikt',
+    rarity: 'epic',
+    baseValue: 4200,
+    maxStack: 5,
+    modifier: 'none',
+    description: 'Ein in Messing-Ringen gebändigtes Miniatur-Schwarzes-Loch — der wertvollste Schatz jenseits des Omega-Tors!',
+    glowColor: '#fde047',
+    dropWeight: 5,
+    minDepth: 2,
+    sector: 5,
+  },
 ];
 
 export const ITEMS_BY_ID: Record<string, ItemDef> = Object.fromEntries(
@@ -591,6 +646,15 @@ export function getItemDef(itemId: string): ItemDef {
   return def;
 }
 
+export function rollRiftLootItem(riftDepth: number, guaranteedCatalyst = false): string {
+  if (guaranteedCatalyst) return 'rift_catalyst';
+  const r = Math.random();
+  if (riftDepth >= 6 && r < 0.16) return 'singularity_relic';
+  if (riftDepth >= 3 && r < 0.34) return 'aether_prisma';
+  if (r < 0.62) return 'phase_geode';
+  return 'rift_catalyst';
+}
+
 export function rollLootItem(
   depth: number,
   guaranteedRare = false,
@@ -601,7 +665,7 @@ export function rollLootItem(
   const pool = ITEMS.filter((item) => {
     if (item.dropWeight <= 0) return false;
     const itemSector = item.sector ?? 1;
-    // Sector 5 (5. Tiefenraum-Tor / Omega-Anomalie) rolls rare/epic treasures from ALL 4 sectors!
+    // Sector 5 (5. Tiefenraum-Tor / Omega-Anomalie) rolls rare/epic treasures from ALL 4 sectors + Rift relics!
     if (sector === 5) {
       return item.rarity === 'rare' || item.rarity === 'epic';
     }

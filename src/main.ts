@@ -32,6 +32,7 @@ class StarlighterGame {
 
   private activeScene: SceneId = 'shop';
   private pendingDungeonSector: SectorId = 1;
+  private pendingEndlessRift = false;
   private lastReturnedSector: SectorId = 1;
   private transitionAlpha = 0;
   private transitionDir: -1 | 0 | 1 = 0;
@@ -211,23 +212,37 @@ class StarlighterGame {
       onReturnToHub: () => this.transitionTo('hub', 'hangar'),
       onLaunchSector1: () => {
         this.pendingDungeonSector = 1;
+        this.pendingEndlessRift = false;
         this.transitionTo('dungeon', 'hangar');
       },
       onLaunchSector2: () => {
         this.pendingDungeonSector = 2;
+        this.pendingEndlessRift = false;
         this.transitionTo('dungeon', 'hangar');
       },
       onLaunchSector3: () => {
         this.pendingDungeonSector = 3;
+        this.pendingEndlessRift = false;
         this.transitionTo('dungeon', 'hangar');
       },
       onLaunchSector4: () => {
         this.pendingDungeonSector = 4;
+        this.pendingEndlessRift = false;
         this.transitionTo('dungeon', 'hangar');
       },
       onLaunchOmegaGate: () => {
-        this.pendingDungeonSector = 5;
-        this.transitionTo('dungeon', 'hangar');
+        this.ui.openOmegaGateModal(
+          () => {
+            this.pendingDungeonSector = 5;
+            this.pendingEndlessRift = false;
+            this.transitionTo('dungeon', 'hangar');
+          },
+          () => {
+            this.pendingDungeonSector = 5;
+            this.pendingEndlessRift = true;
+            this.transitionTo('dungeon', 'hangar');
+          },
+        );
       },
       onToast: (msg, tone) => this.ui.toast(msg, tone),
     });
@@ -239,6 +254,8 @@ class StarlighterGame {
       onHudDirty: () => {
         this.ui.dungeonSector = this.dungeonScene.currentSector;
         this.ui.dungeonFloor = this.dungeonScene.currentFloor;
+        this.ui.dungeonEndlessRift = this.dungeonScene.isEndlessRift;
+        this.ui.dungeonRiftDepth = this.dungeonScene.riftDepth;
         this.ui.renderHud();
         this.syncTouch();
       },
@@ -346,9 +363,15 @@ class StarlighterGame {
       this.ui.currentScene = scene;
       if (scene === 'dungeon') {
         this.ui.shopIsOpen = false;
-        this.dungeonScene.startRun(this.pendingDungeonSector);
+        if (this.pendingEndlessRift) {
+          this.dungeonScene.startEndlessRift();
+        } else {
+          this.dungeonScene.startRun(this.pendingDungeonSector);
+        }
         this.ui.dungeonSector = this.dungeonScene.currentSector;
         this.ui.dungeonFloor = this.dungeonScene.currentFloor;
+        this.ui.dungeonEndlessRift = this.dungeonScene.isEndlessRift;
+        this.ui.dungeonRiftDepth = this.dungeonScene.riftDepth;
       } else if (scene === 'hangar') {
         this.ui.shopIsOpen = false;
         this.hangarScene.onEnter(from === 'dungeon' ? 'dungeon' : 'hub', this.lastReturnedSector);

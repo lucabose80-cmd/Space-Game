@@ -2,6 +2,7 @@ import { getHDArt } from '../assets/artLoader';
 import { drawGlow, drawPixelShadow } from '../assets/pixelArt';
 import { getAtlas } from '../assets/sprites';
 import { COMPANION_DEFS, SUIT_THEMES } from '../data/companions';
+import { getInfusionDef, RIFT_MUTATORS } from '../data/infusions';
 import { getItemDef } from '../data/items';
 import { VIRTUAL_HEIGHT, VIRTUAL_WIDTH, type InputManager } from '../engine/input';
 import {
@@ -36,25 +37,32 @@ export class DungeonRenderer {
       ctx.translate(sx, sy);
     }
 
+    const visSec = this.scene.floor.visualSector ?? this.scene.currentSector;
     const roomBg =
-      this.scene.currentSector >= 4
+      visSec >= 4
         ? art.dungeonBgS4 ?? art.dungeonBg
-        : this.scene.currentSector === 3
+        : visSec === 3
           ? art.dungeonBgS3 ?? art.dungeonBg
-          : this.scene.currentSector === 2
+          : visSec === 2
             ? art.dungeonBgS2 ?? art.dungeonBg
             : art.dungeonBg;
     if (roomBg) {
       ctx.drawImage(roomBg, 0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
     } else {
       ctx.fillStyle =
-        this.scene.currentSector >= 4
+        visSec >= 4
           ? '#0d1522'
-          : this.scene.currentSector === 3
+          : visSec === 3
             ? '#22100a'
-            : this.scene.currentSector === 2
+            : visSec === 2
               ? '#150d28'
               : '#0e131f';
+      ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+    }
+
+    // Subtle violet-cyan Rift Dimension atmosphere when inside a Rift Chamber or the Endless Spiral!
+    if (this.scene.isEndlessRift || this.scene.currentRoom.isRiftChamber) {
+      ctx.fillStyle = 'rgba(139, 92, 246, 0.14)';
       ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
     }
 
@@ -209,7 +217,17 @@ export class DungeonRenderer {
         }
       }
     } else if (this.scene.currentRoom.type === 'boss' && this.scene.floorBossDefeated) {
-      if (this.scene.currentFloor < 3) {
+      if (this.scene.isEndlessRift) {
+        const padY = ROOM_CENTER_Y + 6;
+        this.renderWarpPad(ctx, ROOM_CENTER_X - 48, padY, '#38e8d4');
+        this.renderWarpPad(ctx, ROOM_CENTER_X + 48, padY, '#c084fc');
+        ctx.font = 'bold 5px Silkscreen, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#67e8f9';
+        ctx.fillText('EXTRAKTION', ROOM_CENTER_X - 48, padY + 22);
+        ctx.fillStyle = '#e879f9';
+        ctx.fillText(`∞ EBENE ${this.scene.riftDepth + 1}`, ROOM_CENTER_X + 48, padY + 22);
+      } else if (this.scene.currentFloor < 3 && this.scene.currentSector !== 5) {
         const padY = ROOM_CENTER_Y + 6;
         this.renderWarpPad(ctx, ROOM_CENTER_X - 48, padY, '#38e8d4');
         this.renderWarpPad(ctx, ROOM_CENTER_X + 48, padY, this.scene.currentSector === 2 ? '#e879f9' : '#fbbf24');
@@ -221,13 +239,74 @@ export class DungeonRenderer {
         ctx.fillText(this.scene.currentFloor === 1 ? '▼ EBENE II' : '▼ EBENE III', ROOM_CENTER_X + 48, padY + 22);
       } else {
         const vy = ROOM_CENTER_Y + 12;
-        const winColor = this.scene.currentSector === 2 ? '#e879f9' : '#fde047';
+        const winColor =
+          this.scene.currentSector === 5
+            ? '#fde047'
+            : this.scene.currentSector === 4
+              ? '#38e8d4'
+              : this.scene.currentSector === 3
+                ? '#fb923c'
+                : this.scene.currentSector === 2
+                  ? '#e879f9'
+                  : '#fde047';
         this.renderWarpPad(ctx, ROOM_CENTER_X, vy, winColor);
         ctx.font = 'bold 5.2px Silkscreen, monospace';
         ctx.textAlign = 'center';
         ctx.fillStyle = winColor;
-        ctx.fillText(this.scene.currentSector === 2 ? '★ SEKTOR-2 SIEG!' : '★ SEKTOR-1 SIEG!', ROOM_CENTER_X, vy + 22);
+        ctx.fillText(
+          this.scene.currentSector === 5
+            ? '★ OMEGA-SIEG!'
+            : `★ SEKTOR-${this.scene.currentSector} SIEG!`,
+          ROOM_CENTER_X,
+          vy + 22,
+        );
       }
+    }
+
+    // Milestone 7: Swirling Unstable Rift-Riss portal inside cleared regular rooms
+    if (
+      this.scene.currentRoom.cleared &&
+      this.scene.currentRoom.riftPortal &&
+      !this.scene.currentRoom.riftPortal.cleared
+    ) {
+      const rp = this.scene.currentRoom.riftPortal;
+      const pulse = Math.sin(this.scene.time * 5.2);
+      drawGlow(ctx, rp.x, rp.y, 34 + pulse * 4, '#c084fc', 0.42);
+      drawGlow(ctx, rp.x, rp.y, 18, '#38e8d4', 0.35);
+      ctx.save();
+      ctx.translate(rp.x, rp.y);
+      ctx.rotate(this.scene.time * 2.4);
+      ctx.strokeStyle = '#e879f9';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 14, 9, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.rotate(-this.scene.time * 4.2);
+      ctx.strokeStyle = '#38e8d4';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 9, 6, 0.5, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = '#0f0620';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 6, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      ctx.font = 'bold 4.8px Silkscreen, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#f0abfc';
+      ctx.fillText('🌀 RIFT-RISS', rp.x, rp.y + 19);
+    }
+
+    // Milestone 7: Cleared Rift Anomaly Chamber return portal
+    if (this.scene.currentRoom.isRiftChamber && this.scene.currentRoom.cleared) {
+      const rx = ROOM_CENTER_X;
+      const ry = ROOM_BOTTOM - 28;
+      this.renderWarpPad(ctx, rx, ry, '#c084fc');
+      ctx.font = 'bold 4.8px Silkscreen, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#e879f9';
+      ctx.fillText('🌀 ZURÜCK', rx, ry + 18);
     }
 
     for (const ob of this.scene.currentRoom.obstacles) {
@@ -550,6 +629,44 @@ export class DungeonRenderer {
       ctx.ellipse(sw.x, sw.y, r, r * 0.78, 0, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
+    }
+
+    // ⚡ Ionen-Kette Lightning Arcs (Milestone 7)
+    for (const arc of this.scene.lightningArcs) {
+      const a = Math.max(0, arc.life / arc.maxLife);
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = arc.color;
+      ctx.globalAlpha = a * 0.95;
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.moveTo(arc.x1, arc.y1);
+      const segs = 4;
+      for (let k = 1; k < segs; k++) {
+        const t = k / segs;
+        const mx = arc.x1 + (arc.x2 - arc.x1) * t + (Math.random() - 0.5) * 11;
+        const my = arc.y1 + (arc.y2 - arc.y1) * t + (Math.random() - 0.5) * 11;
+        ctx.lineTo(mx, my);
+      }
+      ctx.lineTo(arc.x2, arc.y2);
+      ctx.stroke();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // 🟣 Leeren-Siphon Homing Healing Orbs (Milestone 7)
+    for (const o of this.scene.siphonOrbs) {
+      drawGlow(ctx, o.x, o.y, 13, '#e879f9', 0.65);
+      ctx.fillStyle = '#c084fc';
+      ctx.beginPath();
+      ctx.arc(o.x, o.y, 3.6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(o.x, o.y, 1.5, 0, Math.PI * 2);
+      ctx.fill();
     }
 
     for (const p of this.scene.projectiles) {
@@ -2703,11 +2820,30 @@ export class DungeonRenderer {
   }
 
   private renderEnemyMiniHp(ctx: CanvasRenderingContext2D, e: Enemy): void {
+    // Milestone 7: Visual elemental & Rift mutator status auras
+    if (e.mutator) {
+      const mCol = RIFT_MUTATORS[e.mutator].color;
+      drawGlow(ctx, e.x, e.y, e.radius + 9, mCol, 0.24);
+    }
+    if (e.burnTimer && e.burnTimer > 0) {
+      drawGlow(ctx, e.x, e.y - 2, e.radius + 10, '#fb923c', 0.36);
+    }
+    if (e.cryoTimer && e.cryoTimer > 0) {
+      drawGlow(ctx, e.x, e.y, e.radius + 10, '#67e8f9', 0.36);
+      ctx.save();
+      ctx.strokeStyle = 'rgba(103, 232, 249, 0.8)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, e.radius + 3, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
     if (e.hp >= e.maxHp) return;
     const pct = Math.max(0, e.hp / e.maxHp);
     ctx.fillStyle = '#0e131f';
     ctx.fillRect(e.x - 10, e.y - 16, 20, 3);
-    ctx.fillStyle = '#fb7185';
+    ctx.fillStyle = e.cryoTimer && e.cryoTimer > 0 ? '#67e8f9' : e.burnTimer && e.burnTimer > 0 ? '#fb923c' : '#fb7185';
     ctx.fillRect(e.x - 9, e.y - 15, 18 * pct, 1.2);
   }
 
@@ -3116,13 +3252,39 @@ export class DungeonRenderer {
     const ss = String(totalSec % 60).padStart(2, '0');
     ctx.fillStyle = 'rgba(10, 15, 26, 0.88)';
     ctx.fillRect(cx - 22, cy + 19, 44, 10);
-    ctx.strokeStyle = 'rgba(56, 232, 212, 0.45)';
+    ctx.strokeStyle = this.scene.isEndlessRift ? 'rgba(192, 132, 252, 0.7)' : 'rgba(56, 232, 212, 0.45)';
     ctx.lineWidth = 0.7;
     ctx.strokeRect(cx - 21.5, cy + 19.5, 43, 9);
-    ctx.fillStyle = '#a5f3fc';
+    ctx.fillStyle = this.scene.isEndlessRift ? '#f0abfc' : '#a5f3fc';
     ctx.font = 'bold 5px Silkscreen, monospace';
     ctx.textAlign = 'center';
     ctx.fillText('⏱ ' + mm + ':' + ss, cx, cy + 25.8);
+
+    // Optional compact badge for active Elementar-Prägung or Endless Spiral Mutator
+    let nextY = cy + 31;
+    const infDef = getInfusionDef(this.scene.state.getActiveInfusion());
+    if (infDef) {
+      ctx.fillStyle = 'rgba(10, 15, 26, 0.88)';
+      ctx.fillRect(cx - 22, nextY, 44, 9);
+      ctx.strokeStyle = infDef.color;
+      ctx.lineWidth = 0.6;
+      ctx.strokeRect(cx - 21.5, nextY + 0.5, 43, 8);
+      ctx.fillStyle = infDef.color;
+      ctx.font = 'bold 4.4px Silkscreen, monospace';
+      ctx.fillText(`${infDef.icon} ${infDef.shortName}`, cx, nextY + 6.2);
+      nextY += 11;
+    }
+    if (this.scene.isEndlessRift && this.scene.activeRiftMutator) {
+      const mut = RIFT_MUTATORS[this.scene.activeRiftMutator];
+      ctx.fillStyle = 'rgba(20, 10, 34, 0.9)';
+      ctx.fillRect(cx - 22, nextY, 44, 9);
+      ctx.strokeStyle = mut.color;
+      ctx.lineWidth = 0.6;
+      ctx.strokeRect(cx - 21.5, nextY + 0.5, 43, 8);
+      ctx.fillStyle = mut.color;
+      ctx.font = 'bold 4.1px Silkscreen, monospace';
+      ctx.fillText(`${mut.icon} E${this.scene.riftDepth}`, cx, nextY + 6.2);
+    }
   }
 
   private renderBossBar(ctx: CanvasRenderingContext2D): void {

@@ -18,11 +18,70 @@ export class DungeonEnemyAi {
   }
 
   // ==================== LIVELY, DYNAMIC ENEMY AI ====================
-  public updateEnemies(dt: number): void {
+  public updateEnemies(rawDt: number): void {
     for (let i = this.scene.enemies.length - 1; i >= 0; i--) {
       const e = this.scene.enemies[i];
+
+      // Milestone 7: Solar-Brand Burn DoT ticking every 0.5s
+      if (e.burnTimer && e.burnTimer > 0) {
+        e.burnTimer = Math.max(0, e.burnTimer - rawDt);
+        e.burnTickTimer = (e.burnTickTimer ?? 0.5) - rawDt;
+        if (Math.random() < rawDt * 7) {
+          this.scene.particles.push({
+            x: e.x + (Math.random() - 0.5) * e.radius * 1.4,
+            y: e.y - Math.random() * e.radius,
+            vx: (Math.random() - 0.5) * 14,
+            vy: -18 - Math.random() * 14,
+            color: '#fb923c',
+            size: 1.6,
+            life: 0.28,
+            maxLife: 0.28,
+          });
+        }
+        if (e.burnTickTimer <= 0) {
+          e.burnTickTimer = 0.5;
+          const burnDmg = Math.max(4, Math.round((e.burnDps ?? 6) * 0.5));
+          e.hp -= burnDmg;
+          e.flashTimer = 0.06;
+          this.scene.floats.push({
+            x: e.x + (Math.random() - 0.5) * 8,
+            y: e.y - e.radius - 6,
+            text: `🔥${burnDmg}`,
+            color: '#fb923c',
+            life: 0.55,
+            maxLife: 0.55,
+          });
+          if (e.hp <= 0) {
+            this.scene.onEnemyKilled(e);
+            continue;
+          }
+        }
+      }
+
+      // Milestone 7: Kryo-Stasis (-42% tempo) & Hasted Mutator (+22% tempo)
+      let dt = rawDt;
+      if (e.cryoTimer && e.cryoTimer > 0) {
+        e.cryoTimer = Math.max(0, e.cryoTimer - rawDt);
+        dt *= 0.58;
+        if (Math.random() < rawDt * 5) {
+          this.scene.particles.push({
+            x: e.x + (Math.random() - 0.5) * e.radius * 1.3,
+            y: e.y + (Math.random() - 0.5) * e.radius,
+            vx: 0,
+            vy: 8,
+            color: '#67e8f9',
+            size: 1.5,
+            life: 0.3,
+            maxLife: 0.3,
+          });
+        }
+      }
+      if (e.mutator === 'hasted') {
+        dt *= 1.22;
+      }
+
       e.anim += dt * 7.5;
-      e.flashTimer = Math.max(0, e.flashTimer - dt);
+      e.flashTimer = Math.max(0, e.flashTimer - rawDt);
 
       e.vx *= Math.pow(0.03, dt);
       e.vy *= Math.pow(0.03, dt);

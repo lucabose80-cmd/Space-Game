@@ -1,4 +1,5 @@
 import { COMPANION_ORDER, evaluateCompanionUnlock, SUIT_THEME_ORDER } from '../data/companions';
+import { getInfusionDef } from '../data/infusions';
 import { getItemDef, ITEMS } from '../data/items';
 import { getPlayerCombatStats, UPGRADE_TRACKS } from '../data/upgrades';
 import { firebaseService, formatDurationSec } from '../services/firebaseService';
@@ -8,6 +9,7 @@ import type {
   CaptainRecords,
   CodexEntry,
   CompanionId,
+  InfusionId,
   InventoryData,
   ItemStack,
   MarketEventId,
@@ -33,7 +35,7 @@ import {
 
 const SAVE_KEY = 'starlighter_save_v2';
 const LEGACY_SAVE_KEY = 'starlighter_save_v1';
-const SAVE_VERSION = 7;
+const SAVE_VERSION = 8;
 
 function createEmptyRecords(): CaptainRecords {
   return {
@@ -41,9 +43,33 @@ function createEmptyRecords(): CaptainRecords {
     fastestSector4Days: null,
     fastestOmegaDays: null,
     fastestNgPlusDays: null,
+    deepestRiftFloor: 0,
+    riftsCleared: 0,
     totalCyclesPlayed: 0,
     lastActivityText: 'Startet gerade in Astro-Barter',
     recentMilestones: [],
+  };
+}
+
+function createEmptyWeaponInfusions(): Record<WeaponId, InfusionId> {
+  return {
+    blade: 'none',
+    spear: 'none',
+    fists: 'none',
+    discus: 'none',
+    blaster: 'none',
+    hammer: 'none',
+  };
+}
+
+function createEmptyUnlockedInfusions(): Record<WeaponId, InfusionId[]> {
+  return {
+    blade: [],
+    spear: [],
+    fists: [],
+    discus: [],
+    blaster: [],
+    hammer: [],
   };
 }
 
@@ -174,6 +200,8 @@ export class GameState {
   };
   public equippedWeapon: WeaponId = 'blade';
   public secondaryWeapon: WeaponId | null = null;
+  public weaponInfusions: Record<WeaponId, InfusionId> = createEmptyWeaponInfusions();
+  public unlockedInfusions: Record<WeaponId, InfusionId[]> = createEmptyUnlockedInfusions();
   public muted = false;
   public musicMuted = false;
 
@@ -251,6 +279,8 @@ export class GameState {
     };
     this.equippedWeapon = 'blade';
     this.secondaryWeapon = null;
+    this.weaponInfusions = createEmptyWeaponInfusions();
+    this.unlockedInfusions = createEmptyUnlockedInfusions();
     this.pedestals = [];
     this.syncShopCapacity();
 
@@ -841,6 +871,7 @@ export class GameState {
 
     const allComp = Object.values(this.unlockedCompanions).every(Boolean);
     const allWeps = Object.values(this.unlockedWeapons).every(Boolean);
+    const anyInfusion = Object.values(this.unlockedInfusions).some((arr) => arr.length > 0);
 
     grant('first_sale', this.totalSold >= 1);
     grant('master_merchant', (this.upgrades.shopTier ?? 0) >= 2 && this.totalSold >= 30);
@@ -852,11 +883,94 @@ export class GameState {
     grant('all_companions', allComp);
     grant('arsenal_6', allWeps);
     grant('ng_plus', this.ngPlusLevel >= 1);
+    grant('infusion_master', anyInfusion);
+    grant('spiral_walker', (this.records.deepestRiftFloor ?? 0) >= 6);
 
     if (persist && newly.length > 0) {
       this.save();
     }
     return newly;
+  }
+
+  // ==================== ELEMENTAR-PRÄGUNGEN (MEILENSTEIN 7) ====================
+  public getActiveInfusion(weaponId: WeaponId = this.equippedWeapon): InfusionId {
+    return this.weaponInfusions[weaponId] ?? 'none';
+  }
+
+  public isInfusionUnlocked(weaponId: WeaponId, infusionId: Exclude<InfusionId, 'none'>): boolean {
+    return (this.unlockedInfusions[weaponId] ?? []).includes(infusionId);
+  }
+
+  public canUnlockInfusion(weaponId: WeaponId, infusionId: Exclude<InfusionId, 'none'>): boolean {
+    if (!this.unlockedWeapons[weaponId]) return false;
+    if (this.isInfusionUnlocked(weaponId, infusionId)) return true;
+    const def = getInfusionDef(infusionId);
+    if (!def) return false;
+    if (this.credits < def.creditCost) return false;
+    return def.materials.every((m) => countItemTotal(this.inventory, m.itemId) >= m.qty);
+  }
+
+  public unlockAndEquipInfusion(
+    weaponId: WeaponId,
+    infusionId: Exclude<InfusionId, 'none'>,
+  ): { ok: boolean; error?: string } {
+    if (!this.unlockedWeapons[weaponId]) {
+      return { ok: false, error: 'Waffe muss zuerst geschmiedet werden!' };
+    }
+    const def = getInfusionDef(infusionId);
+    if (!def) return { ok: false, error: 'Unbekannte Prägung.' };
+
+    if (!this.isInfusionUnlocked(weaponId, infusionId)) {
+      if (!this.canUnlockInfusion(weaponId, infusionId)) {
+        return { ok: false, error: 'Nicht genug Credits oder Rift-Materialien!' };
+      }
+      this.credits -= def.creditCost;
+      for (const m of def.materials) {
+        consumeItemTotal(this.inventory, m.itemId, m.qty);
+      }
+      if (!this.unlockedInfusions[weaponId]) {
+        this.unlockedInfusions[weaponId] = [];
+      }
+      this.unlockedInfusions[weaponId].push(infusionId);
+      this.logMilestone(
+        `Prägte eine Waffe mit ${def.icon} ${def.name}!`,
+        def.shortName,
+        def.color,
+      );
+    }
+
+    this.weaponInfusions[weaponId] = infusionId;
+    this.checkAchievements(false);
+    this.save();
+    return { ok: true };
+  }
+
+  public equipInfusion(weaponId: WeaponId, infusionId: InfusionId): boolean {
+    if (!this.unlockedWeapons[weaponId]) return false;
+    if (infusionId !== 'none' && !this.isInfusionUnlocked(weaponId, infusionId)) return false;
+    this.weaponInfusions[weaponId] = infusionId;
+    this.save();
+    return true;
+  }
+
+  public recordRiftDepth(depthReached: number): boolean {
+    const clean = Math.max(0, Math.floor(depthReached));
+    const prev = this.records.deepestRiftFloor ?? 0;
+    const isNewRecord = clean > prev;
+    if (isNewRecord) {
+      this.records.deepestRiftFloor = clean;
+      this.logMilestone(
+        `Erreichte Ebene ${clean} in der ∞ Unendlichen Spirale!`,
+        `RIFT E${clean}`,
+        '#c084fc',
+      );
+    }
+    this.checkAchievements(false);
+    return isNewRecord;
+  }
+
+  public recordRiftChamberCleared(): void {
+    this.records.riftsCleared = (this.records.riftsCleared ?? 0) + 1;
   }
 
   public logMilestone(text: string, badge: string, accent: string): void {
@@ -978,6 +1092,8 @@ export class GameState {
       unlockedWeapons: this.unlockedWeapons,
       equippedWeapon: this.equippedWeapon,
       secondaryWeapon: this.secondaryWeapon,
+      weaponInfusions: this.weaponInfusions,
+      unlockedInfusions: this.unlockedInfusions,
       muted: this.muted,
       musicMuted: this.musicMuted,
     };
@@ -1059,6 +1175,8 @@ export class GameState {
           fastestSector4Days: parsed.records.fastestSector4Days ?? null,
           fastestOmegaDays: parsed.records.fastestOmegaDays ?? null,
           fastestNgPlusDays: parsed.records.fastestNgPlusDays ?? null,
+          deepestRiftFloor: Math.max(0, Math.floor(parsed.records.deepestRiftFloor ?? 0)),
+          riftsCleared: Math.max(0, Math.floor(parsed.records.riftsCleared ?? 0)),
           totalCyclesPlayed: Math.max(0, Math.floor(parsed.records.totalCyclesPlayed ?? 0)),
           lastActivityText: parsed.records.lastActivityText || baseRec.lastActivityText,
           recentMilestones: Array.isArray(parsed.records.recentMilestones)
@@ -1143,6 +1261,21 @@ export class GameState {
         parsed.secondaryWeapon !== this.equippedWeapon
           ? parsed.secondaryWeapon
           : null;
+      const baseInf = createEmptyWeaponInfusions();
+      const baseUnlInf = createEmptyUnlockedInfusions();
+      const validInfs: InfusionId[] = ['none', 'solar_burn', 'cryo_stasis', 'ion_chain', 'void_siphon'];
+      for (const w of ['blade', 'spear', 'fists', 'discus', 'blaster', 'hammer'] as WeaponId[]) {
+        const rawList = parsed.unlockedInfusions?.[w];
+        if (Array.isArray(rawList)) {
+          baseUnlInf[w] = rawList.filter((x): x is InfusionId => x !== 'none' && validInfs.includes(x));
+        }
+        const rawEq = parsed.weaponInfusions?.[w];
+        if (rawEq && rawEq !== 'none' && validInfs.includes(rawEq) && baseUnlInf[w].includes(rawEq)) {
+          baseInf[w] = rawEq;
+        }
+      }
+      this.weaponInfusions = baseInf;
+      this.unlockedInfusions = baseUnlInf;
       this.muted = Boolean(parsed.muted);
       this.musicMuted = Boolean(parsed.musicMuted);
 

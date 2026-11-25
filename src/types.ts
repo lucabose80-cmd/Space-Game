@@ -8,6 +8,10 @@ export type TimeOfDay = 'day' | 'night';
 
 export type WeaponId = 'blade' | 'blaster' | 'hammer' | 'spear' | 'fists' | 'discus';
 
+export type InfusionId = 'none' | 'solar_burn' | 'cryo_stasis' | 'ion_chain' | 'void_siphon';
+
+export type RiftMutatorId = 'overcharged' | 'armored' | 'vampiric' | 'hasted';
+
 export type CompanionId = 'puck' | 'spark' | 'luma' | 'halo';
 
 export type MarketEventId = 'normal' | 'trade_fair' | 'collector_visit' | 'night_rush';
@@ -63,7 +67,7 @@ export interface ItemDef {
   glowColor: string;
   dropWeight: number;
   minDepth: number;
-  sector?: 1 | 2 | 3 | 4;
+  sector?: 1 | 2 | 3 | 4 | 5;
 }
 
 export interface ItemStack {
@@ -164,6 +168,10 @@ export interface CaptainRecords {
   fastestOmegaDays: number | null;
   /** Fewest Day/Night cycles to complete a New Game+ Omega clear */
   fastestNgPlusDays: number | null;
+  /** Deepest floor cleared in the Endless Rift ("Die Unendliche Spirale") */
+  deepestRiftFloor?: number;
+  /** Total mid-sector Rift Anomaly chambers cleared */
+  riftsCleared?: number;
   /** Total Day↔Night transitions played across this save */
   totalCyclesPlayed: number;
   /** Latest notable in-game milestone shown on the Guild Board */
@@ -183,6 +191,8 @@ export interface LeaderboardEntry {
   fastestSector4Days: number | null;
   fastestOmegaDays: number | null;
   fastestNgPlusDays: number | null;
+  deepestRiftFloor?: number;
+  activeInfusion?: InfusionId;
   bestSectorClearSec: Partial<Record<SectorId, number>>;
   totalEarned: number;
   totalSold: number;
@@ -211,6 +221,9 @@ export interface RunSummary {
   sector?: SectorId;
   floorReached: number;
   runDurationSec?: number;
+  isEndlessRift?: boolean;
+  riftDepthReached?: number;
+  riftLootMultiplier?: number;
   sector1Cleared?: boolean;
   sector2Cleared?: boolean;
   sector3Cleared?: boolean;
@@ -268,6 +281,8 @@ export interface SaveData {
   unlockedWeapons: Record<WeaponId, boolean>;
   equippedWeapon: WeaponId;
   secondaryWeapon: WeaponId | null;
+  weaponInfusions?: Record<WeaponId, InfusionId>;
+  unlockedInfusions?: Record<WeaponId, InfusionId[]>;
   muted: boolean;
   musicMuted?: boolean;
 }

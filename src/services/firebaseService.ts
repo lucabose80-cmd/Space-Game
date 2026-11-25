@@ -290,11 +290,13 @@ class FirebaseCloudService {
         bossDefeatedCount?: number;
         totalEarned?: number;
         day?: number;
+        records?: { deepestRiftFloor?: number };
       }) =>
         (d.ngPlusLevel ?? 0) * 100000 +
         (d.omegaCleared ? 50000 : 0) +
         ((d.sector1Cleared ? 1 : 0) + (d.sector2Cleared ? 1 : 0) + (d.sector3Cleared ? 1 : 0) + (d.sector4Cleared ? 1 : 0)) *
           8000 +
+        (d.records?.deepestRiftFloor ?? 0) * 2500 +
         (d.bossDefeatedCount ?? 0) * 1000 +
         (d.totalEarned ?? 0) +
         (d.day ?? 1) * 50;
@@ -321,6 +323,8 @@ class FirebaseCloudService {
       fastestSector4Days: state.records.fastestSector4Days,
       fastestOmegaDays: state.records.fastestOmegaDays,
       fastestNgPlusDays: state.records.fastestNgPlusDays,
+      deepestRiftFloor: state.records.deepestRiftFloor ?? 0,
+      activeInfusion: state.getActiveInfusion(),
       bestSectorClearSec: { ...state.records.bestSectorClearSec },
       totalEarned: state.totalEarned,
       totalSold: state.totalSold,

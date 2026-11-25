@@ -9,6 +9,7 @@ import {
   SUIT_THEME_ORDER,
   SUIT_THEMES,
 } from '../data/companions';
+import { getInfusionDef, INFUSIONS } from '../data/infusions';
 import { getItemDef, ITEMS, RARITY_META } from '../data/items';
 import { UPGRADE_TRACKS, WEAPON_META } from '../data/upgrades';
 import { sound } from '../engine/audio';
@@ -38,6 +39,7 @@ import {
 import type {
   ActivityFeedEntry,
   CompanionId,
+  InfusionId,
   ItemStack,
   LeaderboardEntry,
   MusicTrack,
@@ -73,6 +75,8 @@ export class UIManager {
   public currentScene: SceneId = 'shop';
   public dungeonSector: SectorId = 1;
   public dungeonFloor: 1 | 2 | 3 = 1;
+  public dungeonEndlessRift = false;
+  public dungeonRiftDepth = 0;
   public shopIsOpen = false;
   public modalOpen = false;
   public titleVisible = true;
@@ -191,8 +195,10 @@ export class UIManager {
     const timeColor = isNight ? '#818cf8' : 'var(--accent-amber)';
 
     const floorTag =
-      this.dungeonSector === 5
-        ? '5. TOR · OMEGA-ANOMALIE'
+      this.dungeonEndlessRift
+        ? `∞ UNENDLICHE SPIRALE · EBENE ${Math.max(1, this.dungeonRiftDepth)}`
+        : this.dungeonSector === 5
+          ? '5. TOR · OMEGA-ANOMALIE'
         : this.dungeonSector === 4
           ? this.dungeonFloor === 1
             ? 'EBENE I · STERNEN-VORHOF'
@@ -327,6 +333,12 @@ export class UIManager {
                 <img src="${wMeta.iconUrl}" alt="${wMeta.name}" style="width:14px;height:14px;image-rendering:pixelated" />
                 <span>${wMeta.name}${this.state.secondaryWeapon ? ' [C]' : ''}</span>
               </button>
+              ${(() => {
+                const inf = getInfusionDef(this.state.getActiveInfusion());
+                return inf
+                  ? `<span style="font-family:var(--font-pixel);font-size:7.8px;color:${inf.color};border:1px solid ${inf.color};padding:0 3px;background:rgba(10,16,28,0.8)" title="${inf.name}: ${inf.summary}">${inf.icon} ${inf.shortName}</span>`
+                  : '';
+              })()}
               ${
                 compDef
                   ? `<span style="display:inline-flex;align-items:center;gap:3px;font-family:var(--font-pixel);font-size:8px;color:${compDef.accentColor}" title="${compDef.name}: ${compDef.abilitySummary}">
@@ -1417,12 +1429,20 @@ export class UIManager {
           ? "VEX' TECH-LABOR · MODULE & SEKTOR-KARTE"
           : 'ASTRO-BARTER · SHOP-AUSBAU';
 
+    const forgeTabsHtml = isForge
+      ? `<div class="modal-tabs" style="flex-wrap:nowrap">
+           <button class="tab-btn active" style="white-space:nowrap">Schmiede (MK-VIII)</button>
+           <button id="btn-forge-tab-infusions" class="tab-btn" style="white-space:nowrap;color:#fb923c">🔥 Prägungen</button>
+         </div>`
+      : '';
+
     this.showModalHtml(`
       <div class="modal-window">
-        <div class="modal-header">
-          <span class="modal-title">${modalTitle}</span>
-          <span style="font-family:var(--font-pixel);font-size:11px;color:var(--accent-amber)">${this.state.credits} CR</span>
-          <button id="modal-close-btn" class="modal-close">ESC ✕</button>
+        <div class="modal-header" style="gap:8px">
+          <span class="modal-title" style="white-space:nowrap">${modalTitle}</span>
+          ${forgeTabsHtml}
+          <span style="font-family:var(--font-pixel);font-size:11px;color:var(--accent-amber);white-space:nowrap">${this.state.credits} CR</span>
+          <button id="modal-close-btn" class="modal-close" style="white-space:nowrap">ESC ✕</button>
         </div>
         <div class="modal-body">
           ${npcBanner}
@@ -1430,6 +1450,11 @@ export class UIManager {
         </div>
       </div>
     `);
+
+    this.modalEl.querySelector('#btn-forge-tab-infusions')?.addEventListener('click', () => {
+      sound.playUiClick();
+      this.openForgeInfusionsModal(this.state.equippedWeapon);
+    });
 
     this.modalEl.querySelector('#btn-open-codex-from-term')?.addEventListener('click', () => {
       sound.playUiClick();
@@ -1502,6 +1527,212 @@ export class UIManager {
           this.renderHud();
         }
       });
+    });
+  }
+
+  // ==================== KAEL'S ELEMENTAR-PRÄGUNGEN (MEILENSTEIN 7) ====================
+  public openForgeInfusionsModal(selectedWeapon: WeaponId = this.state.equippedWeapon): void {
+    const forgedWeapons = (['blade', 'spear', 'fists', 'discus', 'blaster', 'hammer'] as WeaponId[]).filter(
+      (w) => this.state.unlockedWeapons[w],
+    );
+    const activeWep: WeaponId = forgedWeapons.includes(selectedWeapon)
+      ? selectedWeapon
+      : forgedWeapons[0] ?? 'blade';
+    const currentInf = this.state.getActiveInfusion(activeWep);
+    const wMeta = WEAPON_META[activeWep];
+
+    const wepPillsHtml = forgedWeapons
+      .map((wid) => {
+        const m = WEAPON_META[wid];
+        const inf = getInfusionDef(this.state.getActiveInfusion(wid));
+        const isSel = wid === activeWep;
+        return `
+          <button class="btn ${isSel ? 'btn-primary' : ''}" data-inf-wep="${wid}" style="display:inline-flex;align-items:center;gap:5px;padding:5px 8px;font-size:9.5px">
+            <img src="${m.iconUrl}" alt="${m.shortName}" style="width:16px;height:16px;image-rendering:pixelated" />
+            <span>${m.shortName}</span>
+            ${inf ? `<span style="color:${inf.color}">${inf.icon}</span>` : ''}
+          </button>
+        `;
+      })
+      .join('');
+
+    const cardsHtml = INFUSIONS.map((inf) => {
+      const unlocked = this.state.isInfusionUnlocked(activeWep, inf.id);
+      const equipped = currentInf === inf.id;
+      const canBuy = this.state.canUnlockInfusion(activeWep, inf.id);
+      const matsHtml = inf.materials
+        .map((m) => {
+          const def = getItemDef(m.itemId);
+          const have = countItemTotal(this.state.inventory, m.itemId);
+          const ok = have >= m.qty;
+          return `<span style="display:inline-flex;align-items:center;gap:4px;font-size:10.5px;color:${ok ? '#4ade80' : '#fb7185'}">
+            <img src="/art/sprites/item_${m.itemId}.png" alt="${def.name}" style="width:15px;height:15px;image-rendering:pixelated" />
+            ${def.name} ${have}/${m.qty}
+          </span>`;
+        })
+        .join('');
+
+      const btnHtml = equipped
+        ? `<button class="btn" data-inf-remove="1" style="font-size:9.5px">Entfernen</button>`
+        : unlocked
+          ? `<button class="btn btn-primary" data-inf-equip="${inf.id}" style="font-size:9.5px">Aktivieren</button>`
+          : `<button class="btn ${canBuy ? 'btn-primary' : ''}" data-inf-unlock="${inf.id}" ${canBuy ? '' : 'disabled'} style="font-size:9.5px">Prägen (${inf.creditCost} CR)</button>`;
+
+      return `
+        <div class="upgrade-card" style="border-color:${equipped ? inf.color : unlocked ? 'rgba(56,232,212,0.4)' : 'var(--border-steel)'};background:${equipped ? 'rgba(56,232,212,0.08)' : 'rgba(13,20,34,0.75)'}">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+            <div style="flex:1">
+              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                <span style="font-size:16px">${inf.icon}</span>
+                <strong style="font-family:var(--font-pixel);font-size:11px;color:${inf.color}">${inf.name}</strong>
+                ${equipped ? `<span style="font-family:var(--font-pixel);font-size:8px;padding:1px 5px;background:rgba(52,211,153,0.2);color:#34d399;border:1px solid #34d399">AKTIV ✓</span>` : unlocked ? `<span style="font-family:var(--font-pixel);font-size:8px;padding:1px 5px;background:rgba(56,232,212,0.16);color:#38e8d4">FREIGESCHALTET</span>` : ''}
+              </div>
+              <div style="font-size:11.5px;color:#e2e8f0;margin-top:4px">${inf.summary}</div>
+              <div style="font-size:10.5px;color:var(--text-muted);margin-top:2px">Kampf-Effekt: ${inf.combatDetail}</div>
+              ${!unlocked ? `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;align-items:center"><span style="font-family:var(--font-pixel);font-size:9.5px;color:${this.state.credits >= inf.creditCost ? '#fbbf24' : '#fb7185'}">${inf.creditCost} CR</span>${matsHtml}</div>` : '<div style="font-size:10px;color:#67e8f9;margin-top:5px">✓ Bereits für diese Waffe freigeschaltet — jederzeit kostenlos wechselbar!</div>'}
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">${btnHtml}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    this.showModalHtml(`
+      <div class="modal-window" style="max-width:670px">
+        <div class="modal-header" style="gap:8px">
+          <span class="modal-title" style="white-space:nowrap">KAEL'S EXO-SCHMIEDE</span>
+          <div class="modal-tabs" style="flex-wrap:nowrap">
+            <button id="btn-forge-tab-main" class="tab-btn" style="white-space:nowrap">Schmiede (MK-VIII)</button>
+            <button class="tab-btn active" style="white-space:nowrap;color:#fb923c">🔥 Prägungen</button>
+          </div>
+          <span style="font-family:var(--font-pixel);font-size:11px;color:var(--accent-amber);white-space:nowrap">${this.state.credits} CR</span>
+          <button id="modal-close-btn" class="modal-close" style="white-space:nowrap">ESC ✕</button>
+        </div>
+        <div class="modal-body" style="display:flex;flex-direction:column;gap:10px">
+          <div class="npc-banner" style="border-color:rgba(192,132,252,0.45)">
+            <img src="/art/sprites/item_rift_catalyst.png" alt="Rift-Katalysator" style="width:46px;height:46px;image-rendering:pixelated" />
+            <div>
+              <strong style="font-family:var(--font-pixel);font-size:10.5px;color:#e879f9">RIFT-ELEMENTARPRÄGUNGEN · ${wMeta.name.toUpperCase()}</strong>
+              <div style="font-size:11.5px;color:var(--text-muted);margin-top:3px">
+                Finde <strong>Rift-Katalysatoren</strong> in instabilen 🌀 <strong>Rift-Rissen</strong> mitten in Sektoren oder in der <strong>∞ Unendlichen Spirale</strong>, um deinen Waffen aktive Elementarkräfte einzuprägen!
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+            <span style="font-family:var(--font-pixel);font-size:9px;color:var(--text-muted)">WAFFE:</span>
+            ${wepPillsHtml}
+          </div>
+          <div class="upgrade-list">${cardsHtml}</div>
+        </div>
+      </div>
+    `);
+
+    this.modalEl.querySelector('#btn-forge-tab-main')?.addEventListener('click', () => {
+      sound.playUiClick();
+      this.openStationShopModal('forge');
+    });
+
+    this.modalEl.querySelectorAll<HTMLElement>('[data-inf-wep]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        sound.playUiClick();
+        this.openForgeInfusionsModal(btn.dataset.infWep as WeaponId);
+      });
+    });
+
+    this.modalEl.querySelectorAll<HTMLElement>('[data-inf-unlock]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const infId = btn.dataset.infUnlock as Exclude<InfusionId, 'none'>;
+        const res = this.state.unlockAndEquipInfusion(activeWep, infId);
+        if (res.ok) {
+          const def = getInfusionDef(infId);
+          sound.playUpgrade();
+          this.toast(`${def?.icon ?? '🔥'} ${wMeta.name} mit ${def?.name ?? infId} geprägt!`, 'good');
+          this.renderHud();
+          this.openForgeInfusionsModal(activeWep);
+        } else {
+          this.toast(res.error ?? 'Prägung fehlgeschlagen', 'warn');
+        }
+      });
+    });
+
+    this.modalEl.querySelectorAll<HTMLElement>('[data-inf-equip]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const infId = btn.dataset.infEquip as Exclude<InfusionId, 'none'>;
+        if (this.state.equipInfusion(activeWep, infId)) {
+          const def = getInfusionDef(infId);
+          sound.playWeaponSwap();
+          this.toast(`${def?.icon ?? '🔥'} ${def?.name ?? infId} auf ${wMeta.name} aktiviert!`, 'good');
+          this.renderHud();
+          this.openForgeInfusionsModal(activeWep);
+        }
+      });
+    });
+
+    this.modalEl.querySelector('[data-inf-remove]')?.addEventListener('click', () => {
+      this.state.equipInfusion(activeWep, 'none');
+      sound.playUiClick();
+      this.toast(`Prägung von ${wMeta.name} entfernt.`, 'info');
+      this.renderHud();
+      this.openForgeInfusionsModal(activeWep);
+    });
+  }
+
+  // ==================== 5. TIEFENRAUM-TOR AUSWAHL (OMEGA vs. ∞ UNENDLICHE SPIRALE) ====================
+  public openOmegaGateModal(onStartOmega: () => void, onStartEndlessRift: () => void): void {
+    const spiralUnlocked = this.state.omegaCleared;
+    const bestSpiral = this.state.records.deepestRiftFloor ?? 0;
+
+    this.showModalHtml(`
+      <div class="modal-window" style="max-width:600px">
+        <div class="modal-header">
+          <span class="modal-title" style="color:#fde047">🌌 5. TIEFENRAUM-TOR · ZIEL WÄHLEN</span>
+          <button id="modal-close-btn" class="modal-close">ESC ✕</button>
+        </div>
+        <div class="modal-body" style="display:flex;flex-direction:column;gap:12px">
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.45">
+            Alle 4 Sektor-Siegel glühen im Einklang. Wähle dein Ziel jenseits des 5. Tiefenraum-Tors:
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div class="inspector-box" style="gap:8px;border-color:rgba(253,224,71,0.55);background:rgba(250,204,21,0.07)">
+              <div style="font-family:var(--font-pixel);font-size:11px;color:#fde047">🌌 OMEGA-ANOMALIE</div>
+              <div style="font-size:11.5px;color:#e2e8f0;line-height:1.45">
+                Die klassische 5.-Tor-Prüfung gegen <strong>★ OMEGA STERNEN-ARCHON</strong>. Schaltet das Finale, New Game+ &amp; den Omega-Anzug frei.
+              </div>
+              <div style="font-size:10.5px;color:var(--text-muted)">
+                Bestzeit: <strong style="color:#38e8d4">${formatDurationSec(this.state.records.bestSectorClearSec[5])}</strong>
+              </div>
+              <button id="btn-launch-omega-classic" class="btn btn-primary" style="margin-top:auto">🌌 Omega starten</button>
+            </div>
+
+            <div class="inspector-box" style="gap:8px;border-color:${spiralUnlocked ? 'rgba(192,132,252,0.75)' : 'rgba(100,116,139,0.4)'};background:${spiralUnlocked ? 'rgba(139,92,246,0.12)' : 'rgba(15,23,42,0.55)'}">
+              <div style="font-family:var(--font-pixel);font-size:11px;color:${spiralUnlocked ? '#e879f9' : '#94a3b8'}">🌀 ∞ UNENDLICHE SPIRALE</div>
+              <div style="font-size:11.5px;color:${spiralUnlocked ? '#e2e8f0' : 'var(--text-muted)'};line-height:1.45">
+                Endlose Rift-Ebenen (E1 → ∞) mit Elite-Mutatoren, Bossen alle 3 Ebenen, <strong>Singularitäts-Relikten</strong> &amp; eigener Rangliste!
+              </div>
+              <div style="font-size:10.5px;color:var(--text-muted)">
+                Rekord: <strong style="color:#e879f9">${bestSpiral > 0 ? `∞ Ebene ${bestSpiral}` : 'Noch nicht betreten'}</strong>
+              </div>
+              ${
+                spiralUnlocked
+                  ? `<button id="btn-launch-endless-spiral" class="btn btn-primary" style="margin-top:auto;background:rgba(168,85,247,0.35);border-color:#c084fc;color:#f5d0fe">🌀 Spirale betreten</button>`
+                  : `<button class="btn" disabled style="margin-top:auto">🔒 Besiege erst Omega</button>`
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    `);
+
+    this.modalEl.querySelector('#btn-launch-omega-classic')?.addEventListener('click', () => {
+      sound.playWarp();
+      this.closeModal();
+      onStartOmega();
+    });
+
+    this.modalEl.querySelector('#btn-launch-endless-spiral')?.addEventListener('click', () => {
+      sound.playWarp();
+      this.closeModal();
+      onStartEndlessRift();
     });
   }
 
@@ -1713,44 +1944,53 @@ export class UIManager {
   // ==================== EXPEDITION SUMMARY MODAL ====================
   public openRunSummaryModal(summary: RunSummary): void {
     const sec = summary.sector ?? 1;
-    const title = summary.omegaCleared
-      ? '🌌 OMEGA-ANOMALIE BEZWUNGEN! (FINALE)'
-      : summary.sector4Cleared
-        ? '👑 SEKTOR 4 BEZWUNGEN!'
-        : summary.sector3Cleared
-          ? '🔥 SEKTOR 3 BEZWUNGEN!'
-          : summary.sector2Cleared
-            ? '★ SEKTOR 2 BEZWUNGEN!'
-            : summary.sector1Cleared
-              ? '★ SEKTOR 1 BEZWUNGEN!'
-              : summary.reason === 'boss_victory'
-                ? 'TRIUMPHALE EXTRAKTION!'
+    const title = summary.isEndlessRift
+      ? summary.victory
+        ? `🌀 ∞ SPIRALE · EBENE ${summary.riftDepthReached ?? summary.floorReached} EXTRAHIERT!`
+        : `🌀 IN DER SPIRALE (EBENE ${summary.riftDepthReached ?? summary.floorReached}) GEFALLEN`
+      : summary.omegaCleared
+        ? '🌌 OMEGA-ANOMALIE BEZWUNGEN! (FINALE)'
+        : summary.sector4Cleared
+          ? '👑 SEKTOR 4 BEZWUNGEN!'
+          : summary.sector3Cleared
+            ? '🔥 SEKTOR 3 BEZWUNGEN!'
+            : summary.sector2Cleared
+              ? '★ SEKTOR 2 BEZWUNGEN!'
+              : summary.sector1Cleared
+                ? '★ SEKTOR 1 BEZWUNGEN!'
+                : summary.reason === 'boss_victory'
+                  ? 'TRIUMPHALE EXTRAKTION!'
+                  : summary.victory
+                    ? 'EXTRAKTION ERFOLGREICH!'
+                    : sec === 5
+                      ? 'IN DER OMEGA-ANOMALIE GEFALLEN'
+                      : sec === 4
+                        ? 'IM ÄLTESTEN-MONOLITH GEFALLEN'
+                        : sec === 3
+                          ? 'IN DER SOLAR-GIESSEREI GEFALLEN'
+                          : sec === 2
+                            ? 'IM KRISTALL-NEBEL GEFALLEN (0 HP)'
+                            : 'IM WRACK GEFALLEN (0 HP)';
+    const titleColor = summary.isEndlessRift
+      ? summary.victory
+        ? '#e879f9'
+        : 'var(--accent-coral)'
+      : summary.omegaCleared
+        ? '#fde047'
+        : summary.sector4Cleared
+          ? '#38e8d4'
+          : summary.sector3Cleared
+            ? '#fb923c'
+            : summary.sector2Cleared
+              ? '#e879f9'
+              : summary.sector1Cleared
+                ? '#fde047'
                 : summary.victory
-                  ? 'EXTRAKTION ERFOLGREICH!'
-                  : sec === 5
-                    ? 'IN DER OMEGA-ANOMALIE GEFALLEN'
-                    : sec === 4
-                      ? 'IM ÄLTESTEN-MONOLITH GEFALLEN'
-                      : sec === 3
-                        ? 'IN DER SOLAR-GIESSEREI GEFALLEN'
-                        : sec === 2
-                          ? 'IM KRISTALL-NEBEL GEFALLEN (0 HP)'
-                          : 'IM WRACK GEFALLEN (0 HP)';
-    const titleColor = summary.omegaCleared
-      ? '#fde047'
-      : summary.sector4Cleared
-        ? '#38e8d4'
-        : summary.sector3Cleared
-          ? '#fb923c'
-          : summary.sector2Cleared
-            ? '#e879f9'
-            : summary.sector1Cleared
-              ? '#fde047'
-              : summary.victory
-                ? 'var(--accent-emerald)'
-                : 'var(--accent-coral)';
-    const floorLabel =
-      sec === 5
+                  ? 'var(--accent-emerald)'
+                  : 'var(--accent-coral)';
+    const floorLabel = summary.isEndlessRift
+      ? `∞ Spirale · Ebene ${summary.riftDepthReached ?? summary.floorReached}`
+      : sec === 5
         ? '5. Tor · Omega'
         : `S${sec} · ${
             summary.floorReached === 3
@@ -2417,7 +2657,7 @@ export class UIManager {
 
   // ==================== GALAKTISCHE KAPITÄNS-TAFEL (FIREBASE SCOREBOARD, REKORDE & CLOUD-SYNC) ====================
   private guildTab: 'leaderboard' | 'feed' | 'account' = 'leaderboard';
-  private guildSort: 'progress' | 'speed_sector' | 'speed_days' | 'merchant' = 'progress';
+  private guildSort: 'progress' | 'speed_sector' | 'speed_days' | 'merchant' | 'deepest_rift' = 'progress';
   private guildSectorFilter: SectorId = 1;
   private guildLeaderboardCache: LeaderboardEntry[] = [];
   private guildFeedCache: ActivityFeedEntry[] = [];
@@ -2504,11 +2744,20 @@ export class UIManager {
       if (this.guildSort === 'merchant') {
         return copy.sort((a, b) => b.totalEarned - a.totalEarned || b.totalSold - a.totalSold);
       }
+      if (this.guildSort === 'deepest_rift') {
+        return copy.sort(
+          (a, b) =>
+            (b.deepestRiftFloor ?? 0) - (a.deepestRiftFloor ?? 0) ||
+            b.ngPlusLevel - a.ngPlusLevel ||
+            b.bossDefeatedCount - a.bossDefeatedCount,
+        );
+      }
       // Default: Progress & NG+
       return copy.sort((a, b) => {
         const score = (e: LeaderboardEntry) =>
           e.ngPlusLevel * 10000 +
           (e.omegaCleared ? 4000 : 0) +
+          (e.deepestRiftFloor ?? 0) * 180 +
           e.sectorsCleared * 500 +
           e.achievementsCount * 40 +
           Math.min(500, Math.floor(e.totalEarned / 100));
@@ -2548,6 +2797,7 @@ export class UIManager {
           const isMe = r.uid === localUid;
           const suit = SUIT_THEMES[r.suitTheme] ?? SUIT_THEMES.classic;
           const wep = WEAPON_META[r.equippedWeapon] ?? WEAPON_META.blade;
+          const infDef = r.activeInfusion ? getInfusionDef(r.activeInfusion) : null;
           const rankColor = idx === 0 ? '#fde047' : idx === 1 ? '#e2e8f0' : idx === 2 ? '#fb923c' : '#64748b';
           const metricHtml =
             this.guildSort === 'speed_sector'
@@ -2573,18 +2823,24 @@ export class UIManager {
                        <div style="font-family:var(--font-pixel);font-size:11px;color:#fbbf24">${r.totalEarned.toLocaleString('de-DE')} Cr</div>
                        <div style="font-size:10px;color:var(--text-muted)">${r.totalSold} Relikte · Shop St. ${r.shopTier + 1}</div>
                      </div>`
-                  : `<div style="text-align:right">
-                       <div style="font-family:var(--font-pixel);font-size:10.5px;color:${r.omegaCleared ? '#fde047' : '#38e8d4'}">
-                         ${r.ngPlusLevel > 0 ? `NG+${r.ngPlusLevel} · ` : ''}${r.omegaCleared ? '🌌 OMEGA ★' : `${r.sectorsCleared}/4 Sektoren`}
-                       </div>
-                       <div style="font-size:10px;color:var(--text-muted)">${r.achievementsCount}/10 Erfolge · Tag ${r.day}</div>
-                     </div>`;
+                  : this.guildSort === 'deepest_rift'
+                    ? `<div style="text-align:right">
+                         <div style="font-family:var(--font-pixel);font-size:11px;color:#e879f9">${(r.deepestRiftFloor ?? 0) > 0 ? `🌀 ∞ EBENE ${r.deepestRiftFloor}` : '—'}</div>
+                         <div style="font-size:10px;color:var(--text-muted)">${infDef ? `${infDef.icon} ${infDef.name}` : 'Unendliche Spirale'}</div>
+                       </div>`
+                    : `<div style="text-align:right">
+                         <div style="font-family:var(--font-pixel);font-size:10.5px;color:${r.omegaCleared ? '#fde047' : '#38e8d4'}">
+                           ${r.ngPlusLevel > 0 ? `NG+${r.ngPlusLevel} · ` : ''}${r.omegaCleared ? '🌌 OMEGA ★' : `${r.sectorsCleared}/4 Sektoren`}
+                         </div>
+                         <div style="font-size:10px;color:var(--text-muted)">${r.achievementsCount}/${ACHIEVEMENT_DEFS.length} Erfolge · ${(r.deepestRiftFloor ?? 0) > 0 ? `∞ E${r.deepestRiftFloor}` : `Tag ${r.day}`}</div>
+                       </div>`;
 
           return `
             <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid ${isMe ? 'rgba(56,232,212,0.7)' : 'var(--border-steel)'};background:${isMe ? 'rgba(56,232,212,0.1)' : 'rgba(13,20,34,0.72)'}">
               <div style="font-family:var(--font-pixel);font-size:12px;width:24px;text-align:center;color:${rankColor}">#${idx + 1}</div>
               <span style="width:11px;height:11px;border-radius:50%;background:${suit.accent};box-shadow:0 0 8px ${suit.auraColor};flex-shrink:0" title="Anzug: ${suit.name}"></span>
               <img src="${wep.iconUrl}" alt="${wep.shortName}" style="width:20px;height:20px;image-rendering:pixelated;flex-shrink:0" title="Waffe: ${wep.name}" />
+              ${infDef ? `<span style="font-size:12px;flex-shrink:0" title="Prägung: ${infDef.name}">${infDef.icon}</span>` : ''}
               <div style="flex:1;min-width:0">
                 <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
                   <strong style="font-family:var(--font-pixel);font-size:10.5px;color:${isMe ? '#38e8d4' : '#f8fafc'}">${escapeHtml(r.captainName)}</strong>
@@ -2608,17 +2864,18 @@ export class UIManager {
                 ${statusPill}
               </div>
               <div style="font-size:11.5px;color:var(--text-muted);margin-top:3px">
-                Vergleiche Fortschritt, NG+-Speedruns in Tag/Nacht-Zyklen, schnellste Sektor-Clears (mm:ss) &amp; Astro-Barter-Umsätze aller angemeldeten Kapitäne!
+                Vergleiche Fortschritt, ∞ Rift-Tiefe, NG+-Speedruns in Tagen, schnellste Sektor-Clears (mm:ss) &amp; Händler-Umsätze!
               </div>
             </div>
           </div>
 
           <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:space-between">
             <div style="display:flex;gap:5px;flex-wrap:wrap">
-              <button class="btn ${this.guildSort === 'progress' ? 'btn-primary' : ''}" data-gsort="progress" style="padding:4px 8px;font-size:9.5px">★ Fortschritt &amp; NG+</button>
-              <button class="btn ${this.guildSort === 'speed_sector' ? 'btn-primary' : ''}" data-gsort="speed_sector" style="padding:4px 8px;font-size:9.5px">⏱ Sektor-Bestzeit</button>
-              <button class="btn ${this.guildSort === 'speed_days' ? 'btn-primary' : ''}" data-gsort="speed_days" style="padding:4px 8px;font-size:9.5px">☀ Schnellste Tage</button>
-              <button class="btn ${this.guildSort === 'merchant' ? 'btn-primary' : ''}" data-gsort="merchant" style="padding:4px 8px;font-size:9.5px">💰 Händler-Ruhm</button>
+              <button class="btn ${this.guildSort === 'progress' ? 'btn-primary' : ''}" data-gsort="progress" style="padding:4px 7px;font-size:9px">★ Fortschritt</button>
+              <button class="btn ${this.guildSort === 'deepest_rift' ? 'btn-primary' : ''}" data-gsort="deepest_rift" style="padding:4px 7px;font-size:9px">🌀 Tiefster Rift</button>
+              <button class="btn ${this.guildSort === 'speed_sector' ? 'btn-primary' : ''}" data-gsort="speed_sector" style="padding:4px 7px;font-size:9px">⏱ Sektor-Zeit</button>
+              <button class="btn ${this.guildSort === 'speed_days' ? 'btn-primary' : ''}" data-gsort="speed_days" style="padding:4px 7px;font-size:9px">☀ Tage</button>
+              <button class="btn ${this.guildSort === 'merchant' ? 'btn-primary' : ''}" data-gsort="merchant" style="padding:4px 7px;font-size:9px">💰 Händler</button>
             </div>
             ${configured ? `<button id="btn-guild-refresh" class="btn" style="padding:4px 8px;font-size:9.5px">${this.guildLoading ? 'Lädt…' : '↻ Aktualisieren'}</button>` : ''}
           </div>
@@ -2704,6 +2961,7 @@ export class UIManager {
             <span>☀ S4-Rekord: <strong style="color:#fde047">${rec.fastestSector4Days !== null ? `Tag ${rec.fastestSector4Days}` : '—'}</strong></span>
             <span>🌌 Omega-Rekord: <strong style="color:#fde047">${rec.fastestOmegaDays !== null ? `Tag ${rec.fastestOmegaDays}` : '—'}</strong></span>
             <span>♾️ NG+-Rekord: <strong style="color:#c084fc">${rec.fastestNgPlusDays !== null ? `Tag ${rec.fastestNgPlusDays}` : '—'}</strong></span>
+            <span>🌀 Tiefster Rift: <strong style="color:#e879f9">${(rec.deepestRiftFloor ?? 0) > 0 ? `∞ Ebene ${rec.deepestRiftFloor}` : '—'}</strong></span>
             <span>🌓 Zyklen: <strong style="color:#f8fafc">${rec.totalCyclesPlayed}</strong></span>
           </div>
         </div>
@@ -2806,7 +3064,7 @@ export class UIManager {
     this.modalEl.querySelectorAll<HTMLElement>('[data-gsort]').forEach((btn) => {
       btn.addEventListener('click', () => {
         sound.playUiClick();
-        this.guildSort = btn.dataset.gsort as 'progress' | 'speed_sector' | 'speed_days' | 'merchant';
+        this.guildSort = btn.dataset.gsort as 'progress' | 'speed_sector' | 'speed_days' | 'merchant' | 'deepest_rift';
         this.renderGuildBoardModal();
       });
     });

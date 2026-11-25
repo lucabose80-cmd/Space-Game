@@ -266,4 +266,6 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
   { id: 'all_companions', icon: '🤖', title: 'Drohnen-Geschwader', desc: 'Schalte alle 4 Begleiter-Drohnen frei.' },
   { id: 'arsenal_6', icon: '⚔️', title: 'Waffen-Sammler', desc: 'Schmiede alle 6 Waffenklassen bei Kael.' },
   { id: 'ng_plus', icon: '♾️', title: 'Sternen-Legende (NG+)', desc: 'Starte einen New-Game+-Durchlauf.' },
+  { id: 'infusion_master', icon: '🔥', title: 'Elementar-Schmied', desc: 'Präge eine Waffe bei Kael mit einer Rift-Elementarkraft.' },
+  { id: 'spiral_walker', icon: '🌀', title: 'Spiral-Läufer', desc: 'Erreiche Ebene 6 in der Unendlichen Spirale (Endlos-Rift).' },
 ];

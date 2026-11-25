@@ -123,6 +123,18 @@ export interface DungeonRoom {
   secretParentKey?: string;
   secretReturnX?: number;
   secretReturnY?: number;
+  /** Rare unstable Rift Portal spawning inside a cleared combat room (Milestone 7) */
+  riftPortal?: {
+    x: number;
+    y: number;
+    targetKey: string;
+    cleared: boolean;
+  } | null;
+  /** True when this room is a Rift Anomaly chamber */
+  isRiftChamber?: boolean;
+  riftParentKey?: string;
+  riftWave2Spawns?: EnemySpawn[];
+  riftWave2Triggered?: boolean;
 }
 
 export interface DungeonFloor {
@@ -133,6 +145,9 @@ export interface DungeonFloor {
   startKey: string;
   bossKey: string;
   treasureKey: string;
+  isEndlessRift?: boolean;
+  riftDepth?: number;
+  visualSector?: 1 | 2 | 3 | 4;
 }
 
 // Playable room inner bounds matching public/art/dungeon_bg*.png (480x270 logical space)
@@ -740,6 +755,84 @@ export function generateSectorFloor(
     });
   }
 
+  // ==================== MILESTONE 7: UNSTABLE RIFT-RISS IN REGULAR SECTORS ====================
+  if (sector <= 4) {
+    const combatCandidates = [...rooms.values()].filter(
+      (r) => r.type === 'combat' && !r.secretParentKey && r.chasms.length === 0,
+    );
+    const shouldSpawnRift = floorIndex >= 2 || Math.random() < 0.55;
+    if (shouldSpawnRift && combatCandidates.length > 0) {
+      const host = combatCandidates[Math.floor(Math.random() * combatCandidates.length)];
+      const riftKey = `rift:${host.key}`;
+      host.riftPortal = {
+        x: ROOM_CENTER_X,
+        y: ROOM_CENTER_Y - 6,
+        targetKey: riftKey,
+        cleared: false,
+      };
+      const eliteWave1: EnemySpawn['kind'][] =
+        sector === 1
+          ? ['phase_stalker', 'prism_drone', 'drone_arc']
+          : sector === 2
+            ? ['void_crawler', 'ember_stalker', 'shard_sniper']
+            : sector === 3
+              ? ['forge_golem', 'star_lancer', 'magma_mortar']
+              : ['monolith_guard', 'void_wraith', 'star_lancer'];
+      const eliteWave2: EnemySpawn['kind'][] =
+        sector === 1
+          ? ['crystal_crawler', 'resonance_warden']
+          : sector === 2
+            ? ['solar_drone', 'forge_golem']
+            : sector === 3
+              ? ['void_wraith', 'monolith_guard']
+              : ['monolith_guard', 'chrono_eye', 'void_wraith'];
+
+      rooms.set(riftKey, {
+        key: riftKey,
+        gx: host.gx,
+        gy: host.gy,
+        depth: host.depth + 2,
+        type: 'combat',
+        doors: { north: false, south: false, east: false, west: false },
+        visited: false,
+        cleared: false,
+        obstacles: [
+          { x: ROOM_LEFT + 54, y: ROOM_TOP + 34, w: 20, h: 20, kind: 'monolith_obelisk' },
+          { x: ROOM_RIGHT - 74, y: ROOM_TOP + 34, w: 20, h: 20, kind: 'monolith_obelisk' },
+          { x: ROOM_LEFT + 54, y: ROOM_BOTTOM - 56, w: 20, h: 20, kind: 'monolith_obelisk' },
+          { x: ROOM_RIGHT - 74, y: ROOM_BOTTOM - 56, w: 20, h: 20, kind: 'monolith_obelisk' },
+        ],
+        chasms: [],
+        pods: [
+          { id: podCounter++, x: ROOM_CENTER_X - 78, y: ROOM_CENTER_Y, hp: 1, broken: false },
+          { id: podCounter++, x: ROOM_CENTER_X + 78, y: ROOM_CENTER_Y, hp: 1, broken: false },
+        ],
+        hazards: [],
+        chest: {
+          x: ROOM_CENTER_X,
+          y: ROOM_TOP + 42,
+          opened: false,
+          rare: true,
+          secret: true,
+        },
+        spawns: [
+          { kind: eliteWave1[0], x: ROOM_CENTER_X - 66, y: ROOM_CENTER_Y - 26 },
+          { kind: eliteWave1[1], x: ROOM_CENTER_X + 66, y: ROOM_CENTER_Y - 26 },
+          { kind: eliteWave1[2], x: ROOM_CENTER_X, y: ROOM_TOP + 46 },
+        ],
+        riftWave2Spawns: eliteWave2.map((k, idx) => ({
+          kind: k,
+          x: ROOM_CENTER_X + (idx - (eliteWave2.length - 1) / 2) * 86,
+          y: ROOM_CENTER_Y - 28,
+        })),
+        riftWave2Triggered: false,
+        tileSeed: Math.floor(Math.random() * 10000),
+        isRiftChamber: true,
+        riftParentKey: host.key,
+      });
+    }
+  }
+
   const floorNames =
     sector === 5
       ? FLOOR_NAMES_S5
@@ -759,6 +852,75 @@ export function generateSectorFloor(
     startKey: roomKey(0, 0),
     bossKey,
     treasureKey,
+  };
+}
+
+/**
+ * Generates an Endless Spiral ("Die Unendliche Spirale") floor for Milestone 7.
+ * Cycles visual biome S1..S4, mixes elite cross-sector waves, and spawns a scaling Boss every 3rd floor!
+ */
+export function generateEndlessRiftFloor(riftDepth: number): DungeonFloor {
+  const depthClean = Math.max(1, Math.floor(riftDepth));
+  const visualSector = (((depthClean - 1) % 4) + 1) as 1 | 2 | 3 | 4;
+  const isBossDepth = depthClean % 3 === 0;
+  const baseFloor = generateSectorFloor(visualSector, isBossDepth ? 3 : 2, isBossDepth ? 5 : 6);
+
+  // Swap boss room spawns: on every 3rd floor keep a cycling Sector Endboss; otherwise a fierce Mixed Rift Elite pack
+  const bossRoom = baseFloor.rooms.get(baseFloor.bossKey);
+  if (bossRoom) {
+    if (isBossDepth) {
+      const cycleIdx = Math.floor((depthClean - 1) / 3) % 4;
+      const bossPool: EnemySpawn['kind'][] = [
+        'boss_leviathan',
+        'boss_prisma_archon',
+        'boss_vulkan_titan',
+        'boss_star_archon',
+      ];
+      const chosenBoss = bossPool[cycleIdx];
+      bossRoom.spawns = [
+        {
+          kind: chosenBoss,
+          x: ROOM_CENTER_X,
+          y: chosenBoss === 'boss_leviathan' ? ROOM_TOP + 34 : ROOM_CENTER_Y - 12,
+        },
+      ];
+    } else {
+      const mixedPacks: EnemySpawn['kind'][][] = [
+        ['phase_stalker', 'prism_drone', 'ember_stalker', 'shard_sniper'],
+        ['forge_golem', 'void_wraith', 'resonance_warden', 'solar_drone'],
+        ['monolith_guard', 'star_lancer', 'magma_mortar', 'void_crawler'],
+      ];
+      const pack = mixedPacks[(depthClean - 1) % mixedPacks.length];
+      bossRoom.spawns = pack.map((k, idx) => ({
+        kind: k,
+        x: ROOM_CENTER_X + (idx % 2 === 0 ? -74 : 74),
+        y: ROOM_CENTER_Y + (idx < 2 ? -30 : 24),
+      }));
+    }
+  }
+
+  // Remove mid-sector rift portals inside Endless Spiral (you're already inside the Rift!)
+  for (const r of baseFloor.rooms.values()) {
+    r.riftPortal = null;
+  }
+
+  const biomeLabel =
+    visualSector === 1
+      ? 'Wrack-Echo'
+      : visualSector === 2
+        ? 'Kristall-Echo'
+        : visualSector === 3
+          ? 'Solar-Echo'
+          : 'Astral-Echo';
+
+  return {
+    ...baseFloor,
+    sector: 5,
+    floorIndex: isBossDepth ? 3 : 2,
+    floorName: `∞ SPIRALE E${depthClean} · ${biomeLabel}${isBossDepth ? ' (BOSS)' : ''}`,
+    isEndlessRift: true,
+    riftDepth: depthClean,
+    visualSector,
   };
 }
 

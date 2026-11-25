@@ -1,5 +1,6 @@
 import { COMPANION_DEFS } from '../data/companions';
-import { getItemDef, rollLootItem } from '../data/items';
+import { getInfusionDef, RIFT_MUTATOR_LIST, RIFT_MUTATORS } from '../data/infusions';
+import { getItemDef, rollLootItem, rollRiftLootItem } from '../data/items';
 import { WEAPON_META } from '../data/upgrades';
 import { sound } from '../engine/audio';
 import type { InputManager } from '../engine/input';
@@ -10,8 +11,9 @@ import {
   processDefeatPenalty,
   processSafeReturnEffects,
 } from '../systems/inventory';
-import type { Direction, SectorId, WeaponId } from '../types';
+import type { Direction, RiftMutatorId, SectorId, WeaponId } from '../types';
 import {
+  generateEndlessRiftFloor,
   generateSector1Floor,
   generateSectorFloor,
   ROOM_BOTTOM,
@@ -40,10 +42,12 @@ import type {
   FloorDecal,
   FloatingNum,
   LaserBeamFx,
+  LightningArcFx,
   LootDrop,
   Particle,
   Projectile,
   ShockwaveFx,
+  SiphonOrbFx,
   SlashHitFx,
   SpearThrustFx,
   WeaponSwing,
@@ -142,7 +146,16 @@ export class DungeonScene {
   public afterimages: Afterimage[] = [];
   public particles: Particle[] = [];
   public floats: FloatingNum[] = [];
+  public lightningArcs: LightningArcFx[] = [];
+  public siphonOrbs: SiphonOrbFx[] = [];
+  public siphonHitCounter = 0;
   public nextEnemyId = 1;
+
+  // Milestone 7: Endless Rift ("Die Unendliche Spirale") & Rift Chambers
+  public isEndlessRift = false;
+  public riftDepth = 0;
+  public activeRiftMutator: RiftMutatorId | null = null;
+  public riftLootMultiplier = 1;
 
   // Juice & transitions
   public hitStop = 0;
@@ -179,6 +192,13 @@ export class DungeonScene {
 
   public startRun(sector: SectorId = 1): void {
     this.currentSector = sector;
+    this.isEndlessRift = false;
+    this.riftDepth = 0;
+    this.activeRiftMutator = null;
+    this.riftLootMultiplier = 1;
+    this.siphonHitCounter = 0;
+    this.lightningArcs = [];
+    this.siphonOrbs = [];
     this.state.restoreFullVitals();
     this.runElapsedSec = 0;
     this.roomsCleared = 0;
@@ -194,6 +214,95 @@ export class DungeonScene {
     this.haloChargeTimer = 0;
     this.finished = false;
     this.startFloor(sector === 5 ? 3 : 1, true, sector);
+  }
+
+  public startEndlessRift(): void {
+    this.currentSector = 5;
+    this.isEndlessRift = true;
+    this.riftDepth = 1;
+    this.siphonHitCounter = 0;
+    this.lightningArcs = [];
+    this.siphonOrbs = [];
+    this.state.restoreFullVitals();
+    this.runElapsedSec = 0;
+    this.roomsCleared = 0;
+    this.enemiesDefeated = 0;
+    this.maxFloorReached = 1;
+    this.sector1ClearedInRun = false;
+    this.sector2ClearedInRun = false;
+    this.sector3ClearedInRun = false;
+    this.sector4ClearedInRun = false;
+    this.omegaClearedInRun = false;
+    this.lumaRoomCounter = 0;
+    this.haloShieldReady = this.state.equippedCompanion === 'halo';
+    this.haloChargeTimer = 0;
+    this.finished = false;
+    this.startEndlessRiftFloor(1, true);
+  }
+
+  public startEndlessRiftFloor(depth: number, freshRun = false): void {
+    this.isEndlessRift = true;
+    this.currentSector = 5;
+    this.riftDepth = Math.max(1, Math.floor(depth));
+    this.currentFloor = this.riftDepth % 3 === 0 ? 3 : 2;
+    this.maxFloorReached = Math.max(this.maxFloorReached, this.riftDepth);
+    this.riftLootMultiplier = 1 + Math.floor((this.riftDepth - 1) / 3) * 0.25;
+    this.activeRiftMutator = RIFT_MUTATOR_LIST[(this.riftDepth - 1 + Math.floor(Math.random() * 2)) % RIFT_MUTATOR_LIST.length];
+
+    this.floor = generateEndlessRiftFloor(this.riftDepth);
+    this.floorBossDefeated = false;
+    this.warpChannel = 0;
+    this.invulnTimer = 0.6;
+    this.dashCooldown = 0;
+    this.dashTimer = 0;
+    this.lanceChargeTimer = 0;
+    this.cometSlamTimer = 0;
+    this.discusOrbitTimer = 0;
+    this.attackCooldown = 0;
+    this.specialCooldown = 0;
+    this.shieldActive = false;
+    this.shieldOpenAnim = 0;
+    this.shieldOverheatTimer = 0;
+    this.shieldOverheatMsgCd = 0;
+    this.haloShieldReady = this.state.equippedCompanion === 'halo';
+    this.haloChargeTimer = 0;
+    this.enterRoom(this.floor.startKey, null);
+    this.spawnBurst(this.playerX, this.playerY, '#c084fc', 28);
+
+    const mut = RIFT_MUTATORS[this.activeRiftMutator];
+    const multPct = Math.round((this.riftLootMultiplier - 1) * 100);
+    this.callbacks.onToast(
+      freshRun
+        ? `🌀 ∞ UNENDLICHE SPIRALE — Ebene ${this.riftDepth}! Mutator: ${mut.icon} ${mut.name} (${mut.description})`
+        : `🌀 Ebene ${this.riftDepth} erreicht! ${mut.icon} ${mut.name}${multPct > 0 ? ` · +${multPct} % Bonus-Beute!` : ''}`,
+      this.riftDepth % 3 === 0 ? 'warn' : 'info',
+    );
+    this.callbacks.onHudDirty();
+  }
+
+  public enterRiftChamber(riftKey: string): void {
+    const room = this.floor.rooms.get(riftKey);
+    if (!room) return;
+    sound.playWarp();
+    this.enterRoom(riftKey, null);
+    this.playerX = ROOM_CENTER_X;
+    this.playerY = ROOM_BOTTOM - 34;
+    this.lastSafeX = this.playerX;
+    this.lastSafeY = this.playerY;
+    this.spawnBurst(this.playerX, this.playerY, '#c084fc', 24);
+    this.callbacks.onToast('🌀 INSTABILER RIFT! Besiege 2 Elite-Wellen für garantierte Rift-Katalysatoren!', 'warn');
+  }
+
+  public exitRiftChamber(): void {
+    const parentKey = this.currentRoom.riftParentKey;
+    if (!parentKey) return;
+    sound.playWarp();
+    this.enterRoom(parentKey, null);
+    this.playerX = ROOM_CENTER_X;
+    this.playerY = ROOM_CENTER_Y + 28;
+    this.lastSafeX = this.playerX;
+    this.lastSafeY = this.playerY;
+    this.spawnBurst(this.playerX, this.playerY, '#38e8d4', 18);
   }
 
   public startFloor(floorIndex: 1 | 2 | 3, freshRun = false, sector: SectorId = this.currentSector): void {
@@ -504,33 +613,48 @@ export class DungeonScene {
     const ngMult = 1 + this.state.ngPlusLevel * 0.35;
     const floorScale = (this.currentFloor === 1 ? 1.0 : this.currentFloor === 2 ? 1.24 : 1.48) * ngMult;
     const baseScale = floorScale * (1 + Math.min(3, this.state.bossDefeatedCount) * 0.08);
+    const inRiftChamber = Boolean(this.currentRoom?.isRiftChamber);
+    const riftMutator: RiftMutatorId | undefined = this.isEndlessRift
+      ? (this.activeRiftMutator ?? undefined)
+      : inRiftChamber
+        ? RIFT_MUTATOR_LIST[Math.floor(Math.random() * RIFT_MUTATOR_LIST.length)]
+        : undefined;
+    const riftHpMult = this.isEndlessRift
+      ? (1 + Math.max(0, this.riftDepth - 1) * 0.24) * (riftMutator === 'armored' ? 1.3 : 1.0)
+      : inRiftChamber
+        ? 1.16 * (riftMutator === 'armored' ? 1.25 : 1.0)
+        : 1.0;
 
-    const makeBase = (hp: number, radius: number): Enemy => ({
-      id: this.nextEnemyId++,
-      kind,
-      x,
-      y,
-      vx: 0,
-      vy: 0,
-      hp,
-      maxHp: hp,
-      radius,
-      flashTimer: 0,
-      aiTimer: 0.6 + Math.random() * 0.4,
-      phase: 0,
-      subBurst: 0,
-      burstDelay: 0,
-      moveDirX: Math.random() > 0.5 ? 1 : -1,
-      moveDirY: 0,
-      scurryTimer: 0,
-      chargeDirX: 0,
-      chargeDirY: 0,
-      chargeActive: 0,
-      telegraphTimer: 0,
-      aimAngle: Math.PI / 2,
-      summonThreshold: 0,
-      anim: Math.random() * 5,
-    });
+    const makeBase = (hp: number, radius: number): Enemy => {
+      const scaledHp = Math.max(10, Math.round(hp * riftHpMult));
+      return {
+        id: this.nextEnemyId++,
+        kind,
+        x,
+        y,
+        vx: 0,
+        vy: 0,
+        hp: scaledHp,
+        maxHp: scaledHp,
+        radius,
+        flashTimer: 0,
+        aiTimer: 0.6 + Math.random() * 0.4,
+        phase: 0,
+        subBurst: 0,
+        burstDelay: 0,
+        moveDirX: Math.random() > 0.5 ? 1 : -1,
+        moveDirY: 0,
+        scurryTimer: 0,
+        chargeDirX: 0,
+        chargeDirY: 0,
+        chargeActive: 0,
+        telegraphTimer: 0,
+        aimAngle: Math.PI / 2,
+        summonThreshold: 0,
+        anim: Math.random() * 5,
+        mutator: riftMutator,
+      };
+    };
 
     if (kind === 'slime') {
       const e = makeBase(Math.round(46 * baseScale), 8);
@@ -2434,6 +2558,7 @@ export class DungeonScene {
     ky: number,
     knockForce: number,
     piercing = false,
+    allowInfusion = true,
   ): void {
     // Shield-Drone & Resonance-Warden kinetic/crystal barriers reduce non-piercing hits along their shield arc!
     let finalAmt = amount;
@@ -2467,6 +2592,11 @@ export class DungeonScene {
       }
     }
 
+    // Cryo-Stasis shatter bonus (+10% damage against chilled targets)
+    if (e.cryoTimer && e.cryoTimer > 0) {
+      finalAmt = Math.round(finalAmt * 1.1);
+    }
+
     // Vex' Ionen-Kette passive Crit module (1.65x golden critical strike!)
     const stats = this.state.getStats();
     const isCrit = stats.critChance > 0 && Math.random() < stats.critChance;
@@ -2489,16 +2619,70 @@ export class DungeonScene {
     e.vx += kx * knockForce * resistance;
     e.vy += ky * knockForce * resistance;
 
+    const inf = allowInfusion ? this.state.getActiveInfusion() : 'none';
+    const infDef = getInfusionDef(inf);
+
     sound.playHit();
-    this.spawnBurst(e.x, e.y, isCrit ? '#fde047' : '#38e8d4', isCrit ? 10 : 6);
+    this.spawnBurst(
+      e.x,
+      e.y,
+      isCrit ? '#fde047' : infDef ? infDef.color : '#38e8d4',
+      isCrit ? 10 : 6,
+    );
     this.floats.push({
       x: e.x + (Math.random() - 0.5) * 8,
       y: e.y - e.radius - 4,
       text: isCrit ? `KRIT! ${finalAmt}` : `${finalAmt}`,
-      color: isCrit ? '#fde047' : '#f8fafc',
+      color: isCrit ? '#fde047' : infDef ? infDef.color : '#f8fafc',
       life: isCrit ? 0.85 : 0.65,
       maxLife: isCrit ? 0.85 : 0.65,
     });
+
+    // Apply Elementar-Prägung effects (Milestone 7)
+    if (inf === 'solar_burn') {
+      e.burnTimer = 3.0;
+      e.burnTickTimer = Math.min(e.burnTickTimer ?? 0.5, 0.5);
+      e.burnDps = Math.max(5, Math.round(finalAmt * 0.14));
+      this.spawnBurst(e.x, e.y, '#fb923c', 5);
+    } else if (inf === 'cryo_stasis') {
+      e.cryoTimer = 2.6;
+      this.spawnBurst(e.x, e.y, '#67e8f9', 5);
+    } else if (inf === 'ion_chain') {
+      const chainTargets = this.enemies
+        .filter((other) => other.id !== e.id && other.hp > 0 && Math.hypot(other.x - e.x, other.y - e.y) <= 94)
+        .sort((a, b) => Math.hypot(a.x - e.x, a.y - e.y) - Math.hypot(b.x - e.x, b.y - e.y))
+        .slice(0, 2);
+      const chainDmg = Math.max(4, Math.round(finalAmt * 0.38));
+      for (const target of chainTargets) {
+        this.lightningArcs.push({
+          x1: e.x,
+          y1: e.y,
+          x2: target.x,
+          y2: target.y,
+          life: 0.22,
+          maxLife: 0.22,
+          color: '#fde047',
+        });
+        this.damageEnemy(target, chainDmg, 0, 0, 0, true, false);
+      }
+    } else if (inf === 'void_siphon') {
+      this.siphonHitCounter += 1;
+      if (this.siphonHitCounter >= 4) {
+        this.siphonHitCounter = 0;
+        const healHp = Math.max(4, Math.round(stats.maxHp * 0.04));
+        const ang = Math.atan2(this.playerY - e.y, this.playerX - e.x) + (Math.random() - 0.5) * 0.8;
+        this.siphonOrbs.push({
+          x: e.x,
+          y: e.y,
+          vx: Math.cos(ang) * 90,
+          vy: Math.sin(ang) * 90,
+          life: 2.2,
+          healHp,
+          healEn: 14,
+        });
+        this.spawnBurst(e.x, e.y, '#e879f9', 7);
+      }
+    }
 
     if (e.hp <= 0) {
       this.onEnemyKilled(e);
@@ -2508,6 +2692,26 @@ export class DungeonScene {
   public onEnemyKilled(e: Enemy): void {
     const idx = this.enemies.indexOf(e);
     if (idx !== -1) this.enemies.splice(idx, 1);
+
+    // 🔥 Solar-Brand Kill-Nova: burning enemies explode in a fiery shockwave on defeat!
+    if (e.burnTimer && e.burnTimer > 0) {
+      this.shockwaves.push({
+        x: e.x,
+        y: e.y,
+        maxRadius: 56,
+        color: '#fb923c',
+        life: 0.3,
+        maxLife: 0.3,
+      });
+      this.spawnBurst(e.x, e.y, '#fb923c', 16);
+      const novaDmg = Math.max(8, Math.round(e.maxHp * 0.22));
+      const victims = [...this.enemies].filter(
+        (other) => other.hp > 0 && Math.hypot(other.x - e.x, other.y - e.y) <= 58,
+      );
+      for (const v of victims) {
+        this.damageEnemy(v, novaDmg, (v.x - e.x) / 30, (v.y - e.y) / 30, 80, true, false);
+      }
+    }
 
     this.enemiesDefeated += 1;
     this.state.totalEnemiesDefeated += 1;
@@ -2859,15 +3063,74 @@ export class DungeonScene {
     }
 
     if (this.enemies.length === 0 && !this.currentRoom.cleared) {
+      // Milestone 7: Rift Anomaly Chamber Wave 2 trigger!
+      if (
+        this.currentRoom.isRiftChamber &&
+        !this.currentRoom.riftWave2Triggered &&
+        this.currentRoom.riftWave2Spawns &&
+        this.currentRoom.riftWave2Spawns.length > 0
+      ) {
+        this.currentRoom.riftWave2Triggered = true;
+        this.triggerShake(0.28, 3.4);
+        sound.playDoorUnlock();
+        for (const sp of this.currentRoom.riftWave2Spawns) {
+          this.spawnBurst(sp.x, sp.y, '#c084fc', 16);
+          this.spawnEnemy(sp.kind, sp.x, sp.y);
+        }
+        this.callbacks.onToast('🌀 RIFT-WELLE 2! Verstärkte Anomalie-Wächter erscheinen!', 'warn');
+        return;
+      }
+
       this.currentRoom.cleared = true;
       this.roomsCleared += 1;
       sound.playDoorUnlock();
-      if (this.currentRoom.type === 'combat') {
+
+      if (this.currentRoom.isRiftChamber) {
+        // Rift Chamber cleared! Mark parent portal cleared & drop guaranteed Rift Catalyst + Anomaly Relic!
+        const parentRoom = this.currentRoom.riftParentKey
+          ? this.floor.rooms.get(this.currentRoom.riftParentKey)
+          : undefined;
+        if (parentRoom?.riftPortal) parentRoom.riftPortal.cleared = true;
+        this.state.recordRiftChamberCleared();
+        this.spawnLootDrop(ROOM_CENTER_X - 18, ROOM_CENTER_Y, 'rift_catalyst');
+        this.spawnLootDrop(ROOM_CENTER_X + 18, ROOM_CENTER_Y, rollRiftLootItem(Math.max(2, this.currentSector)));
+        this.state.save();
+        this.callbacks.onToast(
+          '🌀 RIFT STABILISIERT! Rift-Katalysator & Anomalie-Relikt erbeutet — öffne die Truhe & kehre zurück!',
+          'good',
+        );
+      } else if (this.isEndlessRift && this.currentRoom.type === 'boss') {
+        // Endless Spiral floor cleared! Record deepest Rift floor & grant Rift relic drops scaled by depth!
+        this.floorBossDefeated = true;
+        const isRecord = this.state.recordRiftDepth(this.riftDepth);
+        const bonusDrops = 1 + Math.floor(this.riftDepth / 3);
+        this.spawnLootDrop(ROOM_CENTER_X - 16, ROOM_CENTER_Y - 12, 'rift_catalyst');
+        for (let k = 0; k < bonusDrops; k++) {
+          this.spawnLootDrop(
+            ROOM_CENTER_X + (k - 0.5) * 20,
+            ROOM_CENTER_Y - 6,
+            rollRiftLootItem(this.riftDepth),
+          );
+        }
+        this.state.save();
+        this.callbacks.onToast(
+          `🌀 SPIRAL-EBENE ${this.riftDepth} GEMEISTERT${isRecord ? ' (NEUER REKORD!)' : ''}! Links: Extraktion · Rechts: Tiefer → Ebene ${this.riftDepth + 1}!`,
+          'good',
+        );
+      } else if (this.currentRoom.type === 'combat') {
         this.spawnLootDrop(
           ROOM_CENTER_X,
           ROOM_CENTER_Y,
-          rollLootItem(lootDepth, false, nightBoost, luckBonus, sec),
+          this.isEndlessRift
+            ? Math.random() < 0.45
+              ? rollRiftLootItem(this.riftDepth)
+              : rollLootItem(lootDepth, true, nightBoost, luckBonus, this.floor.visualSector ?? 1)
+            : rollLootItem(lootDepth, false, nightBoost, luckBonus, sec),
         );
+        if (this.currentRoom.riftPortal && !this.currentRoom.riftPortal.cleared) {
+          this.spawnBurst(this.currentRoom.riftPortal.x, this.currentRoom.riftPortal.y, '#c084fc', 22);
+          this.callbacks.onToast('🌀 Ein instabiler RIFT-RISS hat sich in diesem Raum geöffnet!', 'info');
+        }
       }
       // Dr. Lyra's Nano-Vitalserum passive heal on room clear!
       const stats = this.state.getStats();
@@ -2910,6 +3173,16 @@ export class DungeonScene {
 
   public damagePlayer(amount: number, kx: number, ky: number, attacker?: Enemy): void {
     if (this.invulnTimer > 0 || this.finished) return;
+
+    // Milestone 7 Rift Mutators: Overcharged deals +25% damage; Vampiric heals attacker on hit!
+    if (attacker?.mutator === 'overcharged') {
+      amount = Math.round(amount * 1.25);
+    }
+    if (attacker?.mutator === 'vampiric' && attacker.hp > 0) {
+      const leach = Math.max(4, Math.round(attacker.maxHp * 0.06));
+      attacker.hp = Math.min(attacker.maxHp, attacker.hp + leach);
+      this.spawnBurst(attacker.x, attacker.y, '#f43f5e', 6);
+    }
 
     // Aegis-Bot Halo: golden orbital shield completely absorbs 1 incoming hit every 12s!
     if (this.state.equippedCompanion === 'halo' && this.haloShieldReady) {
@@ -3251,6 +3524,43 @@ export class DungeonScene {
   public updateRoomInteractions(input: InputManager): void {
     this.activePrompt = null;
 
+    // Milestone 7: Cleared Rift Anomaly Chamber return portal
+    if (this.currentRoom.isRiftChamber && this.currentRoom.cleared) {
+      const rx = ROOM_CENTER_X;
+      const ry = ROOM_BOTTOM - 28;
+      if (Math.hypot(this.playerX - rx, this.playerY - ry) < 28) {
+        this.activePrompt = {
+          label: '[E] 🌀 Rift-Ausgang: Zurück in den Sektor',
+          x: rx,
+          y: ry - 22,
+        };
+        if (input.interactPressed()) {
+          this.exitRiftChamber();
+        }
+        return;
+      }
+    }
+
+    // Milestone 7: Unstable Rift-Riss portal inside cleared regular combat room
+    if (
+      this.currentRoom.cleared &&
+      this.currentRoom.riftPortal &&
+      !this.currentRoom.riftPortal.cleared
+    ) {
+      const rp = this.currentRoom.riftPortal;
+      if (Math.hypot(this.playerX - rp.x, this.playerY - rp.y) < 26) {
+        this.activePrompt = {
+          label: '[E] 🌀 Instabilen Rift betreten (Anomalie-Beute & Katalysator!)',
+          x: rp.x,
+          y: rp.y - 24,
+        };
+        if (input.interactPressed()) {
+          this.enterRiftChamber(rp.targetKey);
+        }
+        return;
+      }
+    }
+
     if (this.currentRoom.type === 'secret') {
       const rx = ROOM_CENTER_X;
       const ry = ROOM_BOTTOM - 28;
@@ -3307,15 +3617,17 @@ export class DungeonScene {
               maxLife: 1.3,
             });
             this.callbacks.onToast(
-              this.currentSector === 5
-                ? 'Notfall-Medstation genutzt — bereit für ★ OMEGA STERNEN-ARCHON!'
-                : this.currentSector === 4
-                  ? 'Notfall-Medstation genutzt — bereit für ★ DER STERNEN-ARCHON!'
-                  : this.currentSector === 3
-                    ? 'Notfall-Medstation genutzt — bereit für ★ VULKAN-TITAN!'
-                    : this.currentSector === 2
-                      ? 'Notfall-Medstation genutzt — bereit für ★ PRISMA-ARCHON!'
-                      : 'Notfall-Medstation genutzt — bereit für A.E.G.I.S. LEVIATHAN!',
+              this.isEndlessRift
+                ? `Notfall-Medstation genutzt — bereit für ∞ Spirale Ebene ${this.riftDepth}!`
+                : this.currentSector === 5
+                  ? 'Notfall-Medstation genutzt — bereit für ★ OMEGA STERNEN-ARCHON!'
+                  : this.currentSector === 4
+                    ? 'Notfall-Medstation genutzt — bereit für ★ DER STERNEN-ARCHON!'
+                    : this.currentSector === 3
+                      ? 'Notfall-Medstation genutzt — bereit für ★ VULKAN-TITAN!'
+                      : this.currentSector === 2
+                        ? 'Notfall-Medstation genutzt — bereit für ★ PRISMA-ARCHON!'
+                        : 'Notfall-Medstation genutzt — bereit für A.E.G.I.S. LEVIATHAN!',
               'good',
             );
             this.callbacks.onHudDirty();
@@ -3326,7 +3638,36 @@ export class DungeonScene {
     }
 
     if (this.currentRoom.type === 'boss' && this.floorBossDefeated) {
-      if (this.currentFloor < 3 && this.currentSector !== 5) {
+      if (this.isEndlessRift) {
+        // Endless Spiral Dual Risk-Reward Choice: Left = Extract with Loot, Right = Descend to Depth + 1!
+        const exX = ROOM_CENTER_X - 48;
+        const elX = ROOM_CENTER_X + 48;
+        const padY = ROOM_CENTER_Y + 6;
+        if (Math.hypot(this.playerX - exX, this.playerY - padY) < 28) {
+          this.activePrompt = {
+            label: '[E] ⇪ Sicher extrahieren (Beute behalten)',
+            x: exX,
+            y: padY - 24,
+          };
+          if (input.interactPressed()) {
+            this.triggerSafeWarp('boss_victory', false);
+          }
+          return;
+        }
+        if (Math.hypot(this.playerX - elX, this.playerY - padY) < 28) {
+          const nextDepth = this.riftDepth + 1;
+          this.activePrompt = {
+            label: `[E] 🌀 Tiefer in die Spirale → Ebene ${nextDepth}${nextDepth % 3 === 0 ? ' (BOSS!)' : ''}`,
+            x: elX,
+            y: padY - 24,
+          };
+          if (input.interactPressed()) {
+            sound.playWarp();
+            this.startEndlessRiftFloor(nextDepth, false);
+          }
+          return;
+        }
+      } else if (this.currentFloor < 3 && this.currentSector !== 5) {
         // Dual Moonlighter Exit Choice: Left = Safe Extraction, Right = Descend Deeper!
         const exX = ROOM_CENTER_X - 48;
         const elX = ROOM_CENTER_X + 48;
@@ -3521,6 +3862,9 @@ export class DungeonScene {
       nightRun: this.state.timeOfDay === 'night',
       floorReached: this.maxFloorReached,
       runDurationSec: Math.max(1, Math.round(this.runElapsedSec)),
+      isEndlessRift: this.isEndlessRift,
+      riftDepthReached: this.isEndlessRift ? this.riftDepth : undefined,
+      riftLootMultiplier: this.isEndlessRift ? this.riftLootMultiplier : undefined,
       sector1Cleared: this.sector1ClearedInRun,
       sector2Cleared: this.sector2ClearedInRun,
       sector3Cleared: this.sector3ClearedInRun,
@@ -3548,6 +3892,8 @@ export class DungeonScene {
       nightRun: this.state.timeOfDay === 'night',
       floorReached: this.maxFloorReached,
       runDurationSec: Math.max(1, Math.round(this.runElapsedSec)),
+      isEndlessRift: this.isEndlessRift,
+      riftDepthReached: this.isEndlessRift ? this.riftDepth : undefined,
       sector1Cleared: false,
       sector2Cleared: false,
       sector3Cleared: false,
@@ -3614,6 +3960,46 @@ export class DungeonScene {
     for (let i = this.afterimages.length - 1; i >= 0; i--) {
       this.afterimages[i].life -= dt;
       if (this.afterimages[i].life <= 0) this.afterimages.splice(i, 1);
+    }
+    for (let i = this.lightningArcs.length - 1; i >= 0; i--) {
+      this.lightningArcs[i].life -= dt;
+      if (this.lightningArcs[i].life <= 0) this.lightningArcs.splice(i, 1);
+    }
+    for (let i = this.siphonOrbs.length - 1; i >= 0; i--) {
+      const o = this.siphonOrbs[i];
+      o.life -= dt;
+      const dx = this.playerX - o.x;
+      const dy = this.playerY - o.y;
+      const dist = Math.max(1, Math.hypot(dx, dy));
+      o.vx += (dx / dist) * 560 * dt;
+      o.vy += (dy / dist) * 560 * dt;
+      const sp = Math.hypot(o.vx, o.vy);
+      if (sp > 230) {
+        o.vx = (o.vx / sp) * 230;
+        o.vy = (o.vy / sp) * 230;
+      }
+      o.x += o.vx * dt;
+      o.y += o.vy * dt;
+      if (dist < 14) {
+        const stats = this.state.getStats();
+        const prevHp = this.state.hp;
+        this.state.hp = Math.min(stats.maxHp, this.state.hp + o.healHp);
+        this.state.energy = Math.min(100, this.state.energy + o.healEn);
+        const gained = Math.round(this.state.hp - prevHp);
+        this.spawnBurst(this.playerX, this.playerY, '#e879f9', 8);
+        this.floats.push({
+          x: this.playerX,
+          y: this.playerY - 18,
+          text: gained > 0 ? `+${gained} HP +${o.healEn} EN` : `+${o.healEn} EN`,
+          color: '#e879f9',
+          life: 0.9,
+          maxLife: 0.9,
+        });
+        this.callbacks.onHudDirty();
+        this.siphonOrbs.splice(i, 1);
+        continue;
+      }
+      if (o.life <= 0) this.siphonOrbs.splice(i, 1);
     }
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];

@@ -167,6 +167,32 @@ export interface Enemy {
   // Leviathan articulated giant gauntlets
   levArms?: [LeviathanArm, LeviathanArm];
   levActiveSide?: 0 | 1;
+  // Milestone 7: Elementar-Prägungen & Rift-Mutatoren
+  burnTimer?: number;
+  burnTickTimer?: number;
+  burnDps?: number;
+  cryoTimer?: number;
+  mutator?: import('../types').RiftMutatorId;
+}
+
+export interface LightningArcFx {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  life: number;
+  maxLife: number;
+  color: string;
+}
+
+export interface SiphonOrbFx {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  healHp: number;
+  healEn: number;
 }
 
 export interface Projectile {
