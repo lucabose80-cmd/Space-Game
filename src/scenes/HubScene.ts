@@ -3,7 +3,9 @@ import { drawGlow, drawPixelShadow } from '../assets/pixelArt';
 import { getAtlas } from '../assets/sprites';
 import { sound } from '../engine/audio';
 import { VIRTUAL_HEIGHT, VIRTUAL_WIDTH, type InputManager } from '../engine/input';
+import { getChatterPool, STROLLER_PLAN, type StrollerKind } from '../data/story/storyChapters';
 import type { GameState } from '../systems/gameState';
+import { HubEvolutionRenderer } from './hubEvolution';
 import type { Direction, StoryNpcId } from '../types';
 
 interface Stroller {
@@ -13,7 +15,9 @@ interface Stroller {
   targetY: number;
   waitTimer: number;
   walkAnim: number;
-  kind: 'wanderer' | 'astro' | 'horned';
+  kind: StrollerKind;
+  /** Variante für „guest“-Passanten (Index in art.customers). */
+  variant?: number;
 }
 
 interface Particle {
@@ -74,6 +78,12 @@ export class HubScene {
   private particles: Particle[] = [];
   private stars: Array<{ x: number; y: number; phase: number }> = [];
   private time = 0;
+  private lastDt = 0.016;
+  private evo: HubEvolutionRenderer;
+  private tintCache = new Map<string, HTMLCanvasElement>();
+  private chatterTimer = 12;
+  /** Aktuelle Sprechblase eines Passanten (Test-Hook: öffentlich lesbar). */
+  public chatter: { strollerIndex: number; text: string; life: number } | null = null;
   /** Sekunden bis zum Omega-Fest (-1 = nicht fällig). */
   private festivalTimer = -1;
 
@@ -82,6 +92,13 @@ export class HubScene {
   constructor(state: GameState, callbacks: HubCallbacks) {
     this.state = state;
     this.callbacks = callbacks;
+    this.evo = new HubEvolutionRenderer(state, {
+      forge: FORGE_POS,
+      medbay: MEDBAY_POS,
+      nyxNpc: NYX_NPC_POS,
+      techNpc: TECHLAB_NPC_POS,
+      guild: GUILD_BOARD_POS,
+    });
 
     for (let i = 0; i < 20; i++) {
       this.stars.push({
@@ -111,6 +128,52 @@ export class HubScene {
         kind: 'astro',
       },
     ];
+    this.syncStrollers();
+  }
+
+  /** Test-Hook: Zugriff auf den Stations-Renderer (Sprites ein-/ausschalten, aktive Elemente lesen). */
+  public getEvolution(): HubEvolutionRenderer {
+    return this.evo;
+  }
+
+  public getStrollerKinds(): StrollerKind[] {
+    return this.strollers.map((x) => x.kind);
+  }
+
+  /** Passanten-Spots, die nicht in Kollisionskreisen (Obelisk, Leuchtfeuer) liegen. */
+  private getStrollerSpots(): Array<{ x: number; y: number }> {
+    const spots = [
+      { x: 214, y: 174 },
+      { x: 240, y: 164 },
+      { x: 266, y: 174 },
+      { x: 240, y: 112 },
+      { x: 216, y: 204 },
+      { x: 264, y: 204 },
+    ];
+    const cols = this.evo.getColliders();
+    return spots.filter((p) => cols.every((c) => Math.hypot(p.x - c.x, p.y - c.y) > c.r + 16));
+  }
+
+  /** Passanten-Plan je Kapitel (kumulativ, höchstens 6 inkl. der 2 Standard-Passanten). */
+  private syncStrollers(): void {
+    const wanted = STROLLER_PLAN.filter((p) => p.minChapter <= this.state.story.chapter).map((p) => p.kind);
+    const extras = this.strollers.slice(2);
+    if (extras.length === wanted.length && extras.every((x, i) => x.kind === wanted[i])) return;
+    this.strollers = this.strollers.slice(0, 2);
+    const spots = this.getStrollerSpots();
+    wanted.slice(0, 4).forEach((kind, i) => {
+      const sp = spots[(i + 1) % spots.length] ?? { x: 240, y: 190 };
+      this.strollers.push({
+        x: sp.x,
+        y: sp.y,
+        targetX: sp.x,
+        targetY: sp.y,
+        waitTimer: 1 + i * 0.7,
+        walkAnim: 0,
+        kind,
+        variant: i + 2,
+      });
+    });
   }
 
   public onEnter(from: 'shop' | 'dungeon' | 'market_terrace'): void {
@@ -118,6 +181,9 @@ export class HubScene {
     this.dashTimer = 0;
     this.dashCooldown = 0;
     this.particles = [];
+    this.syncStrollers();
+    this.chatter = null;
+    this.chatterTimer = 8 + Math.random() * 6;
     // Omega-Fest: einmalig, nur auf Wunsch überspringbar (siehe main.ts)
     this.festivalTimer =
       this.state.story.chapter >= 5 && !this.state.story.flags.includes('festival_seen') ? 0.8 : -1;
@@ -139,6 +205,7 @@ export class HubScene {
 
   public update(dt: number, input: InputManager): void {
     this.time += dt;
+    this.lastDt = dt;
 
     if (this.festivalTimer >= 0) {
       this.festivalTimer -= dt;
@@ -254,6 +321,7 @@ export class HubScene {
     this.movePlayer(vx * dt, vy * dt);
     this.updateStrollers(dt);
     this.updateInteraction(input);
+    this.updateChatter(dt);
     this.updateParticles(dt);
   }
 
@@ -277,6 +345,10 @@ export class HubScene {
     if (x < PLAZA_LEFT || x > PLAZA_RIGHT || y < PLAZA_TOP || y > PLAZA_BOTTOM) {
       return false;
     }
+    // M10-A: Obelisk & Leuchtfeuer der Stations-Entwicklung sind solide
+    for (const c of this.evo.getColliders()) {
+      if (Math.hypot(x - c.x, y - c.y) < c.r) return false;
+    }
     // Keep clear of architecturally built-in Nyx's Black Market storefront (lower-left)
     if (x > 58 && x < 178 && y > 148 && y < 238) return false;
     // Keep clear of architecturally built-in Vex's Tech-Labor pavilion (lower-right)
@@ -286,14 +358,8 @@ export class HubScene {
 
   private updateStrollers(dt: number): void {
     const speed = 28;
-    const spots = [
-      { x: 214, y: 174 },
-      { x: 240, y: 164 },
-      { x: 266, y: 174 },
-      { x: 240, y: 112 },
-      { x: 216, y: 204 },
-      { x: 264, y: 204 },
-    ];
+    const spots = this.getStrollerSpots();
+    const cols = this.evo.getColliders();
     for (const s of this.strollers) {
       const dx = s.targetX - s.x;
       const dy = s.targetY - s.y;
@@ -302,6 +368,16 @@ export class HubScene {
         s.x += (dx / dist) * speed * dt;
         s.y += (dy / dist) * speed * dt;
         s.walkAnim += dt * 7;
+        // Obelisk & Co.: Passanten laufen außen herum statt hindurch
+        for (const c of cols) {
+          const cd = Math.hypot(s.x - c.x, s.y - c.y);
+          if (cd < c.r + 7) {
+            const nx = (s.x - c.x) / Math.max(0.01, cd);
+            const ny = (s.y - c.y) / Math.max(0.01, cd);
+            s.x = c.x + nx * (c.r + 7);
+            s.y = c.y + ny * (c.r + 7);
+          }
+        }
       } else {
         s.walkAnim = 0;
         s.waitTimer -= dt;
@@ -442,6 +518,129 @@ export class HubScene {
     }
   }
 
+  // ==================== MEILENSTEIN 10-A: PASSANTEN-SPRECHBLASEN ====================
+  private updateChatter(dt: number): void {
+    if (this.chatter) {
+      this.chatter.life -= dt;
+      if (this.chatter.life <= 0) this.chatter = null;
+    }
+    this.chatterTimer -= dt;
+    if (this.chatterTimer > 0) return;
+    this.chatterTimer = 14 + Math.random() * 8;
+    this.triggerChatter();
+  }
+
+  /**
+   * Lässt EINEN zufälligen Passanten eine zum Kapitel/Flag passende Zeile sagen.
+   * Keine Blase bei aktivem Prompt oder wenn alle Passanten näher als 40 px am Spieler stehen (`force` ignoriert das).
+   */
+  public triggerChatter(force = false): boolean {
+    if (this.chatter && !force) return false;
+    if (this.activePrompt && !force) return false;
+    const pool = getChatterPool(this.state.story.chapter, this.state.story.flags);
+    if (pool.length === 0) return false;
+    const candidates: number[] = [];
+    this.strollers.forEach((st, i) => {
+      if (force || Math.hypot(st.x - this.playerX, st.y - this.playerY) >= 40) candidates.push(i);
+    });
+    if (candidates.length === 0) return false;
+    const idx = candidates[Math.floor(Math.random() * candidates.length)];
+    const line = pool[Math.floor(Math.random() * pool.length)];
+    this.chatter = { strollerIndex: idx, text: line.text, life: 3.5 };
+    return true;
+  }
+
+  /** Bricht auf höchstens 2 Zeilen à 34 Zeichen um. */
+  private wrapChatter(text: string): string[] {
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let cur = '';
+    for (const w of words) {
+      if ((cur + ' ' + w).trim().length > 34 && cur) {
+        lines.push(cur);
+        cur = w;
+      } else {
+        cur = (cur + ' ' + w).trim();
+      }
+    }
+    if (cur) lines.push(cur);
+    return lines.slice(0, 2);
+  }
+
+  private renderChatter(ctx: CanvasRenderingContext2D): void {
+    const ch = this.chatter;
+    if (!ch) return;
+    const st = this.strollers[ch.strollerIndex];
+    if (!st) return;
+    const lines = this.wrapChatter(ch.text);
+    ctx.save();
+    ctx.font = 'bold 4.6px Silkscreen, monospace';
+    ctx.textAlign = 'center';
+    const w = Math.ceil(Math.max(...lines.map((l) => ctx.measureText(l).width))) + 8;
+    const h = lines.length * 7 + 4;
+    const bx = Math.max(w / 2 + 2, Math.min(VIRTUAL_WIDTH - w / 2 - 2, st.x));
+    const by = st.y - 22 - h;
+    const fade = Math.min(1, ch.life / 0.4, (3.5 - ch.life) / 0.25 + 0.2);
+    ctx.globalAlpha = Math.max(0, Math.min(1, fade));
+    ctx.fillStyle = 'rgba(11, 16, 28, 0.92)';
+    ctx.fillRect(bx - w / 2, by, w, h);
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 0.7;
+    ctx.strokeRect(bx - w / 2, by, w, h);
+    ctx.beginPath();
+    ctx.moveTo(st.x - 2, by + h);
+    ctx.lineTo(st.x + 2, by + h);
+    ctx.lineTo(st.x, by + h + 3);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(11, 16, 28, 0.92)';
+    ctx.fill();
+    ctx.fillStyle = '#e2e8f0';
+    lines.forEach((l, i) => ctx.fillText(l, bx, by + 7 + i * 7));
+    ctx.restore();
+  }
+
+  /** Einmalig vorberechnete Einfärbung eines vorhandenen Kunden-Sprites (Fallback für neue Passanten). */
+  private tinted(base: HTMLCanvasElement | undefined | null, color: string, key: string): HTMLCanvasElement | null {
+    if (!base) return null;
+    const hit = this.tintCache.get(key);
+    if (hit) return hit;
+    const c = document.createElement('canvas');
+    c.width = base.width;
+    c.height = base.height;
+    const cx = c.getContext('2d');
+    if (!cx) return base;
+    cx.imageSmoothingEnabled = false;
+    cx.drawImage(base, 0, 0);
+    cx.globalCompositeOperation = 'source-atop';
+    cx.globalAlpha = 0.4;
+    cx.fillStyle = color;
+    cx.fillRect(0, 0, c.width, c.height);
+    this.tintCache.set(key, c);
+    return c;
+  }
+
+  private getStrollerSprite(st: Stroller): HTMLCanvasElement | null {
+    const art = getHDArt();
+    const useSprites = this.evo.spritesEnabled;
+    switch (st.kind) {
+      case 'wanderer':
+        return art.npcWanderer;
+      case 'astro':
+        return art.customers[0] ?? null;
+      case 'horned':
+        return art.customers[1] ?? null;
+      case 'pilgrim':
+        return (useSprites ? art.npcPilgrim : null) ?? this.tinted(art.customers[0], '#a855f7', 'pilgrim');
+      case 'foundry':
+        return (useSprites ? art.npcFoundryWorker : null) ?? this.tinted(art.customers[1], '#f97316', 'foundry');
+      case 'scholar':
+        return (useSprites ? art.npcElderScholar : null) ?? this.tinted(art.customers[2], '#14b8a6', 'scholar');
+      case 'guest':
+      default:
+        return art.customers.length > 0 ? art.customers[(st.variant ?? 0) % art.customers.length] : null;
+    }
+  }
+
   private hasNewTalk(npc: StoryNpcId): boolean {
     return this.state.getPendingScene(npc) !== null;
   }
@@ -537,6 +736,9 @@ export class HubScene {
       ctx.fillRect(s.x, s.y, isNight ? 1.8 : 1.4, isNight ? 1.8 : 1.4);
     }
 
+    // M10-A: Feuerwerk des Omega-Fests am Himmel über dem Aussichtsfenster
+    this.evo.renderSkyLayer(ctx, this.lastDt);
+
     // Ambient landmark glows matching integrated storefronts in hub_bg.png
     const pulse = 0.5 + 0.5 * Math.sin(this.time * 4.2);
     const nightBoost = isNight ? 0.14 : 0;
@@ -561,6 +763,9 @@ export class HubScene {
       drawGlow(ctx, 186, 212, 26, '#fbbf24', 0.24);
       drawGlow(ctx, 294, 212, 26, '#fbbf24', 0.24);
     }
+
+    // M10-A: Stations-Entwicklung (Lichterketten, Wimpel, Esse-Glow) hinter den Schildern
+    this.evo.renderBackLayer(ctx, this.time, isNight);
 
     // Subtle crisp building signage pills
     this.renderSignPills(ctx);
@@ -629,18 +834,16 @@ export class HubScene {
     });
 
     // Strolling station residents
+    // M10-A: y-sortierte Stations-Objekte (Laternen, Obelisk, Denkmal, Schilder, Leuchtfeuer …)
+    for (const d of this.evo.getDrawables(ctx, this.time)) drawables.push(d);
+
     for (const s of this.strollers) {
       drawables.push({
         y: s.y,
         draw: () => {
           const walking = s.walkAnim > 0;
           const bob = walking ? Math.abs(Math.sin(s.walkAnim)) * 2 : 0;
-          const spr =
-            s.kind === 'wanderer'
-              ? art.npcWanderer
-              : s.kind === 'astro'
-                ? art.customers[0]
-                : art.customers[1];
+          const spr = this.getStrollerSprite(s);
           drawPixelShadow(ctx, s.x, s.y + 11, 8, 3, 0.44);
           if (spr) {
             ctx.drawImage(spr, s.x - 12, s.y - 16 - bob, 24, 28);
@@ -667,6 +870,7 @@ export class HubScene {
     ctx.globalAlpha = 1;
 
     this.renderStoryMarkers(ctx);
+    this.renderChatter(ctx);
 
     if (this.activePrompt) {
       this.renderPrompt(ctx, this.activePrompt.label, this.activePrompt.x, this.activePrompt.y);

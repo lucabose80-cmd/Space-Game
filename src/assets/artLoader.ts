@@ -50,6 +50,19 @@ export interface HDArtAssets {
   propBotDock: HTMLCanvasElement | null;
   propTrophyS1: HTMLCanvasElement | null;
   propScoreboard: HTMLCanvasElement | null;
+  // Milestone 10-A: OPTIONALE Promenaden-Sprites (fehlen sie, zeichnet hubEvolution.ts einen Fallback)
+  propHubCrystalLantern: HTMLCanvasElement | null;
+  propHubElderObelisk: HTMLCanvasElement | null;
+  propHubStarBanner: HTMLCanvasElement | null;
+  propHubCycleHolo: HTMLCanvasElement | null;
+  propKaelMemorial: HTMLCanvasElement | null;
+  propLyraEchoSign: HTMLCanvasElement | null;
+  propNyxFreeLantern: HTMLCanvasElement | null;
+  propVexBeacon: HTMLCanvasElement | null;
+  propVexClassboard: HTMLCanvasElement | null;
+  npcPilgrim: HTMLCanvasElement | null;
+  npcFoundryWorker: HTMLCanvasElement | null;
+  npcElderScholar: HTMLCanvasElement | null;
   podIntact: HTMLCanvasElement | null;
   chestClosed: HTMLCanvasElement | null;
   chestOpen: HTMLCanvasElement | null;
@@ -187,6 +200,18 @@ const art: HDArtAssets = {
   propBotDock: null,
   propTrophyS1: null,
   propScoreboard: null,
+  propHubCrystalLantern: null,
+  propHubElderObelisk: null,
+  propHubStarBanner: null,
+  propHubCycleHolo: null,
+  propKaelMemorial: null,
+  propLyraEchoSign: null,
+  propNyxFreeLantern: null,
+  propVexBeacon: null,
+  propVexClassboard: null,
+  npcPilgrim: null,
+  npcFoundryWorker: null,
+  npcElderScholar: null,
   podIntact: null,
   chestClosed: null,
   chestOpen: null,
@@ -275,6 +300,24 @@ function imgToCanvas(img: HTMLImageElement | null): HTMLCanvasElement | null {
 export function getHDArt(): HDArtAssets {
   return art;
 }
+
+/** Meilenstein 10-A: optionale Sprites (Art-Key → Datei unter /art/sprites/<datei>.png). */
+export const M10_OPTIONAL_SPRITES = {
+  propHubCrystalLantern: 'prop_hub_crystal_lantern',
+  propHubElderObelisk: 'prop_hub_elder_obelisk',
+  propHubStarBanner: 'prop_hub_star_banner',
+  propHubCycleHolo: 'prop_hub_cycle_holo',
+  propKaelMemorial: 'prop_kael_memorial',
+  propLyraEchoSign: 'prop_lyra_echo_sign',
+  propNyxFreeLantern: 'prop_nyx_free_lantern',
+  propVexBeacon: 'prop_vex_beacon',
+  propVexClassboard: 'prop_vex_classboard',
+  npcPilgrim: 'npc_pilgrim',
+  npcFoundryWorker: 'npc_foundry_worker',
+  npcElderScholar: 'npc_elder_scholar',
+} as const;
+
+export type M10SpriteKey = keyof typeof M10_OPTIONAL_SPRITES;
 
 export async function preloadHDArt(): Promise<HDArtAssets> {
   if (art.loaded) return art;
@@ -566,6 +609,13 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
   ITEMS.forEach((item, idx) => {
     const c = imgToCanvas(itemImgs[idx] ?? null);
     if (c) art.items[item.id] = c;
+  });
+
+  // Milestone 10-A: optionale Sprites separat laden — ein fehlendes PNG bleibt `null` (→ prozeduraler Fallback)
+  const m10Keys = Object.keys(M10_OPTIONAL_SPRITES) as M10SpriteKey[];
+  const m10Imgs = await Promise.all(m10Keys.map((k) => loadImage(`/art/sprites/${M10_OPTIONAL_SPRITES[k]}.png`)));
+  m10Keys.forEach((k, i) => {
+    art[k] = imgToCanvas(m10Imgs[i]);
   });
 
   art.loaded = true;
