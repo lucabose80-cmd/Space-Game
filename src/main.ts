@@ -194,9 +194,15 @@ class StarlighterGame {
           if (imp.ok) {
             this.ui.renderHud();
             this.ui.toast(`☁ Cloud-Spielstand von ${user.displayName} geladen (Tag ${this.state.day})!`, 'good');
+            this.ui.refreshGuildBoardIfOpen();
           }
         } else {
-          void firebaseService.syncAllToCloud(this.state);
+          void firebaseService.syncAllToCloud(this.state).then((syncRes) => {
+            if (syncRes.ok) {
+              this.ui.toast('☁ Spielstand automatisch mit der Cloud synchronisiert!', 'good');
+            }
+            this.ui.refreshGuildBoardIfOpen();
+          });
         }
       });
     });

@@ -442,6 +442,7 @@ export class UIManager {
   public closeModal(): void {
     if (!this.modalOpen) return;
     this.modalOpen = false;
+    this.guildModalActive = false;
     this.selectedSlot = null;
     this.activePedestal = null;
     this.modalEl.classList.add('hidden');
@@ -2422,18 +2423,31 @@ export class UIManager {
   private guildFeedCache: ActivityFeedEntry[] = [];
   private guildLoading = false;
   private guildAuthMode: 'login' | 'register' = 'login';
+  private guildModalActive = false;
 
   public openGuildBoardModal(tab: 'leaderboard' | 'feed' | 'account' = 'leaderboard'): void {
     this.guildTab = tab;
+    this.guildModalActive = true;
     this.renderGuildBoardModal();
     if (firebaseService.isConfigured()) {
       void this.refreshGuildBoardData();
     }
   }
 
+  public refreshGuildBoardIfOpen(): void {
+    if (!this.modalOpen || !this.guildModalActive) return;
+    if (firebaseService.isConfigured()) {
+      void this.refreshGuildBoardData();
+    } else {
+      this.renderGuildBoardModal();
+    }
+  }
+
   private async refreshGuildBoardData(): Promise<void> {
     this.guildLoading = true;
-    this.renderGuildBoardModal();
+    if (this.modalOpen && this.guildModalActive) {
+      this.renderGuildBoardModal();
+    }
     const [board, feed] = await Promise.all([
       firebaseService.fetchLeaderboard(30),
       firebaseService.fetchRecentActivities(18),
@@ -2441,7 +2455,7 @@ export class UIManager {
     this.guildLeaderboardCache = board;
     this.guildFeedCache = feed;
     this.guildLoading = false;
-    if (this.modalOpen) {
+    if (this.modalOpen && this.guildModalActive) {
       this.renderGuildBoardModal();
     }
   }
