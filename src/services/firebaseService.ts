@@ -27,6 +27,7 @@ import {
 } from 'firebase/firestore';
 import type { GameState } from '../systems/gameState';
 import type { ActivityFeedEntry, LeaderboardEntry, SaveData } from '../types';
+import { sanitizeGreeting } from '../data/ghostGreetings';
 import { DEFAULT_FIREBASE_CONFIG } from './firebaseConfig';
 
 export interface CloudUserInfo {
@@ -335,6 +336,10 @@ class FirebaseCloudService {
       shopTier: state.upgrades.shopTier ?? 0,
       lastActivityText: state.records.lastActivityText || `Handelt an Tag ${state.day} in Astro-Barter`,
       updatedAt: Date.now(),
+      // Milestone 9: Kapitäns-Akte & Geister-Kapitäne
+      achievementIds: state.unlockedAchievements.slice(0, 32),
+      riftsCleared: state.records.riftsCleared ?? 0,
+      ghostGreeting: sanitizeGreeting(state.ghostGreeting),
     };
   }
 

@@ -63,6 +63,7 @@ import {
   renderTradeBankModal,
   type MarketModalHost,
 } from './MarketModals';
+import { escapeHtml, renderCaptainFileHtml } from './NetworkModals';
 
 export interface UIHooks {
   onStartNewGame: () => void;
@@ -73,6 +74,8 @@ export interface UIHooks {
   onMuteToggle: () => void;
   onMusicToggle: () => void;
 }
+
+export type GuildTab = 'leaderboard' | 'feed' | 'account' | 'file';
 
 export class UIManager {
   private state: GameState;
@@ -2731,7 +2734,8 @@ export class UIManager {
   }
 
   // ==================== GALAKTISCHE KAPITÄNS-TAFEL (FIREBASE SCOREBOARD, REKORDE & CLOUD-SYNC) ====================
-  private guildTab: 'leaderboard' | 'feed' | 'account' = 'leaderboard';
+  private guildTab: GuildTab = 'leaderboard';
+  private guildSelectedUid: string | null = null;
   private guildSort: 'progress' | 'speed_sector' | 'speed_days' | 'merchant' | 'deepest_rift' = 'progress';
   private guildSectorFilter: SectorId = 1;
   private guildLeaderboardCache: LeaderboardEntry[] = [];
@@ -2740,8 +2744,9 @@ export class UIManager {
   private guildAuthMode: 'login' | 'register' = 'login';
   private guildModalActive = false;
 
-  public openGuildBoardModal(tab: 'leaderboard' | 'feed' | 'account' = 'leaderboard'): void {
+  public openGuildBoardModal(tab: GuildTab = 'leaderboard'): void {
     this.guildTab = tab;
+    this.guildSelectedUid = null;
     this.guildModalActive = true;
     this.renderGuildBoardModal();
     if (firebaseService.isConfigured()) {
@@ -2789,13 +2794,6 @@ export class UIManager {
     }
     byUid.set(ownEntry.uid, ownEntry);
     const allRows = [...byUid.values()];
-
-    const escapeHtml = (str: string) =>
-      str
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
 
     const sortRows = (rows: LeaderboardEntry[]): LeaderboardEntry[] => {
       const copy = [...rows];
@@ -2911,7 +2909,7 @@ export class UIManager {
                        </div>`;
 
           return `
-            <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid ${isMe ? 'rgba(56,232,212,0.7)' : 'var(--border-steel)'};background:${isMe ? 'rgba(56,232,212,0.1)' : 'rgba(13,20,34,0.72)'}">
+            <div class="m9-lb-row" data-lb-uid="${escapeHtml(r.uid)}" role="button" tabindex="0" title="Kapitäns-Akte öffnen" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid ${isMe ? 'rgba(56,232,212,0.7)' : 'var(--border-steel)'};background:${isMe ? 'rgba(56,232,212,0.1)' : 'rgba(13,20,34,0.72)'}">
               <div style="font-family:var(--font-pixel);font-size:12px;width:24px;text-align:center;color:${rankColor}">#${idx + 1}</div>
               <span style="width:11px;height:11px;border-radius:50%;background:${suit.accent};box-shadow:0 0 8px ${suit.auraColor};flex-shrink:0" title="Anzug: ${suit.name}"></span>
               <img src="${wep.iconUrl}" alt="${wep.shortName}" style="width:20px;height:20px;image-rendering:pixelated;flex-shrink:0" title="Waffe: ${wep.name}" />
@@ -2970,6 +2968,17 @@ export class UIManager {
                    </div>`
                 : ''
           }
+        </div>
+      `;
+    } else if (this.guildTab === 'file') {
+      const sel = allRows.find((r) => r.uid === this.guildSelectedUid) ?? ownEntry;
+      bodyHtml = `
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+            <button id="btn-file-back" class="btn" style="padding:4px 9px;font-size:9.5px;white-space:nowrap">← Zurück zur Tafel</button>
+            <span style="font-family:var(--font-pixel);font-size:10.5px;color:#fde047;white-space:nowrap">📁 KAPITÄNS-AKTE</span>
+          </div>
+          <div style="max-height:370px;overflow-y:auto">${renderCaptainFileHtml(sel, sel.uid === localUid)}</div>
         </div>
       `;
     } else if (this.guildTab === 'feed') {
@@ -3118,7 +3127,7 @@ export class UIManager {
         <div class="modal-header" style="gap:8px">
           <span class="modal-title" style="color:#fde047;white-space:nowrap">🏆 KAPITÄNS-TAFEL</span>
           <div class="modal-tabs" style="flex-wrap:nowrap">
-            <button class="tab-btn ${this.guildTab === 'leaderboard' ? 'active' : ''}" data-gtab="leaderboard" style="white-space:nowrap">Rangliste</button>
+            <button class="tab-btn ${this.guildTab === 'leaderboard' || this.guildTab === 'file' ? 'active' : ''}" data-gtab="leaderboard" style="white-space:nowrap">Rangliste</button>
             <button class="tab-btn ${this.guildTab === 'feed' ? 'active' : ''}" data-gtab="feed" style="white-space:nowrap">Aktivitäten</button>
             <button class="tab-btn ${this.guildTab === 'account' ? 'active' : ''}" data-gtab="account" style="white-space:nowrap">Konto &amp; Cloud</button>
           </div>
@@ -3131,9 +3140,31 @@ export class UIManager {
     this.modalEl.querySelectorAll<HTMLElement>('[data-gtab]').forEach((btn) => {
       btn.addEventListener('click', () => {
         sound.playUiClick();
-        this.guildTab = btn.dataset.gtab as 'leaderboard' | 'feed' | 'account';
+        this.guildTab = btn.dataset.gtab as GuildTab;
         this.renderGuildBoardModal();
       });
+    });
+
+    this.modalEl.querySelectorAll<HTMLElement>('[data-lb-uid]').forEach((row) => {
+      const open = () => {
+        sound.playUiClick();
+        this.guildSelectedUid = row.dataset.lbUid ?? null;
+        this.guildTab = 'file';
+        this.renderGuildBoardModal();
+      };
+      row.addEventListener('click', open);
+      row.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter' || ev.key === ' ') {
+          ev.preventDefault();
+          open();
+        }
+      });
+    });
+
+    this.modalEl.querySelector('#btn-file-back')?.addEventListener('click', () => {
+      sound.playUiClick();
+      this.guildTab = 'leaderboard';
+      this.renderGuildBoardModal();
     });
 
     this.modalEl.querySelectorAll<HTMLElement>('[data-gsort]').forEach((btn) => {
