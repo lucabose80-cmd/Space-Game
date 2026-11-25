@@ -22,6 +22,9 @@ npm run verify                    # Build + Invarianten + Sprite-Check + Tests
 - Schwächster Fallback zuerst ersetzen: Vex-Bake, Zyklus-Hologramm, Obelisk, Klassentafel.
 - **Wer einen Fallback/Platzhalter neu anlegt, trägt ihn hier ein** (Datei, Key, Prompt-Abschnitt im Art-Guide).
 
+## Nächster Schritt
+- **Meilenstein 10-C umsetzen:** `MILESTONE_10C_ARCHITECTURE.md` Phase für Phase (Phase 0 zuerst).
+
 ## Offene Punkte
 - Bildgenerierung: Gemini-Image-API braucht ein Projekt mit Abrechnung (Free Tier = Limit 0); Antigravity-Credits sind wochenweise.
 - Ideen: siehe `GAME_DESIGN_DOCUMENT.md` §5.

@@ -17,6 +17,7 @@
 | [MILESTONE_8_ARCHITECTURE.md](MILESTONE_8_ARCHITECTURE.md) | Architecture & subsystem spec for Milestone 8 (Haggling, Patron Reputation, Market Terrace, Alchemy Bar, Solaris Trade Bank & Save v9). |
 | [MILESTONE_9_ARCHITECTURE.md](MILESTONE_9_ARCHITECTURE.md) | Architecture & implementation record for M9 (Captain Files, Global Market Trend, Ghost Captains, Weekly Seeded Trial, Save v10). |
 | [MILESTONE_10_ARCHITECTURE.md](MILESTONE_10_ARCHITECTURE.md) | Architecture & implementation record for M10-A (branching NPC story with trust & flags, living Port Solaris incl. optional sprite pack, sector room mechanics S2–S4, boss phase-2 music, touch size, aim assist & text speed, Save v11). §11 lists deviations & open items. |
+| [MILESTONE_10C_ARCHITECTURE.md](MILESTONE_10C_ARCHITECTURE.md) | **Next up:** plan for M10-C (enemy navigation, rift-portal placement, mobile HUD, weapon locker, automatic day/night loop, teleport-only extraction, unique bosses, shield counterplay, economy/boss/bot/rift balancing). |
 | [ART_AND_DESIGN_GUIDE.md](ART_AND_DESIGN_GUIDE.md) | Generating new pixel-art sprites/backgrounds (prompt templates, color palettes, Python flood-fill extraction script, `artLoader.ts` & UI rules). |
 | [TESTING_AND_VERIFICATION.md](TESTING_AND_VERIFICATION.md) | Running `npm run build`, checking invariants, Headless Chrome CDP verification harness, visual screenshot QA, and known pitfalls. |
 | [firestore.rules](firestore.rules) | Production Firestore security rules (`saves/{uid}`, `leaderboard/{uid}`, `activities`). |
