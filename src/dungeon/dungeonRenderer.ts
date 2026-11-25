@@ -17,6 +17,7 @@ import {
 } from '../world/dungeonGen';
 import type { DungeonScene } from '../scenes/DungeonScene';
 import { formatWeekLabel } from '../systems/weeklyTrial';
+import { getMechanicsDrawables } from './roomMechanicsRenderer';
 import type { Enemy, SpearThrustFx, WeaponSwing } from './dungeonTypes';
 
 export class DungeonRenderer {
@@ -491,6 +492,8 @@ export class DungeonRenderer {
             : e.y;
       drawables.push({ y: sortY, draw: () => this.renderEnemy(ctx, e) });
     }
+    // Milestone 10-A: solide Kristall-Prismen (S2) y-sortiert zwischen Gegnern & Held
+    for (const d of getMechanicsDrawables(ctx, this.scene)) drawables.push(d);
     drawables.push({ y: this.scene.playerY, draw: () => this.renderPlayer(ctx) });
     if (this.scene.activeCompanion) {
       drawables.push({ y: this.scene.companionY, draw: () => this.renderCompanion(ctx) });

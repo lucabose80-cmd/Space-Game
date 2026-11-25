@@ -41,6 +41,7 @@ import {
 } from '../world/dungeonGen';
 
 import { DungeonEnemyAi } from '../dungeon/enemyAi';
+import { RoomMechanicsSystem } from '../dungeon/roomMechanics';
 import { DungeonRenderer } from '../dungeon/dungeonRenderer';
 import type {
   Afterimage,
@@ -168,6 +169,11 @@ export class DungeonScene {
   public activeRiftMutator: RiftMutatorId | null = null;
   public riftLootMultiplier = 1;
 
+  // Milestone 10-A: Sektor-Raum-Mechaniken (Laufzeit-System + raumlokale Uhr)
+  public mechanics: RoomMechanicsSystem;
+  /** Raumlokale Uhr in Sekunden (Reset bei enterRoom) — alle Mechanik-Zyklen laufen darüber, nie über `time`. */
+  public mechanicsClock = 0;
+
   // Milestone 9: Wöchentliche Galaktische Prüfung (Seeded Challenge Run)
   public isWeeklyTrial = false;
   public trialInfo: WeeklyTrialInfo | null = null;
@@ -201,6 +207,7 @@ export class DungeonScene {
 
   constructor(state: GameState, callbacks: DungeonCallbacks) {
     this.enemyAi = new DungeonEnemyAi(this);
+    this.mechanics = new RoomMechanicsSystem(this);
     this.dungeonRenderer = new DungeonRenderer(this);
     this.state = state;
     this.callbacks = callbacks;
@@ -521,6 +528,8 @@ export class DungeonScene {
     this.pitFallTimer = 0;
     this.pitFallSecretRoomKey = null;
     this.activePrompt = null;
+    this.mechanicsClock = 0;
+    this.mechanics.resetForRoom();
     this.roomFade = 0.22;
 
     if (enteredFrom === 'north') {
@@ -1088,6 +1097,8 @@ export class DungeonScene {
     this.updatePlayer(dt, input);
     this.updateCompanion(dt);
     this.enemyAi.updateHazardsAndDebris(dt);
+    this.mechanicsClock += dt;
+    this.mechanics.update(dt);
     this.enemyAi.updateEnemies(dt);
     this.updateProjectiles(dt);
     this.updateDiscs(dt);
@@ -1311,6 +1322,7 @@ export class DungeonScene {
           this.breakPod(pod);
         }
       }
+      this.mechanics.onMeleeHitWhere((px, py) => Math.hypot(px - this.playerX, py - this.playerY) <= 20);
       return;
     }
 
@@ -1658,6 +1670,7 @@ export class DungeonScene {
         hitAny = true;
       }
     }
+    this.mechanics.onMeleeHitWhere((px, py) => Math.hypot(px - this.playerX, py - this.playerY) <= radius + 10);
 
     if (hitAny) {
       this.hitStop = isFinisher ? 0.055 : 0.028;
@@ -1746,6 +1759,7 @@ export class DungeonScene {
         hitAny = true;
       }
     }
+    this.mechanics.onMeleeHitWhere((px, py) => this.pointToSegmentDist(px, py, sx, sy, ex, ey) <= 13);
 
     if (hitAny) {
       this.hitStop = isFinisher ? 0.045 : 0.022;
@@ -1895,6 +1909,7 @@ export class DungeonScene {
         this.breakPod(pod);
       }
     }
+    this.mechanics.onMeleeHitWhere((px, py) => this.pointToSegmentDist(px, py, sx, sy, ex, ey) <= 13);
     this.callbacks.onHudDirty();
   }
 
@@ -1986,6 +2001,7 @@ export class DungeonScene {
         hitAny = true;
       }
     }
+    this.mechanics.onMeleeHitWhere((px, py) => Math.hypot(px - this.playerX, py - this.playerY) <= radius + 12);
 
     if (hitAny) {
       this.hitStop = 0.055;
@@ -2037,6 +2053,7 @@ export class DungeonScene {
         this.breakPod(pod);
       }
     }
+    this.mechanics.onMeleeHitWhere((px, py) => Math.hypot(px - this.playerX, py - this.playerY) <= maxR);
     this.callbacks.onHudDirty();
   }
 
@@ -2123,6 +2140,7 @@ export class DungeonScene {
         hitAny = true;
       }
     }
+    this.mechanics.onMeleeHitWhere((px, py) => Math.hypot(px - punchX, py - punchY) <= range + 6);
 
     if (hitAny) {
       this.hitStop = isFinisher ? 0.048 : 0.018;
@@ -2195,6 +2213,7 @@ export class DungeonScene {
         this.breakPod(pod);
       }
     }
+    this.mechanics.onMeleeHitWhere((px, py) => Math.hypot(px - this.playerX, py - this.playerY) <= maxR);
   }
 
   // ==================== PHASEN-DISKUS (RICOCHET + MAGNET-RÜCKRUF / ORBIT) ====================
@@ -2322,6 +2341,7 @@ export class DungeonScene {
             this.breakPod(pod);
           }
         }
+        this.mechanics.onMeleeHitWhere((px, py) => Math.hypot(px - bx, py - by) <= 13);
       }
     }
 
@@ -2407,6 +2427,7 @@ export class DungeonScene {
           this.breakPod(pod);
         }
       }
+      this.mechanics.onMeleeHitWhere((px, py) => Math.hypot(px - d.x, py - d.y) <= 14);
 
       // Enemy hit check (bounces off enemies on normal flight, pierces on Magnet-Recall!)
       for (const e of [...this.enemies]) {
@@ -2565,13 +2586,14 @@ export class DungeonScene {
     }
   }
 
-  public collidesRoomObstacle(x: number, y: number, r: number): boolean {
+  /** `includeMechanics = false`: nur die statischen Hindernisse (Projektile werden von den Prismen selbst behandelt). */
+  public collidesRoomObstacle(x: number, y: number, r: number, includeMechanics = true): boolean {
     for (const ob of this.currentRoom.obstacles) {
       if (x + r > ob.x && x - r < ob.x + ob.w && y + r > ob.y && y - r < ob.y + ob.h) {
         return true;
       }
     }
-    return false;
+    return includeMechanics && this.mechanics.collides(x, y, r);
   }
 
   public getChasmAt(x: number, y: number, margin = 0): ChasmRect | null {
@@ -3462,12 +3484,19 @@ export class DungeonScene {
       p.y += p.vy * dt;
       p.life -= dt;
 
+      // Milestone 10-A: Kristall-Prismen spiegeln/teilen Projektile, BEVOR die Wand-Prüfung greift
+      const mechRes = this.mechanics.handleProjectile(p);
+      if (mechRes === 'absorbed' || mechRes === 'split') {
+        this.projectiles.splice(i, 1);
+        continue;
+      }
+
       const hitWall =
         p.x < ROOM_LEFT ||
         p.x > ROOM_RIGHT ||
         p.y < ROOM_TOP ||
         p.y > ROOM_BOTTOM ||
-        this.collidesRoomObstacle(p.x, p.y, p.radius);
+        this.collidesRoomObstacle(p.x, p.y, p.radius, false);
 
       if (hitWall || p.life <= 0) {
         if (p.isSporeGlob) {

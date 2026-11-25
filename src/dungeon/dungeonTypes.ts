@@ -206,6 +206,8 @@ export interface Projectile {
   radius: number;
   life: number;
   isSporeGlob?: boolean;
+  /** Milestone 10-A: Generation eines vom Kristall-Prisma geteilten Projektils (verhindert Ketten-Teilung). */
+  splitGen?: number;
 }
 
 export interface LootDrop {
