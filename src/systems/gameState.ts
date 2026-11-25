@@ -13,6 +13,8 @@ import {
 import { sanitizeGreeting } from '../data/ghostGreetings';
 import { getInfusionDef } from '../data/infusions';
 import { getItemDef, ITEMS } from '../data/items';
+import { computeStoryChapter, createEmptyStory, STORY_CHAPTERS } from '../data/story/storyChapters';
+import type { StoryChoice } from '../data/story/storyTypes';
 import { getPlayerCombatStats, UPGRADE_TRACKS } from '../data/upgrades';
 import { firebaseService, formatDurationSec } from '../services/firebaseService';
 import type {
@@ -32,6 +34,8 @@ import type {
   PedestalSlot,
   SaveData,
   SectorId,
+  StoryNpcId,
+  StoryProgress,
   SuitThemeId,
   TimeOfDay,
   TradeRouteId,
@@ -64,10 +68,11 @@ import {
   TRIAL_COMBAT_LEVELS,
   trimBadgeHistory,
 } from './weeklyTrial';
+import { applyChoice, hasTrustPerk as storyHasTrustPerk, isSceneSkipped, sanitizeStory } from './storyEngine';
 
 const SAVE_KEY = 'starlighter_save_v2';
 const LEGACY_SAVE_KEY = 'starlighter_save_v1';
-const SAVE_VERSION = 10;
+const SAVE_VERSION = 11;
 
 function createEmptyRecords(): CaptainRecords {
   return {
@@ -241,6 +246,8 @@ export class GameState {
   public lastPedestalItems: Record<number, string> = {};
   public haggleWinsTotal = 0;
   // Milestone 9: Galaktisches Netzwerk (Save v10)
+  // Milestone 10-A: Story (Save v11)
+  public story: StoryProgress = createEmptyStory();
   public ghostGreeting = '';
   public weeklyTrial: WeeklyTrialRecord | null = null;
   public trialBadgeHistory: Record<string, TrialBadge> = {};
@@ -334,6 +341,7 @@ export class GameState {
     this.weeklyTrial = null;
     this.trialBadgeHistory = {};
     this.activeTrial = null;
+    this.story = createEmptyStory();
     this.pedestals = [];
     this.syncShopCapacity();
 
@@ -1395,6 +1403,51 @@ export class GameState {
     return isNewRecord;
   }
 
+  // ==================== MEILENSTEIN 10-A: STORY, VERTRAUEN & BONI ====================
+  /** Hebt das Story-Kapitel an (sinkt nie). Gibt das neue Kapitel zurück, wenn es gestiegen ist. */
+  public refreshStoryChapter(persist = true): number | null {
+    const earned = computeStoryChapter(this);
+    if (earned <= this.story.chapter) return null;
+    this.story.chapter = earned;
+    this.checkAchievements(false);
+    if (persist) this.save();
+    return earned;
+  }
+
+  public getStoryChapterTitle(): string {
+    return STORY_CHAPTERS[Math.max(0, Math.min(STORY_CHAPTERS.length - 1, this.story.chapter))].title;
+  }
+
+  public isSceneSkipped(sceneId: string): boolean {
+    return isSceneSkipped(this.story, sceneId);
+  }
+
+  /** Wendet eine Antwort sofort an (nicht erst am Szenenende), damit nichts verloren geht. */
+  public recordStoryChoice(sceneId: string, choice: StoryChoice): { newPerks: StoryNpcId[] } {
+    const res = applyChoice(this.story, sceneId, choice);
+    this.checkAchievements(false);
+    this.save();
+    return { newPerks: res.newPerks };
+  }
+
+  public markSceneSeen(sceneId: string): void {
+    if (!this.story.seenScenes.includes(sceneId)) this.story.seenScenes.push(sceneId);
+    this.story.skippedScenes = this.story.skippedScenes.filter((x) => x !== sceneId);
+    this.checkAchievements(false);
+    this.save();
+  }
+
+  public markSceneSkipped(sceneId: string): void {
+    if (!this.story.skippedScenes.includes(sceneId) && !this.story.seenScenes.includes(sceneId)) {
+      this.story.skippedScenes.push(sceneId);
+      this.save();
+    }
+  }
+
+  public hasTrustPerk(npc: StoryNpcId): boolean {
+    return storyHasTrustPerk(this.story, npc);
+  }
+
   // ==================== MEILENSTEIN 9: WÖCHENTLICHE GALAKTISCHE PRÜFUNG ====================
   /** Freigeschaltet ab Sektor 1 (bleibt nach NG+-Reset durch ngPlusLevel/omegaCleared erhalten). */
   public isWeeklyTrialUnlocked(): boolean {
@@ -1474,6 +1527,7 @@ export class GameState {
     this.deepestFloorS4 = 1;
     this.bounties = this.generateBounties();
     this.nyxStock = this.generateNyxStock();
+    this.refreshStoryChapter(false);
     this.checkAchievements(false);
     this.logMilestone(`Startete New Game+ ${this.ngPlusLevel}!`, `NG+${this.ngPlusLevel}`, '#c084fc');
     this.restoreFullVitals();
@@ -1532,6 +1586,7 @@ export class GameState {
       bankInvestments: this.bankInvestments,
       lastPedestalItems: this.lastPedestalItems,
       haggleWinsTotal: this.haggleWinsTotal,
+      story: this.story,
       ghostGreeting: this.ghostGreeting,
       weeklyTrial: this.weeklyTrial ?? undefined,
       trialBadgeHistory: this.trialBadgeHistory,
@@ -1812,6 +1867,10 @@ export class GameState {
       this.weeklyTrial = sanitizeTrialRecord(parsed.weeklyTrial);
       this.trialBadgeHistory = sanitizeBadgeHistory(parsed.trialBadgeHistory);
       this.activeTrial = null;
+
+      // Milestone 10-A: Defensives Laden für nahtlose v10 -> v11 Migration
+      this.story = sanitizeStory(parsed.story);
+      this.refreshStoryChapter(false);
 
       this.prunePinnedRecipes();
       this.checkAchievements(false);

@@ -31,6 +31,42 @@ export type TradeRouteId =
   | 'foundry_freight'
   | 'elder_expedition';
 
+// ==================== MEILENSTEIN 10-A: STORY, STEUERUNG ====================
+export type StoryNpcId = 'kael' | 'lyra' | 'nyx' | 'vex';
+
+export type StoryFlagId =
+  | 'knows_juno'
+  | 'kael_memorial'
+  | 'kael_forward'
+  | 'lyra_clinic'
+  | 'lyra_told_truth'
+  | 'vex_shared_signal'
+  | 'vex_spiral'
+  | 'vex_stays'
+  | 'nyx_helion_known'
+  | 'nyx_confronted'
+  | 'nyx_covered'
+  | 'nyx_redeemed'
+  | 'festival_seen';
+
+export type AimAssistMode = 'off' | 'standard' | 'smart';
+
+export type TextSpeed = 'normal' | 'fast' | 'instant';
+
+export interface StoryProgress {
+  /** 0..6, sinkt nie (NG+ setzt die Sektor-Flags zurück, das Kapitel bleibt). */
+  chapter: number;
+  /** 0..10, Start 2. */
+  trust: Record<StoryNpcId, number>;
+  flags: StoryFlagId[];
+  /** Abgeschlossene Szenen-IDs. */
+  seenScenes: string[];
+  /** Mit „Später“ übersprungene Szenen (nur für den ruhigen Marker). */
+  skippedScenes: string[];
+  /** Gewählte Antworten (max. 80, älteste werden gekappt). */
+  choiceLog: Array<{ sceneId: string; choiceId: string; ts: number }>;
+}
+
 export type MusicTrack =
   | 'shop_day'
   | 'shop_night'
@@ -425,6 +461,8 @@ export interface SaveData {
   bankInvestments?: BankInvestment[];
   lastPedestalItems?: Record<number, string>;
   haggleWinsTotal?: number;
+  // Milestone 10-A: Story (Save v11)
+  story?: StoryProgress;
   // Milestone 9: Galaktisches Netzwerk (Save v10)
   ghostGreeting?: string;
   weeklyTrial?: WeeklyTrialRecord;

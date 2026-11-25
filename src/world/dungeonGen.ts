@@ -55,6 +55,45 @@ export interface HazardVent {
   phase: number;
 }
 
+// ==================== MEILENSTEIN 10-A: SEKTOR-RAUM-MECHANIKEN ====================
+/** S2: solides, reflektierendes Kristall-Prisma. */
+export interface CrystalPrism {
+  id: number;
+  x: number;
+  y: number;
+  r: number;
+}
+
+/** S3: periodischer Flammenstrahl (Linien-Gefahr). */
+export interface FlameJet {
+  /** Mittelpunkt */
+  x: number;
+  y: number;
+  /** h = horizontaler Strahl, v = vertikaler Strahl */
+  axis: 'h' | 'v';
+  length: number;
+  /** Sekunden-Offset im Zyklus */
+  phase: number;
+}
+
+/** S3: Magnetplatte (Kreisfeld, zieht oder stößt ab). */
+export interface MagnetPlate {
+  x: number;
+  y: number;
+  r: number;
+  polarity: 'pull' | 'push';
+  phase: number;
+}
+
+/** S4: Astral-Teleporter-Pad, immer paarweise (gleiche pairId/Farbe). */
+export interface TeleportPad {
+  id: number;
+  pairId: number;
+  x: number;
+  y: number;
+  colorIdx: 0 | 1 | 2;
+}
+
 export interface EnemySpawn {
   kind:
     | 'slime'
@@ -114,6 +153,11 @@ export interface DungeonRoom {
   chasms: ChasmRect[];
   pods: DestructiblePod[];
   hazards: HazardVent[];
+  /** Milestone 10-A: Sektor-Mechaniken (alles optional) */
+  prisms?: CrystalPrism[];
+  flameJets?: FlameJet[];
+  magnetPlates?: MagnetPlate[];
+  teleporters?: TeleportPad[];
   hasHealStation?: boolean;
   healStationUsed?: boolean;
   chest: RoomChest | null;
@@ -203,11 +247,29 @@ export function generateSector1Floor(floorIndex: 1 | 2 | 3 = 1, customRooms?: nu
   return generateSectorFloor(1, floorIndex, customRooms);
 }
 
+/** Kreis (x, y, pad) überlappt irgendein Rechteck? (Modulebene seit M10-A, Verhalten unverändert.) */
+export function hitsAnyRect(
+  rects: Array<{ x: number; y: number; w: number; h: number }>,
+  x: number,
+  y: number,
+  pad: number,
+): boolean {
+  for (const r of rects) {
+    if (x + pad > r.x && x - pad < r.x + r.w && y + pad > r.y && y - pad < r.y + r.h) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function generateSectorFloor(
   sector: SectorId = 1,
   floorIndex: 1 | 2 | 3 = 1,
   customRooms?: number,
+  /** `mechanics: false` unterdrückt die M10-A-Raum-Mechaniken (Wochen-Prüfung vor dem Gate). */
+  opts?: { mechanics?: boolean },
 ): DungeonFloor {
+  void opts; // wird in Phase 4 (Mechanik-Generator) ausgewertet
   const targetRooms = customRooms ?? (sector === 5 ? 5 : floorIndex === 1 ? 7 : floorIndex === 2 ? 8 : 6);
   const coords: Array<{ gx: number; gy: number }> = [{ gx: 0, gy: 0 }];
   const occupied = new Set<string>([roomKey(0, 0)]);
@@ -299,20 +361,6 @@ export function generateSectorFloor(
     [layoutDeck[i], layoutDeck[j]] = [layoutDeck[j], layoutDeck[i]];
   }
   let layoutIdx = 0;
-
-  const hitsAnyRect = (
-    rects: Array<{ x: number; y: number; w: number; h: number }>,
-    x: number,
-    y: number,
-    pad: number,
-  ): boolean => {
-    for (const r of rects) {
-      if (x + pad > r.x && x - pad < r.x + r.w && y + pad > r.y && y - pad < r.y + r.h) {
-        return true;
-      }
-    }
-    return false;
-  };
 
   for (const c of coords) {
     const key = roomKey(c.gx, c.gy);
