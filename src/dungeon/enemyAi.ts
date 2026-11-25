@@ -86,6 +86,9 @@ export class DungeonEnemyAi {
       e.vx *= Math.pow(0.03, dt);
       e.vy *= Math.pow(0.03, dt);
 
+      // Milestone 10-A: Düsen-Schaden & Magnetplatten-Kräfte der Sektor-Mechaniken
+      this.scene.mechanics.applyToEnemy(e, dt);
+
       const dx = this.scene.playerX - e.x;
       const dy = this.scene.playerY - e.y;
       const dist = Math.max(1, Math.hypot(dx, dy));

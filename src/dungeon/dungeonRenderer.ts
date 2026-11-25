@@ -17,7 +17,7 @@ import {
 } from '../world/dungeonGen';
 import type { DungeonScene } from '../scenes/DungeonScene';
 import { formatWeekLabel } from '../systems/weeklyTrial';
-import { getMechanicsDrawables } from './roomMechanicsRenderer';
+import { getMechanicsDrawables, renderMechanicsGround } from './roomMechanicsRenderer';
 import type { Enemy, SpearThrustFx, WeaponSwing } from './dungeonTypes';
 
 export class DungeonRenderer {
@@ -171,6 +171,9 @@ export class DungeonRenderer {
       }
       ctx.restore();
     }
+
+    // Milestone 10-A: Boden-Layer der Sektor-Mechaniken (Magnetplatten, Düsen-Schienen, Teleporter-Pads)
+    renderMechanicsGround(ctx, this.scene);
 
     // Ambient bioluminescent spores / shimmering crystal motes in Sector 2!
     for (let s = 0; s < 12; s++) {
