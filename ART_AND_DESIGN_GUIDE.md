@@ -198,6 +198,22 @@ Alle Dateien: `public/art/sprites/<datei>.png`, **96×96 RGBA**, Prompt-Formel *
 
 ---
 
+## 8. M10-C-Prompts: Boss-Sprites (Formel B, 128×128)
+
+Datei: `public/art/sprites/<datei>.png`, **128×128 RGBA**, Prompt-Formel **B** (§2) mit **Palette passend zum Sektor**, Freistellung/`NEAREST` nach §3. Die Trefferfarbe (`…Flash`) erzeugt `artLoader.ts` automatisch. Bis ein PNG existiert, zeichnet `dungeon/bosses/bossLooks.ts` einen eingefärbten Fallback mit Erkennungsmerkmalen — eine abgelegte Datei ersetzt ihn ohne Codeänderung. Anzeigegröße in der Engine: Krall 54×52, übrige 72×64.
+
+| Datei (`art`-Key) | Boss | Motiv für `<Objekt>` in Formel B |
+| :--- | :--- | :--- |
+| `boss_scrap_collector` (`bossScrapCollector`) | S1 Ebene I · Schrott-Sammler „Krall“ | a hulking spider-like salvage robot made of scrap plates and rusty pipes with four jointed legs, one big red-and-blue horseshoe magnet on its back and a glowing orange furnace core, menacing but cozy-cartoony |
+| `boss_slag_colossus` (`bossSlagColossus`) | S3 Ebene I · Schlacken-Koloss | a massive lava golem made of cooled black slag rock with glowing orange cracks, dripping molten slag from its fists and shoulders |
+| `boss_forge_mistress` (`bossForgeMistress`) | S3 Ebene II · Gießerei-Meisterin | a tall armored foundry mistress in a scorched leather apron and welding visor holding a gigantic glowing forge hammer, casting molds hanging from her belt |
+| `boss_chrono_warden` (`bossChronoWarden`) | S4 Ebene I · Chrono-Wächter | a floating clockwork eye guardian with a brass clock face as its iris, rotating gear rings and two long glowing clock hands, cyan and gold light |
+| `boss_monolith_colossus` (`bossMonolithColossus`) | S4 Ebene II · Monolith-Koloss | a stone giant built from floating dark monolith slabs with glowing golden runes, hovering plates around its torso, ancient and heavy |
+
+Vulkan-Titan und Sternen-Archon behalten ihre bestehenden Sprites (`boss_vulkan_titan.png`, `boss_star_archon.png`); ihre neuen Erkennungsmerkmale (Lavakrone, Sternbild-Ring) sind prozedural.
+
+---
+
 ## 6. Verknüpfte Dokumente
 
 - [GAME_DESIGN_DOCUMENT.md](GAME_DESIGN_DOCUMENT.md) — Gesamtübersicht, Stand v1.1 & Phase-2-Roadmap.

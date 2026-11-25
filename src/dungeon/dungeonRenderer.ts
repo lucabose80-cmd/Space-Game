@@ -1,5 +1,6 @@
 import { getHDArt } from '../assets/artLoader';
 import { drawGlow, drawPixelShadow } from '../assets/pixelArt';
+import { drawBossLook } from './bosses/bossLooks';
 import { getAtlas } from '../assets/sprites';
 import { COMPANION_DEFS, SUIT_THEMES } from '../data/companions';
 import { getInfusionDef, RIFT_MUTATORS } from '../data/infusions';
@@ -175,6 +176,7 @@ export class DungeonRenderer {
 
     // Milestone 10-A: Boden-Layer der Sektor-Mechaniken (Magnetplatten, Düsen-Schienen, Teleporter-Pads)
     renderMechanicsGround(ctx, this.scene);
+    this.scene.bossFx.render(ctx, this.scene.time);
 
     // Ambient bioluminescent spores / shimmering crystal motes in Sector 2!
     for (let s = 0; s < 12; s++) {
@@ -2159,7 +2161,7 @@ export class DungeonRenderer {
       ctx.translate(e.x, e.y + 16 - stompBob);
       ctx.rotate(tilt);
       ctx.scale(scaleX, scaleY);
-      ctx.drawImage(spr, -27, -45, 54, 52);
+      drawBossLook(ctx, art, e, this.scene.time, spr, -27, -45, 54, 52);
       ctx.restore();
     }
     const corePulse = 0.5 + 0.5 * Math.sin(this.scene.time * (enraged ? 14 : 7));
@@ -2558,7 +2560,7 @@ export class DungeonRenderer {
       if (spr) {
         const w = isOmega ? 78 : isMajor ? 72 : 48;
         const h = isOmega ? 70 : isMajor ? 64 : 48;
-        ctx.drawImage(spr, e.x - w / 2, e.y - h / 2 - 4 + hover, w, h);
+        drawBossLook(ctx, art, e, this.scene.time, spr, e.x - w / 2, e.y - h / 2 - 4 + hover, w, h);
       }
       return;
     }
@@ -3428,14 +3430,14 @@ export class DungeonRenderer {
     ctx.strokeRect(bx - 4.5, by - 11.5, bw + 9, 20);
 
     const baseNameMap: Partial<Record<Enemy['kind'], string>> = {
-      boss_breacher: 'SCHOTT-BRECHER MK-II',
+      boss_breacher: 'SCHROTT-SAMMLER „KRALL“',
       boss: 'CORE-WÄCHTER MK-IV',
       boss_leviathan: '★ A.E.G.I.S. LEVIATHAN',
       boss_quartz_golem: 'QUARZ-KOLOSS MK-I',
       boss_prism_weaver: 'PRISMA-WEBERIN',
       boss_prisma_archon: '★ PRISMA-ARCHON',
       boss_slag_overlord: 'SCHLACKEN-KOLOSS',
-      boss_forge_warden: 'GIESSEREI-MEISTER',
+      boss_forge_warden: 'GIESSEREI-MEISTERIN',
       boss_vulkan_titan: '★ VULKAN-TITAN',
       boss_chrono_sentinel: 'CHRONO-WÄCHTER',
       boss_monolith_colossus: 'MONOLITH-KOLOSS',

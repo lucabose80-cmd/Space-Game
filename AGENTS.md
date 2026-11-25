@@ -46,6 +46,7 @@
 - **Add a new Weapon Infusion or Rift Mutator:**
   1. Define in `src/data/infusions.ts` + extend `InfusionId` / `RiftMutatorId` in `src/types.ts`.
   2. Wire combat behavior in `DungeonScene.ts` (`damageEnemy` / `onEnemyKilled` / `damagePlayer`), status ticks in `src/dungeon/enemyAi.ts`, and FX in `src/dungeon/dungeonRenderer.ts`.
+- **Add / change a Boss move set (M10-C):** bosses with their own move set live in `src/dungeon/bosses/` — `BossDef` (idle move + `moves`: windup → fire/active → recover, Phase 2 below 50 % HP) in `defs.ts`, engine in `bossEngine.ts`, telegraph zones/beams/plates in `bossFx.ts` (`scene.bossFx`), looks in `bossLooks.ts` (optional sprite in `BOSS_OPTIONAL_SPRITES` + tinted procedural fallback). Every dangerous attack needs a ≥ 0.4 s telegraph; no global random call. Test: `tests/m10cp7.cjs`.
 - **Add a new Enemy or Boss:**
   1. Add sprite `public/art/sprites/<name>.png` (`96×96` or `128×128`), register in `src/assets/artLoader.ts` (including flash silhouette).
   2. Add kind to `EnemySpawn['kind']` in `src/world/dungeonGen.ts`, spawn stats in `DungeonScene.spawnEnemy()`, AI in `src/dungeon/enemyAi.ts`, and rendering in `src/dungeon/dungeonRenderer.ts`.

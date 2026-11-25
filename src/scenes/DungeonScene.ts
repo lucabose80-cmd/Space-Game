@@ -44,6 +44,7 @@ import {
 import { DungeonEnemyAi } from '../dungeon/enemyAi';
 import { RoomMechanicsSystem } from '../dungeon/roomMechanics';
 import { NavGrid } from '../dungeon/navGrid';
+import { BossFx } from '../dungeon/bosses/bossFx';
 import { ENEMY_SHIELDS } from '../data/balance';
 import { findFreeSpotSpiral } from '../dungeon/mechanicsGen';
 import { DungeonRenderer } from '../dungeon/dungeonRenderer';
@@ -174,6 +175,8 @@ export class DungeonScene {
   public mechanicsClock = 0;
   /** M10-C: Navigations-Raster des aktuellen Raums (Fluss-Feld zum Spieler) */
   public nav: NavGrid | null = null;
+  /** M10-C: Boss-Telegraphie-Zonen, Strahlen & Platten */
+  public readonly bossFx = new BossFx();
 
   // Milestone 9: Wöchentliche Galaktische Prüfung (Seeded Challenge Run)
   public isWeeklyTrial = false;
@@ -539,6 +542,7 @@ export class DungeonScene {
     this.mechanicsClock = 0;
     this.mechanics.resetForRoom();
     this.rebuildNav();
+    this.bossFx.clear();
     this.aimTargetId = null;
     this.roomFade = 0.22;
 
@@ -581,14 +585,14 @@ export class DungeonScene {
           else this.callbacks.onToast('👑 SEKTOR-4-ENDBOSS: ★ DER STERNEN-ARCHON ERWACHT!', 'warn');
         } else if (this.currentSector === 3) {
           if (this.currentFloor === 1) this.callbacks.onToast('⚠ SEKTOR-3 BOSS I: Schlacken-Koloss erwacht!', 'warn');
-          else if (this.currentFloor === 2) this.callbacks.onToast('⚠ SEKTOR-3 BOSS II: Gießerei-Meister heizt auf!', 'warn');
+          else if (this.currentFloor === 2) this.callbacks.onToast('⚠ SEKTOR-3 BOSS II: Gießerei-Meisterin heizt auf!', 'warn');
           else this.callbacks.onToast('🔥 SEKTOR-3-ENDBOSS: ★ VULKAN-TITAN ERWACHT!', 'warn');
         } else if (this.currentSector === 2) {
           if (this.currentFloor === 1) this.callbacks.onToast('⚠ SEKTOR-2 BOSS I: Quarz-Koloss MK-I erwacht!', 'warn');
           else if (this.currentFloor === 2) this.callbacks.onToast('⚠ SEKTOR-2 BOSS II: Prisma-Weberin manifestiert sich!', 'warn');
           else this.callbacks.onToast('🚨 SEKTOR-2-ENDBOSS: ★ PRISMA-ARCHON ERWACHT!', 'warn');
         } else if (this.currentFloor === 1) {
-          this.callbacks.onToast('⚠ EBENEN-BOSS I: Schott-Brecher MK-II rückt vor!', 'warn');
+          this.callbacks.onToast('⚠ EBENEN-BOSS I: Schrott-Sammler „Krall“ rückt an!', 'warn');
         } else if (this.currentFloor === 2) {
           this.callbacks.onToast('⚠ EBENEN-BOSS II: Core-Wächter MK-IV erwacht!', 'warn');
         } else {
@@ -1117,7 +1121,9 @@ export class DungeonScene {
     this.mechanicsClock += dt;
     this.mechanics.update(dt);
     this.nav?.tick(dt, this.playerX, this.playerY);
+    this.bossFx.beginFrame();
     this.enemyAi.updateEnemies(dt);
+    this.bossFx.update(this, dt);
     this.updateProjectiles(dt);
     this.updateDiscs(dt);
     this.updateDrops(dt);
@@ -1502,7 +1508,7 @@ export class DungeonScene {
       this.spawnBurst(this.playerX, this.playerY + 4, '#fb923c', 8);
     }
 
-    const baseSpeed = (this.shieldActive ? 54 : 108) * stats.moveSpeedMult;
+    const baseSpeed = (this.shieldActive ? 54 : 108) * stats.moveSpeedMult * this.bossFx.slowMult;
     let vx = move.x * baseSpeed;
     let vy = move.y * baseSpeed;
 
@@ -2846,6 +2852,7 @@ export class DungeonScene {
   public onEnemyKilled(e: Enemy): void {
     const idx = this.enemies.indexOf(e);
     if (idx !== -1) this.enemies.splice(idx, 1);
+    if (this.isBossKind(e.kind)) this.bossFx.clear(); // M10-C: Boss-Zonen/Strahlen enden mit dem Boss
 
     // 🔥 Solar-Brand Kill-Nova: burning enemies explode in a fiery shockwave on defeat!
     if (e.burnTimer && e.burnTimer > 0) {
@@ -2898,7 +2905,7 @@ export class DungeonScene {
         this.spawnLootDrop(e.x, e.y, rollLootItem(2, k === 0, nightBoost, luckBonus, 1));
       }
       this.callbacks.onToast(
-        'SIEG! Schott-Brecher MK-II besiegt! Links: Extraktion · Rechts: Tiefen-Aufzug → Ebene II!',
+        'SIEG! Schrott-Sammler „Krall“ besiegt! Links: Extraktion · Rechts: Tiefen-Aufzug → Ebene II!',
         'good',
       );
       this.state.save();
@@ -3060,7 +3067,7 @@ export class DungeonScene {
       this.spawnLootDrop(e.x, e.y, 'solar_core');
       this.spawnLootDrop(e.x - 10, e.y, 'foundry_gear');
       for (let k = 0; k < 2; k++) this.spawnLootDrop(e.x, e.y, rollLootItem(3, k === 0, nightBoost, luckBonus, 3));
-      this.callbacks.onToast('SIEG! Gießerei-Meister besiegt! Links: Extraktion · Rechts: Tiefen-Aufzug → Ebene III (★ VULKAN-TITAN)!', 'good');
+      this.callbacks.onToast('SIEG! Gießerei-Meisterin besiegt! Links: Extraktion · Rechts: Tiefen-Aufzug → Ebene III (★ VULKAN-TITAN)!', 'good');
       this.state.save();
     } else if (e.kind === 'boss_vulkan_titan') {
       this.triggerShake(0.75, 7.2);

@@ -14,6 +14,6 @@ module.exports = async ({ page }) => {
   assert.deepStrictEqual(out.waves, [2, 3]);
   const { execFileSync } = require('node:child_process');
   const txt = execFileSync('node', [require('node:path').join(__dirname, '..', 'scripts', 'check-sprites.mjs')], { encoding: 'utf8' });
-  assert.ok(/12 Sprite\(s\) fehlen|Alle optionalen Sprites/.test(txt), txt);
+  assert.ok(/(\d+) Sprite\(s\) fehlen/.test(txt) && txt.includes("boss_scrap_collector.png") && txt.includes("prop_hub_crystal_lantern.png"), txt);
   console.log('M10C PHASE0 OK');
 };

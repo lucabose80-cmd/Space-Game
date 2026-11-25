@@ -173,6 +173,10 @@ export interface Enemy {
   burnDps?: number;
   cryoTimer?: number;
   mutator?: import('../types').RiftMutatorId;
+  /** M10-C Boss-Engine: aktueller Zustand (idle/windup/active/recover), Zug-Index, Zeit im aktiven Zustand */
+  bossSub?: string;
+  bossMoveIdx?: number;
+  bossT?: number;
   /** M10-C Schilde: Sekunden, die der Schild unten ist (Angriff/Überhitzung); Treffer-Hitze 0…n */
   shieldDownTimer?: number;
   shieldHeat?: number;

@@ -52,6 +52,17 @@ export interface HDArtAssets {
   propScoreboard: HTMLCanvasElement | null;
   // Milestone 10-A: OPTIONALE Promenaden-Sprites (fehlen sie, zeichnet hubEvolution.ts einen Fallback)
   propHubCrystalLantern: HTMLCanvasElement | null;
+  bossScrapCollector: HTMLCanvasElement | null;
+  bossScrapCollectorFlash: HTMLCanvasElement | null;
+  bossSlagColossus: HTMLCanvasElement | null;
+  bossSlagColossusFlash: HTMLCanvasElement | null;
+  bossForgeMistress: HTMLCanvasElement | null;
+  bossForgeMistressFlash: HTMLCanvasElement | null;
+  bossChronoWarden: HTMLCanvasElement | null;
+  bossChronoWardenFlash: HTMLCanvasElement | null;
+  bossMonolithColossus: HTMLCanvasElement | null;
+  bossMonolithColossusFlash: HTMLCanvasElement | null;
+
   propHubElderObelisk: HTMLCanvasElement | null;
   propHubStarBanner: HTMLCanvasElement | null;
   propHubCycleHolo: HTMLCanvasElement | null;
@@ -201,6 +212,17 @@ const art: HDArtAssets = {
   propTrophyS1: null,
   propScoreboard: null,
   propHubCrystalLantern: null,
+  bossScrapCollector: null,
+  bossScrapCollectorFlash: null,
+  bossSlagColossus: null,
+  bossSlagColossusFlash: null,
+  bossForgeMistress: null,
+  bossForgeMistressFlash: null,
+  bossChronoWarden: null,
+  bossChronoWardenFlash: null,
+  bossMonolithColossus: null,
+  bossMonolithColossusFlash: null,
+
   propHubElderObelisk: null,
   propHubStarBanner: null,
   propHubCycleHolo: null,
@@ -318,6 +340,17 @@ export const M10_OPTIONAL_SPRITES = {
 } as const;
 
 export type M10SpriteKey = keyof typeof M10_OPTIONAL_SPRITES;
+
+/** Meilenstein 10-C: optionale Boss-Sprites (128×128). Fehlt die Datei → eingefärbter Fallback + Merkmale (bossLooks.ts). */
+export const BOSS_OPTIONAL_SPRITES = {
+  bossScrapCollector: 'boss_scrap_collector',
+  bossSlagColossus: 'boss_slag_colossus',
+  bossForgeMistress: 'boss_forge_mistress',
+  bossChronoWarden: 'boss_chrono_warden',
+  bossMonolithColossus: 'boss_monolith_colossus',
+} as const;
+
+export type BossSpriteKey = keyof typeof BOSS_OPTIONAL_SPRITES;
 
 export async function preloadHDArt(): Promise<HDArtAssets> {
   if (art.loaded) return art;
@@ -616,6 +649,15 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
   const m10Imgs = await Promise.all(m10Keys.map((k) => loadImage(`/art/sprites/${M10_OPTIONAL_SPRITES[k]}.png`)));
   m10Keys.forEach((k, i) => {
     art[k] = imgToCanvas(m10Imgs[i]);
+  });
+
+  // Meilenstein 10-C: optionale Boss-Sprites (inkl. Treffer-Silhouette)
+  const bossKeys = Object.keys(BOSS_OPTIONAL_SPRITES) as BossSpriteKey[];
+  const bossImgs = await Promise.all(bossKeys.map((k) => loadImage(`/art/sprites/${BOSS_OPTIONAL_SPRITES[k]}.png`)));
+  bossKeys.forEach((k, i) => {
+    const c = imgToCanvas(bossImgs[i]);
+    art[k] = c;
+    art[`${k}Flash`] = c ? makeFlashSilhouette(c, '#ffffff') : null;
   });
 
   art.loaded = true;

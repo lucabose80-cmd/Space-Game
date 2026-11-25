@@ -8,6 +8,8 @@ import {
   ROOM_TOP,
 } from '../world/dungeonGen';
 import { ENEMY_SHIELDS, SHIELD_HEAT_DECAY_SEC } from '../data/balance';
+import { runBoss } from './bosses/bossEngine';
+import { BOSS_DEFS } from './bosses/defs';
 import type { DungeonScene } from '../scenes/DungeonScene';
 import type { BossState, Enemy } from './dungeonTypes';
 
@@ -969,19 +971,15 @@ export class DungeonEnemyAi {
           e.aiTimer -= dt;
           if (e.aiTimer <= 0) e.telegraphTimer = 0.5;
         }
-      } else if (e.kind === 'boss_quartz_golem' || e.kind === 'boss_slag_overlord' || e.kind === 'boss_monolith_colossus') {
+      } else if (BOSS_DEFS[e.kind]) {
+        // M10-C: eigenständige Boss-Zugfolgen (Krall, Schlacken-Koloss, Gießerei-Meisterin, Vulkan-Titan, Chrono-Wächter, Monolith-Koloss, Sternen-Archon)
+        runBoss(e, { scene: this.scene, dx, dy, nx, ny, dist, dt, p2: false }, BOSS_DEFS[e.kind]!);
+      } else if (e.kind === 'boss_quartz_golem') {
         this.updateQuartzGolemAI(e, dt, dx, dy, nx, ny);
-      } else if (e.kind === 'boss_prism_weaver' || e.kind === 'boss_forge_warden' || e.kind === 'boss_chrono_sentinel') {
+      } else if (e.kind === 'boss_prism_weaver') {
         this.updatePrismWeaverAI(e, dt, dx, dy, nx, ny);
-      } else if (
-        e.kind === 'boss_prisma_archon' ||
-        e.kind === 'boss_vulkan_titan' ||
-        e.kind === 'boss_star_archon' ||
-        e.kind === 'boss_omega_archon'
-      ) {
+      } else if (e.kind === 'boss_prisma_archon' || e.kind === 'boss_omega_archon') {
         this.updatePrismaArchonAI(e, dt, dx, dy);
-      } else if (e.kind === 'boss_breacher') {
-        this.updateBreacherAI(e, dt, dx, dy, nx, ny);
       } else if (e.kind === 'boss') {
         this.updateBossAI(e, dt, dx, dy, nx, ny);
       } else if (e.kind === 'boss_leviathan') {
@@ -1555,147 +1553,6 @@ export class DungeonEnemyAi {
         e.bossStateTimer = enraged ? 0.78 : 1.05;
         e.bossStateMax = e.bossStateTimer;
         e.bossStatusText = enraged ? 'PHASE II · ARCHON' : 'PRISMA-ARCHON AKTIV';
-      }
-    }
-  }
-
-  // ==================== FLOOR I BOSS: SCHOTT-BRECHER MK-II ====================
-  private updateBreacherAI(e: Enemy, dt: number, dx: number, dy: number, nx: number, ny: number): void {
-    const enraged = e.hp <= e.maxHp * 0.5;
-    if (enraged && !e.bossPhase2) {
-      e.bossPhase2 = true;
-      sound.playBossRoar();
-      this.scene.triggerShake(0.32, 4.0);
-      this.scene.shockwaves.push({ x: e.x, y: e.y, maxRadius: 72, color: '#fb923c', life: 0.36, maxLife: 0.36 });
-      this.scene.spawnBurst(e.x, e.y, '#fbbf24', 20);
-      this.scene.callbacks.onToast('⚠ Schott-Brecher MK-II aktiviert Hydraulik-Overdrive!', 'warn');
-    }
-
-    const state: BossState = e.bossState ?? 'stalk';
-    e.bossStateTimer = (e.bossStateTimer ?? 0) - dt;
-
-    if (state === 'stunned') {
-      if (e.bossStateTimer <= 0) {
-        e.bossState = 'stalk';
-        e.bossStateTimer = enraged ? 0.65 : 0.9;
-        e.bossStateMax = e.bossStateTimer;
-        e.bossStatusText = enraged ? 'OVERDRIVE' : 'AKTIV';
-      }
-      return;
-    }
-
-    if (state === 'charge_windup') {
-      e.vx *= 0.2;
-      e.vy *= 0.2;
-      if (e.bossStateTimer > (e.bossStateMax ?? 0.55) * 0.35) {
-        e.chargeDirX = nx;
-        e.chargeDirY = ny;
-      }
-      if (e.bossStateTimer <= 0) {
-        sound.playBossCharge();
-        e.bossState = 'charge_dash';
-        e.bossStateTimer = enraged ? 0.52 : 0.46;
-        e.bossStateMax = e.bossStateTimer;
-        e.bossStatusText = 'HYDRAULIK-RAMME!';
-      }
-      return;
-    }
-
-    if (state === 'charge_dash') {
-      const spd = enraged ? 235 : 198;
-      e.vx = e.chargeDirX * spd;
-      e.vy = e.chargeDirY * spd;
-      e.bossAfterimageTick = (e.bossAfterimageTick ?? 0) - dt;
-      if (e.bossAfterimageTick <= 0) {
-        e.bossAfterimageTick = 0.06;
-        this.scene.bossAfterimages.push({
-          x: e.x,
-          y: e.y,
-          height: 0,
-          tilt: e.chargeDirX * 0.2,
-          enraged,
-          isBreacher: true,
-          life: 0.22,
-          maxLife: 0.22,
-        });
-      }
-      if (e.bossStateTimer <= 0) {
-        e.bossState = 'stalk';
-        e.bossStateTimer = enraged ? 0.72 : 0.95;
-        e.bossStateMax = e.bossStateTimer;
-        e.bossStatusText = enraged ? 'OVERDRIVE' : 'AKTIV';
-      }
-      return;
-    }
-
-    if (state === 'breacher_stomp') {
-      e.vx *= 0.2;
-      e.vy *= 0.2;
-      if (e.bossStateTimer <= 0) {
-        sound.playBossSlam();
-        this.scene.triggerShake(0.3, 4.5);
-        this.scene.shockwaves.push({ x: e.x, y: e.y + 4, maxRadius: 64, color: '#fbbf24', life: 0.32, maxLife: 0.32 });
-        this.scene.spawnBurst(e.x, e.y + 4, '#fb923c', 20);
-        const bolts = enraged ? 8 : 6;
-        for (let k = 0; k < bolts; k++) {
-          const a = (k / bolts) * Math.PI * 2 + 0.15;
-          this.fireEnemyBolt(e.x, e.y, a, enraged ? 132 : 112, 14, '#fbbf24');
-        }
-        const pd = Math.hypot(this.scene.playerX - e.x, this.scene.playerY - e.y);
-        if (pd <= 46) {
-          this.scene.damagePlayer(18, (this.scene.playerX - e.x) / Math.max(1, pd), (this.scene.playerY - e.y) / Math.max(1, pd), e);
-        }
-        e.bossState = 'stalk';
-        e.bossStateTimer = enraged ? 0.78 : 1.05;
-        e.bossStateMax = e.bossStateTimer;
-        e.bossStatusText = enraged ? 'OVERDRIVE' : 'AKTIV';
-      }
-      return;
-    }
-
-    if (state === 'breacher_fan') {
-      e.vx *= 0.3;
-      e.vy *= 0.3;
-      if (e.bossStateTimer <= 0) {
-        const base = Math.atan2(dy, dx);
-        const spread = enraged ? [-0.42, -0.21, 0, 0.21, 0.42] : [-0.36, -0.18, 0, 0.18, 0.36];
-        for (const off of spread) {
-          this.fireEnemyBolt(e.x, e.y, base + off, enraged ? 152 : 134, 13, '#fb923c');
-        }
-        sound.playBlaster();
-        this.scene.spawnBurst(e.x, e.y, '#fbbf24', 10);
-        e.bossState = 'stalk';
-        e.bossStateTimer = enraged ? 0.72 : 0.96;
-        e.bossStateMax = e.bossStateTimer;
-        e.bossStatusText = enraged ? 'OVERDRIVE' : 'AKTIV';
-      }
-      return;
-    }
-
-    // Stalk toward player with heavy industrial stomp rhythm
-    e.vx += nx * (enraged ? 58 : 44) * dt * 3.2;
-    e.vy += ny * (enraged ? 58 : 44) * dt * 3.2;
-
-    if (e.bossStateTimer <= 0) {
-      const atk = e.phase % 3;
-      e.phase += 1;
-      if (atk === 0) {
-        e.bossState = 'charge_windup';
-        e.bossStateTimer = enraged ? 0.48 : 0.58;
-        e.bossStateMax = e.bossStateTimer;
-        e.chargeDirX = nx;
-        e.chargeDirY = ny;
-        e.bossStatusText = 'ANLAUF...';
-      } else if (atk === 1) {
-        e.bossState = 'breacher_stomp';
-        e.bossStateTimer = 0.48;
-        e.bossStateMax = 0.48;
-        e.bossStatusText = 'SEISMIK-STAMPFER!';
-      } else {
-        e.bossState = 'breacher_fan';
-        e.bossStateTimer = 0.44;
-        e.bossStateMax = 0.44;
-        e.bossStatusText = 'SCHROTT-SALVE!';
       }
     }
   }

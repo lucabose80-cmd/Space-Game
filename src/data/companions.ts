@@ -30,7 +30,7 @@ export const COMPANION_DEFS: Record<CompanionId, CompanionDef> = {
     shortName: 'SPARK',
     role: 'Plasma-Schütze',
     abilitySummary: 'Feuert alle 1,35 Sek. automatisch Plasma-Bolzen auf den nächsten Gegner im Raum!',
-    unlockRequirement: 'Besiege den Breacher-MK-I (Ebene I Boss) & insgesamt 30 Gegner.',
+    unlockRequirement: 'Besiege den Schrott-Sammler „Krall“ (Ebene I Boss) & insgesamt 30 Gegner.',
     accentColor: '#fb7185',
     iconUrl: '/art/sprites/bot_spark.png',
   },
@@ -92,7 +92,7 @@ export function evaluateCompanionUnlock(
       unlocked,
       progressText: unlocked
         ? 'Freigeschaltet!'
-        : `Breacher: ${bossOk ? '✓' : '✗'} · Gegner: ${Math.min(30, snap.totalEnemiesDefeated)} / 30`,
+        : `Krall: ${bossOk ? '✓' : '✗'} · Gegner: ${Math.min(30, snap.totalEnemiesDefeated)} / 30`,
       ratio,
     };
   }
