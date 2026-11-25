@@ -43,6 +43,8 @@ import {
 
 import { DungeonEnemyAi } from '../dungeon/enemyAi';
 import { RoomMechanicsSystem } from '../dungeon/roomMechanics';
+import { NavGrid } from '../dungeon/navGrid';
+import { findFreeSpotSpiral } from '../dungeon/mechanicsGen';
 import { DungeonRenderer } from '../dungeon/dungeonRenderer';
 import type {
   Afterimage,
@@ -174,6 +176,8 @@ export class DungeonScene {
   public mechanics: RoomMechanicsSystem;
   /** Raumlokale Uhr in Sekunden (Reset bei enterRoom) — alle Mechanik-Zyklen laufen darüber, nie über `time`. */
   public mechanicsClock = 0;
+  /** M10-C: Navigations-Raster des aktuellen Raums (Fluss-Feld zum Spieler) */
+  public nav: NavGrid | null = null;
 
   // Milestone 9: Wöchentliche Galaktische Prüfung (Seeded Challenge Run)
   public isWeeklyTrial = false;
@@ -342,8 +346,11 @@ export class DungeonScene {
     if (!parentKey) return;
     sound.playWarp();
     this.enterRoom(parentKey, null);
-    this.playerX = ROOM_CENTER_X;
-    this.playerY = ROOM_CENTER_Y + 28;
+    // M10-C: Rückkehrpunkt = freier Platz unterhalb des Portals (nicht in Objekten)
+    const rp = this.currentRoom.riftPortal;
+    const back = rp ? findFreeSpotSpiral(this.currentRoom, rp.x, rp.y + 30, 8) : null;
+    this.playerX = back?.x ?? ROOM_CENTER_X;
+    this.playerY = back?.y ?? ROOM_CENTER_Y + 28;
     this.lastSafeX = this.playerX;
     this.lastSafeY = this.playerY;
     this.spawnBurst(this.playerX, this.playerY, '#38e8d4', 18);
@@ -378,7 +385,7 @@ export class DungeonScene {
       // Identisches Layout für alle Spieler: NUR die synchrone Generierung läuft geseedet.
       const seed = getTrialFloorSeed(this.trialInfo.weekId, floorIndex);
       const mechanics = trialHasMechanics(this.trialInfo.weekId);
-      this.floor = withSeededRandom(seed, () => generateSectorFloor(sector, floorIndex, undefined, { mechanics }));
+      this.floor = withSeededRandom(seed, () => generateSectorFloor(sector, floorIndex, undefined, { mechanics, portalExclusion: false }));
       // Keine Rift-Risse in der Prüfung (Beute/Progression sind aus)
       for (const [key, room] of [...this.floor.rooms.entries()]) {
         if (room.isRiftChamber) this.floor.rooms.delete(key);
@@ -537,6 +544,7 @@ export class DungeonScene {
     this.activePrompt = null;
     this.mechanicsClock = 0;
     this.mechanics.resetForRoom();
+    this.rebuildNav();
     this.aimTargetId = null;
     this.roomFade = 0.22;
 
@@ -658,6 +666,11 @@ export class DungeonScene {
     this.spawnBurst(rx, ry, '#38e8d4', 18);
     this.callbacks.onToast('Mit dem Grav-Seil sicher zurück nach oben gezogen!', 'info');
     this.callbacks.onHudDirty();
+  }
+
+  /** Navigations-Raster neu aufbauen (Raumwechsel; Tests nach Hindernis-Änderung). */
+  public rebuildNav(): void {
+    this.nav = new NavGrid((x, y, r) => this.collidesRoomObstacle(x, y, r) || this.collidesRoomChasm(x, y, r), 7);
   }
 
   public isBossKind(kind: Enemy['kind']): boolean {
@@ -1109,6 +1122,7 @@ export class DungeonScene {
     this.enemyAi.updateHazardsAndDebris(dt);
     this.mechanicsClock += dt;
     this.mechanics.update(dt);
+    this.nav?.tick(dt, this.playerX, this.playerY);
     this.enemyAi.updateEnemies(dt);
     this.updateProjectiles(dt);
     this.updateDiscs(dt);

@@ -173,6 +173,12 @@ export interface Enemy {
   burnDps?: number;
   cryoTimer?: number;
   mutator?: import('../types').RiftMutatorId;
+  /** M10-C Navigation: Anti-Hänger-Zustand (Bodenläufer) */
+  stuckTimer?: number;
+  stuckRefX?: number;
+  stuckRefY?: number;
+  sidestepTimer?: number;
+  sidestepDir?: number;
 }
 
 export interface LightningArcFx {

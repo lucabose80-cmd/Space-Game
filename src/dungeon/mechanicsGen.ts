@@ -107,8 +107,18 @@ export function isFreeSpot(room: DungeonRoom, x: number, y: number, r: number, p
   return true;
 }
 
+/** Wird nur während applySectorMechanics gesetzt (synchron): Rift-Portal als Freihaltezone beachten. */
+let portalAware = false;
+const PORTAL_KEEP_RADIUS = 16;
+
+function portalCircles(room: DungeonRoom): Circle[] {
+  return portalAware && room.riftPortal && !room.riftPortal.cleared
+    ? [{ x: room.riftPortal.x, y: room.riftPortal.y, r: PORTAL_KEEP_RADIUS }]
+    : [];
+}
+
 function existingCircles(room: DungeonRoom): Circle[] {
-  const out: Circle[] = [];
+  const out: Circle[] = [...portalCircles(room)];
   for (const p of room.prisms ?? []) out.push({ x: p.x, y: p.y, r: p.r });
   for (const m of room.magnetPlates ?? []) out.push({ x: m.x, y: m.y, r: m.r });
   for (const t of room.teleporters ?? []) out.push({ x: t.x, y: t.y, r: PAD_RADIUS });
@@ -133,7 +143,7 @@ function placePrisms(room: DungeonRoom, rng: Rng, floorIndex: 1 | 2 | 3): void {
   if (rng() >= MECHANIC_CHANCE.prism[floorIndex - 1]) return;
   const want = floorIndex === 1 ? 2 : 2 + (rng() < 0.4 ? 1 : 0);
   const out: CrystalPrism[] = [];
-  const placed: Circle[] = [];
+  const placed: Circle[] = [...portalCircles(room)];
   let id = 0;
   for (const c of candidates(rng)) {
     if (out.length >= want) break;
@@ -206,7 +216,7 @@ function placeTeleporters(room: DungeonRoom, rng: Rng, floorIndex: 1 | 2 | 3): v
   const bigChasm = [...room.chasms].sort((a, b) => b.w * b.h - a.w * a.h)[0];
 
   for (let pair = 0; pair < wantPairs; pair++) {
-    const placed = [...pads.map((p) => ({ x: p.x, y: p.y, r: PAD_RADIUS }))];
+    const placed = [...portalCircles(room), ...pads.map((p) => ({ x: p.x, y: p.y, r: PAD_RADIUS }))];
     const cands = [...primaryCandidates(), ...fallbackCandidates()].filter((c) => isFreeSpot(room, c.x, c.y, PAD_RADIUS, placed));
     // Paare bilden: Abstand ≥ 140; bevorzugt gegenüberliegende Raumhälften (bzw. über eine Schlucht hinweg)
     const combos: Array<{ a: { x: number; y: number }; b: { x: number; y: number }; score: number }> = [];
@@ -239,8 +249,23 @@ function placeTeleporters(room: DungeonRoom, rng: Rng, floorIndex: 1 | 2 | 3): v
  * S1, die Omega-Anomalie (Sektor 5), Rift-Kammern und Geheimräume bleiben unberührt.
  * Die Spirale nutzt `generateSectorFloor(visualSector, …)` und erhält die Mechaniken dadurch automatisch.
  */
-export function applySectorMechanics(rooms: Map<string, DungeonRoom>, sector: SectorId, floorIndex: 1 | 2 | 3): void {
+export function applySectorMechanics(
+  rooms: Map<string, DungeonRoom>,
+  sector: SectorId,
+  floorIndex: 1 | 2 | 3,
+  /** M10-C: Rift-Portal als Freihaltezone. Wochen-Prüfung übergibt `false` (Portale werden dort gelöscht; Layout bleibt identisch). */
+  portalExclusion = true,
+): void {
   if (sector < 2 || sector > 4) return;
+  portalAware = portalExclusion;
+  try {
+    applySectorMechanicsInner(rooms, sector, floorIndex);
+  } finally {
+    portalAware = false;
+  }
+}
+
+function applySectorMechanicsInner(rooms: Map<string, DungeonRoom>, sector: SectorId, floorIndex: 1 | 2 | 3): void {
   for (const room of rooms.values()) {
     if (room.type !== 'combat' || room.isRiftChamber || room.secretParentKey) continue;
     const rng = mulberry32(hashString(`m10:${sector}:${floorIndex}:${room.key}:${room.tileSeed}`));
@@ -248,4 +273,39 @@ export function applySectorMechanics(rooms: Map<string, DungeonRoom>, sector: Se
     else if (sector === 3) placeFoundryMechanics(room, rng, floorIndex);
     else placeTeleporters(room, rng, floorIndex);
   }
+}
+
+/**
+ * M10-C (B2): Nächster freier Platz um (startX, startY) per Spirale — komplett deterministisch, KEIN Zufall.
+ * Frei = im Raum (± 20 px Rand), ohne Hindernis/Abgrund/Vent/Pod/Truhe, nicht in Tür-Korridoren.
+ */
+export function findFreeSpotSpiral(
+  room: DungeonRoom,
+  startX: number,
+  startY: number,
+  r: number,
+  step = 8,
+  maxDist = 130,
+): { x: number; y: number } | null {
+  const ok = (x: number, y: number): boolean => {
+    if (x - r < ROOM_LEFT + 20 || x + r > ROOM_RIGHT - 20 || y - r < ROOM_TOP + 20 || y + r > ROOM_BOTTOM - 20) return false;
+    if (hitsAnyRect(room.obstacles, x, y, r + 6)) return false;
+    if (hitsAnyRect(room.chasms, x, y, r + 2)) return false;
+    for (const h of room.hazards) if (Math.hypot(x - h.x, y - h.y) < h.r + r + 6) return false;
+    for (const p of room.pods) if (Math.hypot(x - p.x, y - p.y) < r + 12) return false;
+    if (room.chest && Math.hypot(x - room.chest.x, y - room.chest.y) < r + 20) return false;
+    for (const z of doorCorridors(room)) if (hitsAnyRect([z], x, y, r)) return false;
+    return true;
+  };
+  if (ok(startX, startY)) return { x: startX, y: startY };
+  for (let d = step; d <= maxDist; d += step) {
+    const n = Math.max(6, Math.round((2 * Math.PI * d) / step));
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      const x = Math.round(startX + Math.cos(a) * d);
+      const y = Math.round(startY + Math.sin(a) * d);
+      if (ok(x, y)) return { x, y };
+    }
+  }
+  return null;
 }

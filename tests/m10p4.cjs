@@ -72,6 +72,11 @@ module.exports = async ({ page }) => {
     // Rekonstruktion: Schlüsselreihenfolge der Room-Objekte ist durch delete unverändert → gleicher String wie früher
     const s2 = parts15.join('|'); let hash = 2166136261; for (let i = 0; i < s2.length; i++) { hash ^= s2.charCodeAt(i); hash = Math.imul(hash, 16777619) >>> 0; }
     out.oldHash = hash;
+    // M10-C: Wochen-Prüfung löscht Portale & Rift-Kammern → relevanter Hash OHNE riftPortal/Rift-Kammern (Referenz vom Stand vor M10-C)
+    const partsT = [];
+    for (const sec of [1, 2, 3, 4, 5]) for (const fl of [1, 2, 3]) { const f = rng.withSeededRandom(`probe:${sec}:${fl}`, () => gen.generateSectorFloor(sec, fl)); partsT.push(JSON.stringify([...f.rooms.entries()].filter(([, r]) => !r.isRiftChamber).map(([k, r]) => { const c = { ...r }; delete c.prisms; delete c.flameJets; delete c.magnetPlates; delete c.teleporters; delete c.riftPortal; return [k, c]; }))); }
+    const sT = partsT.join('|'); let hashT = 2166136261; for (let i = 0; i < sT.length; i++) { hashT ^= sT.charCodeAt(i); hashT = Math.imul(hashT, 16777619) >>> 0; }
+    out.trialHash = hashT;
     // Spirale bekommt Mechaniken (visualSector 2-4)
     let spiral = 0; for (let d = 1; d <= 12; d++) { const f = gen.generateEndlessRiftFloor(d); if ([...f.rooms.values()].some((r) => r.prisms || r.flameJets || r.magnetPlates || r.teleporters)) spiral++; }
     out.spiral = spiral;
@@ -82,7 +87,7 @@ module.exports = async ({ page }) => {
   const T = { 2: [0.55, 0.7, 0.85], 3: [0.4, 0.6, 0.75], 4: [0.5, 0.7, 0.85] }; const P = [0.25, 0.45, 0.6];
   let okDist = true;
   for (const sec of [2, 3, 4]) for (let fl = 1; fl <= 3; fl++) { const s = r.stats[`${sec}-${fl}`]; const key = sec === 2 ? 'prism' : sec === 3 ? 'jet' : 'tele'; if (!near(s[key], T[sec][fl - 1])) { okDist = false; console.log('dist miss', sec, fl, key, s[key], T[sec][fl - 1]); } if (sec === 3 && !near(s.plate, P[fl - 1])) { okDist = false; console.log('plate miss', fl, s.plate); } }
-  const ok = okDist && r.violCount === 0 && r.teleportOdd === 0 && r.padDistBad === 0 && r.ineligibleHit === 0 && r.noMechS1S5 && r.det.every(Boolean) && r.probeHasMech && r.layoutSame && r.seqSame && r.randomRestored && r.oldHash === 918998568 && r.spiral >= 8;
+  const ok = okDist && r.violCount === 0 && r.teleportOdd === 0 && r.padDistBad === 0 && r.ineligibleHit === 0 && r.noMechS1S5 && r.det.every(Boolean) && r.probeHasMech && r.layoutSame && r.seqSame && r.randomRestored && r.trialHash === 2433387701 && r.spiral >= 8;
   if (!ok) throw new Error('M10 Phase 4 assert failed');
   console.log('M10 PHASE4 OK');
 };

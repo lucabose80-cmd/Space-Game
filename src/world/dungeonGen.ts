@@ -1,4 +1,4 @@
-import { applySectorMechanics } from '../dungeon/mechanicsGen';
+import { applySectorMechanics, findFreeSpotSpiral } from '../dungeon/mechanicsGen';
 import type { ItemStack, SectorId } from '../types';
 
 export type RoomType = 'start' | 'combat' | 'treasure' | 'boss' | 'secret';
@@ -268,7 +268,7 @@ export function generateSectorFloor(
   floorIndex: 1 | 2 | 3 = 1,
   customRooms?: number,
   /** `mechanics: false` unterdrückt die M10-A-Raum-Mechaniken (Wochen-Prüfung vor dem Gate). */
-  opts?: { mechanics?: boolean },
+  opts?: { mechanics?: boolean; portalExclusion?: boolean },
 ): DungeonFloor {
   const targetRooms = customRooms ?? (sector === 5 ? 5 : floorIndex === 1 ? 7 : floorIndex === 2 ? 8 : 6);
   const coords: Array<{ gx: number; gy: number }> = [{ gx: 0, gy: 0 }];
@@ -810,11 +810,24 @@ export function generateSectorFloor(
     );
     const shouldSpawnRift = floorIndex >= 2 || Math.random() < 0.55;
     if (shouldSpawnRift && combatCandidates.length > 0) {
-      const host = combatCandidates[Math.floor(Math.random() * combatCandidates.length)];
+      let host = combatCandidates[Math.floor(Math.random() * combatCandidates.length)];
+      // M10-C: Portal nur auf freiem Platz (deterministische Spirale, kein zusätzlicher Zufall);
+      // hat der Raum keinen, nimmt der nächste Kandidat in fester Reihenfolge
+      let portalSpot = findFreeSpotSpiral(host, ROOM_CENTER_X, ROOM_CENTER_Y - 6, 16);
+      if (!portalSpot) {
+        for (const alt of combatCandidates) {
+          const spot = findFreeSpotSpiral(alt, ROOM_CENTER_X, ROOM_CENTER_Y - 6, 16);
+          if (spot) {
+            host = alt;
+            portalSpot = spot;
+            break;
+          }
+        }
+      }
       const riftKey = `rift:${host.key}`;
       host.riftPortal = {
-        x: ROOM_CENTER_X,
-        y: ROOM_CENTER_Y - 6,
+        x: portalSpot?.x ?? ROOM_CENTER_X,
+        y: portalSpot?.y ?? ROOM_CENTER_Y - 6,
         targetKey: riftKey,
         cleared: false,
       };
@@ -893,7 +906,7 @@ export function generateSectorFloor(
             : FLOOR_NAMES_S1;
 
   // Milestone 10-A: Sektor-Mechaniken (eigener lokaler PRNG — verbraucht KEIN globales Math.random)
-  if (opts?.mechanics !== false) applySectorMechanics(rooms, sector, floorIndex);
+  if (opts?.mechanics !== false) applySectorMechanics(rooms, sector, floorIndex, opts?.portalExclusion !== false);
 
   return {
     sector,

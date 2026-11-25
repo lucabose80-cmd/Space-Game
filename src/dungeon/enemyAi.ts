@@ -92,8 +92,10 @@ export class DungeonEnemyAi {
       const dx = this.scene.playerX - e.x;
       const dy = this.scene.playerY - e.y;
       const dist = Math.max(1, Math.hypot(dx, dy));
-      const nx = dx / dist;
-      const ny = dy / dist;
+      // M10-C Navigation: Bodenläufer umgehen Hindernisse (nur bei blockierter Sichtlinie, sonst wie bisher)
+      const steered = this.steer(e, dx / dist, dy / dist, dist, dt);
+      const nx = steered.x;
+      const ny = steered.y;
 
       if (e.kind === 'slime') {
         // Energetic continuous bouncing hops + slime trail + telegraphed pounce every 3rd hop!
@@ -118,7 +120,7 @@ export class DungeonEnemyAi {
             } else {
               // Bouncy zig-zag hop toward player
               const jitter = (Math.random() - 0.5) * 0.65;
-              const hopAngle = Math.atan2(dy, dx) + jitter;
+              const hopAngle = Math.atan2(ny, nx) + jitter;
               e.vx += Math.cos(hopAngle) * 112;
               e.vy += Math.sin(hopAngle) * 112;
               this.scene.decals.push({
@@ -1145,6 +1147,67 @@ export class DungeonEnemyAi {
   }
 
   // ==================== SECTOR 2 FLOOR I BOSS: QUARZ-KOLOSS MK-I ====================
+  /** Bodenläufer mit Wegfindung (M10-C B1): melee-artige Gegner, keine Schützen/Türme/Bosse/Schweber. */
+  private static readonly STEER_KINDS = new Set<Enemy['kind']>([
+    'slime',
+    'slime_magma',
+    'crystal_crawler',
+    'void_crawler',
+    'slag_beetle',
+    'astral_scarab',
+    'forge_golem',
+    'ember_stalker',
+    'phase_stalker',
+    'star_lancer',
+  ]);
+
+  private hasLineOfWalk(e: Enemy, tx: number, ty: number): boolean {
+    const d = Math.hypot(tx - e.x, ty - e.y);
+    const steps = Math.max(1, Math.ceil(d / 6));
+    for (let i = 1; i <= steps; i++) {
+      const px = e.x + ((tx - e.x) * i) / steps;
+      const py = e.y + ((ty - e.y) * i) / steps;
+      if (
+        this.scene.collidesRoomObstacle(px, py, e.radius * 0.85) ||
+        this.scene.collidesRoomChasm(px, py, e.radius * 0.7)
+      ) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private steer(e: Enemy, nx: number, ny: number, dist: number, dt: number): { x: number; y: number } {
+    if (!DungeonEnemyAi.STEER_KINDS.has(e.kind) || !this.scene.nav) return { x: nx, y: ny };
+
+    // Anti-Hänger: kaum Bewegung trotz Wunsch → kurz seitlich ausweichen
+    if (e.sidestepTimer && e.sidestepTimer > 0) {
+      e.sidestepTimer = Math.max(0, e.sidestepTimer - dt);
+      const dir = e.sidestepDir ?? 1;
+      return { x: -ny * dir * 0.9 + nx * 0.3, y: nx * dir * 0.9 + ny * 0.3 };
+    }
+    e.stuckTimer = (e.stuckTimer ?? 0) + dt;
+    if (e.stuckRefX === undefined || e.stuckRefY === undefined) {
+      e.stuckRefX = e.x;
+      e.stuckRefY = e.y;
+    }
+    if (e.stuckTimer >= 0.6) {
+      const moved = Math.hypot(e.x - e.stuckRefX, e.y - e.stuckRefY);
+      if (moved < 2 && dist > e.radius + 14) {
+        const left = !this.scene.collidesRoomObstacle(e.x + ny * 10, e.y - nx * 10, e.radius * 0.85);
+        e.sidestepDir = left ? -1 : 1;
+        e.sidestepTimer = 0.4;
+      }
+      e.stuckTimer = 0;
+      e.stuckRefX = e.x;
+      e.stuckRefY = e.y;
+    }
+
+    if (dist < 12 || this.hasLineOfWalk(e, this.scene.playerX, this.scene.playerY)) return { x: nx, y: ny };
+    const flow = this.scene.nav.flowDir(e.x, e.y);
+    return flow ?? { x: nx, y: ny };
+  }
+
   private updateQuartzGolemAI(e: Enemy, dt: number, dx: number, dy: number, nx: number, ny: number): void {
     const enraged = e.hp <= e.maxHp * 0.5;
     if (enraged && !e.bossPhase2) {
