@@ -4,7 +4,7 @@
 
 ---
 
-## 1. Project Snapshot (v1.2 — Milestone 9 implemented)
+## 1. Project Snapshot (v1.3 — Milestone 10-A implemented)
 - **Game:** **STARLIGHTER** — Cozy Retro-Sci-Fi Action-RPG & Space-Shop browser game inspired by *Moonlighter 1*.
 - **Stack:** `TypeScript` (strict) + `Vite 8` + custom HTML5 Canvas 2D engine (`960×540` HD pixel-art buffer at `RENDER_SCALE = 2` over `480×270` logical coordinates) + Web Audio procedural synth + Firebase Auth & Cloud Firestore (`starlighter-15b1f`).
 - **Deployment:** Pushing to `main` triggers automatic Vercel deployment. **Never** tell the user to open a `localhost` URL.
@@ -13,10 +13,10 @@
 ## 2. Documentation Map (Read When Relevant)
 | Document | When to Read |
 | :--- | :--- |
-| [GAME_DESIGN_DOCUMENT.md](GAME_DESIGN_DOCUMENT.md) | Current milestone status (M1–M9 + Firebase + Architecture Split live), full feature list, Phase 2 Roadmap (M10-A), and codebase directory map. |
+| [GAME_DESIGN_DOCUMENT.md](GAME_DESIGN_DOCUMENT.md) | Current milestone status (M1–M10-A + Firebase + Architecture Split live), story bible, open ideas, and codebase directory map. |
 | [MILESTONE_8_ARCHITECTURE.md](MILESTONE_8_ARCHITECTURE.md) | Architecture & subsystem spec for Milestone 8 (Haggling, Patron Reputation, Market Terrace, Alchemy Bar, Solaris Trade Bank & Save v9). |
 | [MILESTONE_9_ARCHITECTURE.md](MILESTONE_9_ARCHITECTURE.md) | Architecture & implementation record for M9 (Captain Files, Global Market Trend, Ghost Captains, Weekly Seeded Trial, Save v10). |
-| [MILESTONE_10_ARCHITECTURE.md](MILESTONE_10_ARCHITECTURE.md) | **Next milestone (planned):** Architecture & phased implementation plan for M10-A (branching NPC story with trust & flags, living Port Solaris incl. optional sprite pack, sector room mechanics S2–S4, boss phase-2 music, touch size, aim assist & text speed, Save v11). Follow its phases in order. |
+| [MILESTONE_10_ARCHITECTURE.md](MILESTONE_10_ARCHITECTURE.md) | Architecture & implementation record for M10-A (branching NPC story with trust & flags, living Port Solaris incl. optional sprite pack, sector room mechanics S2–S4, boss phase-2 music, touch size, aim assist & text speed, Save v11). §11 lists deviations & open items. |
 | [ART_AND_DESIGN_GUIDE.md](ART_AND_DESIGN_GUIDE.md) | Generating new pixel-art sprites/backgrounds (prompt templates, color palettes, Python flood-fill extraction script, `artLoader.ts` & UI rules). |
 | [TESTING_AND_VERIFICATION.md](TESTING_AND_VERIFICATION.md) | Running `npm run build`, checking invariants, Headless Chrome CDP verification harness, visual screenshot QA, and known pitfalls. |
 | [firestore.rules](firestore.rules) | Production Firestore security rules (`saves/{uid}`, `leaderboard/{uid}`, `activities`). |
@@ -24,9 +24,9 @@
 ---
 
 ## 3. Non-Negotiable Rules (Do & Don't)
-1. **Zero-Dungeon-Credits Rule:** **NEVER** add `state.credits +=` inside `src/scenes/DungeonScene.ts`, `src/dungeon/enemyAi.ts`, or `src/dungeon/dungeonRenderer.ts`. Credits are earned exclusively through selling relics in *Astro-Barter*, bounties, and trade.
+1. **Zero-Dungeon-Credits Rule:** **NEVER** add `state.credits +=` inside `src/scenes/DungeonScene.ts` or anywhere under `src/dungeon/` (`enemyAi.ts`, `dungeonRenderer.ts`, `mechanicsGen.ts`, `roomMechanics*.ts`). Verify with `rg -n "state\.credits\s*\+=" src/scenes/DungeonScene.ts src/dungeon/` → 0 hits. Credits are earned exclusively through selling relics in *Astro-Barter*, bounties, and trade.
 2. **Everything In-Game:** Never build external out-of-game menus. Every feature (Cloud-Save/Scoreboard, Jukebox, Infusions, Companions, Endless Rift, Market Terrace) must live as an interactive station/terminal/NPC inside the game world.
-3. **Backward-Compatible Saves:** Current `SAVE_VERSION = 10` in `src/systems/gameState.ts`. Any new field in `SaveData` (`src/types.ts`) must be optional (`?`) and safely defaulted in `GameState.load()`.
+3. **Backward-Compatible Saves:** Current `SAVE_VERSION = 11` in `src/systems/gameState.ts`. Any new field in `SaveData` (`src/types.ts`) must be optional (`?`) and safely defaulted in `GameState.load()`.
 4. **Firebase Config Policy:** Public Firebase web config for `starlighter-15b1f` intentionally lives in `src/services/firebaseConfig.ts` (with `VITE_FIREBASE_*` env override support) because Vercel Free does not allow env var configuration. Security is enforced server-side via `firestore.rules` + Firebase Authorized Domains.
 5. **Strict TypeScript:** `tsconfig.json` enforces `verbatimModuleSyntax`, `erasableSyntaxOnly`, `noUnusedLocals`, and `noUnusedParameters`. Always use `import type` for type-only imports.
 6. **Mandatory Verification Before Every Push:**
@@ -56,6 +56,15 @@
   1. Rotation, normalised levels (`TRIAL_COMBAT_LEVELS`), par times & scoring live in `src/systems/weeklyTrial.ts`; runtime wiring in `DungeonScene` (`isWeeklyTrial`, `startWeeklyTrial`, `finishWeeklyTrial`, `activeCompanion` getter).
   2. Trial invariants: no loot (`spawnLootDrop` guard), no credits, no inventory changes, no `sectorNCleared`/`bossDefeatedCount`/`recordSectorClear`, no NG+ scaling, no infusions/companion/alchemy buff. Seeds apply ONLY around the synchronous `generateSectorFloor()` via `withSeededRandom` (never wrap async code).
   3. Changing `dungeonGen.ts` changes the layouts of future weeks (acceptable, note it in the GDD).
+- **Add / change a Story scene or flag (M10-A):**
+  1. Scenes are pure data in `src/data/story/storyScenes.ts` (format: `storyTypes.ts`): ≤ 180 chars per box, ≤ 8 boxes per path, ≤ 3 answers, ≤ 2 narrator boxes per path, every answer needs a `chronicle` sentence, trust deltas −1…+2.
+  2. New flag → extend `StoryFlagId` (`types.ts`) **and** `ALL_STORY_FLAGS` (`storyChapters.ts`); set it in a choice (`setFlags`) and read it via `variants`/`requires`.
+  3. Run `validateStoryScenes(STORY_SCENES, { requireComplete: true })` (must return `[]`). Story chapter = max, never decreases (NG+).
+  4. Rewards are comfort/visuals/discounts — **never credits**; Lyra/Vex perks must stay off in the Weekly Trial.
+- **Add a new Sector Room Mechanic (M10-A):**
+  1. Types on `DungeonRoom` (`world/dungeonGen.ts`), placement in `dungeon/mechanicsGen.ts` — **never use the global random call there** (own `mulberry32(hashString(...))` per room; otherwise every seeded Weekly-Trial layout changes), runtime in `dungeon/roomMechanics.ts` (cycles via `scene.mechanicsClock`, never `scene.time`), drawing in `dungeon/roomMechanicsRenderer.ts`.
+  2. Check: seeded floor identical with/without mechanics (`generateSectorFloor(..., { mechanics })`), free-zone rules, `TRIAL_MECHANICS_FROM_WEEK` gate for running trial weeks.
+- **Add a Promenade element (M10-A):** add a case in `scenes/hubEvolution.ts` — sprite via `M10_OPTIONAL_SPRITES` in `artLoader.ts` **plus** a procedural fallback; never replace `hub_bg.png` (collisions/prompts hang on it).
 - **Add a new Leaderboard / Cloud Record Field:**
   1. Extend `CaptainRecords` & `LeaderboardEntry` in `src/types.ts`.
   2. Persist & restore in `src/systems/gameState.ts`, map in `firebaseService.buildLeaderboardEntry()` (`src/services/firebaseService.ts`), and display in `UIManager.renderGuildBoardModal()`.

@@ -171,6 +171,33 @@ def extract_sprite(crop_img: Image.Image, target_size: int = 64, pad: int = 4) -
 
 ---
 
+## 6b. Hinweis zu optionalen Sprites (Meilenstein 10-A)
+
+Die 12 Promenaden-Sprites aus §7 sind **optional**: `artLoader.ts` lädt sie über `M10_OPTIONAL_SPRITES` separat; fehlt eine Datei, bleibt der Art-Key `null` und `scenes/hubEvolution.ts` (bzw. `HubScene.getStrollerSprite`) zeichnet einen prozeduralen Fallback. Eine neue PNG ersetzt den Fallback sofort — kein Code nötig.
+
+## 7. M10-Prompts: Promenaden-Sprites (Formel B)
+
+Alle Dateien: `public/art/sprites/<datei>.png`, **96×96 RGBA**, Prompt-Formel **B** (§2), Freistellung & `NEAREST`-Skalierung nach §3, **Palette „Port Solaris Promenade“** (Schiefer-Metall `#334155`, Laternen-Amber `#f59e0b`, Pastell-Nebel `#818cf8`/`#38e8d4`). Rohdateien optional als `art_source/m10/<datei>_raw.png` ablegen. Anzeigegröße in der Engine in Klammern.
+
+| Datei (`art`-Key) | Motiv für `<Objekt>` in Formel B |
+| :--- | :--- |
+| `prop_hub_crystal_lantern` (`propHubCrystalLantern`, 22×30) | a slim brass street lantern post holding a glowing violet amethyst crystal instead of a flame, soft magenta inner glow |
+| `prop_hub_elder_obelisk` (`propHubElderObelisk`, 34×44) | a tall slender dark obsidian alien obelisk with glowing cyan glyph lines and a floating golden holo-ring around its middle |
+| `prop_hub_star_banner` (`propHubStarBanner`, 24×32) | a hanging festival cloth banner in deep navy with a large golden eight-pointed star emblem and small tassels |
+| `prop_hub_cycle_holo` (`propHubCycleHolo`, 26×26) | a small floating cyan hologram display panel on a slim metal stand, empty screen with scanlines, no text |
+| `prop_kael_memorial` (`propKaelMemorial`, 26×26) | a small memorial anvil on a stone base with a carved star-above-hammer emblem and an eternal orange flame in a brass bowl |
+| `prop_lyra_echo_sign` (`propLyraEchoSign`, 22×22) | a hanging clinic sign with a glowing cyan medical cross combined with a soft sound-wave symbol, brass frame, no text |
+| `prop_nyx_free_lantern` (`propNyxFreeLantern`, 20×26) | a warm amber paper-and-brass lantern hanging from a hook, with a small open-hand emblem, cozy light |
+| `prop_vex_beacon` (`propVexBeacon`, 30×40) | a compact research antenna beacon with a satellite dish, blinking lights and a glowing violet energy coil on top |
+| `prop_vex_classboard` (`propVexClassboard`, 26×24) | a small holographic teaching board on tripod legs showing simple glowing cyan schematics, no text |
+| `npc_pilgrim` (`npcPilgrim`, 24×28) | a hooded crystal pilgrim traveler in violet robes carrying a small glowing amethyst shard, friendly pose, full body |
+| `npc_foundry_worker` (`npcFoundryWorker`, 24×28) | a stocky foundry worker in an orange heat-resistant suit with soot marks, goggles on forehead, carrying a wrench, full body |
+| `npc_elder_scholar` (`npcElderScholar`, 24×28) | an elderly scholar in teal and gold robes holding a floating holo-tablet, kind face, full body |
+
+**Vor dem Einbau prüfen:** gleiche 3/4-Perspektive wie die NPCs, dunkle Pixel-Outline, Proportion zu Kael (26×29 px im Spiel), keine weißen Fransen. Danach Hub-Screenshots je Kapitel (`story.chapter` 0–6) ansehen.
+
+---
+
 ## 6. Verknüpfte Dokumente
 
 - [GAME_DESIGN_DOCUMENT.md](GAME_DESIGN_DOCUMENT.md) — Gesamtübersicht, Stand v1.1 & Phase-2-Roadmap.

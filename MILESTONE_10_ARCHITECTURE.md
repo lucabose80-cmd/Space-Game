@@ -1,6 +1,6 @@
 # Architektur- & Vorgehensplan: Meilenstein 10-A — Story-Tiefe, Sektor-Rätsel & Audio-/Mobile-Feinschliff
 
-> **Status:** 🔜 Geplant — Umsetzungsvorlage für einen KI-Coding-Agent (z. B. Claude Sonnet)
+> **Status:** ✅ Umgesetzt (Phasen 0–8) — Umsetzungsnotizen siehe §11
 > **Basis:** Stand nach Meilenstein 9 (`SaveData v10`, Galaktisches Netzwerk, Wöchentliche Prüfung)
 > **Ziel-Save-Version:** `SAVE_VERSION = 11`
 > **Quelle der Anforderungen:** [GAME_DESIGN_DOCUMENT.md §5](GAME_DESIGN_DOCUMENT.md) (Roadmap M10-A) + Wunsch des Projektinhabers: **mehr Story, beeinflussbare Dialoge und eine sichtbar lebendige Raumstation — bei Bedarf auch mit neuen Sprites**
@@ -933,12 +933,25 @@ const REPO = '/home/user/Space-Game'; const PORT = 4197;
 
 ## 11. Umsetzungsnotizen
 
-*(Wird bei der Umsetzung ausgefüllt.)* Pflichtangaben:
-- gewählter Wert für `TRIAL_MECHANICS_FROM_WEEK`;
-- welche Promenaden-Elemente als Sprite bzw. prozedural umgesetzt sind und warum;
-- ob ein Bildgenerator verfügbar war — falls nicht: Hinweis an den Projektinhaber, welche PNGs noch fehlen;
-- Balancing-Anpassungen (Mechanik-Werte, Vertrauens-Schwellen);
-- sonstige Abweichungen vom Plan.
+**`TRIAL_MECHANICS_FROM_WEEK`:** `'2026-W49'` — Wochen davor (z. B. W48) behalten ihre mechanikfreien Layouts, damit laufende Ranglisten vergleichbar bleiben. Referenz-Hash des geseedeten Layouts (918998568) ist mit und ohne Mechaniken identisch.
+
+**Promenaden-Elemente:** Kein Bildgenerator verfügbar → **alle 12 optionalen PNGs fehlen** (`prop_hub_crystal_lantern`, `prop_hub_elder_obelisk`, `prop_hub_star_banner`, `prop_hub_cycle_holo`, `prop_kael_memorial`, `prop_lyra_echo_sign`, `prop_nyx_free_lantern`, `prop_vex_beacon`, `prop_vex_classboard`, `npc_pilgrim`, `npc_foundry_worker`, `npc_elder_scholar`). Alles läuft mit prozeduralen Fallbacks (Lichter, Wimpel, Feuerwerk rein prozedural – dort ist Zeichnen ohnehin besser). Prompts: [ART_AND_DESIGN_GUIDE.md §7](ART_AND_DESIGN_GUIDE.md). Schwächste Fallbacks (zuerst durch Sprites ersetzen): Zyklus-Hologramm, Klassentafel, Vex-Bake, Obelisk. Eine abgelegte PNG ersetzt den Fallback ohne Codeänderung.
+
+**Balancing (je Sektor-Stufe, 200 geseedete Ebenen):** S2 Prisma 0,54/0,70/0,88 · S3 Düsen 0,40/0,59/0,72, Magnetplatten 0,25/0,38/0,56 · S4 Teleporter 0,47/0,67/0,80. Düsen: Periode 3,6 s (sicher <2,0, Warnung 2,0–2,8, aktiv ≥2,8), 16 Schaden; Magnetplatten: Periode 5,0 s, aktiv 1,6 s; Teleporter: 0,25 s Verweilzeit, 1,2 s Sperre. Vertrauen 0–10, Perk ab 7.
+
+**Abweichungen vom Plan:**
+- Eigene Datei `data/story/storyTypes.ts` für die Dialoggraph-Typen.
+- `RoomMechanicsSystem.onMeleeHitWhere(test)` (Prädikat) plus Wrapper `onMeleeHit(x,y,r)`; 10 Nahkampf-Stellen in `DungeonScene` gepatcht.
+- `collidesRoomObstacle(x,y,r,includeMechanics = true)` – Projektile prüfen ohne Prismen.
+- Platzierung: `PLATE_PLACE_RADIUS = 12` mit Abstand 6 für Magnetplatten, Spawn-Ausschluss nach Mittelpunkt-Abstand 26, zusätzliches feines Fallback-Raster, damit die Zielverteilung erreicht wird.
+- Dialogkopf zeigt einen kurzen Kapitelnamen.
+- Nur im Dev-Server: `window.__game` als Test-Hook.
+- Kael-Perk (−5 %) gilt für Upgrades und Waffen-Crafting, nicht für Infusionspreise; Nyx-Perk würfelt den Bestand sofort neu.
+- Festival: ESC/Überspringen zählt als gesehen.
+- Smart-Zielhilfe wird jeden Frame aktualisiert (sticky-Regeln); Leviathan-Arme sind Kandidaten.
+- Touch: Hochformat stapelt das Deck (`touch-stacked`), Querformat ist auf 115 % gekappt.
+- Vex-Scanner zeigt Räume nur im Minimap-Fenster; VEX_DECO- und Wimpel-Positionen wurden nach Screenshot-QA justiert.
+- Prüfung W48 erhält keine Mechaniken (siehe Gate).
 
 ---
 

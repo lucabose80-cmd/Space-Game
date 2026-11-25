@@ -1,6 +1,6 @@
 # Game Design Document (GDD): *STARLIGHTER*
 
-> **Stand:** Version 1.2 (nach Meilenstein 9 — Galaktisches Netzwerk, Save v10)  
+> **Stand:** Version 1.3 (nach Meilenstein 10-A — Story mit Entscheidungen, lebendige Raumstation, Sektor-Mechaniken, Save v11)  
 > **Kurzpitch:** Ein **Cozy Retro-Sci-Fi Action-RPG & Shop-Management-Spiel** im Browser, inspiriert von *Moonlighter 1*. Bei Tag führst du deinen eigenen Bergungs- und Relikt-Shop (*Astro-Barter*) auf der Frontier-Raumstation *Port Solaris* — bei Nacht (oder auf Expedition) plünderst du prozedurale Raumschiff-Wracks, Kristall-Nebel, Solar-Gießereien, Ältesten-Monolithen und instabile Dimensions-Rifts nach wertvoller Technologie.
 
 ---
@@ -81,16 +81,45 @@ flowchart LR
   - **Geister-Kapitäne:** Echte Spieler aus `leaderboard` besuchen den Laden als Holo-Kunden (12 % Spawn-Chance, +10 % Gilden-Trinkgeld, eigener Holo-Gruß im Konto-Tab).
   - **Wöchentliche Galaktische Prüfung:** Wochen-Seed (`YYYY-Www`) am 5. Tor — identisches Layout, normierte MK-V-Ausrüstung, kein NG+/Prägung/Drohne/Elixier, **keine Beute & keine Progression**; Wochen-Rangliste (`weeklyTrials/{weekId}/entries/{uid}`), Gold/Silber/Bronze-Abzeichen & 2 neue Erfolge (gesamt 16). Das 5. Tor ist jetzt ein 3-Wege-Modal (Omega · Spirale · Prüfung).
 
+- **✅ Meilenstein 10-A — Story, lebendige Station, Sektor-Mechaniken & Feinschliff (Save v11):** *(Spezifikation & Umsetzungsnotizen: [MILESTONE_10_ARCHITECTURE.md](MILESTONE_10_ARCHITECTURE.md))*
+  - **Story mit Entscheidungen:** 7 Kapitel (Prolog → S1–S4 → Omega → NG+), 28 Gesprächsszenen mit Kael, Lyra, Nyx & Vex (4–8 Textboxen, Antwortwahl mit Ton 💛⚡🔍🛡), **Vertrauen 0–10**, 13 Story-Flags, 4 **Vertrauens-Boni** ab Stufe 7, einmaliges **Omega-Fest**, **📜 Chronik** im Logbuch (Wiederholen ohne Auswirkung). Immer überspringbar („Später ▸ Station“).
+  - **Lebendige Raumstation:** Port Solaris verändert sich je Kapitel (Lichterketten, Kristall-Laternen, Solar-Wimpel, Holo-Obelisk, Omega-Fest-Banner & Feuerwerk, Zyklus-Hologramm) und je Entscheidung (Denkmal, heißere Esse, Echo-Station, Freihandels-Laterne, Leuchtfeuer/Lehrtafel); mehr Passanten und kurze Sprechblasen. 12 optionale Sprite-Slots mit prozeduralen Fallbacks.
+  - **Sektor-Raum-Mechaniken:** S2 Kristall-Prismen (spiegeln/teilen Projektile), S3 Schmelz-Düsen & Magnetplatten, S4 Astral-Teleporter-Paare — deterministisch platziert (lokaler PRNG), auch in der ∞ Spirale; in der Wochen-Prüfung erst ab `2026-W49`.
+  - **Boss-Phase-2-Musik** (Tempo +18 %, Hi-Hat, Oktav-Lead, Sting), **Touch-Größe 85–130 %**, **Zielhilfe Aus/Standard/Smart**, **Textgeschwindigkeit** — als Geräte-Einstellungen im Hilfe-Tab (nur `localStorage`, nicht im Cloud-Save). Erfolge: 18.
+
 ---
 
-## 5. Nächste Schritte — Offene Phase-2-Roadmap (Meilenstein 10-A)
+## 4b. Story & Figuren (Kurzfassung)
 
-### 🔜 Meilenstein 10-A: Story-Tiefe, Sektor-Rätsel & Audio-/Mobile-Feinschliff
-> 📐 **Architektur- & Vorgehensplan:** [MILESTONE_10_ARCHITECTURE.md](MILESTONE_10_ARCHITECTURE.md)
+**Setting:** Port Solaris ist eine Handelsstation am Rand der Galaxis. Aus den Wracks der vier Sektoren kommt das **Echo** — ein wiederkehrendes Signal. Es ist der Gesang der **vier Siegel**, die die Ältesten bauten, um die **Omega-Anomalie** hinter dem 5. Tor einzusperren; jeder Wächter (die Sektor-Endbosse) wurde von der Anomalie verdorben. Mit jedem Sieg wird das Echo klarer — nach dem Omega-Sieg verstummt es. Im Hintergrund will das **Helion-Konsortium** (goldener Sonnenring) die Anomalie als Energiequelle ausbeuten.
 
-1. **Fortschreitende NPC-Dialogkapitel & visuelle Stations-Entwicklung** auf Port Solaris nach jedem Boss-/Omega-Sieg.
-2. **Sektor-spezifische Raum-Mechaniken:** Reflektierende Kristall-Prismen (S2), periodische Schmelz-Düsen/Magnetplatten (S3), paarweise Astral-Teleporter-Pads (S4).
-3. **Boss-Phase-2-Musik-Steigerung** in der Web-Audio-Engine + anpassbare Touch-Button-Größe / optionaler Mobile-Aim-Assist.
+| Kapitel | Titel | Auslöser | Sichtbare Änderung auf Port Solaris |
+| :--- | :--- | :--- | :--- |
+| 0 | Prolog · Ankunft auf Port Solaris | Spielstart | Grundzustand |
+| 1 | Kapitel I · Junos Zeichen | A.E.G.I.S. LEVIATHAN besiegt | Lichterketten leuchten wieder |
+| 2 | Kapitel II · Das Lied der Kristalle | ★ PRISMA-ARCHON besiegt | Kristall-Laternen, Kristall-Pilger |
+| 3 | Kapitel III · Funken der Sonnenschmiede | ★ VULKAN-TITAN besiegt | Solar-Wimpel, Gießerei-Arbeiter |
+| 4 | Kapitel IV · Das Erbe der Ältesten | ★ DER STERNEN-ARCHON besiegt | Holo-Obelisk, Ältesten-Gelehrte |
+| 5 | Kapitel V · Licht jenseits des 5. Tors | ★ OMEGA STERNEN-ARCHON besiegt | Omega-Fest: Banner & Feuerwerk |
+| 6 | Epilog · Ein neuer Zyklus | New Game+ gestartet | Zyklus-Hologramm |
+
+| Figur | Ton, den sie schätzt | Bogen | Vertrauens-Bonus (≥ 7) |
+| :--- | :--- | :--- | :--- |
+| **Kael** (Schmied) | ⚡ direkt | Trauert um seine Schülerin Juno, die den Korvetten-Reaktor von innen versiegelte | *Meisterhand:* Schmiede-Upgrades & Waffen-Fertigung −5 % Credits |
+| **Dr. Lyra** (Ärztin) | 💛 warm | Behandelt das Echo-Fieber; Schuld aus der ersten Monolith-Expedition | *Notfallset:* +1 Stimpack |
+| **Nyx** (Schwarzmarkt) | 🛡 vorsichtig | Ex-Helion-Schmugglerin: Verrat oder Wende | *Hinterzimmer-Ware:* +1 seltenes Schwarzmarkt-Angebot |
+| **Vex** (Ingenieurin) | 🔍 neugierig | Entschlüsselt das Echo, erforscht danach die Spirale | *Sektor-Scanner:* Schatz-/Bossraum auf der Minimap |
+
+Boni wirken **nicht** in der Galaktischen Prüfung (Lyra, Vex) und geben **nie Credits** (Zero-Dungeon-Credits-Regel).
+
+---
+
+## 5. Offene Punkte & Ideen (nach Meilenstein 10-A)
+
+1. **12 Promenaden-Sprites (optional, Fallbacks vorhanden):** Laternen, Obelisk, Banner, Hologramm, Denkmal, Schilder, Leuchtfeuer, Lehrtafel + 3 Passanten — fertige Prompts in [ART_AND_DESIGN_GUIDE.md §7](ART_AND_DESIGN_GUIDE.md); empfohlene Reihenfolge: Zyklus-Hologramm, Lehrtafel, Leuchtfeuer, Obelisk (die prozeduralen Fallbacks wirken dort am „aufgeklebtesten“).
+2. **Balancing nach echten Spieldaten:** Par-Zeiten der Wochen-Prüfung, Mechanik-Häufigkeiten/-Schaden (S2–S4), Vertrauens-Schwellen.
+3. **Story-Erweiterung:** weitere Szenen pro Kapitel, Antworten mit längerfristigen Folgen (z. B. Dialoge im Shop), vertonte Stimm-Jingles pro Figur.
+4. **Wöchentliche Prüfung:** zusätzliche Prüfungs-Regeln/Modifikatoren pro Woche (z. B. „nur Nahkampf“).
 
 ---
 
@@ -99,7 +128,7 @@ flowchart LR
 ```text
 src/
 ├── main.ts                     # Haupt-Game-Loop, Szenenwechsel, Firebase Auto-Sync-Hook
-├── types.ts                    # Zentrale Typen (SaveData v10, CaptainRecords, InfusionId, RiftMutatorId …)
+├── types.ts                    # Zentrale Typen (SaveData v11, CaptainRecords, InfusionId, RiftMutatorId …)
 ├── assets/
 │   ├── artLoader.ts            # HD-Pixel-Art Preloader (public/art/**)
 │   └── pixelArt.ts / sprites.ts
@@ -110,16 +139,24 @@ src/
 │   ├── marketTrends.ts         # M9: 8 globale Tages-Markttrends (UTC-deterministisch)
 │   ├── ghostGreetings.ts       # M9: Holo-Gruß-Presets & sanitizeGreeting()
 │   ├── guildMarket.ts          # 4 Stammkunden, Shop-Deko, Großaufträge, 5 Elixiere & 4 Bank-Routen
-│   └── companions.ts           # 4 Begleiter-Drohnen, 5 Anzug-Stile, 14 Erfolge, Events, Jukebox
+│   ├── companions.ts           # 4 Begleiter-Drohnen, 5 Anzug-Stile, 18 Erfolge, Events, Jukebox
+│   └── story/
+│       ├── storyChapters.ts    # M10: 7 Kapitel, NPC-Meta, Vertrauens-Boni, Passanten-Plan & -Sprüche
+│       ├── storyTypes.ts       # M10: Dialog-Graph-Typen (StoryScene, StoryNode, StoryChoice)
+│       └── storyScenes.ts      # M10: 28 NPC-Szenen + Omega-Fest als Dialog-Graphen
 ├── dungeon/
-│   ├── dungeonTypes.ts         # Enemy, BossState, Projectile, LightningArcFx, SiphonOrbFx …
+│   ├── dungeonTypes.ts         # Enemy, BossState, Projectile (+splitGen), LightningArcFx, SiphonOrbFx …
+│   ├── mechanicsGen.ts         # M10: Platzierung der Sektor-Mechaniken (lokaler PRNG, Freihalte-Zonen)
+│   ├── roomMechanics.ts        # M10: RoomMechanicsSystem (Prismen, Düsen, Magnetplatten, Teleporter)
+│   ├── roomMechanicsRenderer.ts # M10: Boden-Layer & y-sortierte Mechanik-Objekte
 │   ├── enemyAi.ts              # DungeonEnemyAi (inkl. Burn-DoT, Kryo-Slow, Hasted & alle Bosse)
 │   └── dungeonRenderer.ts      # DungeonRenderer (S1–S4, Rift-Risse, Blitze, Orbs, Minimap, Timer)
 ├── scenes/
 │   ├── DungeonScene.ts         # Kampf, Waffen-Combos, Prägungen, Rift-Kammern, ∞ Spirale
 │   ├── ShopScene.ts            # Astro-Barter Verkauf, Feilschen, Stammkunden, Deko, [F] Refill
 │   ├── BackroomScene.ts        # Kapitäns-Quartier (Schlaf, Truhen, Jukebox, Drohnen, Stile)
-│   ├── HubScene.ts             # Port Solaris Promenade (Kael, Lyra, Vex, Nyx, Kapitäns-Tafel)
+│   ├── HubScene.ts             # Port Solaris Promenade (NPCs, !-Marker, Passanten, Sprechblasen)
+│   ├── hubEvolution.ts         # M10: Stations-Entwicklung je Kapitel/Flag (Sprite + prozeduraler Fallback)
 │   ├── MarketTerraceScene.ts   # Marktplatz-Terrasse (Milo's Alchemie-Bar, Gilde, Handelsbank)
 │   └── HangarScene.ts          # Raumhafen (Docks I–IV & 5. Tiefenraum-Tor)
 ├── services/
@@ -127,21 +164,25 @@ src/
 │   ├── firebaseService.ts      # Auth (Google + E-Mail), Cloud-Save, Leaderboard, Activity Feed & Prüfungs-Einträge
 │   └── galacticNetwork.ts      # M9: Geister-Kapitäne-Pool & Wochen-Rangliste (Cache)
 ├── systems/
-│   ├── gameState.ts            # Zentraler State, Save/Load v10, Rekorde, Prägungen, Bank, Ruf & Prüfung
+│   ├── gameState.ts            # Zentraler State, Save/Load v11, Rekorde, Prägungen, Bank, Ruf, Prüfung & Story
 │   ├── economy.ts              # Scan-Codex, Preisreaktionen, Optimalpreis & Nachfrage-Decay
 │   ├── haggle.ts               # 2-Runden-Feilschen State Machine
 │   ├── seededRng.ts            # M9: FNV-1a/Mulberry32, withSeededRandom, ISO-Wochen-/UTC-Tages-IDs
+│   ├── storyEngine.ts          # M10: reine Story-Logik (Szene wählen, Varianten, Antworten, Validierung)
+│   ├── deviceSettings.ts       # M10: Touch-Größe, Zielhilfe, Textgeschwindigkeit (nur localStorage)
 │   ├── weeklyTrial.ts          # M9: Prüfungs-Rotation, normierte Stufen, Score, Abzeichen
 │   └── inventory.ts            # Cargo, Truhe & richtungsabhängige Synergien
 ├── ui/
 │   ├── UIManager.ts            # HUD & In-Game-Modals (Inventar, Schmiede/Prägungen, Tafel …)
 │   ├── MarketModals.ts         # M8-Modals (Feilschen, Schichtbilanz, Stammkunden, Alchemie, Bank)
-│   └── NetworkModals.ts        # M9: Kapitäns-Akte, Konjunktur-Banner, Prüfungs-Karte/-Ergebnis/-Rangliste
+│   ├── NetworkModals.ts        # M9: Kapitäns-Akte, Konjunktur-Banner, Prüfungs-Karte/-Ergebnis/-Rangliste
+│   └── StoryModals.ts          # M10: Dialog-Controller (Schreibmaschine, Antworten, Später) & Chronik
 └── world/
     └── dungeonGen.ts           # Prozedurale Sektor-Ebenen, Schluchten, Geheimkammern, Rifts & ∞ Spirale
 ```
 
 - **Build & Deploy:** `npm run build` (`tsc && vite build`), Push auf `main` triggert automatisches Vercel-Deployment.
+- **Meilenstein-10-Architektur:** [MILESTONE_10_ARCHITECTURE.md](MILESTONE_10_ARCHITECTURE.md) (Story mit Entscheidungen, lebendige Station, Sektor-Mechaniken, Musik, Steuerung & Save v11 — inkl. Umsetzungsnotizen §11).
 - **Meilenstein-9-Architektur:** [MILESTONE_9_ARCHITECTURE.md](MILESTONE_9_ARCHITECTURE.md) (Akten, Konjunktur, Geister-Kapitäne, Wöchentliche Prüfung & Save v10).
 - **Meilenstein-8-Architektur:** [MILESTONE_8_ARCHITECTURE.md](MILESTONE_8_ARCHITECTURE.md) (Detail-Spezifikation zu Feilschen, Stammkunden-Ruf, Marktplatz-Terrasse, Alchemie-Bar, Handelsbank & Save v9).
 - **Art-, Sprite- & UI-Design-Guide:** [ART_AND_DESIGN_GUIDE.md](ART_AND_DESIGN_GUIDE.md) (Prompt-Formeln, Flood-Fill-Freistellung, Farbpaletten & UI-Regeln für gleichbleibende HD-Pixel-Art-Qualität).

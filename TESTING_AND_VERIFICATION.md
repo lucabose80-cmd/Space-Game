@@ -109,6 +109,12 @@ await cdp.evalJs(`(async () => {
 | **Prüfungs-Uploads scheitern (M9)** | Die Regeln für `weeklyTrials/{weekId}/entries/{uid}` sind nicht in der Firebase-Konsole veröffentlicht (Vercel deployt `firestore.rules` NICHT). | Regeln aus `firestore.rules` in Firebase → Firestore → Regeln einfügen & veröffentlichen. Bis dahin bleibt `weeklyTrial.uploaded = false` und der Upload wird bei jedem Sync erneut versucht. |
 | **Test-Mocks mit `Proxy` schlucken Zuweisungen (M9)** | Ein `new Proxy({}, { get: () => () => {} })` überschreibt per `get`-Trap auch zuvor gesetzte Callbacks. | Für Callbacks, die du prüfen willst, ein normales Objekt mit expliziten Funktionen verwenden. |
 | **Geseedeter Zufall bleibt aktiv (M9)** | `withSeededRandom` patcht `Math.random` global. | Nur um **synchrone** Generatoren verwenden; `try/finally` stellt das Original wieder her. Test: `Math.random` vor/nach dem Aufruf vergleichen (auch nach geworfener Exception). |
+| **Spielinstanz im Test (M10)** | `StarlighterGame` ist modulprivat. | Im Vite-Dev-Server existiert `window.__game` (nur `import.meta.env.DEV`, im Produktions-Build entfernt). Private Felder sind zur Laufzeit erreichbar (`g.hubScene.callbacks.onOpenForge()`, `g.syncMusic()`). |
+| **Test schaltet die echte Spielschleife in eine nie gestartete Szene (M10)** | `g.activeScene = 'dungeon'` ohne `startRun()` → `currentRoom` undefined → `pageerror`. | Eigene Szenen-Instanzen (`new DungeonScene(...)`) bauen oder den Loop mit `cancelAnimationFrame` anhalten; `touch.setState('dungeon', …)` braucht keine Dungeon-Szene. |
+| **Statistik-Tests flackern (M10)** | Ungeseedete Stichproben (z. B. 200 Ebenen) schwanken ±3 %. | Pro Stichprobe `withSeededRandom('dist:…', …)` nutzen → deterministisch. |
+| **Exakte Zeit-/Phasen-Grenzen (M10)** | `(2.0 % 3.6)` ist wegen Float-Rundung manchmal `1.9999…`. | Grenzen mit Abstand testen (`2.01`, `2.81`), nie exakt auf der Kante. |
+| **Dialog-Tasten rutschen in die Welt (M10)** | `window`-Listener des InputManagers bekommt `E`/`Enter` zusätzlich. | `StoryDialogController` registriert `keydown` im **Capture** auf `document` und stoppt die Propagation (nur für Enter/E/Space/→/1–3). Test: Spy auf `window` darf während des Dialogs 0 Treffer sehen. |
+| **Touch-Deck bei großer Skalierung (M10)** | Joystick + Buttons passen im Hochformat nicht nebeneinander. | `TouchControls.updateStacked()` setzt `.touch-stacked`; im Querformat ist die Skalierung auf 115 % gekappt (`effectiveTouchScale`). |
 
 ### 3.1 Test-Hooks für Meilenstein 9
 
@@ -117,6 +123,19 @@ await cdp.evalJs(`(async () => {
 - `getIsoWeekId(new Date(...))`, `getCurrentWeeklyTrial(new Date(...))` — deterministische Wochen-Tests (`2026-01-01` → `2026-W01`, `2027-01-01` → `2026-W53`).
 - Seed-Vergleich: zwei Aufrufe `withSeededRandom('x', () => generateSectorFloor(2, 1))` müssen identische `JSON.stringify([...floor.rooms.entries()])` liefern; ohne Seed müssen sie sich unterscheiden.
 - Prüfungs-Invarianten testen: nach `startWeeklyTrial(info)` + Boss-`onEnemyKilled` + `triggerDefeat()`/`triggerSafeWarp()` müssen `credits`, `inventory`, `bossDefeatedCount`, `sectorNCleared` unverändert sein.
+
+
+### 3.2 Test-Hooks für Meilenstein 10-A
+
+- `storyEngine` ist rein: `getPendingScene`, `applyChoice`, `recomputeDerivedFlags`, `validateStoryScenes(STORY_SCENES, { requireComplete: true })` direkt mit gestellten `StoryProgress`-Objekten (`createEmptyStory()`).
+- `state.story` direkt setzbar (`chapter`, `trust`, `flags`, `seenScenes`) → Hub-Screenshots je Kapitel/Flag-Variante.
+- `ui.openStoryScene(scene, opts)` gibt den `StoryDialogController` zurück (`advance()`, `choose(i)`, `skipLater()`, `getState()`); `ui.activeStory` ist erreichbar.
+- `hub.getEvolution()` → `spritesEnabled = false` erzwingt Fallbacks, `getActiveElementIds()`, `getColliders()`, `debugFirework()`, `getSparkCount()`; `hub.triggerChatter(true)`, `hub.getStrollerKinds()`. Fake-Sprites: `getHDArt()[key] = canvas`.
+- `applySectorMechanics(rooms, sector, floorIndex)` und `isFreeSpot(...)` exportiert; `generateSectorFloor(sector, floor, undefined, { mechanics })`.
+- `scene.mechanics` (`RoomMechanicsSystem`): `handleProjectile`, `onMeleeHit`, `applyToEnemy`, `update`, `getJetState`, `isPlateActive`, `getPadCharge`; `scene.mechanicsClock` direkt setzbar (Phase erzwingen).
+- Audio: `sound['tickMusic']()` mit Fake-`ctx` (`{ state: 'running' }`) und Spies auf `playMusicVoice`/`playMusicNoise`; `sound.getMusicIntensity()`.
+- `saveDeviceSettings()`/`getDeviceSettings()`/`resetDeviceSettingsCacheForTest()`; Zielhilfe-Referenzwinkel vor Änderungen an `getAimAngle` aufzeichnen und danach vergleichen.
+- Invarianten-Suche erweitert: `rg -n "state\.credits\s*\+=" src/scenes/DungeonScene.ts src/dungeon/` und `rg -n "Math\.random" src/dungeon/mechanicsGen.ts` → jeweils 0 Treffer.
 
 ---
 
