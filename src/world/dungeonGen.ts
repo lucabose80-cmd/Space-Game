@@ -1,3 +1,4 @@
+import { applySectorMechanics } from '../dungeon/mechanicsGen';
 import type { ItemStack, SectorId } from '../types';
 
 export type RoomType = 'start' | 'combat' | 'treasure' | 'boss' | 'secret';
@@ -269,7 +270,6 @@ export function generateSectorFloor(
   /** `mechanics: false` unterdrückt die M10-A-Raum-Mechaniken (Wochen-Prüfung vor dem Gate). */
   opts?: { mechanics?: boolean },
 ): DungeonFloor {
-  void opts; // wird in Phase 4 (Mechanik-Generator) ausgewertet
   const targetRooms = customRooms ?? (sector === 5 ? 5 : floorIndex === 1 ? 7 : floorIndex === 2 ? 8 : 6);
   const coords: Array<{ gx: number; gy: number }> = [{ gx: 0, gy: 0 }];
   const occupied = new Set<string>([roomKey(0, 0)]);
@@ -891,6 +891,9 @@ export function generateSectorFloor(
           : sector === 2
             ? FLOOR_NAMES_S2
             : FLOOR_NAMES_S1;
+
+  // Milestone 10-A: Sektor-Mechaniken (eigener lokaler PRNG — verbraucht KEIN globales Math.random)
+  if (opts?.mechanics !== false) applySectorMechanics(rooms, sector, floorIndex);
 
   return {
     sector,
