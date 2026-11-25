@@ -15,8 +15,38 @@ service cloud.firestore {
         && request.resource.data.uid == uid
         && request.resource.data.captainName is string
         && request.resource.data.captainName.size() >= 1
-        && request.resource.data.captainName.size() <= 24;
+        && request.resource.data.captainName.size() <= 24
+        // Milestone 9 (optional-validierend: alte Clients ohne diese Felder bleiben gültig)
+        && (!('ghostGreeting' in request.resource.data)
+            || (request.resource.data.ghostGreeting is string
+                && request.resource.data.ghostGreeting.size() <= 60))
+        && (!('achievementIds' in request.resource.data)
+            || (request.resource.data.achievementIds is list
+                && request.resource.data.achievementIds.size() <= 32));
       allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Milestone 9: Wöchentliche Galaktische Prüfung — öffentliche Wochen-Rangliste.
+    // Jeder Spieler darf nur seinen eigenen Eintrag schreiben; Werte werden auf Plausibilität geprüft.
+    // (Client-seitig erzeugte Zeiten sind nicht manipulationssicher — für dieses Projekt akzeptiert.)
+    match /weeklyTrials/{weekId}/entries/{uid} {
+      allow read: if true;
+      allow create, update: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.uid == uid
+        && request.resource.data.weekId == weekId
+        && weekId.matches('^[0-9]{4}-W[0-9]{2}$')
+        && request.resource.data.captainName is string
+        && request.resource.data.captainName.size() >= 1
+        && request.resource.data.captainName.size() <= 24
+        && request.resource.data.score is number
+        && request.resource.data.timeSec is number
+        && request.resource.data.timeSec >= 1
+        && request.resource.data.timeSec <= 10800
+        && request.resource.data.floorReached is int
+        && request.resource.data.floorReached >= 1
+        && request.resource.data.floorReached <= 3;
+      allow delete: if false;
     }
 
     // Public Live Activity Feed — everyone can read, authenticated captains can append their own milestones

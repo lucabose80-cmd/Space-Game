@@ -21,12 +21,14 @@ import {
   formatDurationSec,
   formatRelativeTime,
 } from '../services/firebaseService';
+import { galacticNetwork } from '../services/galacticNetwork';
 import {
   getDemandLabel,
   getDemandLevel,
   getSuggestedStartPrice,
 } from '../systems/economy';
 import type { GameState } from '../systems/gameState';
+import { getCurrentWeeklyTrial } from '../systems/weeklyTrial';
 import {
   addItemAnywhere,
   addItemToBackpack,
@@ -55,6 +57,8 @@ import type {
   SuitThemeId,
   UpgradeKey,
   WeaponId,
+  WeeklyTrialEntry,
+  WeeklyTrialInfo,
 } from '../types';
 import type { RoomChest } from '../world/dungeonGen';
 import {
@@ -65,7 +69,15 @@ import {
   renderTradeBankModal,
   type MarketModalHost,
 } from './MarketModals';
-import { escapeHtml, renderCaptainFileHtml, renderTrendBannerHtml, renderTrendPillHtml } from './NetworkModals';
+import {
+  escapeHtml,
+  renderCaptainFileHtml,
+  renderTrendBannerHtml,
+  renderTrendPillHtml,
+  renderTrialBoardHtml,
+  renderTrialGateCardHtml,
+  renderWeeklyTrialResultHtml,
+} from './NetworkModals';
 
 export interface UIHooks {
   onStartNewGame: () => void;
@@ -77,7 +89,7 @@ export interface UIHooks {
   onMusicToggle: () => void;
 }
 
-export type GuildTab = 'leaderboard' | 'feed' | 'account' | 'file';
+export type GuildTab = 'leaderboard' | 'feed' | 'trial' | 'account' | 'file';
 
 export class UIManager {
   private state: GameState;
@@ -92,6 +104,7 @@ export class UIManager {
   public dungeonSector: SectorId = 1;
   public dungeonFloor: 1 | 2 | 3 = 1;
   public dungeonEndlessRift = false;
+  public dungeonWeeklyTrial = false;
   public dungeonRiftDepth = 0;
   public shopIsOpen = false;
   public modalOpen = false;
@@ -203,7 +216,8 @@ export class UIManager {
     const enPct = Math.max(0, Math.min(100, this.state.energy));
     const bagCount = countBackpackItems(this.state.inventory);
     const wMeta = WEAPON_META[this.state.equippedWeapon];
-    const compDef = this.state.equippedCompanion ? COMPANION_DEFS[this.state.equippedCompanion] : null;
+    const trialRun = (this.currentScene === 'dungeon' && this.dungeonWeeklyTrial);
+    const compDef = this.state.equippedCompanion && !trialRun ? COMPANION_DEFS[this.state.equippedCompanion] : null;
     const evMeta = MARKET_EVENT_META[this.state.marketEvent];
     const isNight = this.state.timeOfDay === 'night';
     const ngTag = this.state.ngPlusLevel > 0 ? ` · NG+${this.state.ngPlusLevel}` : '';
@@ -211,7 +225,9 @@ export class UIManager {
     const timeColor = isNight ? '#818cf8' : 'var(--accent-amber)';
 
     const floorTag =
-      this.dungeonEndlessRift
+      this.dungeonWeeklyTrial
+        ? `🏅 GALAKTISCHE PRÜFUNG · EBENE ${Math.max(1, this.dungeonFloor)}/3`
+        : this.dungeonEndlessRift
         ? `∞ UNENDLICHE SPIRALE · EBENE ${Math.max(1, this.dungeonRiftDepth)}`
         : this.dungeonSector === 5
           ? '5. TOR · OMEGA-ANOMALIE'
@@ -250,7 +266,9 @@ export class UIManager {
               ? `${timeLabel} · MARKTPLATZ-TERRASSE`
               : this.currentScene === 'hangar'
                 ? `${timeLabel} · RAUMHAFEN (DOCKS I–IV & 5. TOR)`
-                : this.dungeonSector === 5
+                : trialRun
+                  ? floorTag
+                  : this.dungeonSector === 5
                   ? `🌌 ${floorTag}${ngTag}`
                   : isNight
                     ? `🌙 S${this.dungeonSector} · ${floorTag} (+35% RAR)`
@@ -278,10 +296,12 @@ export class UIManager {
               : this.currentScene === 'hangar'
                 ? keysUnlocked >= 4
                   ? '★ ALLE 4 SCHLÜSSEL AKTIV! Betritt das leuchtende 5. Tor in der Mitte für die OMEGA-ANOMALIE!'
-                  : `Raumhafen: Docks I–IV starten in die 4 Sektoren · 5. Tor (Mitte): ${keysUnlocked}/4 Sektor-Schlüssel aktiv!`
-                : `${wMeta.name} (${this.state.equippedWeapon === 'blade' ? 'Schild verbraucht EN · Perfekt-Parade!' : wMeta.secondaryLabel}) · [R] Extraktion`;
+                  : `Raumhafen: Docks I–IV starten in die 4 Sektoren · 5. Tor (Mitte): Galaktische Prüfung & Omega (${keysUnlocked}/4 Siegel)!`
+                : trialRun
+                  ? '🏅 PRÜFUNG: Normierte Ausrüstung · keine Beute · schnellste Zeit zählt · [R] halten zum Abbrechen'
+                  : `${wMeta.name} (${this.state.equippedWeapon === 'blade' ? 'Schild verbraucht EN · Perfekt-Parade!' : wMeta.secondaryLabel}) · [R] Extraktion`;
 
-    const activeBuffDef = this.state.activeAlchemyBuff ? ALCHEMY_BUFFS[this.state.activeAlchemyBuff] : null;
+    const activeBuffDef = this.state.activeAlchemyBuff && !trialRun ? ALCHEMY_BUFFS[this.state.activeAlchemyBuff] : null;
     const buffPillHtml = activeBuffDef
       ? `<div style="margin-top:2px;padding:2px 6px;border:1px solid ${activeBuffDef.color};background:rgba(15,23,42,0.88);font-family:var(--font-pixel);font-size:8px;color:${activeBuffDef.color};text-align:center" title="${activeBuffDef.name}: ${activeBuffDef.effectSummary}">${activeBuffDef.icon} ${activeBuffDef.shortName} AKTIV</div>`
       : '';
@@ -1718,30 +1738,45 @@ export class UIManager {
   }
 
   // ==================== 5. TIEFENRAUM-TOR AUSWAHL (OMEGA vs. ∞ UNENDLICHE SPIRALE) ====================
-  public openOmegaGateModal(onStartOmega: () => void, onStartEndlessRift: () => void): void {
+  public openOmegaGateModal(
+    onStartOmega: () => void,
+    onStartEndlessRift: () => void,
+    onStartWeeklyTrial: (info: WeeklyTrialInfo) => void,
+  ): void {
+    const keys =
+      (this.state.sector1Cleared ? 1 : 0) +
+      (this.state.sector2Cleared ? 1 : 0) +
+      (this.state.sector3Cleared ? 1 : 0) +
+      (this.state.sector4Cleared ? 1 : 0);
+    const omegaUnlocked = keys >= 4;
     const spiralUnlocked = this.state.omegaCleared;
     const bestSpiral = this.state.records.deepestRiftFloor ?? 0;
+    const trialInfo = getCurrentWeeklyTrial();
 
     this.showModalHtml(`
-      <div class="modal-window" style="max-width:600px">
+      <div class="modal-window" style="max-width:700px">
         <div class="modal-header">
-          <span class="modal-title" style="color:#fde047">🌌 5. TIEFENRAUM-TOR · ZIEL WÄHLEN</span>
-          <button id="modal-close-btn" class="modal-close">ESC ✕</button>
+          <span class="modal-title" style="color:#fde047;white-space:nowrap">🌌 5. TIEFENRAUM-TOR · ZIEL WÄHLEN</span>
+          <button id="modal-close-btn" class="modal-close" style="white-space:nowrap">ESC ✕</button>
         </div>
         <div class="modal-body" style="display:flex;flex-direction:column;gap:12px">
           <div style="font-size:12px;color:var(--text-muted);line-height:1.45">
-            Alle 4 Sektor-Siegel glühen im Einklang. Wähle dein Ziel jenseits des 5. Tiefenraum-Tors:
+            Das 5. Tor öffnet drei Wege — die Omega-Anomalie (alle 4 Siegel), die Endlos-Spirale (nach dem Finale) und die wöchentliche Galaktische Prüfung:
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-            <div class="inspector-box" style="gap:8px;border-color:rgba(253,224,71,0.55);background:rgba(250,204,21,0.07)">
-              <div style="font-family:var(--font-pixel);font-size:11px;color:#fde047">🌌 OMEGA-ANOMALIE</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px">
+            <div class="inspector-box" style="gap:8px;border-color:${omegaUnlocked ? 'rgba(253,224,71,0.55)' : 'rgba(100,116,139,0.4)'};background:${omegaUnlocked ? 'rgba(250,204,21,0.07)' : 'rgba(15,23,42,0.55)'}">
+              <div style="font-family:var(--font-pixel);font-size:11px;color:${omegaUnlocked ? '#fde047' : '#94a3b8'}">🌌 OMEGA-ANOMALIE</div>
               <div style="font-size:11.5px;color:#e2e8f0;line-height:1.45">
                 Die klassische 5.-Tor-Prüfung gegen <strong>★ OMEGA STERNEN-ARCHON</strong>. Schaltet das Finale, New Game+ &amp; den Omega-Anzug frei.
               </div>
               <div style="font-size:10.5px;color:var(--text-muted)">
                 Bestzeit: <strong style="color:#38e8d4">${formatDurationSec(this.state.records.bestSectorClearSec[5])}</strong>
               </div>
-              <button id="btn-launch-omega-classic" class="btn btn-primary" style="margin-top:auto">🌌 Omega starten</button>
+              ${
+                omegaUnlocked
+                  ? `<button id="btn-launch-omega-classic" class="btn btn-primary" style="margin-top:auto">🌌 Omega starten</button>`
+                  : `<button class="btn" disabled style="margin-top:auto">🔒 ${keys}/4 Sektor-Siegel</button>`
+              }
             </div>
 
             <div class="inspector-box" style="gap:8px;border-color:${spiralUnlocked ? 'rgba(192,132,252,0.75)' : 'rgba(100,116,139,0.4)'};background:${spiralUnlocked ? 'rgba(139,92,246,0.12)' : 'rgba(15,23,42,0.55)'}">
@@ -1758,6 +1793,8 @@ export class UIManager {
                   : `<button class="btn" disabled style="margin-top:auto">🔒 Besiege erst Omega</button>`
               }
             </div>
+
+            ${renderTrialGateCardHtml(trialInfo, this.state.weeklyTrial, this.state.isWeeklyTrialUnlocked())}
           </div>
         </div>
       </div>
@@ -1774,6 +1811,27 @@ export class UIManager {
       this.closeModal();
       onStartEndlessRift();
     });
+
+    this.modalEl.querySelector('#btn-launch-weekly-trial')?.addEventListener('click', () => {
+      sound.playWarp();
+      this.closeModal();
+      onStartWeeklyTrial(trialInfo);
+    });
+  }
+
+  /** Ergebnis-Modal der Galaktischen Prüfung. Gibt eine Funktion zurück, die den Upload-Status nachträgt. */
+  public openWeeklyTrialResultModal(summary: RunSummary): (text: string, tone?: 'good' | 'warn') => void {
+    this.showModalHtml(renderWeeklyTrialResultHtml(summary));
+    this.modalEl.querySelector('#btn-trial-result-close')?.addEventListener('click', () => {
+      sound.playUiClick();
+      this.closeModal();
+    });
+    return (text, tone = 'good') => {
+      const el = this.modalEl.querySelector<HTMLElement>('#trial-upload-status');
+      if (!el) return; // Modal wurde bereits geschlossen
+      el.textContent = text;
+      el.style.color = tone === 'warn' ? '#fbbf24' : '#4ade80';
+    };
   }
 
   // ==================== AUFTRAGS-PINNWAND (BOUNTY CONTRACTS) ====================
@@ -2750,6 +2808,7 @@ export class UIManager {
   private guildSectorFilter: SectorId = 1;
   private guildLeaderboardCache: LeaderboardEntry[] = [];
   private guildFeedCache: ActivityFeedEntry[] = [];
+  private guildTrialCache: WeeklyTrialEntry[] = [];
   private guildLoading = false;
   private guildAuthMode: 'login' | 'register' = 'login';
   private guildModalActive = false;
@@ -2778,12 +2837,14 @@ export class UIManager {
     if (this.modalOpen && this.guildModalActive) {
       this.renderGuildBoardModal();
     }
-    const [board, feed] = await Promise.all([
+    const [board, feed, trialRows] = await Promise.all([
       firebaseService.fetchLeaderboard(30),
       firebaseService.fetchRecentActivities(18),
+      galacticNetwork.fetchWeeklyTrialBoard(getCurrentWeeklyTrial().weekId, true),
     ]);
     this.guildLeaderboardCache = board;
     this.guildFeedCache = feed;
+    this.guildTrialCache = trialRows;
     this.guildLoading = false;
     if (this.modalOpen && this.guildModalActive) {
       this.renderGuildBoardModal();
@@ -2991,6 +3052,27 @@ export class UIManager {
           <div style="max-height:370px;overflow-y:auto">${renderCaptainFileHtml(sel, sel.uid === localUid)}</div>
         </div>
       `;
+    } else if (this.guildTab === 'trial') {
+      const trialInfo = getCurrentWeeklyTrial();
+      const byUid = new Map<string, WeeklyTrialEntry>();
+      for (const row of this.guildTrialCache) byUid.set(row.uid, row);
+      const ownTrial = firebaseService.buildWeeklyTrialEntry(this.state, localUid);
+      if (ownTrial && ownTrial.weekId === trialInfo.weekId) byUid.set(ownTrial.uid, ownTrial);
+      bodyHtml = `
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:flex-end">
+            ${configured ? `<button id="btn-guild-refresh" class="btn" style="padding:4px 8px;font-size:9.5px">${this.guildLoading ? 'Lädt…' : '↻ Aktualisieren'}</button>` : ''}
+          </div>
+          ${renderTrialBoardHtml({ entries: [...byUid.values()], localUid, info: trialInfo, loading: this.guildLoading })}
+          ${
+            !configured || !user
+              ? `<div style="font-size:11px;color:var(--text-muted);padding:6px 8px;background:rgba(56,232,212,0.08);border:1px solid rgba(56,232,212,0.3)">
+                   ☁ Melde dich im Tab <strong>„Konto &amp; Cloud“</strong> an, damit deine Prüfungs-Ergebnisse in die Wochen-Rangliste gelangen.
+                 </div>`
+              : ''
+          }
+        </div>
+      `;
     } else if (this.guildTab === 'feed') {
       const feedItems: ActivityFeedEntry[] =
         this.guildFeedCache.length > 0
@@ -3154,6 +3236,7 @@ export class UIManager {
           <div class="modal-tabs" style="flex-wrap:nowrap">
             <button class="tab-btn ${this.guildTab === 'leaderboard' || this.guildTab === 'file' ? 'active' : ''}" data-gtab="leaderboard" style="white-space:nowrap">Rangliste</button>
             <button class="tab-btn ${this.guildTab === 'feed' ? 'active' : ''}" data-gtab="feed" style="white-space:nowrap">Aktivitäten</button>
+            <button class="tab-btn ${this.guildTab === 'trial' ? 'active' : ''}" data-gtab="trial" style="white-space:nowrap">🏅 Prüfung</button>
             <button class="tab-btn ${this.guildTab === 'account' ? 'active' : ''}" data-gtab="account" style="white-space:nowrap">Konto &amp; Cloud</button>
           </div>
           <button id="modal-close-btn" class="modal-close" style="white-space:nowrap">ESC ✕</button>

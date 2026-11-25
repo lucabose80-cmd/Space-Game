@@ -26,7 +26,7 @@ import {
   type Firestore,
 } from 'firebase/firestore';
 import type { GameState } from '../systems/gameState';
-import type { ActivityFeedEntry, LeaderboardEntry, SaveData } from '../types';
+import type { ActivityFeedEntry, LeaderboardEntry, SaveData, WeeklyTrialEntry } from '../types';
 import { sanitizeGreeting } from '../data/ghostGreetings';
 import { DEFAULT_FIREBASE_CONFIG } from './firebaseConfig';
 
@@ -252,6 +252,10 @@ class FirebaseCloudService {
       this.lastSyncAt = now;
       this.syncStatus = 'synced';
       this.lastError = null;
+      // Milestone 9: ausstehenden Prüfungs-Upload nachholen (Fehler dürfen den Sync nie brechen)
+      if (state.weeklyTrial && !state.weeklyTrial.uploaded) {
+        await this.submitWeeklyTrialEntry(state);
+      }
       return { ok: true };
     } catch (err) {
       this.syncStatus = 'error';
@@ -345,6 +349,63 @@ class FirebaseCloudService {
         ? { bestTrialWeekId: state.weeklyTrial.weekId, bestTrialTimeSec: state.weeklyTrial.bestTimeSec }
         : {}),
     };
+  }
+
+  // ==================== MEILENSTEIN 9: WÖCHENTLICHE GALAKTISCHE PRÜFUNG ====================
+  public buildWeeklyTrialEntry(state: GameState, uid: string): WeeklyTrialEntry | null {
+    const rec = state.weeklyTrial;
+    if (!rec) return null;
+    return {
+      uid,
+      captainName: (state.captainName || this.currentUser?.displayName || 'Sternen-Kapitän').trim().slice(0, 22) || 'Sternen-Kapitän',
+      weekId: rec.weekId,
+      sector: rec.sector,
+      completed: rec.completed,
+      timeSec: Math.max(1, Math.min(10800, Math.round(rec.bestTimeSec ?? 10800))),
+      floorReached: Math.max(1, Math.min(3, rec.bestFloorReached || 1)),
+      roomsCleared: Math.max(0, Math.min(999, rec.bestRoomsCleared)),
+      score: rec.bestScore,
+      badge: rec.badge,
+      attempts: rec.attempts,
+      weapon: state.equippedWeapon,
+      suitTheme: state.suitTheme,
+      updatedAt: Date.now(),
+    };
+  }
+
+  /** Lädt den Wochen-Bestwert hoch (nur angemeldet). Setzt `uploaded` nur bei Erfolg. */
+  public async submitWeeklyTrialEntry(
+    state: GameState,
+  ): Promise<{ ok: boolean; reason: 'ok' | 'offline' | 'not_logged_in' | 'nothing' | 'error'; error?: string }> {
+    if (!state.weeklyTrial) return { ok: false, reason: 'nothing' };
+    if (!this.configured || !this.db) return { ok: false, reason: 'offline' };
+    if (!this.currentUser) return { ok: false, reason: 'not_logged_in' };
+    const entry = this.buildWeeklyTrialEntry(state, this.currentUser.uid);
+    if (!entry) return { ok: false, reason: 'nothing' };
+    try {
+      await setDoc(doc(this.db, 'weeklyTrials', entry.weekId, 'entries', this.currentUser.uid), entry);
+      if (state.weeklyTrial && state.weeklyTrial.weekId === entry.weekId) {
+        state.weeklyTrial.uploaded = true; // wird beim nächsten regulären Speichern persistiert
+      }
+      return { ok: true, reason: 'ok' };
+    } catch (err) {
+      return { ok: false, reason: 'error', error: err instanceof Error ? err.message : 'Upload fehlgeschlagen' };
+    }
+  }
+
+  public async fetchWeeklyTrialEntries(weekId: string, maxRows = 30): Promise<WeeklyTrialEntry[]> {
+    if (!this.configured || !this.db) return [];
+    try {
+      const q = query(collection(this.db, 'weeklyTrials', weekId, 'entries'), orderBy('score', 'asc'), limit(maxRows));
+      const snap = await getDocs(q);
+      const list: WeeklyTrialEntry[] = [];
+      snap.forEach((d) => {
+        list.push(d.data() as WeeklyTrialEntry);
+      });
+      return list;
+    } catch {
+      return [];
+    }
   }
 
   public async fetchLeaderboard(maxRows = 30): Promise<LeaderboardEntry[]> {

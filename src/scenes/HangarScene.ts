@@ -422,30 +422,20 @@ export class HangarScene {
       return;
     }
 
-    // 6. Central 5th Deep-Space Omega Stargate (active once ALL 4 Sector Keys are unlocked!)
+    // 6. Central 5th Deep-Space Stargate — immer interagierbar (M9): das Ziel-Modal zeigt Sperren
+    //    (Omega ab 4/4 Siegeln, Spirale ab Omega-Sieg, Galaktische Prüfung ab Sektor 1).
     if (Math.hypot(this.playerX - OMEGA_GATE_POS.x, this.playerY - OMEGA_GATE_POS.y) < 52) {
-      const keys = this.countSectorKeys();
       this.activePrompt = {
-        label:
-          keys >= 4
-            ? '[E] ★ 5. TOR BETRETEN: Omega-Anomalie (FINALE!)'
-            : `[E] 5. Tiefenraum-Tor inspizieren (${keys} / 4 Sektor-Schlüssel)`,
+        label: '[E] 5. TIEFENRAUM-TOR — Ziel wählen',
         x: OMEGA_GATE_POS.x,
         y: OMEGA_GATE_POS.y - 42,
       };
       if (input.interactPressed()) {
-        if (keys >= 4) {
-          sound.playWarp();
+        sound.playWarp();
+        if (this.countSectorKeys() >= 4) {
           this.spawnBurst(OMEGA_GATE_POS.x, OMEGA_GATE_POS.y, '#fde047', 30);
-          this.callbacks.onToast('🌌 ALLE 4 SIEGEL GLÜHEN — Sprung durch das 5. Tor in die OMEGA-ANOMALIE!', 'good');
-          this.callbacks.onLaunchOmegaGate();
-        } else {
-          sound.playUiClick();
-          this.callbacks.onToast(
-            `Das 5. Tiefenraum-Tor zeigt ${keys}/4 aktive Siegel. Bezwinge alle 4 Sektoren, um die Omega-Anomalie zu öffnen!`,
-            keys > 0 ? 'good' : 'info',
-          );
         }
+        this.callbacks.onLaunchOmegaGate();
       }
     }
   }

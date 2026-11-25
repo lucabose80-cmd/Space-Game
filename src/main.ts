@@ -11,8 +11,9 @@ import { HubScene } from './scenes/HubScene';
 import { MarketTerraceScene } from './scenes/MarketTerraceScene';
 import { ShopScene } from './scenes/ShopScene';
 import { firebaseService } from './services/firebaseService';
+import { galacticNetwork } from './services/galacticNetwork';
 import { GameState } from './systems/gameState';
-import type { MusicTrack, RunSummary, SceneId, SectorId } from './types';
+import type { MusicTrack, RunSummary, SceneId, SectorId, WeeklyTrialInfo } from './types';
 import { TouchControls } from './ui/TouchControls';
 import { UIManager } from './ui/UIManager';
 
@@ -35,6 +36,7 @@ class StarlighterGame {
   private activeScene: SceneId = 'shop';
   private pendingDungeonSector: SectorId = 1;
   private pendingEndlessRift = false;
+  private pendingWeeklyTrial: WeeklyTrialInfo | null = null;
   private lastReturnedSector: SectorId = 1;
   private transitionAlpha = 0;
   private transitionDir: -1 | 0 | 1 = 0;
@@ -210,6 +212,7 @@ class StarlighterGame {
       if (!this.state.captainName || this.state.captainName === 'Sternen-Kapitän') {
         this.state.captainName = user.displayName;
       }
+      galacticNetwork.prefetchGhostCaptains();
       void firebaseService.downloadCloudSave().then((res) => {
         if (res.ok && res.saveJson && firebaseService.isCloudSaveAhead(this.state, res.saveJson)) {
           const imp = this.state.importSaveJson(res.saveJson);
@@ -234,21 +237,25 @@ class StarlighterGame {
       onLaunchSector1: () => {
         this.pendingDungeonSector = 1;
         this.pendingEndlessRift = false;
+        this.pendingWeeklyTrial = null;
         this.transitionTo('dungeon', 'hangar');
       },
       onLaunchSector2: () => {
         this.pendingDungeonSector = 2;
         this.pendingEndlessRift = false;
+        this.pendingWeeklyTrial = null;
         this.transitionTo('dungeon', 'hangar');
       },
       onLaunchSector3: () => {
         this.pendingDungeonSector = 3;
         this.pendingEndlessRift = false;
+        this.pendingWeeklyTrial = null;
         this.transitionTo('dungeon', 'hangar');
       },
       onLaunchSector4: () => {
         this.pendingDungeonSector = 4;
         this.pendingEndlessRift = false;
+        this.pendingWeeklyTrial = null;
         this.transitionTo('dungeon', 'hangar');
       },
       onLaunchOmegaGate: () => {
@@ -256,11 +263,19 @@ class StarlighterGame {
           () => {
             this.pendingDungeonSector = 5;
             this.pendingEndlessRift = false;
+            this.pendingWeeklyTrial = null;
             this.transitionTo('dungeon', 'hangar');
           },
           () => {
             this.pendingDungeonSector = 5;
             this.pendingEndlessRift = true;
+            this.pendingWeeklyTrial = null;
+            this.transitionTo('dungeon', 'hangar');
+          },
+          (info) => {
+            this.pendingDungeonSector = info.sector;
+            this.pendingEndlessRift = false;
+            this.pendingWeeklyTrial = info;
             this.transitionTo('dungeon', 'hangar');
           },
         );
@@ -276,6 +291,7 @@ class StarlighterGame {
         this.ui.dungeonSector = this.dungeonScene.currentSector;
         this.ui.dungeonFloor = this.dungeonScene.currentFloor;
         this.ui.dungeonEndlessRift = this.dungeonScene.isEndlessRift;
+        this.ui.dungeonWeeklyTrial = this.dungeonScene.isWeeklyTrial;
         this.ui.dungeonRiftDepth = this.dungeonScene.riftDepth;
         this.ui.renderHud();
         this.syncTouch();
@@ -394,7 +410,10 @@ class StarlighterGame {
       this.ui.currentScene = scene;
       if (scene === 'dungeon') {
         this.ui.shopIsOpen = false;
-        if (this.pendingEndlessRift) {
+        if (this.pendingWeeklyTrial) {
+          this.dungeonScene.startWeeklyTrial(this.pendingWeeklyTrial);
+          this.pendingWeeklyTrial = null;
+        } else if (this.pendingEndlessRift) {
           this.dungeonScene.startEndlessRift();
         } else {
           this.dungeonScene.startRun(this.pendingDungeonSector);
@@ -402,6 +421,7 @@ class StarlighterGame {
         this.ui.dungeonSector = this.dungeonScene.currentSector;
         this.ui.dungeonFloor = this.dungeonScene.currentFloor;
         this.ui.dungeonEndlessRift = this.dungeonScene.isEndlessRift;
+        this.ui.dungeonWeeklyTrial = this.dungeonScene.isWeeklyTrial;
         this.ui.dungeonRiftDepth = this.dungeonScene.riftDepth;
       } else if (scene === 'hangar') {
         this.ui.shopIsOpen = false;
@@ -433,6 +453,25 @@ class StarlighterGame {
   }
 
   private handleReturnFromDungeon(summary: RunSummary): void {
+    if (summary.isWeeklyTrial) {
+      // Prüfung startet am 5. Tor → Rückkehr ebenfalls dort; Ergebnis sofort, Upload im Hintergrund
+      this.lastReturnedSector = 5;
+      this.ui.dungeonWeeklyTrial = false;
+      this.transitionTo('hangar', 'dungeon', () => {
+        const setStatus = this.ui.openWeeklyTrialResultModal(summary);
+        void galacticNetwork.submitWeeklyTrial(this.state).then((res) => {
+          if (res.ok) {
+            this.state.save();
+            setStatus('☁ Ergebnis an die Kapitäns-Tafel gemeldet!', 'good');
+          } else if (res.reason === 'not_logged_in' || res.reason === 'offline') {
+            setStatus('Lokal gespeichert — melde dich an der Kapitäns-Tafel an, um an der Wochen-Rangliste teilzunehmen.', 'warn');
+          } else {
+            setStatus('Wochen-Rangliste gerade nicht erreichbar — Ergebnis lokal gespeichert, Upload folgt automatisch.', 'warn');
+          }
+        });
+      });
+      return;
+    }
     this.lastReturnedSector = summary.sector ?? 1;
     this.transitionTo('hangar', 'dungeon', () => {
       this.ui.openRunSummaryModal(summary);

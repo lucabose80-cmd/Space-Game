@@ -56,6 +56,13 @@ export const TRIAL_BADGE_META: Record<TrialBadge, { icon: string; label: string;
   bronze: { icon: '🥉', label: 'Bronze', color: '#fb923c' },
 };
 
+export const TRIAL_SECTOR_NAMES: Record<1 | 2 | 3 | 4, string> = {
+  1: 'Verlassene Korvette',
+  2: 'Kristall-Nebel',
+  3: 'Solar-Gießerei',
+  4: 'Ältesten-Monolith',
+};
+
 export const TRIAL_FLOORS = 3;
 export const TRIAL_MAX_TIME_SEC = 10800;
 const BADGE_HISTORY_MAX = 52;

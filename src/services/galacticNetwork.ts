@@ -5,7 +5,8 @@
  * Alles ist offline-/gast-sicher: ohne Firebase/Netz bleibt der Pool einfach leer.
  */
 import { GHOST_GREETING_PRESETS, sanitizeGreeting } from '../data/ghostGreetings';
-import type { LeaderboardEntry, SuitThemeId } from '../types';
+import type { GameState } from '../systems/gameState';
+import type { LeaderboardEntry, SuitThemeId, WeeklyTrialEntry } from '../types';
 import { firebaseService } from './firebaseService';
 
 export interface GhostCaptain {
@@ -88,6 +89,25 @@ class GalacticNetwork {
 
   public getGhostPoolSize(): number {
     return (this.testOverride ?? this.ghostPool).length;
+  }
+
+  // ==================== WÖCHENTLICHE PRÜFUNG ====================
+  private trialBoardCache = new Map<string, { at: number; rows: WeeklyTrialEntry[] }>();
+
+  public submitWeeklyTrial(state: GameState): ReturnType<typeof firebaseService.submitWeeklyTrialEntry> {
+    return firebaseService.submitWeeklyTrialEntry(state).then((res) => {
+      if (res.ok) this.trialBoardCache.clear();
+      return res;
+    });
+  }
+
+  /** Top 30 einer Woche (Cache 60 s). Wirft nie; offline → leere Liste. */
+  public async fetchWeeklyTrialBoard(weekId: string, force = false): Promise<WeeklyTrialEntry[]> {
+    const hit = this.trialBoardCache.get(weekId);
+    if (!force && hit && Date.now() - hit.at < 60_000) return hit.rows;
+    const rows = await firebaseService.fetchWeeklyTrialEntries(weekId, 30);
+    this.trialBoardCache.set(weekId, { at: Date.now(), rows });
+    return rows;
   }
 
   /** Nur für Tests. */
