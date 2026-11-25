@@ -52,7 +52,7 @@ module.exports = async ({ page }) => {
     const probe = rng.withSeededRandom('probe-mech', () => gen.generateSectorFloor(3, 3));
     out.probeHasMech = [...probe.rooms.values()].some((r) => r.flameJets || r.magnetPlates);
     // (f) Layout-Folge unberührt: mit/ohne mechanics identisch (ohne die neuen Felder)
-    const strip = (f) => JSON.stringify([...f.rooms.entries()].map(([k, r]) => { const c = { ...r }; delete c.prisms; delete c.flameJets; delete c.magnetPlates; delete c.teleporters; return [k, c]; }));
+    const strip = (f) => JSON.stringify([...f.rooms.entries()].map(([k, r]) => { const c = { ...r }; delete c.prisms; delete c.flameJets; delete c.magnetPlates; delete c.teleporters; delete c.extractBeacon; return [k, c]; }));
     out.layoutSame = [2, 3, 4].every((sec) => [1, 2, 3].every((fl) => {
       const a = rng.withSeededRandom(`layout${sec}${fl}`, () => gen.generateSectorFloor(sec, fl, undefined, { mechanics: true }));
       const b = rng.withSeededRandom(`layout${sec}${fl}`, () => gen.generateSectorFloor(sec, fl, undefined, { mechanics: false }));
@@ -68,13 +68,13 @@ module.exports = async ({ page }) => {
     for (const sec of [1, 2, 3, 4, 5]) for (const fl of [1, 2, 3]) parts.push(strip(rng.withSeededRandom(`probe:${sec}:${fl}`, () => gen.generateSectorFloor(sec, fl))).replace(/^\[\[/, '[[').toString());
     // der alte Hash wurde über JSON.stringify([...rooms.entries()]) ohne Strip gebildet; Räume ohne Mechanik-Felder sind identisch → vergleiche Teilmenge S1/S5
     const parts15 = [];
-    for (const sec of [1, 2, 3, 4, 5]) for (const fl of [1, 2, 3]) { const f = rng.withSeededRandom(`probe:${sec}:${fl}`, () => gen.generateSectorFloor(sec, fl)); parts15.push(JSON.stringify([...f.rooms.entries()].map(([k, r]) => { const c = { ...r }; delete c.prisms; delete c.flameJets; delete c.magnetPlates; delete c.teleporters; return [k, c]; }).map(([k, c]) => [k, c]))); }
+    for (const sec of [1, 2, 3, 4, 5]) for (const fl of [1, 2, 3]) { const f = rng.withSeededRandom(`probe:${sec}:${fl}`, () => gen.generateSectorFloor(sec, fl)); parts15.push(JSON.stringify([...f.rooms.entries()].map(([k, r]) => { const c = { ...r }; delete c.prisms; delete c.flameJets; delete c.magnetPlates; delete c.teleporters; delete c.extractBeacon; return [k, c]; }).map(([k, c]) => [k, c]))); }
     // Rekonstruktion: Schlüsselreihenfolge der Room-Objekte ist durch delete unverändert → gleicher String wie früher
     const s2 = parts15.join('|'); let hash = 2166136261; for (let i = 0; i < s2.length; i++) { hash ^= s2.charCodeAt(i); hash = Math.imul(hash, 16777619) >>> 0; }
     out.oldHash = hash;
     // M10-C: Wochen-Prüfung löscht Portale & Rift-Kammern → relevanter Hash OHNE riftPortal/Rift-Kammern (Referenz vom Stand vor M10-C)
     const partsT = [];
-    for (const sec of [1, 2, 3, 4, 5]) for (const fl of [1, 2, 3]) { const f = rng.withSeededRandom(`probe:${sec}:${fl}`, () => gen.generateSectorFloor(sec, fl)); partsT.push(JSON.stringify([...f.rooms.entries()].filter(([, r]) => !r.isRiftChamber).map(([k, r]) => { const c = { ...r }; delete c.prisms; delete c.flameJets; delete c.magnetPlates; delete c.teleporters; delete c.riftPortal; return [k, c]; }))); }
+    for (const sec of [1, 2, 3, 4, 5]) for (const fl of [1, 2, 3]) { const f = rng.withSeededRandom(`probe:${sec}:${fl}`, () => gen.generateSectorFloor(sec, fl)); partsT.push(JSON.stringify([...f.rooms.entries()].filter(([, r]) => !r.isRiftChamber).map(([k, r]) => { const c = { ...r }; delete c.prisms; delete c.flameJets; delete c.magnetPlates; delete c.teleporters; delete c.extractBeacon; delete c.riftPortal; return [k, c]; }))); }
     const sT = partsT.join('|'); let hashT = 2166136261; for (let i = 0; i < sT.length; i++) { hashT ^= sT.charCodeAt(i); hashT = Math.imul(hashT, 16777619) >>> 0; }
     out.trialHash = hashT;
     // Spirale bekommt Mechaniken (visualSector 2-4)

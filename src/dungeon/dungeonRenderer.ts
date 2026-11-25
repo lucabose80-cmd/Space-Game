@@ -268,6 +268,25 @@ export class DungeonRenderer {
       }
     }
 
+    // M10-C: Notfall-Bake (Teleporter-Säule; aktiv erst nach Raum-Clear)
+    {
+      const bc = this.scene.currentRoom.extractBeacon;
+      if (bc && !bc.used && !this.scene.isWeeklyTrial) {
+        const live = this.scene.currentRoom.cleared;
+        const pulse = 0.5 + 0.5 * Math.sin(this.scene.time * 4);
+        drawPixelShadow(ctx, bc.x, bc.y + 4, 9, 3, 0.45);
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(bc.x - 7, bc.y - 1, 14, 6);
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(bc.x - 5, bc.y - 11, 10, 11);
+        ctx.fillStyle = live ? '#38e8d4' : '#475569';
+        ctx.fillRect(bc.x - 3, bc.y - 9, 6, 3);
+        ctx.fillStyle = live ? `rgba(165, 243, 252, ${0.55 + 0.4 * pulse})` : '#64748b';
+        ctx.fillRect(bc.x - 2, bc.y - 16, 4, 6);
+        if (live) drawGlow(ctx, bc.x, bc.y - 10, 20 + pulse * 4, '#38e8d4', 0.3);
+      }
+    }
+
     // Milestone 7: Swirling Unstable Rift-Riss portal inside cleared regular rooms
     if (
       this.scene.currentRoom.cleared &&
@@ -711,18 +730,6 @@ export class DungeonRenderer {
       ctx.fillRect(p.x, p.y, p.size, p.size);
     }
     ctx.globalAlpha = 1;
-
-    if (this.scene.warpChannel > 0.05) {
-      const pct = Math.min(1, this.scene.warpChannel / this.scene.warpDuration);
-      ctx.save();
-      ctx.strokeStyle = '#38e8d4';
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.arc(this.scene.playerX, this.scene.playerY, 17, -Math.PI / 2, -Math.PI / 2 + pct * Math.PI * 2);
-      ctx.stroke();
-      drawGlow(ctx, this.scene.playerX, this.scene.playerY, 26, '#38e8d4', 0.35 * pct);
-      ctx.restore();
-    }
 
     ctx.font = 'bold 6.5px Silkscreen, monospace';
     ctx.textAlign = 'center';
@@ -3277,6 +3284,10 @@ export class DungeonRenderer {
         ctx.fillStyle = '#293448';
       }
       ctx.fillRect(rx - 2, ry - 2, 5, 5);
+      if (room.extractBeacon && !room.extractBeacon.used && room.visited && !this.scene.isWeeklyTrial) {
+        ctx.fillStyle = '#a5f3fc';
+        ctx.fillRect(rx - 0.5, ry - 0.5, 2, 2); // Notfall-Bake
+      }
     }
 
     // Crisp live Speedrun Timer directly beneath the minimap

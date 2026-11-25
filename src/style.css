@@ -1067,6 +1067,11 @@ body.touch-device .hud-hint {
   grid-template-rows: calc(44px * var(--touch-scale)) calc(62px * var(--touch-scale));
 }
 
+/* M10-C: ohne WARP-Taste: oben HEIL · INTER · SEKUNDÄR, unten DASH + große Angriffstaste (2 Spalten) */
+.touch-pad-grid.dungeon-pad .tbtn-big {
+  grid-column: span 2;
+}
+
 .tbtn {
   display: flex;
   flex-direction: column;

@@ -164,11 +164,10 @@ export class TouchControls {
         <div class="touch-right-stack">
           ${swapStrip}
           <div class="touch-pad-grid dungeon-pad">
-            <button class="tbtn tbtn-util" data-code="KeyR">WARP<small>HALTEN</small></button>
             <button class="tbtn tbtn-emerald" data-code="KeyQ">HEIL<small>[Q]</small></button>
             <button class="tbtn tbtn-util" data-code="KeyE">INTER<small>[E]</small></button>
-            <button class="tbtn tbtn-amber" data-code="Space">DASH</button>
             <button class="tbtn tbtn-cyan" data-code="KeyK">${secLabel}<small>${secSub}</small></button>
+            <button class="tbtn tbtn-amber" data-code="Space">DASH</button>
             <button class="tbtn tbtn-primary tbtn-big" data-code="KeyJ">${wMeta.shortName}</button>
           </div>
         </div>

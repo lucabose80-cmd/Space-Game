@@ -42,6 +42,8 @@ export const PAD_MIN_DISTANCE = 140;
 interface Circle {
   x: number;
   y: number;
+  /** weiche Zone (Bodendekal, ungefährlich): darf bei sehr dichten Layouts überlappt werden */
+  soft?: boolean;
   r: number;
 }
 
@@ -120,7 +122,7 @@ function portalCircles(room: DungeonRoom): Circle[] {
 function existingCircles(room: DungeonRoom): Circle[] {
   const out: Circle[] = [...portalCircles(room)];
   for (const p of room.prisms ?? []) out.push({ x: p.x, y: p.y, r: p.r });
-  for (const m of room.magnetPlates ?? []) out.push({ x: m.x, y: m.y, r: m.r });
+  for (const m of room.magnetPlates ?? []) out.push({ x: m.x, y: m.y, r: m.r, soft: true });
   for (const t of room.teleporters ?? []) out.push({ x: t.x, y: t.y, r: PAD_RADIUS });
   for (const j of room.flameJets ?? []) {
     for (const s of jetSamplePoints(j)) out.push({ x: s.x, y: s.y, r: 5 });
@@ -308,4 +310,49 @@ export function findFreeSpotSpiral(
     }
   }
   return null;
+}
+
+/**
+ * M10-C (G2): Notfall-Bake — ab Ebene II genau eine in einem zufällig gewählten (aber seed-stabilen) Kampfraum.
+ * Eigener lokaler PRNG pro Ebene; die Ebenen-Struktur und alle anderen Zufallswerte bleiben unberührt.
+ */
+export function placeExtractBeacon(rooms: Map<string, DungeonRoom>, sector: SectorId, floorIndex: 1 | 2 | 3): void {
+  if (sector > 4 || floorIndex < 2) return;
+  const cands = [...rooms.values()]
+    .filter((r) => r.type === 'combat' && !r.isRiftChamber && !r.secretParentKey)
+    .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+  if (cands.length === 0) return;
+  const rng = mulberry32(hashString(`m10c:beacon:${sector}:${floorIndex}:${cands.map((c) => c.key).join('|')}`));
+  const startRoom = Math.floor(rng() * cands.length);
+  const startPoint = Math.floor(rng() * 4); // nur die Start-Ecke; alle 8 Punkte werden der Reihe nach probiert
+  const points = [
+    { x: ROOM_RIGHT - 76, y: ROOM_BOTTOM - 52 },
+    { x: ROOM_LEFT + 76, y: ROOM_BOTTOM - 52 },
+    { x: ROOM_RIGHT - 76, y: ROOM_TOP + 56 },
+    { x: ROOM_LEFT + 76, y: ROOM_TOP + 56 },
+    { x: ROOM_CENTER_X - 100, y: ROOM_CENTER_Y + 52 },
+    { x: ROOM_CENTER_X + 100, y: ROOM_CENTER_Y + 52 },
+    { x: ROOM_CENTER_X - 100, y: ROOM_CENTER_Y - 52 },
+    { x: ROOM_CENTER_X + 100, y: ROOM_CENTER_Y - 52 },
+  ];
+  // Durchgang 1: großzügige Abstände · 2 (dichte Layouts): knapper, größere Suchweite ·
+  // 3 (Notfall): Magnetplatten dürfen überlappt werden (ungefährlich) — Düsen/Prismen/Pads/Portal bleiben tabu
+  for (const pass of [0, 1, 2] as const) {
+    const gap = pass === 0 ? 14 : 2;
+    const maxDist = pass === 0 ? 80 : 130;
+    for (let ri = 0; ri < cands.length; ri++) {
+      const room = cands[(startRoom + ri) % cands.length];
+      const circles: Circle[] = [...existingCircles(room)].filter((c) => pass < 2 || !c.soft);
+      if (room.riftPortal) circles.push({ x: room.riftPortal.x, y: room.riftPortal.y, r: PORTAL_KEEP_RADIUS });
+      for (let pi = 0; pi < points.length; pi++) {
+        const pt = points[(startPoint + pi) % points.length];
+        const spot = findFreeSpotSpiral(room, pt.x, pt.y, 12, 8, maxDist);
+        if (!spot) continue;
+        if (circles.some((c) => Math.hypot(spot.x - c.x, spot.y - c.y) < c.r + 12 + gap)) continue;
+        if (pass < 2 && room.spawns.some((sp) => Math.hypot(spot.x - sp.x, spot.y - sp.y) < 26)) continue;
+        room.extractBeacon = { x: spot.x, y: spot.y, used: false };
+        return;
+      }
+    }
+  }
 }

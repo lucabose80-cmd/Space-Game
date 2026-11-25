@@ -192,7 +192,7 @@ export function depositAllCargoToChest(inv: InventoryData): number {
 }
 
 /**
- * Safe extraction (Start Warp Pad, Warp-Beacon [R], or Boss Victory):
+ * Safe extraction (Start Warp Pad, Notfall-Bake, or Boss Victory):
  * Evaluates all directional positional modifiers on the 5x4 Expedition Cargo Grid:
  * - row_curse (▲): decays unless placed in the top row (indices 0..4)
  * - volatile_boost (←): consumes 1 unit from left neighbor for +180 Cr resonance bonus

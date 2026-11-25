@@ -139,11 +139,6 @@ export class DungeonScene {
   public haloShieldReady = false;
   public haloChargeTimer = 0;
 
-  // Warp-Beacon channel
-  public warpChannel = 0;
-  public readonly warpDuration = 1.25;
-  public readonly warpCost = 20;
-
   // Room entities & FX
   public enemies: Enemy[] = [];
   public projectiles: Projectile[] = [];
@@ -299,7 +294,6 @@ export class DungeonScene {
 
     this.floor = generateEndlessRiftFloor(this.riftDepth);
     this.floorBossDefeated = false;
-    this.warpChannel = 0;
     this.invulnTimer = 0.6;
     this.dashCooldown = 0;
     this.dashTimer = 0;
@@ -385,7 +379,7 @@ export class DungeonScene {
       // Identisches Layout für alle Spieler: NUR die synchrone Generierung läuft geseedet.
       const seed = getTrialFloorSeed(this.trialInfo.weekId, floorIndex);
       const mechanics = trialHasMechanics(this.trialInfo.weekId);
-      this.floor = withSeededRandom(seed, () => generateSectorFloor(sector, floorIndex, undefined, { mechanics, portalExclusion: false }));
+      this.floor = withSeededRandom(seed, () => generateSectorFloor(sector, floorIndex, undefined, { mechanics, portalExclusion: false, beacon: false }));
       // Keine Rift-Risse in der Prüfung (Beute/Progression sind aus)
       for (const [key, room] of [...this.floor.rooms.entries()]) {
         if (room.isRiftChamber) this.floor.rooms.delete(key);
@@ -395,7 +389,6 @@ export class DungeonScene {
       this.floor = generateSectorFloor(sector, floorIndex);
     }
     this.floorBossDefeated = false;
-    this.warpChannel = 0;
     this.invulnTimer = 0.55;
     this.dashCooldown = 0;
     this.dashTimer = 0;
@@ -502,7 +495,7 @@ export class DungeonScene {
       this.callbacks.onToast(
         this.state.timeOfDay === 'night'
           ? '🌙 Nacht-Expedition · Ebene I: Frachtdeck (+35 % Rar-Loot)!'
-          : 'Sektor 1 · Ebene I: Frachtdeck — Beute bleibt nur bei Extraktion [R] sicher!',
+          : 'Sektor 1 · Ebene I: Frachtdeck — Beute bleibt nur an Teleportern sicher (Start-Raum, nach Bossen, Notfall-Bake)!',
         this.state.timeOfDay === 'night' ? 'good' : 'info',
       );
     } else if (floorIndex === 2) {
@@ -1430,32 +1423,6 @@ export class DungeonScene {
       return;
     }
 
-    // Warp-Beacon channeling (hold R)
-    if (input.warpHeld() && this.dashTimer <= 0) {
-      this.shieldActive = false;
-      this.warpChannel += dt;
-      if (Math.random() < dt * 18) {
-        const a = Math.random() * Math.PI * 2;
-        this.particles.push({
-          x: this.playerX + Math.cos(a) * 16,
-          y: this.playerY + Math.sin(a) * 16,
-          vx: -Math.cos(a) * 28,
-          vy: -Math.sin(a) * 28,
-          color: '#38e8d4',
-          size: 2,
-          life: 0.35,
-          maxLife: 0.35,
-        });
-      }
-      if (this.warpChannel >= this.warpDuration) {
-        this.triggerSafeWarp('warp', true);
-        return;
-      }
-      return;
-    } else {
-      this.warpChannel = Math.max(0, this.warpChannel - dt * 2.5);
-    }
-
     // Stimpack healing (Q)
     if (input.healPressed()) {
       if (this.state.stimCharges > 0 && this.state.hp < stats.maxHp) {
@@ -1575,8 +1542,7 @@ export class DungeonScene {
       const chasm = this.getChasmAt(this.playerX, this.playerY + 4, -3);
       if (chasm) {
         this.shieldActive = false;
-        this.warpChannel = 0;
-        if (chasm.secret) {
+            if (chasm.secret) {
           chasm.secretVisited = true;
           this.pitFallDuration = 0.42;
           this.pitFallTimer = this.pitFallDuration;
@@ -3519,7 +3485,6 @@ export class DungeonScene {
     this.state.hp = Math.max(0, this.state.hp - finalAmount);
     this.invulnTimer = 0.72;
     this.playerFlashTimer = 0.15;
-    this.warpChannel = 0;
     this.moveEntityWithCollisions(kx * 10, ky * 10);
 
     if (finalAmount === amount) {
@@ -3828,6 +3793,23 @@ export class DungeonScene {
       }
     }
 
+    // M10-C: Notfall-Bake (ab Ebene II, nach Raum-Clear, einmalig) — einziger Teleporter außerhalb von Start-Raum & Bossen
+    const beacon = this.currentRoom.extractBeacon;
+    if (beacon && !beacon.used && this.currentRoom.cleared && !this.isWeeklyTrial) {
+      if (Math.hypot(this.playerX - beacon.x, this.playerY - beacon.y) < 26) {
+        this.activePrompt = {
+          label: '[E] Notfall-Bake: Extraktion (einmalig · Beute sichern)',
+          x: beacon.x,
+          y: beacon.y - 26,
+        };
+        if (input.interactPressed()) {
+          beacon.used = true;
+          this.triggerSafeWarp('warp');
+        }
+        return;
+      }
+    }
+
     if (this.currentRoom.type === 'start') {
       if (Math.hypot(this.playerX - ROOM_CENTER_X, this.playerY - (ROOM_CENTER_Y - 12)) < 28) {
         this.activePrompt = {
@@ -3838,7 +3820,7 @@ export class DungeonScene {
           y: ROOM_CENTER_Y - 32,
         };
         if (input.interactPressed()) {
-          this.triggerSafeWarp('warp', false);
+          this.triggerSafeWarp('warp');
         }
         return;
       }
@@ -3903,7 +3885,7 @@ export class DungeonScene {
             y: padY - 24,
           };
           if (input.interactPressed()) {
-            this.triggerSafeWarp('boss_victory', false);
+            this.triggerSafeWarp('boss_victory');
           }
           return;
         }
@@ -3934,7 +3916,7 @@ export class DungeonScene {
             y: padY - 24,
           };
           if (input.interactPressed()) {
-            this.triggerSafeWarp('boss_victory', false);
+            this.triggerSafeWarp('boss_victory');
           }
           return;
         }
@@ -3987,7 +3969,7 @@ export class DungeonScene {
             y: vy - 26,
           };
           if (input.interactPressed()) {
-            this.triggerSafeWarp('boss_victory', false);
+            this.triggerSafeWarp('boss_victory');
           }
           return;
         }
@@ -4099,7 +4081,7 @@ export class DungeonScene {
     }
   }
 
-  public triggerSafeWarp(reason: 'warp' | 'boss_victory', chargeFee: boolean): void {
+  public triggerSafeWarp(reason: 'warp' | 'boss_victory'): void {
     if (this.finished) return;
     if (this.isWeeklyTrial) {
       // Prüfung: Sieg nur über den Sieges-Transporter nach dem Ebene-3-Boss, sonst Abbruch (keine Gebühr)
@@ -4108,10 +4090,6 @@ export class DungeonScene {
       return;
     }
     this.finished = true;
-    if (chargeFee) {
-      const fee = Math.min(this.state.credits, this.warpCost);
-      this.state.credits -= fee;
-    }
     sound.playWarp();
     const res = processSafeReturnEffects(this.state.inventory);
     const consumedBuff = this.state.consumeAlchemyBuff();

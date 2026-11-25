@@ -1,4 +1,4 @@
-import { applySectorMechanics, findFreeSpotSpiral } from '../dungeon/mechanicsGen';
+import { applySectorMechanics, findFreeSpotSpiral, placeExtractBeacon } from '../dungeon/mechanicsGen';
 import type { ItemStack, SectorId } from '../types';
 
 export type RoomType = 'start' | 'combat' | 'treasure' | 'boss' | 'secret';
@@ -154,6 +154,8 @@ export interface DungeonRoom {
   chasms: ChasmRect[];
   pods: DestructiblePod[];
   hazards: HazardVent[];
+  /** M10-C: Notfall-Bake (einmalige Extraktion ab Ebene II; nur in Kampfräumen) */
+  extractBeacon?: { x: number; y: number; used: boolean };
   /** Milestone 10-A: Sektor-Mechaniken (alles optional) */
   prisms?: CrystalPrism[];
   flameJets?: FlameJet[];
@@ -268,7 +270,7 @@ export function generateSectorFloor(
   floorIndex: 1 | 2 | 3 = 1,
   customRooms?: number,
   /** `mechanics: false` unterdrückt die M10-A-Raum-Mechaniken (Wochen-Prüfung vor dem Gate). */
-  opts?: { mechanics?: boolean; portalExclusion?: boolean },
+  opts?: { mechanics?: boolean; portalExclusion?: boolean; beacon?: boolean },
 ): DungeonFloor {
   const targetRooms = customRooms ?? (sector === 5 ? 5 : floorIndex === 1 ? 7 : floorIndex === 2 ? 8 : 6);
   const coords: Array<{ gx: number; gy: number }> = [{ gx: 0, gy: 0 }];
@@ -907,6 +909,8 @@ export function generateSectorFloor(
 
   // Milestone 10-A: Sektor-Mechaniken (eigener lokaler PRNG — verbraucht KEIN globales Math.random)
   if (opts?.mechanics !== false) applySectorMechanics(rooms, sector, floorIndex, opts?.portalExclusion !== false);
+  // M10-C: Notfall-Bake (eigener lokaler PRNG — verbraucht KEIN globales Math.random; nicht in der Wochen-Prüfung)
+  if (opts?.beacon !== false) placeExtractBeacon(rooms, sector, floorIndex);
 
   return {
     sector,

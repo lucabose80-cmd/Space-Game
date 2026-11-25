@@ -181,7 +181,7 @@ export class UIManager {
           <div><strong>C / RB</strong> Waffe wechseln</div>
           <div><strong>E / Y</strong> Interagieren / Kasse</div>
           <div><strong>I / TAB</strong> Fracht &amp; Logbuch</div>
-          <div><strong>R / LT</strong> Extraktion (Warp)</div>
+          <div><strong>E</strong> Teleporter: Extraktion (Start-Raum, nach Bossen, Notfall-Bake)</div>
         </div>
       </div>
     `;
@@ -313,8 +313,8 @@ export class UIManager {
                   ? '★ ALLE 4 SCHLÜSSEL AKTIV! Betritt das leuchtende 5. Tor in der Mitte für die OMEGA-ANOMALIE!'
                   : `Raumhafen: Docks I–IV starten in die 4 Sektoren · 5. Tor (Mitte): Galaktische Prüfung & Omega (${keysUnlocked}/4 Siegel)!`
                 : trialRun
-                  ? '🏅 PRÜFUNG: Normierte Ausrüstung · keine Beute · schnellste Zeit zählt · [R] halten zum Abbrechen'
-                  : `${wMeta.name} (${this.state.equippedWeapon === 'blade' ? 'Schild verbraucht EN · Perfekt-Parade!' : wMeta.secondaryLabel}) · [R] Extraktion`;
+                  ? '🏅 PRÜFUNG: Normierte Ausrüstung · keine Beute · schnellste Zeit zählt · [E] im Start-Raum zum Abbrechen'
+                  : `${wMeta.name} (${this.state.equippedWeapon === 'blade' ? 'Schild verbraucht EN · Perfekt-Parade!' : wMeta.secondaryLabel}) · Teleporter [E] = Extraktion`;
 
     const activeBuffDef = this.state.activeAlchemyBuff && !trialRun ? ALCHEMY_BUFFS[this.state.activeAlchemyBuff] : null;
     const buffPillHtml = activeBuffDef
@@ -512,7 +512,7 @@ export class UIManager {
                        <span><kbd>RMB/K</kbd>${this.state.equippedWeapon === 'blade' ? 'Schild' : 'Spezial'}</span>
                        <span><kbd>C</kbd>Wechseln</span>
                        <span><kbd>SPACE</kbd>Dash</span>
-                       <span><kbd>R</kbd>Extraktion</span>`
+                       <span><kbd>E</kbd>Teleporter</span>`
           }
         </div>
         <div class="hud-hint">${hintText}</div>
@@ -2340,7 +2340,7 @@ export class UIManager {
     }
     if (!summary.victory) {
       extraNotes.push(
-        'Alle ungeschützten Relikte im Expeditions-Rucksack gingen im Sektor verloren! Nutze beim nächsten Mal den Warp-Beacon [R] oder platziere dein Quanten-Gyroskop (→) links neben dem wichtigsten Relikt.',
+        'Alle ungeschützten Relikte im Expeditions-Rucksack gingen im Sektor verloren! Nutze beim nächsten Mal Start-Raum, Boss-Teleporter oder die Notfall-Bake [E] oder platziere dein Quanten-Gyroskop (→) links neben dem wichtigsten Relikt.',
       );
     } else if (summary.itemsSaved > 0) {
       extraNotes.push(

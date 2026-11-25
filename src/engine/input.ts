@@ -70,7 +70,6 @@ export class InputManager {
       [3, 'KeyE'],
       [4, 'KeyQ'],
       [5, 'KeyC'],
-      [6, 'KeyR'],
       [8, 'KeyI'],
       [9, 'Escape'],
     ];
@@ -270,11 +269,6 @@ export class InputManager {
   public healPressed(): boolean {
     if (this.locked) return false;
     return this.keysPressed.has('KeyQ') || this.touchPressed.has('KeyQ') || this.gamepadPressed.has('KeyQ');
-  }
-
-  public warpHeld(): boolean {
-    if (this.locked) return false;
-    return this.keysHeld.has('KeyR') || this.touchHeld.has('KeyR') || this.gamepadHeld.has('KeyR');
   }
 
   public getMousePos(): { x: number; y: number } {
