@@ -15,6 +15,7 @@ import {
   roomKey,
   type DungeonRoom,
 } from '../world/dungeonGen';
+import { ENEMY_SHIELDS } from '../data/balance';
 import type { DungeonScene } from '../scenes/DungeonScene';
 import { formatWeekLabel } from '../systems/weeklyTrial';
 import { getMechanicsDrawables, renderMechanicsGround } from './roomMechanicsRenderer';
@@ -2671,18 +2672,8 @@ export class DungeonRenderer {
       if (spr) {
         ctx.drawImage(spr, e.x - 14, e.y - 16 + hover, 28, 28);
       }
-      // Rotating amethyst-gold crystal barrier arc!
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.strokeStyle = e.telegraphTimer > 0 ? '#fde047' : '#e879f9';
-      ctx.lineWidth = 2.8;
-      ctx.beginPath();
-      ctx.arc(e.x, e.y + hover, 15.5, e.aimAngle - 0.9, e.aimAngle + 0.9);
-      ctx.stroke();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 0.9;
-      ctx.stroke();
-      ctx.restore();
+      // Rotating amethyst-gold crystal barrier arc! (M10-C: fällt beim Angriff / Überhitzen)
+      this.renderShieldArc(ctx, e, hover, 15.5, 0.95, '#e879f9', 2.8);
       drawGlow(ctx, e.x, e.y + hover, 19, '#c084fc', e.telegraphTimer > 0 ? 0.52 : 0.3);
       this.renderEnemyMiniHp(ctx, e);
       return;
@@ -2796,18 +2787,8 @@ export class DungeonRenderer {
       if (spr) {
         ctx.drawImage(spr, e.x - 13, e.y - 14 + hover, 26, 26);
       }
-      // Visible glowing frontal kinetic shield arc (tells player to flank or pierce!)
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.strokeStyle = e.telegraphTimer > 0 ? '#fde047' : '#38e8d4';
-      ctx.lineWidth = 2.6;
-      ctx.beginPath();
-      ctx.arc(e.x, e.y + hover, 14, e.aimAngle - 0.95, e.aimAngle + 0.95);
-      ctx.stroke();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 0.9;
-      ctx.stroke();
-      ctx.restore();
+      // Frontaler Schild: 100 % Block — fällt beim Angriff / Überhitzen (Konter-Fenster!), Hitze färbt ihn orange
+      this.renderShieldArc(ctx, e, hover, 14, 1.08, '#38e8d4', 2.6);
       drawGlow(ctx, e.x, e.y + hover, 17, '#38e8d4', 0.28);
     } else if (e.kind === 'spore_spitter') {
       const pulse = Math.sin(this.scene.time * 7 + e.id) * 0.1;
@@ -2850,6 +2831,47 @@ export class DungeonRenderer {
     }
 
     this.renderEnemyMiniHp(ctx, e);
+  }
+
+  /** M10-C (G4): Schildbogen — intakt / aufgeheizt (orange) / unten (gestrichelt grau, mit Konter-Hinweis). */
+  private renderShieldArc(
+    ctx: CanvasRenderingContext2D,
+    e: Enemy,
+    hover: number,
+    radius: number,
+    halfArc: number,
+    baseColor: string,
+    width: number,
+  ): void {
+    const down = (e.shieldDownTimer ?? 0) > 0;
+    const heat = Math.min(1, (e.shieldHeat ?? 0) / (e.kind === 'resonance_warden' ? ENEMY_SHIELDS.resonance_warden.maxHeat : ENEMY_SHIELDS.shield_drone.maxHeat));
+    ctx.save();
+    if (down) {
+      ctx.globalAlpha = 0.35 + 0.2 * Math.sin(this.scene.time * 18);
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 1.4;
+      ctx.setLineDash([2, 3]);
+      ctx.beginPath();
+      ctx.arc(e.x, e.y + hover, radius, e.aimAngle - halfArc, e.aimAngle + halfArc);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#fde047';
+      ctx.font = 'bold 6px Silkscreen, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('▼', e.x, e.y - e.radius - 6 + hover);
+    } else {
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = heat >= 0.7 ? '#fb923c' : e.telegraphTimer > 0 ? '#fde047' : baseColor;
+      ctx.lineWidth = width + heat * 0.8;
+      ctx.beginPath();
+      ctx.arc(e.x, e.y + hover, radius, e.aimAngle - halfArc, e.aimAngle + halfArc);
+      ctx.stroke();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 0.9;
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   private renderEnemyMiniHp(ctx: CanvasRenderingContext2D, e: Enemy): void {

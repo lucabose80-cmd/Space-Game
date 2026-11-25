@@ -250,6 +250,16 @@ Einzigartig sind heute nur 5 von 12 (S1 F2/F3, S2 F1–F3). **Ziel:** jede Ebene
 
 **Akzeptanz je Boss** (`m10cp7<x>`): Boss spawnt, durchläuft jeden Angriffs-Zustand mindestens einmal in ≤ 40 s Simulation (Spieler unverwundbar per Test-Hook), Phase 2 startet bei < 50 % HP, kein `pageerror`, Screenshot pro Angriff mit sichtbarer Telegraphie ansehen. Sieg → Teleporter erscheinen wie heute, `sectorNCleared` nur bei F3.
 
+### 4.8b G4 — Gegner-Schilde mit Counterplay (ergänzt bei der Umsetzung)
+
+Im ursprünglichen Plan fehlte dafür ein eigener Abschnitt; Umsetzung als **Phase 6b**.
+- Betroffen: `shield_drone`, `resonance_warden` (Werte in `ENEMY_SHIELDS`, `src/data/balance.ts`).
+- **Frontal 100 % Block** (kein Schaden), Treffer von Seite/Rücken wirken voll, durchdringende Angriffe (Speer-Lanze) ignorieren den Schild (E8).
+- **Fenster 1 — Angriff:** Beginnt der Gegner seinen Angriff (Telegraph), fällt der Schild für `attackOpenSec` (≈ 1 s, inkl. Nachwirkung).
+- **Fenster 2 — Überhitzung:** Jeder geblockte Treffer erhöht `shieldHeat`. Bei `maxHeat` (Drohne 4, Wächter 5) überhitzt der Schild für `overheatSec` (≈ 2,5 s). Hitze klingt mit `1 / SHIELD_HEAT_DECAY_SEC` pro Sekunde ab.
+- Darstellung (`renderShieldArc`): intakt (Grundfarbe), aufgeheizt (ab 70 % orange, dicker), unten (gestrichelt grau + ▼). Floating-Text „BLOCK“ / „ÜBERHITZT!“.
+- Test: `m10cp6b` (Block, Überhitzen, Angriffsfenster, Rücken, Durchdringen, Abklingen, Wächter).
+
 ### 4.9 BA1 — Ökonomie & Power-Scaling
 
 **Zentrale Datei** `src/data/balance.ts` (neu) — alle Stellschrauben an einem Ort:
@@ -370,6 +380,9 @@ Jede Phase: Code → neuer Test `tests/m10cp<N>.cjs` → `npm run verify` → Sc
 
 ### Phase 6 — G2 Teleport
 §4.7. Danach Touch-Screenshots Hoch-/Querformat.
+
+### Phase 6b — G4 Gegner-Schilde
+§4.8b. Screenshot: Schild intakt / aufgeheizt / unten.
 
 ### Phase 7 — G3 Bosse (Teil-Commits)
 - **7a** Boss-Gerüst: `src/dungeon/bosses/`, `BossCtx`, `BOSS_OPTIONAL_SPRITES`, Tint-Fallback-Helfer, Art-Guide §8. Bestehende Bosse unverändert.

@@ -44,6 +44,7 @@ import {
 import { DungeonEnemyAi } from '../dungeon/enemyAi';
 import { RoomMechanicsSystem } from '../dungeon/roomMechanics';
 import { NavGrid } from '../dungeon/navGrid';
+import { ENEMY_SHIELDS } from '../data/balance';
 import { findFreeSpotSpiral } from '../dungeon/mechanicsGen';
 import { DungeonRenderer } from '../dungeon/dungeonRenderer';
 import type {
@@ -2711,34 +2712,36 @@ export class DungeonScene {
     piercing = false,
     allowInfusion = true,
   ): void {
-    // Shield-Drone & Resonance-Warden kinetic/crystal barriers reduce non-piercing hits along their shield arc!
+    // M10-C (G4) Schilde mit Counterplay: Shield-Drone & Resonance-Warden blocken frontal 100 % —
+    // ABER: der Schild fällt, solange der Gegner angreift (Fenster), und überhitzt nach mehreren Blocks.
+    // Durchdringende Angriffe (z. B. Speer-Lanze) und Treffer von Seite/Rücken wirken voll.
     let finalAmt = amount;
-    if ((e.kind === 'shield_drone' || e.kind === 'resonance_warden') && !piercing) {
+    if ((e.kind === 'shield_drone' || e.kind === 'resonance_warden') && !piercing && (e.shieldDownTimer ?? 0) <= 0) {
+      const cfg = ENEMY_SHIELDS[e.kind];
       const fromAngle = Math.atan2(-ky, -kx);
       const diff = Math.abs(this.normalizeAngle(fromAngle - e.aimAngle));
-      const arcLimit = e.kind === 'resonance_warden' ? 0.95 : 1.08;
-      if (diff <= arcLimit) {
-        finalAmt = Math.max(2, Math.round(amount * (e.kind === 'resonance_warden' ? 0.45 : 0.35)));
+      if (diff <= cfg.arc) {
+        const barrierColor = e.kind === 'resonance_warden' ? '#c084fc' : '#38e8d4';
         sound.playShieldBlock();
-        this.spawnBurst(
-          e.x + Math.cos(e.aimAngle) * 12,
-          e.y + Math.sin(e.aimAngle) * 12,
-          e.kind === 'resonance_warden' ? '#c084fc' : '#38e8d4',
-          8,
-        );
+        this.spawnBurst(e.x + Math.cos(e.aimAngle) * 12, e.y + Math.sin(e.aimAngle) * 12, barrierColor, 8);
+        e.shieldHeat = (e.shieldHeat ?? 0) + 1;
+        const overheated = e.shieldHeat >= cfg.maxHeat;
         this.floats.push({
           x: e.x,
           y: e.y - e.radius - 10,
-          text: e.kind === 'resonance_warden' ? `BARRIERE -${finalAmt}` : `SCHILD -${finalAmt}`,
-          color: e.kind === 'resonance_warden' ? '#e879f9' : '#67e8f9',
-          life: 0.6,
-          maxLife: 0.6,
+          text: overheated ? 'ÜBERHITZT!' : 'BLOCK',
+          color: overheated ? '#fb923c' : e.kind === 'resonance_warden' ? '#e879f9' : '#67e8f9',
+          life: overheated ? 0.9 : 0.5,
+          maxLife: overheated ? 0.9 : 0.5,
         });
-        e.hp -= finalAmt;
-        e.flashTimer = 0.08;
+        if (overheated) {
+          e.shieldDownTimer = cfg.overheatSec;
+          e.shieldHeat = 0;
+          this.spawnBurst(e.x, e.y, '#fb923c', 14);
+        }
+        e.flashTimer = 0.06;
         e.vx += kx * knockForce * 0.25;
         e.vy += ky * knockForce * 0.25;
-        if (e.hp <= 0) this.onEnemyKilled(e);
         return;
       }
     }

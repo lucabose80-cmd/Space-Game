@@ -173,6 +173,9 @@ export interface Enemy {
   burnDps?: number;
   cryoTimer?: number;
   mutator?: import('../types').RiftMutatorId;
+  /** M10-C Schilde: Sekunden, die der Schild unten ist (Angriff/Überhitzung); Treffer-Hitze 0…n */
+  shieldDownTimer?: number;
+  shieldHeat?: number;
   /** M10-C Navigation: Anti-Hänger-Zustand (Bodenläufer) */
   stuckTimer?: number;
   stuckRefX?: number;

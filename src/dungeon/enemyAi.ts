@@ -7,6 +7,7 @@ import {
   ROOM_RIGHT,
   ROOM_TOP,
 } from '../world/dungeonGen';
+import { ENEMY_SHIELDS, SHIELD_HEAT_DECAY_SEC } from '../data/balance';
 import type { DungeonScene } from '../scenes/DungeonScene';
 import type { BossState, Enemy } from './dungeonTypes';
 
@@ -82,6 +83,9 @@ export class DungeonEnemyAi {
 
       e.anim += dt * 7.5;
       e.flashTimer = Math.max(0, e.flashTimer - rawDt);
+      // M10-C Schilde: Fenster läuft ab, Hitze klingt ab
+      if (e.shieldDownTimer && e.shieldDownTimer > 0) e.shieldDownTimer = Math.max(0, e.shieldDownTimer - rawDt);
+      if (e.shieldHeat && e.shieldHeat > 0) e.shieldHeat = Math.max(0, e.shieldHeat - rawDt / SHIELD_HEAT_DECAY_SEC);
 
       e.vx *= Math.pow(0.03, dt);
       e.vy *= Math.pow(0.03, dt);
@@ -263,6 +267,8 @@ export class DungeonEnemyAi {
           e.aiTimer -= dt;
           if (e.aiTimer <= 0) {
             e.telegraphTimer = 0.48;
+            // Angriff öffnet den Schild (Vorwarnung + Nachwirkung) — Zeit für einen Konter
+            e.shieldDownTimer = Math.max(e.shieldDownTimer ?? 0, ENEMY_SHIELDS.shield_drone.attackOpenSec);
           }
         }
       } else if (e.kind === 'spore_spitter') {
@@ -723,6 +729,7 @@ export class DungeonEnemyAi {
           e.aiTimer -= dt;
           if (e.aiTimer <= 0) {
             e.telegraphTimer = 0.52;
+            e.shieldDownTimer = Math.max(e.shieldDownTimer ?? 0, ENEMY_SHIELDS.resonance_warden.attackOpenSec);
           }
         }
       } else if (e.kind === 'slag_beetle' || e.kind === 'astral_scarab') {

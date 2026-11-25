@@ -18,3 +18,11 @@ export const RIFT_SCALING = {
   waves: (floor: number): number => (floor >= 2 ? 3 : 2),
   eliteEveryWave: (floor: number): boolean => floor >= 3,
 };
+
+/** M10-C (G4): Gegner-Schilde mit Counterplay. Frontal 100 % Block — aber Angriff & Überhitzung öffnen ein Fenster. */
+export const ENEMY_SHIELDS = {
+  shield_drone: { arc: 1.08, maxHeat: 4, overheatSec: 2.6, attackOpenSec: 1.0 },
+  resonance_warden: { arc: 0.95, maxHeat: 5, overheatSec: 2.4, attackOpenSec: 1.05 },
+} as const;
+/** Hitze fällt pro Sekunde um 1 / HEAT_DECAY_SEC. */
+export const SHIELD_HEAT_DECAY_SEC = 1.5;
