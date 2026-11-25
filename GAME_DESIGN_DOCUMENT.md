@@ -86,6 +86,8 @@ flowchart LR
 ## 5. Nächste Schritte — Offene Phase-2-Roadmap (Meilenstein 10-A)
 
 ### 🔜 Meilenstein 10-A: Story-Tiefe, Sektor-Rätsel & Audio-/Mobile-Feinschliff
+> 📐 **Architektur- & Vorgehensplan:** [MILESTONE_10_ARCHITECTURE.md](MILESTONE_10_ARCHITECTURE.md)
+
 1. **Fortschreitende NPC-Dialogkapitel & visuelle Stations-Entwicklung** auf Port Solaris nach jedem Boss-/Omega-Sieg.
 2. **Sektor-spezifische Raum-Mechaniken:** Reflektierende Kristall-Prismen (S2), periodische Schmelz-Düsen/Magnetplatten (S3), paarweise Astral-Teleporter-Pads (S4).
 3. **Boss-Phase-2-Musik-Steigerung** in der Web-Audio-Engine + anpassbare Touch-Button-Größe / optionaler Mobile-Aim-Assist.
