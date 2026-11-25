@@ -218,6 +218,13 @@ export interface LeaderboardEntry {
   shopTier: number;
   lastActivityText: string;
   updatedAt: number;
+  // Milestone 9: Galaktisches Netzwerk (alle optional — alte Einträge bleiben gültig)
+  achievementIds?: string[];
+  riftsCleared?: number;
+  ghostGreeting?: string;
+  trialBadges?: { gold: number; silver: number; bronze: number };
+  bestTrialWeekId?: string;
+  bestTrialTimeSec?: number;
 }
 
 export interface ActivityFeedEntry {
@@ -289,6 +296,56 @@ export interface HagglePayload {
   basePrice: number;
 }
 
+// ==================== MEILENSTEIN 9: WÖCHENTLICHE GALAKTISCHE PRÜFUNG ====================
+export type TrialBadge = 'gold' | 'silver' | 'bronze';
+
+export type TrialOutcome = 'victory' | 'defeat' | 'abort';
+
+export interface WeeklyTrialInfo {
+  weekId: string;
+  sector: 1 | 2 | 3 | 4;
+  mutator: RiftMutatorId;
+  endsAtUtc: number;
+}
+
+export interface WeeklyTrialRecord {
+  weekId: string;
+  sector: 1 | 2 | 3 | 4;
+  attempts: number;
+  completed: boolean;
+  bestTimeSec: number | null;
+  bestFloorReached: number;
+  bestRoomsCleared: number;
+  /** Niedriger = besser (siehe computeTrialScore). */
+  bestScore: number;
+  badge: TrialBadge | null;
+  /** false → beim nächsten Login/Sync erneut hochladen. */
+  uploaded: boolean;
+}
+
+export interface WeeklyTrialEntry {
+  uid: string;
+  captainName: string;
+  weekId: string;
+  sector: number;
+  completed: boolean;
+  timeSec: number;
+  floorReached: number;
+  roomsCleared: number;
+  score: number;
+  badge: TrialBadge | null;
+  attempts: number;
+  weapon: WeaponId;
+  suitTheme: SuitThemeId;
+  updatedAt: number;
+}
+
+export interface WeeklyTrialResultSummary {
+  isNewBest: boolean;
+  badge: TrialBadge | null;
+  record: WeeklyTrialRecord;
+}
+
 export interface RunSummary {
   victory: boolean;
   reason: 'warp' | 'boss_victory' | 'defeat';
@@ -315,6 +372,10 @@ export interface RunSummary {
   synthesizedItems?: string[];
   resonanceBonus?: number;
   nightRun?: boolean;
+  // Milestone 9
+  isWeeklyTrial?: boolean;
+  trialOutcome?: TrialOutcome;
+  trialResult?: WeeklyTrialResultSummary;
 }
 
 export interface SaveData {
@@ -364,6 +425,10 @@ export interface SaveData {
   bankInvestments?: BankInvestment[];
   lastPedestalItems?: Record<number, string>;
   haggleWinsTotal?: number;
+  // Milestone 9: Galaktisches Netzwerk (Save v10)
+  ghostGreeting?: string;
+  weeklyTrial?: WeeklyTrialRecord;
+  trialBadgeHistory?: Record<string, TrialBadge>;
   muted: boolean;
   musicMuted?: boolean;
 }

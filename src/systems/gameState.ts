@@ -10,6 +10,7 @@ import {
   TRADE_ROUTES,
   TRADE_ROUTE_ORDER,
 } from '../data/guildMarket';
+import { sanitizeGreeting } from '../data/ghostGreetings';
 import { getInfusionDef } from '../data/infusions';
 import { getItemDef, ITEMS } from '../data/items';
 import { getPlayerCombatStats, UPGRADE_TRACKS } from '../data/upgrades';
@@ -34,9 +35,12 @@ import type {
   SuitThemeId,
   TimeOfDay,
   TradeRouteId,
+  TrialBadge,
   UpgradeKey,
   UpgradeLevels,
   WeaponId,
+  WeeklyTrialInfo,
+  WeeklyTrialRecord,
 } from '../types';
 import { createInitialCodex, decayDemandForNewDay, getOptimalCodexPrice } from './economy';
 import {
@@ -48,10 +52,11 @@ import {
   createEmptyInventory,
   ensureChestCapacity,
 } from './inventory';
+import { sanitizeBadgeHistory, sanitizeTrialRecord } from './weeklyTrial';
 
 const SAVE_KEY = 'starlighter_save_v2';
 const LEGACY_SAVE_KEY = 'starlighter_save_v1';
-const SAVE_VERSION = 9;
+const SAVE_VERSION = 10;
 
 function createEmptyRecords(): CaptainRecords {
   return {
@@ -224,6 +229,12 @@ export class GameState {
   public bankInvestments: BankInvestment[] = [];
   public lastPedestalItems: Record<number, string> = {};
   public haggleWinsTotal = 0;
+  // Milestone 9: Galaktisches Netzwerk (Save v10)
+  public ghostGreeting = '';
+  public weeklyTrial: WeeklyTrialRecord | null = null;
+  public trialBadgeHistory: Record<string, TrialBadge> = {};
+  /** Nur Laufzeit (nicht gespeichert): aktive Galaktische Prüfung → normierte Werte. */
+  public activeTrial: WeeklyTrialInfo | null = null;
   public muted = false;
   public musicMuted = false;
 
@@ -308,6 +319,10 @@ export class GameState {
     this.bankInvestments = [];
     this.lastPedestalItems = {};
     this.haggleWinsTotal = 0;
+    this.ghostGreeting = '';
+    this.weeklyTrial = null;
+    this.trialBadgeHistory = {};
+    this.activeTrial = null;
     this.pedestals = [];
     this.syncShopCapacity();
 
@@ -1437,6 +1452,9 @@ export class GameState {
       bankInvestments: this.bankInvestments,
       lastPedestalItems: this.lastPedestalItems,
       haggleWinsTotal: this.haggleWinsTotal,
+      ghostGreeting: this.ghostGreeting,
+      weeklyTrial: this.weeklyTrial ?? undefined,
+      trialBadgeHistory: this.trialBadgeHistory,
       muted: this.muted,
       musicMuted: this.musicMuted,
     };
@@ -1707,6 +1725,13 @@ export class GameState {
       }
       this.lastPedestalItems = loadedLast;
       this.haggleWinsTotal = Math.max(0, Math.floor(parsed.haggleWinsTotal ?? 0));
+
+      // Milestone 9: Defensives Laden für nahtlose v9 -> v10 Migration
+      this.ghostGreeting =
+        typeof parsed.ghostGreeting === 'string' ? sanitizeGreeting(parsed.ghostGreeting) : '';
+      this.weeklyTrial = sanitizeTrialRecord(parsed.weeklyTrial);
+      this.trialBadgeHistory = sanitizeBadgeHistory(parsed.trialBadgeHistory);
+      this.activeTrial = null;
 
       this.prunePinnedRecipes();
       this.checkAchievements(false);
