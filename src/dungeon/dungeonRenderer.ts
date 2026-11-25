@@ -3221,7 +3221,14 @@ export class DungeonRenderer {
 
     for (const room of this.scene.floor.rooms.values()) {
       if (room.type === 'secret') continue;
+      // Vertrauensbonus Vex („Sektor-Scanner“): Schatz- & Bossraum sind ab Betreten der Ebene sichtbar
+      // (nicht in der Galaktischen Prüfung, dort gelten für alle dieselben Bedingungen)
+      const scannerReveal =
+        (room.type === 'boss' || room.type === 'treasure') &&
+        !this.scene.isWeeklyTrial &&
+        this.scene.state.hasTrustPerk('vex');
       const adjVisited =
+        scannerReveal ||
         room.visited ||
         this.scene.floor.rooms.get(roomKey(room.gx + 1, room.gy))?.visited ||
         this.scene.floor.rooms.get(roomKey(room.gx - 1, room.gy))?.visited ||

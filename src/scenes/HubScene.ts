@@ -4,7 +4,7 @@ import { getAtlas } from '../assets/sprites';
 import { sound } from '../engine/audio';
 import { VIRTUAL_HEIGHT, VIRTUAL_WIDTH, type InputManager } from '../engine/input';
 import type { GameState } from '../systems/gameState';
-import type { Direction } from '../types';
+import type { Direction, StoryNpcId } from '../types';
 
 interface Stroller {
   x: number;
@@ -36,6 +36,8 @@ export interface HubCallbacks {
   onOpenGuildBoard: () => void;
   onEnterMarketTerrace: () => void;
   onEnterDungeon: () => void;
+  /** M10-A: Omega-Fest ist fällig (einmalig nach dem Omega-Sieg). */
+  onFestivalDue?: () => void;
   onToast: (msg: string, tone?: 'info' | 'good' | 'warn') => void;
 }
 
@@ -72,6 +74,8 @@ export class HubScene {
   private particles: Particle[] = [];
   private stars: Array<{ x: number; y: number; phase: number }> = [];
   private time = 0;
+  /** Sekunden bis zum Omega-Fest (-1 = nicht fällig). */
+  private festivalTimer = -1;
 
   public activePrompt: { label: string; x: number; y: number } | null = null;
 
@@ -114,6 +118,9 @@ export class HubScene {
     this.dashTimer = 0;
     this.dashCooldown = 0;
     this.particles = [];
+    // Omega-Fest: einmalig, nur auf Wunsch überspringbar (siehe main.ts)
+    this.festivalTimer =
+      this.state.story.chapter >= 5 && !this.state.story.flags.includes('festival_seen') ? 0.8 : -1;
     if (from === 'dungeon') {
       this.playerX = 388;
       this.playerY = 136;
@@ -132,6 +139,15 @@ export class HubScene {
 
   public update(dt: number, input: InputManager): void {
     this.time += dt;
+
+    if (this.festivalTimer >= 0) {
+      this.festivalTimer -= dt;
+      if (this.festivalTimer < 0) {
+        this.festivalTimer = -1;
+        this.callbacks.onFestivalDue?.();
+        return;
+      }
+    }
 
     // Flying sparks at Kael's Forge
     if (Math.random() < dt * 7) {
@@ -333,7 +349,7 @@ export class HubScene {
     // 2. Kael's Exo-Schmiede (Weapons & Suit)
     if (Math.hypot(this.playerX - FORGE_POS.x, this.playerY - FORGE_POS.y) < 30 && this.playerY <= 138) {
       this.activePrompt = {
-        label: "[E] Kael's Exo-Schmiede (Waffen & MK-VIII)",
+        label: this.hasNewTalk('kael') ? '[E] 💬 Kael · Neues Gespräch' : "[E] Kael's Exo-Schmiede (Waffen & MK-VIII)",
         x: FORGE_POS.x,
         y: FORGE_POS.y - 28,
       };
@@ -347,7 +363,7 @@ export class HubScene {
     // 3. Dr. Lyra's Med-Bay (Stimpacks & Bio-Regen)
     if (Math.hypot(this.playerX - MEDBAY_POS.x, this.playerY - MEDBAY_POS.y) < 30 && this.playerY <= 138) {
       this.activePrompt = {
-        label: "[E] Dr. Lyra's Med-Bay",
+        label: this.hasNewTalk('lyra') ? '[E] 💬 Lyra · Neues Gespräch' : "[E] Dr. Lyra's Med-Bay",
         x: MEDBAY_POS.x,
         y: MEDBAY_POS.y - 28,
       };
@@ -364,7 +380,7 @@ export class HubScene {
       (this.playerX >= 76 && this.playerX <= 184 && this.playerY >= 139 && this.playerY <= 156);
     if (nearNyx) {
       this.activePrompt = {
-        label: "[E] Nyx' Schwarzmarkt (Seltene Teile)",
+        label: this.hasNewTalk('nyx') ? '[E] 💬 Nyx · Neues Gespräch' : "[E] Nyx' Schwarzmarkt (Seltene Teile)",
         x: 152,
         y: 148,
       };
@@ -381,7 +397,7 @@ export class HubScene {
       (this.playerX >= 298 && this.playerX <= 400 && this.playerY >= 139 && this.playerY <= 156);
     if (nearVex) {
       this.activePrompt = {
-        label: "[E] Vex' Tech-Labor (Module & Sektor-Karte)",
+        label: this.hasNewTalk('vex') ? '[E] 💬 Vex · Neues Gespräch' : "[E] Vex' Tech-Labor (Module & Sektor-Karte)",
         x: 332,
         y: 148,
       };
@@ -423,6 +439,47 @@ export class HubScene {
         sound.playUiClick();
         this.callbacks.onEnterDungeon();
       }
+    }
+  }
+
+  private hasNewTalk(npc: StoryNpcId): boolean {
+    return this.state.getPendingScene(npc) !== null;
+  }
+
+  /** „!“ über NPCs mit neuem Gespräch; nach „Später“ nur ein ruhiger Punkt. */
+  private renderStoryMarkers(ctx: CanvasRenderingContext2D): void {
+    const spots: Array<{ npc: StoryNpcId; x: number; y: number }> = [
+      { npc: 'kael', x: FORGE_POS.x, y: FORGE_POS.y - 31 },
+      { npc: 'lyra', x: MEDBAY_POS.x, y: MEDBAY_POS.y - 30 },
+      { npc: 'nyx', x: NYX_NPC_POS.x, y: NYX_NPC_POS.y - 26 },
+      { npc: 'vex', x: TECHLAB_NPC_POS.x, y: TECHLAB_NPC_POS.y - 26 },
+    ];
+    for (const sp of spots) {
+      const scene = this.state.getPendingScene(sp.npc);
+      if (!scene) continue;
+      ctx.save();
+      ctx.textAlign = 'center';
+      if (this.state.isSceneSkipped(scene.id)) {
+        const a = 0.55 + 0.2 * Math.sin(this.time * 2);
+        drawGlow(ctx, sp.x, sp.y, 7, '#fde047', 0.16);
+        ctx.globalAlpha = a;
+        ctx.fillStyle = '#fde047';
+        ctx.beginPath();
+        ctx.arc(sp.x, sp.y, 2.1, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        const hop = Math.sin(this.time * 5 + sp.x) * 1.6;
+        drawGlow(ctx, sp.x, sp.y + hop, 10, '#fde047', 0.22);
+        ctx.fillStyle = 'rgba(28, 20, 6, 0.94)';
+        ctx.fillRect(sp.x - 5, sp.y - 6 + hop, 10, 11);
+        ctx.strokeStyle = '#fbbf24';
+        ctx.lineWidth = 0.8;
+        ctx.strokeRect(sp.x - 5, sp.y - 6 + hop, 10, 11);
+        ctx.fillStyle = '#fde047';
+        ctx.font = 'bold 8px Silkscreen, monospace';
+        ctx.fillText('!', sp.x, sp.y + 3 + hop);
+      }
+      ctx.restore();
     }
   }
 
@@ -608,6 +665,8 @@ export class HubScene {
       ctx.fillRect(p.x, p.y, p.size, p.size);
     }
     ctx.globalAlpha = 1;
+
+    this.renderStoryMarkers(ctx);
 
     if (this.activePrompt) {
       this.renderPrompt(ctx, this.activePrompt.label, this.activePrompt.x, this.activePrompt.y);

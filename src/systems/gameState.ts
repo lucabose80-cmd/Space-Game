@@ -14,7 +14,7 @@ import { sanitizeGreeting } from '../data/ghostGreetings';
 import { getInfusionDef } from '../data/infusions';
 import { getItemDef, ITEMS } from '../data/items';
 import { computeStoryChapter, createEmptyStory, STORY_CHAPTERS } from '../data/story/storyChapters';
-import type { StoryChoice } from '../data/story/storyTypes';
+import type { StoryChoice, StoryScene } from '../data/story/storyTypes';
 import { getPlayerCombatStats, UPGRADE_TRACKS } from '../data/upgrades';
 import { firebaseService, formatDurationSec } from '../services/firebaseService';
 import type {
@@ -41,6 +41,7 @@ import type {
   TradeRouteId,
   TrialBadge,
   UpgradeKey,
+  UpgradeTrack,
   UpgradeLevels,
   WeaponId,
   WeeklyTrialInfo,
@@ -68,7 +69,7 @@ import {
   TRIAL_COMBAT_LEVELS,
   trimBadgeHistory,
 } from './weeklyTrial';
-import { applyChoice, hasTrustPerk as storyHasTrustPerk, isSceneSkipped, sanitizeStory } from './storyEngine';
+import { applyChoice, getPendingScene as storyPendingScene, hasTrustPerk as storyHasTrustPerk, isSceneSkipped, sanitizeStory } from './storyEngine';
 
 const SAVE_KEY = 'starlighter_save_v2';
 const LEGACY_SAVE_KEY = 'starlighter_save_v1';
@@ -363,6 +364,8 @@ export class GameState {
     const trialActive = this.activeTrial !== null;
     const base = getPlayerCombatStats(trialActive ? { ...this.upgrades, ...TRIAL_COMBAT_LEVELS } : this.upgrades);
     const buff = trialActive ? null : this.activeAlchemyBuff;
+    // Vertrauensbonus Lyra („Notfallset“): +1 Stimpack-Ladung — in der Galaktischen Prüfung aus
+    const lyraStim = !trialActive && this.hasTrustPerk('lyra') ? 1 : 0;
     const dmgMult = buff === 'solar_espresso' ? 1.2 : 1.0;
     const maxHpMult = buff === 'aegis_tonic' ? 1.25 : 1.0;
     const extraStim = buff === 'aegis_tonic' ? 1 : 0;
@@ -385,7 +388,7 @@ export class GameState {
       blasterDamage: Math.round(base.blasterDamage * dmgMult),
       hammerDamage: Math.round(base.hammerDamage * dmgMult),
       maxHp: Math.round(base.maxHp * maxHpMult),
-      maxStimCharges: base.maxStimCharges + extraStim,
+      maxStimCharges: base.maxStimCharges + extraStim + lyraStim,
       lootLuckBonus: base.lootLuckBonus + extraLuck,
       moveSpeedMult: base.moveSpeedMult * extraSpeedMult,
       dashCooldownMult: base.dashCooldownMult * extraDashCdMult,
@@ -574,6 +577,11 @@ export class GameState {
     if (r1) chosen.push({ def: r1, stock: 2 });
     const r2 = pickFrom(rarePool.length > 0 ? rarePool : commonPool, used);
     if (r2) chosen.push({ def: r2, stock: 1 });
+    // Vertrauensbonus Nyx („Hinterzimmer-Ware“): +1 zusätzliches seltenes Angebot
+    if (this.hasTrustPerk('nyx')) {
+      const r3 = pickFrom(rarePool.length > 0 ? rarePool : commonPool, used);
+      if (r3) chosen.push({ def: r3, stock: 1 });
+    }
     const e1 = pickFrom(epicPool.length > 0 ? epicPool : rarePool, used);
     if (e1) chosen.push({ def: e1, stock: 1 });
 
@@ -778,7 +786,7 @@ export class GameState {
     if (this.unlockedWeapons[weaponId]) return false;
     const track = UPGRADE_TRACKS.find((t) => t.weaponId === weaponId);
     if (!track?.craftCost) return false;
-    if (this.credits < track.craftCost.creditCost) return false;
+    if (this.credits < this.getForgeCreditCost(track.craftCost.creditCost, track.shop)) return false;
     for (const mat of track.craftCost.materials) {
       if (countItemTotal(this.inventory, mat.itemId) < mat.qty) return false;
     }
@@ -790,7 +798,7 @@ export class GameState {
     const track = UPGRADE_TRACKS.find((t) => t.weaponId === weaponId);
     if (!track?.craftCost) return false;
 
-    this.credits -= track.craftCost.creditCost;
+    this.credits -= this.getForgeCreditCost(track.craftCost.creditCost, track.shop);
     for (const mat of track.craftCost.materials) {
       consumeItemTotal(this.inventory, mat.itemId, mat.qty);
     }
@@ -814,7 +822,7 @@ export class GameState {
     const currentLvl = this.upgrades[key];
     const nextTier = track.tiers[currentLvl];
     if (!nextTier) return false;
-    if (this.credits < nextTier.creditCost) return false;
+    if (this.credits < this.getForgeCreditCost(nextTier.creditCost, track.shop)) return false;
     for (const mat of nextTier.materials) {
       if (countItemTotal(this.inventory, mat.itemId) < mat.qty) return false;
     }
@@ -828,7 +836,7 @@ export class GameState {
     const nextTier = track.tiers[this.upgrades[key]];
     if (!nextTier) return false;
 
-    this.credits -= nextTier.creditCost;
+    this.credits -= this.getForgeCreditCost(nextTier.creditCost, track.shop);
     for (const mat of nextTier.materials) {
       consumeItemTotal(this.inventory, mat.itemId, mat.qty);
     }
@@ -1007,6 +1015,12 @@ export class GameState {
     grant('guild_patron', anyTier3Patron);
     grant('trial_runner', Boolean(this.weeklyTrial?.completed) || Object.keys(this.trialBadgeHistory).length > 0);
     grant('trial_gold', Object.values(this.trialBadgeHistory).includes('gold'));
+    // Milestone 10-A: Story-Erfolge
+    grant(
+      'chronicler',
+      this.story.chapter >= 5 && ['kael', 'lyra', 'nyx', 'vex'].every((n) => this.story.seenScenes.includes(`${n}_c5`)),
+    );
+    grant('heart_of_solaris', (['kael', 'lyra', 'nyx', 'vex'] as StoryNpcId[]).every((n) => this.hasTrustPerk(n)));
 
     if (persist && newly.length > 0) {
       this.save();
@@ -1425,6 +1439,8 @@ export class GameState {
   /** Wendet eine Antwort sofort an (nicht erst am Szenenende), damit nichts verloren geht. */
   public recordStoryChoice(sceneId: string, choice: StoryChoice): { newPerks: StoryNpcId[] } {
     const res = applyChoice(this.story, sceneId, choice);
+    // Nyx' neuer Bonus soll sofort im Sortiment sichtbar sein
+    if (res.newPerks.includes('nyx')) this.nyxStock = this.generateNyxStock();
     this.checkAchievements(false);
     this.save();
     return { newPerks: res.newPerks };
@@ -1446,6 +1462,25 @@ export class GameState {
 
   public hasTrustPerk(npc: StoryNpcId): boolean {
     return storyHasTrustPerk(this.story, npc);
+  }
+
+  /** Älteste ungelesene Szene dieses NPCs (oder null). */
+  public getPendingScene(npc: StoryNpcId): StoryScene | null {
+    return storyPendingScene(this.story, npc);
+  }
+
+  /** Setzt ein Story-Flag direkt (z. B. `festival_seen` nach dem Omega-Fest). */
+  public setStoryFlag(flag: StoryProgress['flags'][number]): void {
+    if (!this.story.flags.includes(flag)) {
+      this.story.flags.push(flag);
+      this.save();
+    }
+  }
+
+  /** Kael-Vertrauensbonus „Meisterhand“: −5 % Credits auf Schmiede-Upgrades & Waffen-Fertigung. */
+  public getForgeCreditCost(base: number, shop: UpgradeTrack['shop']): number {
+    if (shop === 'forge' && this.hasTrustPerk('kael')) return Math.round(base * 0.95);
+    return base;
   }
 
   // ==================== MEILENSTEIN 9: WÖCHENTLICHE GALAKTISCHE PRÜFUNG ====================

@@ -272,4 +272,6 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
   { id: 'guild_patron', icon: '🏛️', title: 'Gilden-Ehrengast', desc: 'Erreiche Rufstufe 3 bei einem Stammkunden der Händler-Gilde.' },
   { id: 'trial_runner', icon: '🏅', title: 'Galaktischer Prüfling', desc: 'Schließe eine Galaktische Prüfung am 5. Tor ab.' },
   { id: 'trial_gold', icon: '🥇', title: 'Gold-Kapitän', desc: 'Erreiche ein Gold-Abzeichen in einer Galaktischen Prüfung.' },
+  { id: 'chronicler', icon: '📜', title: 'Chronist von Port Solaris', desc: 'Erlebe das fünfte Kapitel der Geschichte mit Kael, Lyra, Nyx und Vex.' },
+  { id: 'heart_of_solaris', icon: '💞', title: 'Herz von Port Solaris', desc: 'Erreiche bei allen 4 Freunden auf der Promenade Vertrauensstufe 7.' },
 ];

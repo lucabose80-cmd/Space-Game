@@ -2,6 +2,8 @@ import './style.css';
 import { preloadHDArt } from './assets/artLoader';
 import { getAtlas } from './assets/sprites';
 import { MARKET_EVENT_META } from './data/companions';
+import { NPC_META, TRUST_PERKS } from './data/story/storyChapters';
+import { STORY_SCENES } from './data/story/storyScenes';
 import { sound } from './engine/audio';
 import { InputManager, VIRTUAL_HEIGHT, VIRTUAL_WIDTH } from './engine/input';
 import { BackroomScene } from './scenes/BackroomScene';
@@ -13,7 +15,8 @@ import { ShopScene } from './scenes/ShopScene';
 import { firebaseService } from './services/firebaseService';
 import { galacticNetwork } from './services/galacticNetwork';
 import { GameState } from './systems/gameState';
-import type { MusicTrack, RunSummary, SceneId, SectorId, WeeklyTrialInfo } from './types';
+import type { StoryResult } from './ui/StoryModals';
+import type { MusicTrack, RunSummary, SceneId, SectorId, StoryNpcId, WeeklyTrialInfo } from './types';
 import { TouchControls } from './ui/TouchControls';
 import { UIManager } from './ui/UIManager';
 
@@ -188,10 +191,11 @@ class StarlighterGame {
 
     this.hubScene = new HubScene(this.state, {
       onEnterShop: () => this.transitionTo('shop', 'hub'),
-      onOpenForge: () => this.ui.openForgeModal(),
-      onOpenMedBay: () => this.ui.openMedBayModal(),
-      onOpenTechLab: () => this.ui.openTechLabModal(),
-      onOpenBlackMarket: () => this.ui.openBlackMarketModal(),
+      onOpenForge: () => this.withNpcScene('kael', () => this.ui.openForgeModal()),
+      onOpenMedBay: () => this.withNpcScene('lyra', () => this.ui.openMedBayModal()),
+      onOpenTechLab: () => this.withNpcScene('vex', () => this.ui.openTechLabModal()),
+      onOpenBlackMarket: () => this.withNpcScene('nyx', () => this.ui.openBlackMarketModal()),
+      onFestivalDue: () => this.startFestival(),
       onOpenGuildBoard: () => this.ui.openGuildBoardModal(),
       onEnterMarketTerrace: () => this.transitionTo('market_terrace', 'hub'),
       onEnterDungeon: () => this.transitionTo('hangar', 'hub'),
@@ -311,8 +315,65 @@ class StarlighterGame {
     window.addEventListener('pointerdown', () => sound.unlock(), { once: true });
     window.addEventListener('keydown', () => sound.unlock(), { once: true });
 
+    // Nur im Vite-Dev-Server (Headless-Tests): Spielinstanz erreichbar machen. Im Produktions-Build entfällt das.
+    if (import.meta.env.DEV) {
+      (window as unknown as { __game?: StarlighterGame }).__game = this;
+    }
+
     this.lastTime = performance.now();
     requestAnimationFrame((t) => this.loop(t));
+  }
+
+  // ==================== MEILENSTEIN 10-A: STORY ====================
+  /** Offenes Angebot statt Zwang: „Später“ öffnet sofort die gewohnte Station. */
+  private withNpcScene(npc: StoryNpcId, open: () => void): void {
+    const scene = this.state.getPendingScene(npc);
+    if (!scene) {
+      open();
+      return;
+    }
+    this.ui.openStoryScene(scene, {
+      laterLabel: `Später ▸ ${NPC_META[npc].station}`,
+      onLater: () => {
+        this.state.markSceneSkipped(scene.id);
+        open();
+      },
+      onFinish: (res) => {
+        this.announceStoryResult(res);
+        open();
+      },
+      // ESC / ✕ / Hintergrund: wie „Später“, aber ohne die Station zu öffnen
+      onClose: () => this.state.markSceneSkipped(scene.id),
+    });
+  }
+
+  private announceStoryResult(res: StoryResult): void {
+    for (const npc of res.newPerks) {
+      const perk = TRUST_PERKS[npc];
+      this.ui.toast(`🤝 ${NPC_META[npc].name} vertraut dir: ${perk.name} freigeschaltet — ${perk.description}`, 'good');
+    }
+    this.ui.renderHud();
+  }
+
+  /** Omega-Fest: einmalig, auf der ersten Box überspringbar, in der Chronik wiederholbar. */
+  private startFestival(): void {
+    if (this.ui.modalOpen || this.ui.titleVisible || this.activeScene !== 'hub') return;
+    if (this.state.story.flags.includes('festival_seen')) return;
+    const scene = STORY_SCENES.find((x) => x.id === 'event_festival');
+    if (!scene) return;
+    const done = (): void => {
+      this.state.setStoryFlag('festival_seen');
+      this.state.markSceneSeen(scene.id);
+    };
+    this.ui.openStoryScene(scene, {
+      laterLabel: 'Überspringen',
+      onLater: done,
+      onFinish: (res) => {
+        done();
+        this.announceStoryResult(res);
+      },
+      onClose: done,
+    });
   }
 
   private syncMusic(): void {
@@ -453,6 +514,10 @@ class StarlighterGame {
   }
 
   private handleReturnFromDungeon(summary: RunSummary): void {
+    const newChapter = this.state.refreshStoryChapter();
+    if (newChapter !== null) {
+      this.ui.toast(`📜 ${this.state.getStoryChapterTitle()} — auf Port Solaris gibt es Neuigkeiten!`, 'info');
+    }
     if (summary.isWeeklyTrial) {
       // Prüfung startet am 5. Tor → Rückkehr ebenfalls dort; Ergebnis sofort, Upload im Hintergrund
       this.lastReturnedSector = 5;

@@ -27,7 +27,9 @@ import {
   getDemandLevel,
   getSuggestedStartPrice,
 } from '../systems/economy';
+import type { StoryScene } from '../data/story/storyTypes';
 import type { GameState } from '../systems/gameState';
+import { getSceneById } from '../systems/storyEngine';
 import { getCurrentWeeklyTrial } from '../systems/weeklyTrial';
 import {
   addItemAnywhere,
@@ -78,6 +80,7 @@ import {
   renderTrialGateCardHtml,
   renderWeeklyTrialResultHtml,
 } from './NetworkModals';
+import { renderChronicleHtml, StoryDialogController, type StoryDialogOptions, type StoryHost } from './StoryModals';
 
 export interface UIHooks {
   onStartNewGame: () => void;
@@ -510,8 +513,15 @@ export class UIManager {
     });
   }
 
+  /** M10-A: Wird beim nächsten closeModal() (ESC, ✕, Hintergrund) einmalig aufgerufen. */
+  public setModalCloseHook(cb: (() => void) | null): void {
+    this.modalCloseHook = cb;
+  }
+
   public closeModal(): void {
     if (!this.modalOpen) return;
+    const closeHook = this.modalCloseHook;
+    this.modalCloseHook = null;
     this.modalOpen = false;
     this.guildModalActive = false;
     this.selectedSlot = null;
@@ -520,9 +530,14 @@ export class UIManager {
     this.modalEl.innerHTML = '';
     this.hooks.onModalStateChange(false);
     this.renderHud();
+    closeHook?.();
   }
 
   private showModalHtml(html: string): void {
+    // Ein neues Modal ersetzt ein laufendes Gespräch: Listener aufräumen, alten Close-Hook verwerfen
+    this.modalCloseHook = null;
+    this.activeStory?.destroy();
+    this.activeStory = null;
     this.modalOpen = true;
     this.modalEl.innerHTML = html;
     this.modalEl.classList.remove('hidden');
@@ -531,6 +546,25 @@ export class UIManager {
       sound.playUiClick();
       this.closeModal();
     });
+  }
+
+  // ==================== MEILENSTEIN 10-A: STORY-GESPRÄCHE ====================
+  private getStoryHost(): StoryHost {
+    return {
+      state: this.state,
+      modalEl: this.modalEl,
+      showModalHtml: (html) => this.showModalHtml(html),
+      closeModal: () => this.closeModal(),
+      setModalCloseHook: (cb) => this.setModalCloseHook(cb),
+    };
+  }
+
+  /** Öffnet eine Gesprächsszene. Gibt den Controller zurück (Tests: advance()/choose()/skipLater()). */
+  public openStoryScene(scene: StoryScene, opts: StoryDialogOptions = {}): StoryDialogController {
+    const ctrl = new StoryDialogController(this.getStoryHost(), scene, opts);
+    ctrl.start();
+    this.activeStory = ctrl;
+    return ctrl;
   }
 
   // ==================== INVENTORY, CHEST, SCAN-CODEX & KAPITÄNS-LOGBUCH ====================
@@ -814,6 +848,8 @@ export class UIManager {
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:6px">${achCards}</div>
           </div>
 
+          ${renderChronicleHtml(this.state.story)}
+
           <div class="inspector-box" style="gap:8px;border-color:${canNgPlus ? 'rgba(250,204,21,0.5)' : 'var(--border-steel)'}">
             <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
               <div>
@@ -895,6 +931,16 @@ export class UIManager {
       });
     });
 
+    this.modalEl.querySelectorAll<HTMLElement>('[data-story-replay]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const scene = getSceneById(btn.dataset.storyReplay ?? '');
+        if (!scene) return;
+        sound.playUiClick();
+        const back = (): void => this.openInventoryModal(this.chestMode, 'logbook');
+        this.openStoryScene(scene, { replay: true, onClose: back, onFinish: back });
+      });
+    });
+
     this.modalEl.querySelector('#btn-start-ngplus')?.addEventListener('click', () => {
       if (!this.state.sector4Cleared && !this.state.omegaCleared) return;
       this.state.startNewGamePlus();
@@ -902,6 +948,7 @@ export class UIManager {
       this.closeModal();
       this.renderHud();
       this.toast(`♾️ NEW GAME+ ${this.state.ngPlusLevel} gestartet! Alle Upgrades, Waffen & Truhe behalten!`, 'good');
+      this.toast(`📜 ${this.state.getStoryChapterTitle()} — auf Port Solaris gibt es Neuigkeiten!`, 'info');
     });
 
     this.modalEl.querySelector('#btn-export-save')?.addEventListener('click', () => {
@@ -1339,7 +1386,8 @@ export class UIManager {
         // Uncrafted Weapon Card (e.g. Ionen-Speer, Kinetik-Fäuste, Phasen-Diskus, Puls-Blaster or Grav-Hammer!)
         if (isLockedWeapon && wid && track.craftCost) {
           const canCraft = this.state.canCraftWeapon(wid);
-          const hasCr = this.state.credits >= track.craftCost.creditCost;
+          const craftPrice = this.state.getForgeCreditCost(track.craftCost.creditCost, track.shop);
+          const hasCr = this.state.credits >= craftPrice;
           const pinKey = `craft:${wid}`;
           const isPinned = this.state.isRecipePinned(pinKey);
           const matsHtml = track.craftCost.materials
@@ -1364,7 +1412,7 @@ export class UIManager {
                     ${track.primaryDesc ?? ''} · <span style="color:var(--accent-cyan)">${track.secondaryDesc ?? ''}</span>
                   </div>
                   <div class="mat-list">
-                    <span class="mat-pill ${hasCr ? 'ok' : 'missing'}">${track.craftCost.creditCost} Cr</span>
+                    <span class="mat-pill ${hasCr ? 'ok' : 'missing'}">${craftPrice} Cr</span>
                     ${matsHtml}
                   </div>
                 </div>
@@ -1428,7 +1476,8 @@ export class UIManager {
         const canAfford = this.state.canAffordUpgrade(track.key);
         const tierLocked =
           track.requiresShopTier !== undefined && (this.state.upgrades.shopTier ?? 0) < track.requiresShopTier;
-        const hasCredits = this.state.credits >= nextTier.creditCost;
+        const tierPrice = this.state.getForgeCreditCost(nextTier.creditCost, track.shop);
+        const hasCredits = this.state.credits >= tierPrice;
         const pinKey = `upgrade:${track.key}`;
         const isPinned = this.state.isRecipePinned(pinKey);
         const matsHtml = nextTier.materials
@@ -1457,7 +1506,7 @@ export class UIManager {
                   tierLocked
                     ? `<div style="font-size:11px;color:var(--accent-coral);margin-top:4px">🔒 Benötigt zuerst: Shop-Vergrößerung Stufe II (Astro-Barter Galerie)</div>`
                     : `<div class="mat-list">
-                        <span class="mat-pill ${hasCredits ? 'ok' : 'missing'}">${nextTier.creditCost} Cr</span>
+                        <span class="mat-pill ${hasCredits ? 'ok' : 'missing'}">${tierPrice} Cr</span>
                         ${matsHtml}
                       </div>`
                 }
@@ -2802,6 +2851,8 @@ export class UIManager {
   }
 
   // ==================== GALAKTISCHE KAPITÄNS-TAFEL (FIREBASE SCOREBOARD, REKORDE & CLOUD-SYNC) ====================
+  private modalCloseHook: (() => void) | null = null;
+  private activeStory: StoryDialogController | null = null;
   private guildTab: GuildTab = 'leaderboard';
   private guildSelectedUid: string | null = null;
   private guildSort: 'progress' | 'speed_sector' | 'speed_days' | 'merchant' | 'deepest_rift' = 'progress';
