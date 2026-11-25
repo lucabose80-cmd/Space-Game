@@ -412,35 +412,47 @@ class StarlighterGame {
     sound.setMusicIntensity(phase2 ? 1 : 0);
   }
 
+  /** Koje: nur nachts nutzbar → „Schicht überspringen“ (Nacht → nächster Tag). */
   private handleAdvanceTime(): void {
     if (this.transitionDir !== 0) return;
+    if (this.state.timeOfDay !== 'night') return;
     sound.playDayTransition();
     this.transitionDir = 1;
     this.pendingTransition = () => {
-      const res = this.state.advanceTimeOfDay();
+      const res = this.state.startDay();
       this.syncMusic();
       this.ui.renderHud();
       this.syncTouch();
-      if (res.newDay) {
-        const ev = MARKET_EVENT_META[res.marketEvent];
-        const evNote = res.marketEvent !== 'normal' ? ` · ★ Event: ${ev.name}!` : '';
-        this.ui.toast(
-          `☀ Guten Morgen! Tag ${res.day} beginnt — frische Aufträge & Nyx-Ware!${evNote}`,
-          'good',
-        );
-      } else {
-        this.ui.toast(
-          `🌙 Es wird Nacht (Tag ${res.day}) — Alle Sektoren bieten jetzt +35 % seltene & epische Beute!`,
-          'info',
-        );
-      }
-      if (res.maturedBankCount > 0) {
-        this.ui.toast(
-          `🏦 ${res.maturedBankCount} Handelsroute(n) abgeschlossen! Auszahlung auf der Marktplatz-Terrasse abholen!`,
-          'good',
-        );
-      }
+      this.announceTimeChange(res, 'skip');
     };
+  }
+
+  /** Toasts nach einem Zeitwechsel (Schicht übersprungen / Nacht-Run beendet / Tag-Run beendet). */
+  private announceTimeChange(
+    res: ReturnType<GameState['startDay']>,
+    reason: 'skip' | 'night_run' | 'day_run',
+  ): void {
+    if (res.newDay) {
+      const ev = MARKET_EVENT_META[res.marketEvent];
+      const evNote = res.marketEvent !== 'normal' ? ` · ★ Event: ${ev.name}!` : '';
+      this.ui.toast(
+        reason === 'night_run'
+          ? `☀ Der Morgen graut — die Ladenschicht ist ausgefallen. Tag ${res.day} beginnt mit frischen Aufträgen & Nyx-Ware!${evNote}`
+          : `☀ Guten Morgen! Tag ${res.day} beginnt — frische Aufträge & Nyx-Ware!${evNote}`,
+        'good',
+      );
+    } else {
+      this.ui.toast(
+        `🌙 Die Nacht bricht an (Tag ${res.day}) — Zeit, den Laden zu öffnen! Ein Nacht-Run gäbe +35 % seltene Beute, kostet aber die Ladenschicht.`,
+        'info',
+      );
+    }
+    if (res.maturedBankCount > 0) {
+      this.ui.toast(
+        `🏦 ${res.maturedBankCount} Handelsroute(n) abgeschlossen! Auszahlung auf der Marktplatz-Terrasse abholen!`,
+        'good',
+      );
+    }
   }
 
   private handleSwapWeapon(): void {
@@ -547,6 +559,10 @@ class StarlighterGame {
       });
       return;
     }
+    // M10-C Tag/Nacht-Schleife: Tag-Run → danach Nacht · Nacht-Run → danach Tag (Ladenschicht fällt aus)
+    const wasNightRun = this.state.timeOfDay === 'night';
+    const timeRes = wasNightRun ? this.state.startDay() : this.state.startNight();
+    this.announceTimeChange(timeRes, wasNightRun ? 'night_run' : 'day_run');
     this.lastReturnedSector = summary.sector ?? 1;
     this.transitionTo('hangar', 'dungeon', () => {
       this.ui.openRunSummaryModal(summary);

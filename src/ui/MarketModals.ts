@@ -39,7 +39,7 @@ export function renderShiftSummaryModal(host: MarketModalHost, summary: ShiftSum
   const evMeta = MARKET_EVENT_META[summary.nextMarketEvent];
   const phaseTitle = summary.newDay
     ? `☀ TAG ${summary.nextDay} BEGINNT`
-    : `🌙 NACHT ${summary.nextDay} BRICHT AN (+35 % RAR-LOOT)`;
+    : `🌙 NACHT ${summary.nextDay} BRICHT AN`;
   const patronBadges =
     summary.patronVisits.length > 0
       ? summary.patronVisits

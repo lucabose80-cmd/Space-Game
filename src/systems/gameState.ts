@@ -171,6 +171,14 @@ export interface PinnedRecipeDetail {
   canAffordNow: boolean;
 }
 
+export interface TimeAdvanceResult {
+  day: number;
+  timeOfDay: TimeOfDay;
+  newDay: boolean;
+  marketEvent: MarketEventId;
+  maturedBankCount: number;
+}
+
 export class GameState {
   public day = 1;
   public timeOfDay: TimeOfDay = 'day';
@@ -486,31 +494,30 @@ export class GameState {
   }
 
   /**
-   * Advances the real Moonlighter-style Day <-> Night rhythm:
-   * - Day -> Night (same day, unlocks +35% Night Loot Bonus in Sector 1!)
-   * - Night -> Next Day (day + 1, refreshes market demand, bounties, Nyx's stock & daily market event!)
+   * M10-C Tag/Nacht-Schleife (Moonlighter umgedreht):
+   * - Tag → Nacht: beim Zurückkommen aus einem Tag-Run (`startNight`)
+   * - Nacht → nächster Tag: Laden schließen, Nacht-Run beenden oder Schicht überspringen (`startDay`)
    */
-  public advanceTimeOfDay(): {
-    day: number;
-    timeOfDay: TimeOfDay;
-    newDay: boolean;
-    marketEvent: MarketEventId;
-    maturedBankCount: number;
-  } {
+  public startNight(): TimeAdvanceResult {
+    if (this.timeOfDay !== 'day') return this.noTimeChange();
     this.records.totalCyclesPlayed += 1;
     const maturedBankCount = this.tickBankInvestments();
-    if (this.timeOfDay === 'day') {
-      this.timeOfDay = 'night';
-      this.restoreFullVitals();
-      this.save();
-      return {
-        day: this.day,
-        timeOfDay: this.timeOfDay,
-        newDay: false,
-        marketEvent: this.marketEvent,
-        maturedBankCount,
-      };
-    }
+    this.timeOfDay = 'night';
+    this.restoreFullVitals();
+    this.save();
+    return {
+      day: this.day,
+      timeOfDay: this.timeOfDay,
+      newDay: false,
+      marketEvent: this.marketEvent,
+      maturedBankCount,
+    };
+  }
+
+  public startDay(): TimeAdvanceResult {
+    if (this.timeOfDay !== 'night') return this.noTimeChange();
+    this.records.totalCyclesPlayed += 1;
+    const maturedBankCount = this.tickBankInvestments();
     this.timeOfDay = 'day';
     this.day += 1;
     decayDemandForNewDay(this.codex);
@@ -526,6 +533,21 @@ export class GameState {
       marketEvent: this.marketEvent,
       maturedBankCount,
     };
+  }
+
+  private noTimeChange(): TimeAdvanceResult {
+    return {
+      day: this.day,
+      timeOfDay: this.timeOfDay,
+      newDay: false,
+      marketEvent: this.marketEvent,
+      maturedBankCount: 0,
+    };
+  }
+
+  /** Kompatibilität: schaltet je nach Zustand weiter (Tag → Nacht, Nacht → Tag). */
+  public advanceTimeOfDay(): TimeAdvanceResult {
+    return this.timeOfDay === 'day' ? this.startNight() : this.startDay();
   }
 
   public advanceDay(): void {

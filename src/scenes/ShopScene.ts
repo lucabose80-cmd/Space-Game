@@ -232,6 +232,12 @@ export class ShopScene {
 
   public toggleShopOpen(): void {
     if (!this.shopOpen) {
+      // M10-C: Laden nur nachts — tagsüber ist Zeit für einen Run
+      if (this.state.timeOfDay !== 'night') {
+        this.callbacks.onToast('☀ Tagsüber ist der Laden zu — erst nachts öffnen. Zeit für einen Run!', 'warn');
+        sound.playReaction('expensive');
+        return;
+      }
       const hasStock =
         this.state.pedestals.some((p) => p.itemId !== null && p.qty > 0) ||
         (this.state.getStats().hasSaleBox && this.state.countSaleBoxItems() > 0);
@@ -267,11 +273,11 @@ export class ShopScene {
       this.spawnBurst(SHOP_DOOR_POS.x, SHOP_DOOR_POS.y, '#4ade80', 14);
       this.callbacks.onHudDirty();
     } else {
-      this.closeShop(true);
+      this.closeShop();
     }
   }
 
-  private closeShop(manual: boolean): void {
+  private closeShop(): void {
     if (!this.shopOpen) return;
     this.shopOpen = false;
 
@@ -288,20 +294,15 @@ export class ShopScene {
     }
 
     sound.playShopBell();
-    const hadActivity =
-      this.daySalesCount > 0 ||
-      this.shiftThievesCaught > 0 ||
-      this.shiftThievesEscaped > 0 ||
-      this.shiftPatronVisits.size > 0;
-
-    if (hadActivity || !manual) {
-      const res = this.state.advanceTimeOfDay();
+    // M10-C: Ladenschluss beendet immer die Nacht → nächster Tag (auch ohne Verkäufe)
+    {
+      const res = this.state.startDay();
       const evMeta = MARKET_EVENT_META[res.marketEvent];
       const evNote = res.newDay && res.marketEvent !== 'normal' ? ` ★ Event: ${evMeta.name}!` : '';
       if (this.daySalesCount > 0) {
         const phaseNote = res.newDay
           ? `Morgen bricht an (Tag ${res.day} · neue Aufträge!)${evNote}`
-          : `Nacht bricht an (+35 % seltener Loot in Sektor 1!)`;
+          : `Die Nacht bricht an!`;
         this.callbacks.onToast(
           `Schicht beendet: ${this.daySalesCount} Relikte für ${this.daySalesCredits} Cr! ${phaseNote}`,
           'good',
@@ -310,7 +311,7 @@ export class ShopScene {
         this.callbacks.onToast(
           res.newDay
             ? `Ladenschluss! Tag ${res.day} beginnt mit frischen Aufträgen.${evNote}`
-            : 'Ladenschluss! Die Nacht bricht an — ideal für eine Sektor-Expedition (+35 % Rar-Loot)!',
+            : 'Ladenschluss! Die Nacht bricht an!',
           'info',
         );
       }
@@ -342,8 +343,6 @@ export class ShopScene {
         nextMarketEvent: res.marketEvent,
         maturedBankCount: res.maturedBankCount,
       });
-    } else {
-      this.callbacks.onToast('Laden geschlossen.', 'info');
     }
     this.state.save();
     this.callbacks.onHudDirty();
@@ -441,7 +440,7 @@ export class ShopScene {
     if (this.shopOpen) {
       this.shopTimer -= dt;
       if (this.shopTimer <= 0) {
-        this.closeShop(false);
+        this.closeShop();
       } else {
         const stats = this.state.getStats();
         this.spawnTimer -= dt;
@@ -1327,7 +1326,7 @@ export class ShopScene {
         y: BACKROOM_DOOR_POS.y - 20,
       };
       if (input.interactPressed()) {
-        if (this.shopOpen) this.closeShop(true);
+        if (this.shopOpen) this.closeShop();
         sound.playUiClick();
         this.callbacks.onEnterBackroom();
       }
@@ -1374,7 +1373,7 @@ export class ShopScene {
       };
       if (input.interactPressed()) {
         if (this.shopOpen) {
-          this.closeShop(true);
+          this.closeShop();
         }
         sound.playUiClick();
         this.callbacks.onEnterDungeon();

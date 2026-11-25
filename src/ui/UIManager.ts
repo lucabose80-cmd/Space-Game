@@ -297,12 +297,14 @@ export class UIManager {
       this.currentScene === 'shop'
         ? this.shopIsOpen
           ? 'Kunden stöbern! Geh rechts hinter den Tresen [E] (VIP/Stammkunden: Feilschen!) · Diebe fangen [SPACE]!'
-          : 'Podeste [E] · Schnell-Nachfüllen [F] · Hinten links: Quartier · Laden öffnen [O]'
+          : isNight
+            ? 'Podeste [E] · Schnell-Nachfüllen [F] · Hinten links: Quartier · Laden öffnen [O]'
+            : '☀ Tagsüber ist der Laden zu — Podeste bestücken [E], dann ab in den Dungeon! Die Nachtschicht kommt nach dem Run.'
         : this.currentScene === 'backroom'
           ? 'Kapitäns-Quartier: Ruhekoje, Drohnen-Dock, Trophäen-Altar, Jukebox, Waffenschrank (Logbuch & Anzug-Stil darin) & Lagertruhen!'
           : this.currentScene === 'hub'
             ? isNight
-              ? '🌙 Nacht-Bonus (+35 % Rar-Loot) · Unten: Marktplatz-Terrasse (Alchemie & Bank) · Rechts: Raumhafen!'
+              ? '🌙 Nacht: Laden öffnen (Schicht) oder Nacht-Run (+35 % Rar-Loot, Schicht fällt aus) · Unten: Marktplatz-Terrasse · Rechts: Raumhafen!'
               : 'Oben: Kael, Kapitäns-Tafel & Lyra · Unten: Nyx, Marktplatz-Terrasse & Vex · Rechts: Raumhafen!'
             : this.currentScene === 'market_terrace'
               ? 'Marktplatz-Terrasse: Links Milo’s Alchemie-Bar (Run-Elixiere) · Mitte Händler-Gilde · Rechts Solaris-Handelsbank!'

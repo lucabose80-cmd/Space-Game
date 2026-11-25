@@ -160,14 +160,15 @@ export class BackroomScene {
     // 1. Eingebaute Chrono-Schlafkoje (Sleep Bunk — Day <-> Night cycle!)
     if (Math.hypot(this.playerX - SLEEP_POD_POS.x, this.playerY - SLEEP_POD_POS.y) < 34) {
       this.activePrompt = {
+        // M10-C: tagsüber wird nicht geschlafen (Zeit für einen Run); nachts: Schicht überspringen
         label:
           this.state.timeOfDay === 'day'
-            ? '[E] Ruhen → Nacht (+35 % Rar-Loot)'
-            : `[E] Schlafen → Morgen (Tag ${this.state.day + 1})`,
+            ? '☀ Tagsüber wird nicht geschlafen — ab in den Dungeon!'
+            : `[E] Schicht überspringen → Morgen (Tag ${this.state.day + 1})`,
         x: SLEEP_POD_POS.x + 28,
         y: SLEEP_POD_POS.y - 26,
       };
-      if (input.interactPressed()) {
+      if (input.interactPressed() && this.state.timeOfDay === 'night') {
         this.callbacks.onAdvanceTime();
       }
       return;

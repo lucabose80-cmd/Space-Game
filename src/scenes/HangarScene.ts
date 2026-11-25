@@ -317,7 +317,7 @@ export class HangarScene {
       this.activePrompt = {
         label:
           this.state.timeOfDay === 'night'
-            ? '[E] 🚀 Einsteigen · Nacht-Start Sektor 1 (+35 % Rar)'
+            ? '[E] 🚀 Einsteigen · Nacht-Run Sektor 1 (+35 % Rar · Laden fällt aus)'
             : '[E] 🚀 Einsteigen & Start zu Sektor 1 (Ebene I–III)',
         x: DOCK1_POS.x + 12,
         y: DOCK1_POS.y + 44,
@@ -338,7 +338,7 @@ export class HangarScene {
       this.activePrompt = {
         label: unlocked
           ? this.state.timeOfDay === 'night'
-            ? '[E] 🚀 Einsteigen · Nacht-Start Sektor 2 (+35 % Rar)'
+            ? '[E] 🚀 Einsteigen · Nacht-Run Sektor 2 (+35 % Rar · Laden fällt aus)'
             : '[E] 🚀 Einsteigen & Start zu Sektor 2: Kristall-Nebel!'
           : '[E] Dock II · Gesperrt (Kein Schiff angedockt)',
         x: DOCK2_POS.x - 16,
@@ -368,7 +368,7 @@ export class HangarScene {
       this.activePrompt = {
         label: unlocked
           ? this.state.timeOfDay === 'night'
-            ? '[E] 🚀 Einsteigen · Nacht-Start Sektor 3 (+35 % Rar)'
+            ? '[E] 🚀 Einsteigen · Nacht-Run Sektor 3 (+35 % Rar · Laden fällt aus)'
             : '[E] 🚀 Einsteigen & Start zu Sektor 3: Solar-Gießerei!'
           : '[E] Dock III · Sektor 3 (Gesperrt — kein Schiff)',
         x: DOCK3_POS.x + 12,
@@ -398,7 +398,7 @@ export class HangarScene {
       this.activePrompt = {
         label: unlocked
           ? this.state.timeOfDay === 'night'
-            ? '[E] 🚀 Einsteigen · Nacht-Start Sektor 4 (+35 % Rar)'
+            ? '[E] 🚀 Einsteigen · Nacht-Run Sektor 4 (+35 % Rar · Laden fällt aus)'
             : '[E] 🚀 Einsteigen & Start zu Sektor 4: Ältesten-Monolith!'
           : '[E] Dock IV · Sektor 4 (Gesperrt — kein Schiff)',
         x: DOCK4_POS.x - 16,
