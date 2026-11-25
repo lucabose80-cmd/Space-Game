@@ -10,7 +10,7 @@ import { HangarScene } from './scenes/HangarScene';
 import { HubScene } from './scenes/HubScene';
 import { ShopScene } from './scenes/ShopScene';
 import { GameState } from './systems/gameState';
-import type { MusicTrack, RunSummary, SceneId } from './types';
+import type { MusicTrack, RunSummary, SceneId, SectorId } from './types';
 import { TouchControls } from './ui/TouchControls';
 import { UIManager } from './ui/UIManager';
 
@@ -30,8 +30,8 @@ class StarlighterGame {
   private dungeonScene: DungeonScene;
 
   private activeScene: SceneId = 'shop';
-  private pendingDungeonSector: 1 | 2 = 1;
-  private lastReturnedSector: 1 | 2 = 1;
+  private pendingDungeonSector: SectorId = 1;
+  private lastReturnedSector: SectorId = 1;
   private transitionAlpha = 0;
   private transitionDir: -1 | 0 | 1 = 0;
   private pendingTransition: (() => void) | null = null;
@@ -96,7 +96,7 @@ class StarlighterGame {
         this.ui.renderHud();
         this.syncTouch();
         this.ui.toast(
-          'Willkommen in Astro-Barter! Hinten links: Kapitäns-Quartier (Bett, Truhen, Drohnen & Jukebox), rechts: Port Solaris!',
+          'Willkommen in Astro-Barter! Hinten links: Kapitäns-Quartier (Bett, Truhen, Drohnen & Logbuch), rechts: Port Solaris!',
           'good',
         );
       },
@@ -163,6 +163,7 @@ class StarlighterGame {
     this.backroomScene = new BackroomScene(this.state, {
       onReturnToShop: () => this.transitionTo('shop', 'backroom'),
       onOpenChest: () => this.ui.openInventoryModal(true, 'bag'),
+      onOpenLogbook: () => this.ui.openLogbookModal(),
       onOpenCompanionDock: () => this.ui.openCompanionDockModal(),
       onOpenJukebox: () => this.ui.openJukeboxModal(),
       onAdvanceTime: () => this.handleAdvanceTime(),
@@ -187,6 +188,18 @@ class StarlighterGame {
       },
       onLaunchSector2: () => {
         this.pendingDungeonSector = 2;
+        this.transitionTo('dungeon', 'hangar');
+      },
+      onLaunchSector3: () => {
+        this.pendingDungeonSector = 3;
+        this.transitionTo('dungeon', 'hangar');
+      },
+      onLaunchSector4: () => {
+        this.pendingDungeonSector = 4;
+        this.transitionTo('dungeon', 'hangar');
+      },
+      onLaunchOmegaGate: () => {
+        this.pendingDungeonSector = 5;
         this.transitionTo('dungeon', 'hangar');
       },
       onToast: (msg, tone) => this.ui.toast(msg, tone),
@@ -226,9 +239,13 @@ class StarlighterGame {
     if (this.activeScene === 'dungeon') {
       desired = this.dungeonScene.isInBossFight()
         ? 'boss'
-        : this.dungeonScene.currentSector === 2
-          ? 'dungeon_s2'
-          : 'dungeon';
+        : this.dungeonScene.currentSector >= 4
+          ? 'dungeon_s4'
+          : this.dungeonScene.currentSector === 3
+            ? 'dungeon_s3'
+            : this.dungeonScene.currentSector === 2
+              ? 'dungeon_s2'
+              : 'dungeon';
     } else if (this.activeScene === 'hub' || this.activeScene === 'hangar') {
       desired = 'hub';
     } else if (this.activeScene === 'backroom') {
@@ -373,6 +390,7 @@ class StarlighterGame {
     const dt = Math.min(0.05, Math.max(0.001, (now - this.lastTime) / 1000));
     this.lastTime = now;
 
+    this.input.pollGamepad();
     this.handleGlobalShortcuts();
 
     if (this.transitionDir === 1) {

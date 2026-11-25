@@ -126,6 +126,30 @@ export const UPGRADE_TRACKS: UpgradeTrack[] = [
         ],
         statLabel: 'Schaden: 70 → 94',
       },
+      {
+        level: 6,
+        name: 'MK-VII Solar-Schneide',
+        description: 'Mit Vulkan-Stahl geschmiedete Sonnenklinge aus Sektor 3 — brennt durch schwere Gießerei-Panzer!',
+        creditCost: 6800,
+        materials: [
+          { itemId: 'forge_ingot', qty: 3 },
+          { itemId: 'solar_core', qty: 2 },
+          { itemId: 'vulkan_heart', qty: 1 },
+        ],
+        statLabel: 'Schaden: 94 → 124',
+      },
+      {
+        level: 7,
+        name: 'MK-VIII Sternen-Archon-Klinge',
+        description: 'Ältesten-Reliktklinge aus Sektor 4 — ultimative Schärfe für das 5. Omega-Tor!',
+        creditCost: 10500,
+        materials: [
+          { itemId: 'monolith_key', qty: 3 },
+          { itemId: 'celestial_matrix', qty: 2 },
+          { itemId: 'archon_crown', qty: 1 },
+        ],
+        statLabel: 'Schaden: 124 → 162',
+      },
     ],
   },
   {
@@ -198,6 +222,30 @@ export const UPGRADE_TRACKS: UpgradeTrack[] = [
           { itemId: 'archon_heart', qty: 1 },
         ],
         statLabel: 'Schaden: 74 → 98',
+      },
+      {
+        level: 6,
+        name: 'Sonnen-Speer MK-VII',
+        description: 'Hochtemperatur-Plasmalanze aus der Solar-Gießerei mit extremer Durchschlagskraft!',
+        creditCost: 7200,
+        materials: [
+          { itemId: 'forge_ingot', qty: 3 },
+          { itemId: 'solar_core', qty: 2 },
+          { itemId: 'vulkan_heart', qty: 1 },
+        ],
+        statLabel: 'Schaden: 98 → 130',
+      },
+      {
+        level: 7,
+        name: 'Ältesten-Lanze MK-VIII',
+        description: 'Himmlische Sternenlanze aus dem Monolith — durchstößt selbst die Omega-Anomalie!',
+        creditCost: 11200,
+        materials: [
+          { itemId: 'monolith_key', qty: 3 },
+          { itemId: 'celestial_matrix', qty: 2 },
+          { itemId: 'archon_crown', qty: 1 },
+        ],
+        statLabel: 'Schaden: 130 → 170',
       },
     ],
   },
@@ -272,6 +320,30 @@ export const UPGRADE_TRACKS: UpgradeTrack[] = [
         ],
         statLabel: 'Schaden: 48 → 65 / Schlag',
       },
+      {
+        level: 6,
+        name: 'Vulkan-Fäuste MK-VII',
+        description: 'Glühende Magma-Schlagringe mit vernichtender 4er-Kombo & Krater-Schockwelle!',
+        creditCost: 7000,
+        materials: [
+          { itemId: 'forge_ingot', qty: 3 },
+          { itemId: 'solar_core', qty: 2 },
+          { itemId: 'vulkan_heart', qty: 1 },
+        ],
+        statLabel: 'Schaden: 65 → 86 / Schlag',
+      },
+      {
+        level: 7,
+        name: 'Astral-Gauntlets MK-VIII',
+        description: 'Meisterfäuste der Ältesten — zertrümmern Schilde und Boss-Rüstungen in Sekunden!',
+        creditCost: 10800,
+        materials: [
+          { itemId: 'monolith_key', qty: 3 },
+          { itemId: 'celestial_matrix', qty: 2 },
+          { itemId: 'archon_crown', qty: 1 },
+        ],
+        statLabel: 'Schaden: 86 → 112 / Schlag',
+      },
     ],
   },
   {
@@ -344,6 +416,30 @@ export const UPGRADE_TRACKS: UpgradeTrack[] = [
           { itemId: 'archon_heart', qty: 1 },
         ],
         statLabel: 'Schaden: 60 → 80 · 7× Abpraller',
+      },
+      {
+        level: 6,
+        name: 'Solar-Chakram MK-VII',
+        description: 'Glühender Sonnenring mit 8 Abprallern und mörderischem Magnet-Rückruf!',
+        creditCost: 7300,
+        materials: [
+          { itemId: 'forge_ingot', qty: 3 },
+          { itemId: 'solar_core', qty: 2 },
+          { itemId: 'vulkan_heart', qty: 1 },
+        ],
+        statLabel: 'Schaden: 80 → 106 · 8× Abpraller',
+      },
+      {
+        level: 7,
+        name: 'Omega-Ring MK-VIII',
+        description: 'Ältesten-Diskus mit 9 Abprallern — beherrscht das 5. Tiefenraum-Tor!',
+        creditCost: 11400,
+        materials: [
+          { itemId: 'monolith_key', qty: 3 },
+          { itemId: 'celestial_matrix', qty: 2 },
+          { itemId: 'archon_crown', qty: 1 },
+        ],
+        statLabel: 'Schaden: 106 → 140 · 9× Abpraller',
       },
     ],
   },
@@ -418,6 +514,30 @@ export const UPGRADE_TRACKS: UpgradeTrack[] = [
         ],
         statLabel: 'Schaden: 56 → 75',
       },
+      {
+        level: 6,
+        name: 'Helios-Strahler MK-VII',
+        description: 'Solar-fokussierte Schnellfeuer-Kanone mit gleißendem Durchschuss-Laser!',
+        creditCost: 6900,
+        materials: [
+          { itemId: 'forge_ingot', qty: 3 },
+          { itemId: 'solar_core', qty: 2 },
+          { itemId: 'vulkan_heart', qty: 1 },
+        ],
+        statLabel: 'Schaden: 75 → 98',
+      },
+      {
+        level: 7,
+        name: 'Ältesten-Pulsar MK-VIII',
+        description: 'Sternen-Archon-Technologie — maximale Kadenz für das Endgame & NG+!',
+        creditCost: 10600,
+        materials: [
+          { itemId: 'monolith_key', qty: 3 },
+          { itemId: 'celestial_matrix', qty: 2 },
+          { itemId: 'archon_crown', qty: 1 },
+        ],
+        statLabel: 'Schaden: 98 → 128',
+      },
     ],
   },
   {
@@ -491,6 +611,30 @@ export const UPGRADE_TRACKS: UpgradeTrack[] = [
         ],
         statLabel: 'Schaden: 108 → 142',
       },
+      {
+        level: 6,
+        name: 'Vulkan-Amboss MK-VII',
+        description: 'Geschmiedet im Kern von Sektor 3 — jeder Schlag erschüttert die gesamte Arena!',
+        creditCost: 7500,
+        materials: [
+          { itemId: 'forge_ingot', qty: 3 },
+          { itemId: 'solar_core', qty: 2 },
+          { itemId: 'vulkan_heart', qty: 1 },
+        ],
+        statLabel: 'Schaden: 142 → 188',
+      },
+      {
+        level: 7,
+        name: 'Monolith-Brecher MK-VIII',
+        description: 'Legendärer Ältesten-Kriegshammer — reine Gravitations-Urgewalt!',
+        creditCost: 11600,
+        materials: [
+          { itemId: 'monolith_key', qty: 3 },
+          { itemId: 'celestial_matrix', qty: 2 },
+          { itemId: 'archon_crown', qty: 1 },
+        ],
+        statLabel: 'Schaden: 188 → 246',
+      },
     ],
   },
   {
@@ -552,6 +696,30 @@ export const UPGRADE_TRACKS: UpgradeTrack[] = [
           { itemId: 'archon_heart', qty: 1 },
         ],
         statLabel: 'Max HP: 320 → 420',
+      },
+      {
+        level: 6,
+        name: 'Solar-Titan-Rüstung MK-VII',
+        description: 'Hitzeschild-Panzerung aus Sektor 3 — hält selbst dem Ältesten-Monolith stand!',
+        creditCost: 7000,
+        materials: [
+          { itemId: 'forge_ingot', qty: 3 },
+          { itemId: 'solar_core', qty: 2 },
+          { itemId: 'vulkan_heart', qty: 1 },
+        ],
+        statLabel: 'Max HP: 420 → 540',
+      },
+      {
+        level: 7,
+        name: 'Ältesten-Sternenpanzer MK-VIII',
+        description: 'Ultimativer Exo-Anzug für das 5. Omega-Tor und New Game+!',
+        creditCost: 11000,
+        materials: [
+          { itemId: 'monolith_key', qty: 3 },
+          { itemId: 'celestial_matrix', qty: 2 },
+          { itemId: 'archon_crown', qty: 1 },
+        ],
+        statLabel: 'Max HP: 540 → 680',
       },
     ],
   },
@@ -885,20 +1053,20 @@ export const UPGRADE_TRACKS: UpgradeTrack[] = [
 ];
 
 export function getPlayerCombatStats(upgrades: UpgradeLevels) {
-  const bladeDamages = [20, 28, 38, 52, 70, 94];
-  const bladeRanges = [31, 35, 39, 43, 47, 51];
-  const spearDamages = [22, 31, 42, 56, 74, 98];
-  const spearRanges = [46, 50, 54, 58, 62, 66];
-  const fistsDamages = [14, 20, 27, 36, 48, 65];
-  const fistsRanges = [25, 27, 29, 31, 34, 37];
-  const discusDamages = [17, 24, 33, 45, 60, 80];
-  const discusRanges = [190, 210, 230, 250, 275, 300];
-  const discusBounceCounts = [3, 4, 4, 5, 6, 7];
-  const blasterDamages = [15, 22, 30, 42, 56, 75];
-  const blasterCooldowns = [0.29, 0.25, 0.21, 0.17, 0.145, 0.125];
-  const hammerDamages = [34, 46, 62, 82, 108, 142];
-  const hammerRanges = [36, 40, 44, 48, 52, 56];
-  const maxHps = [100, 140, 185, 245, 320, 420];
+  const bladeDamages = [20, 28, 38, 52, 70, 94, 124, 162];
+  const bladeRanges = [31, 35, 39, 43, 47, 51, 55, 59];
+  const spearDamages = [22, 31, 42, 56, 74, 98, 130, 170];
+  const spearRanges = [46, 50, 54, 58, 62, 66, 70, 74];
+  const fistsDamages = [14, 20, 27, 36, 48, 65, 86, 112];
+  const fistsRanges = [25, 27, 29, 31, 34, 37, 40, 43];
+  const discusDamages = [17, 24, 33, 45, 60, 80, 106, 140];
+  const discusRanges = [190, 210, 230, 250, 275, 300, 325, 355];
+  const discusBounceCounts = [3, 4, 4, 5, 6, 7, 8, 9];
+  const blasterDamages = [15, 22, 30, 42, 56, 75, 98, 128];
+  const blasterCooldowns = [0.29, 0.25, 0.21, 0.17, 0.145, 0.125, 0.11, 0.095];
+  const hammerDamages = [34, 46, 62, 82, 108, 142, 188, 246];
+  const hammerRanges = [36, 40, 44, 48, 52, 56, 60, 64];
+  const maxHps = [100, 140, 185, 245, 320, 420, 540, 680];
   const stimCharges = [2, 3, 4, 5];
   const stimHeals = [40, 55, 75, 100];
   const roomClearHeals = [0, 12, 24, 38];

@@ -1,4 +1,4 @@
-import type { ItemStack } from '../types';
+import type { ItemStack, SectorId } from '../types';
 
 export type RoomType = 'start' | 'combat' | 'treasure' | 'boss' | 'secret';
 
@@ -9,7 +9,7 @@ export interface ObstacleRect {
   y: number;
   w: number;
   h: number;
-  kind: 'pillar' | 'conduit' | 'crate' | 'crystal_spire' | 'bulkhead_wall';
+  kind: 'pillar' | 'conduit' | 'crate' | 'crystal_spire' | 'bulkhead_wall' | 'forge_pillar' | 'monolith_obelisk';
 }
 
 export interface ChasmRect {
@@ -76,7 +76,26 @@ export interface EnemySpawn {
     | 'resonance_warden'
     | 'boss_quartz_golem'
     | 'boss_prism_weaver'
-    | 'boss_prisma_archon';
+    | 'boss_prisma_archon'
+    // Sector 3: Solar-Gießerei enemies & bosses
+    | 'slag_beetle'
+    | 'solar_drone'
+    | 'magma_mortar'
+    | 'ember_stalker'
+    | 'forge_golem'
+    | 'boss_slag_overlord'
+    | 'boss_forge_warden'
+    | 'boss_vulkan_titan'
+    // Sector 4: Ältesten-Monolith & Sector 5: Omega-Anomalie enemies & bosses
+    | 'astral_scarab'
+    | 'chrono_eye'
+    | 'star_lancer'
+    | 'void_wraith'
+    | 'monolith_guard'
+    | 'boss_chrono_sentinel'
+    | 'boss_monolith_colossus'
+    | 'boss_star_archon'
+    | 'boss_omega_archon';
   x: number;
   y: number;
 }
@@ -107,7 +126,7 @@ export interface DungeonRoom {
 }
 
 export interface DungeonFloor {
-  sector: 1 | 2;
+  sector: SectorId;
   floorIndex: 1 | 2 | 3;
   floorName: string;
   rooms: Map<string, DungeonRoom>;
@@ -147,16 +166,34 @@ const FLOOR_NAMES_S2: Record<1 | 2 | 3, string> = {
   3: 'Ebene III · Herz des Nebels',
 };
 
+const FLOOR_NAMES_S3: Record<1 | 2 | 3, string> = {
+  1: 'Ebene I · Schlacken-Halle',
+  2: 'Ebene II · Schmelz-Trakt',
+  3: 'Ebene III · Herz der Sonne',
+};
+
+const FLOOR_NAMES_S4: Record<1 | 2 | 3, string> = {
+  1: 'Ebene I · Sternen-Vorhof',
+  2: 'Ebene II · Astral-Bibliothek',
+  3: 'Ebene III · Thron der Ältesten',
+};
+
+const FLOOR_NAMES_S5: Record<1 | 2 | 3, string> = {
+  1: '5. Tor · Omega-Anomalie',
+  2: '5. Tor · Omega-Anomalie',
+  3: '5. Tor · Omega-Anomalie',
+};
+
 export function generateSector1Floor(floorIndex: 1 | 2 | 3 = 1, customRooms?: number): DungeonFloor {
   return generateSectorFloor(1, floorIndex, customRooms);
 }
 
 export function generateSectorFloor(
-  sector: 1 | 2 = 1,
+  sector: SectorId = 1,
   floorIndex: 1 | 2 | 3 = 1,
   customRooms?: number,
 ): DungeonFloor {
-  const targetRooms = customRooms ?? (floorIndex === 1 ? 7 : floorIndex === 2 ? 8 : 6);
+  const targetRooms = customRooms ?? (sector === 5 ? 5 : floorIndex === 1 ? 7 : floorIndex === 2 ? 8 : 6);
   const coords: Array<{ gx: number; gy: number }> = [{ gx: 0, gy: 0 }];
   const occupied = new Set<string>([roomKey(0, 0)]);
 
@@ -290,14 +327,21 @@ export function generateSectorFloor(
     let hasHealStation = false;
     let layoutStyle: RoomLayoutStyle | undefined;
 
-    const archKind: ObstacleRect['kind'] = sector === 2 ? 'crystal_spire' : 'bulkhead_wall';
+    const archKind: ObstacleRect['kind'] =
+      sector === 2
+        ? 'crystal_spire'
+        : sector === 3
+          ? 'forge_pillar'
+          : sector >= 4
+            ? 'monolith_obelisk'
+            : 'bulkhead_wall';
 
     if (type === 'start') {
       pods.push(
         { id: podCounter++, x: ROOM_LEFT + 30, y: ROOM_TOP + 22, hp: 1, broken: false },
         { id: podCounter++, x: ROOM_RIGHT - 30, y: ROOM_TOP + 22, hp: 1, broken: false },
       );
-      if (floorIndex === 3) {
+      if (floorIndex === 3 || sector === 5) {
         hasHealStation = true;
       }
     } else if (type === 'treasure') {
@@ -327,28 +371,47 @@ export function generateSectorFloor(
         { id: podCounter++, x: ROOM_CENTER_X + 54, y: ROOM_CENTER_Y + 24, hp: 1, broken: false },
       );
     } else if (type === 'boss') {
-      if (floorIndex === 3) {
+      if (sector === 5) {
+        obstacles.push(
+          { x: ROOM_LEFT + 38, y: ROOM_BOTTOM - 48, w: 20, h: 20, kind: 'monolith_obelisk' },
+          { x: ROOM_RIGHT - 58, y: ROOM_BOTTOM - 48, w: 20, h: 20, kind: 'monolith_obelisk' },
+        );
+        spawns.push({ kind: 'boss_omega_archon', x: ROOM_CENTER_X, y: ROOM_TOP + 52 });
+      } else if (floorIndex === 3) {
         obstacles.push(
           { x: ROOM_LEFT + 34, y: ROOM_BOTTOM - 48, w: 20, h: 20, kind: archKind },
           { x: ROOM_RIGHT - 54, y: ROOM_BOTTOM - 48, w: 20, h: 20, kind: archKind },
         );
+        const f3Boss: EnemySpawn['kind'] =
+          sector === 4
+            ? 'boss_star_archon'
+            : sector === 3
+              ? 'boss_vulkan_titan'
+              : sector === 2
+                ? 'boss_prisma_archon'
+                : 'boss_leviathan';
         spawns.push({
-          kind: sector === 2 ? 'boss_prisma_archon' : 'boss_leviathan',
+          kind: f3Boss,
           x: ROOM_CENTER_X,
-          y: sector === 2 ? ROOM_TOP + 54 : ROOM_TOP + 34,
+          y: sector === 1 ? ROOM_TOP + 34 : ROOM_TOP + 54,
         });
       } else if (floorIndex === 1) {
+        const f1Obs: ObstacleRect['kind'] = sector === 1 ? 'crate' : archKind;
         obstacles.push(
-          { x: ROOM_LEFT + 50, y: ROOM_TOP + 30, w: 20, h: 20, kind: sector === 2 ? 'crystal_spire' : 'crate' },
-          { x: ROOM_RIGHT - 70, y: ROOM_TOP + 30, w: 20, h: 20, kind: sector === 2 ? 'crystal_spire' : 'crate' },
-          { x: ROOM_LEFT + 50, y: ROOM_BOTTOM - 50, w: 20, h: 20, kind: sector === 2 ? 'crystal_spire' : 'crate' },
-          { x: ROOM_RIGHT - 70, y: ROOM_BOTTOM - 50, w: 20, h: 20, kind: sector === 2 ? 'crystal_spire' : 'crate' },
+          { x: ROOM_LEFT + 50, y: ROOM_TOP + 30, w: 20, h: 20, kind: f1Obs },
+          { x: ROOM_RIGHT - 70, y: ROOM_TOP + 30, w: 20, h: 20, kind: f1Obs },
+          { x: ROOM_LEFT + 50, y: ROOM_BOTTOM - 50, w: 20, h: 20, kind: f1Obs },
+          { x: ROOM_RIGHT - 70, y: ROOM_BOTTOM - 50, w: 20, h: 20, kind: f1Obs },
         );
-        spawns.push({
-          kind: sector === 2 ? 'boss_quartz_golem' : 'boss_breacher',
-          x: ROOM_CENTER_X,
-          y: ROOM_CENTER_Y,
-        });
+        const f1Boss: EnemySpawn['kind'] =
+          sector === 4
+            ? 'boss_chrono_sentinel'
+            : sector === 3
+              ? 'boss_slag_overlord'
+              : sector === 2
+                ? 'boss_quartz_golem'
+                : 'boss_breacher';
+        spawns.push({ kind: f1Boss, x: ROOM_CENTER_X, y: ROOM_CENTER_Y });
       } else {
         obstacles.push(
           { x: ROOM_LEFT + 48, y: ROOM_TOP + 28, w: 22, h: 22, kind: archKind },
@@ -356,11 +419,15 @@ export function generateSectorFloor(
           { x: ROOM_LEFT + 48, y: ROOM_BOTTOM - 50, w: 22, h: 22, kind: archKind },
           { x: ROOM_RIGHT - 70, y: ROOM_BOTTOM - 50, w: 22, h: 22, kind: archKind },
         );
-        spawns.push({
-          kind: sector === 2 ? 'boss_prism_weaver' : 'boss',
-          x: ROOM_CENTER_X,
-          y: ROOM_CENTER_Y,
-        });
+        const f2Boss: EnemySpawn['kind'] =
+          sector === 4
+            ? 'boss_monolith_colossus'
+            : sector === 3
+              ? 'boss_forge_warden'
+              : sector === 2
+                ? 'boss_prism_weaver'
+                : 'boss';
+        spawns.push({ kind: f2Boss, x: ROOM_CENTER_X, y: ROOM_CENTER_Y });
       }
     } else {
       // Pick next unique Moonlighter combat layout from shuffled deck!
@@ -368,7 +435,6 @@ export function generateSectorFloor(
       layoutIdx++;
 
       if (layoutStyle === 'center_chasm') {
-        // Dramatic central rift (36px tall — Jetpack-Dashable vertically!) + 4 framing spires/bulkheads
         chasms.push({ x: ROOM_CENTER_X - 44, y: ROOM_CENTER_Y - 18, w: 88, h: 36 });
         obstacles.push(
           { x: ROOM_CENTER_X - 96, y: ROOM_CENTER_Y - 40, w: 22, h: 22, kind: archKind },
@@ -377,7 +443,6 @@ export function generateSectorFloor(
           { x: ROOM_CENTER_X + 74, y: ROOM_CENTER_Y + 20, w: 22, h: 22, kind: archKind },
         );
       } else if (layoutStyle === 'dash_gorge') {
-        // Vertical chasm gorge (34px wide — Jetpack-Dashable!) split by a central walkway bridge, with generous N/S door aprons!
         chasms.push(
           { x: ROOM_CENTER_X - 17, y: ROOM_TOP + 28, w: 34, h: 38 },
           { x: ROOM_CENTER_X - 17, y: ROOM_BOTTOM - 66, w: 34, h: 38 },
@@ -387,7 +452,6 @@ export function generateSectorFloor(
           { x: ROOM_RIGHT - 76, y: ROOM_CENTER_Y - 12, w: 22, h: 24, kind: 'conduit' },
         );
       } else if (layoutStyle === 'cross_bridges') {
-        // Iconic Moonlighter 4-quadrant abyssal catwalk room! All 4 doors connect cleanly via the '+' bridges!
         chasms.push(
           { x: ROOM_LEFT + 38, y: ROOM_TOP + 18, w: 88, h: 38 },
           { x: ROOM_RIGHT - 126, y: ROOM_TOP + 18, w: 88, h: 38 },
@@ -402,7 +466,6 @@ export function generateSectorFloor(
           kind: 'conduit',
         });
       } else if (layoutStyle === 'flanking_trenches') {
-        // Diagonal abyssal trenches + integrated central cover walls!
         chasms.push(
           { x: ROOM_LEFT + 30, y: ROOM_TOP + 14, w: 86, h: 34 },
           { x: ROOM_RIGHT - 116, y: ROOM_BOTTOM - 48, w: 86, h: 34 },
@@ -414,7 +477,6 @@ export function generateSectorFloor(
           { x: ROOM_LEFT + 42, y: ROOM_BOTTOM - 42, w: 22, h: 22, kind: 'pillar' },
         );
       } else if (layoutStyle === 'stepping_stones') {
-        // Twin dashable horizontal rifts (30px tall) with central causeway — dash across or funnel foes!
         chasms.push(
           { x: ROOM_LEFT + 42, y: ROOM_CENTER_Y - 48, w: 96, h: 30 },
           { x: ROOM_RIGHT - 138, y: ROOM_CENTER_Y - 48, w: 96, h: 30 },
@@ -422,7 +484,6 @@ export function generateSectorFloor(
           { x: ROOM_RIGHT - 138, y: ROOM_CENTER_Y + 18, w: 96, h: 30 },
         );
       } else if (layoutStyle === 'open_pillars') {
-        // Rich architectural bulkhead / crystal cover room (no chasms — crisp Ricochet & gunfight arena!)
         obstacles.push(
           { x: ROOM_CENTER_X - 78, y: ROOM_CENTER_Y - 36, w: 34, h: 18, kind: archKind },
           { x: ROOM_CENTER_X + 44, y: ROOM_CENTER_Y - 36, w: 34, h: 18, kind: archKind },
@@ -431,7 +492,6 @@ export function generateSectorFloor(
           { x: ROOM_CENTER_X - 13, y: ROOM_CENTER_Y - 13, w: 26, h: 26, kind: 'conduit' },
         );
       } else {
-        // 'twin_conduits': Integrated reactor conduits + two asymmetric abyssal corner pits!
         obstacles.push(
           { x: ROOM_CENTER_X - 62, y: ROOM_CENTER_Y - 13, w: 26, h: 26, kind: 'conduit' },
           { x: ROOM_CENTER_X + 36, y: ROOM_CENTER_Y - 13, w: 26, h: 26, kind: 'conduit' },
@@ -442,8 +502,7 @@ export function generateSectorFloor(
         );
       }
 
-      // Steam / Plasma Hazard Vents on Floor II & III combat rooms (never inside obstacles or chasms!)
-      if (floorIndex >= 2) {
+      if (floorIndex >= 2 || sector === 5) {
         const ventCandidates = [
           { x: ROOM_CENTER_X - 74, y: ROOM_CENTER_Y },
           { x: ROOM_CENTER_X + 74, y: ROOM_CENTER_Y },
@@ -451,7 +510,7 @@ export function generateSectorFloor(
           { x: ROOM_CENTER_X, y: ROOM_CENTER_Y + 46 },
         ];
         let placedVents = 0;
-        const maxVents = floorIndex === 3 ? 2 : Math.random() < 0.65 ? 2 : 1;
+        const maxVents = floorIndex === 3 || sector === 5 ? 2 : Math.random() < 0.65 ? 2 : 1;
         for (const vc of ventCandidates) {
           if (placedVents >= maxVents) break;
           if (!hitsAnyRect(obstacles, vc.x, vc.y, 18) && !hitsAnyRect(chasms, vc.x, vc.y, 16)) {
@@ -466,7 +525,6 @@ export function generateSectorFloor(
         }
       }
 
-      // Destructible Pods placed safely on solid floor corners!
       const podCandidates = [
         { x: ROOM_LEFT + 22, y: ROOM_TOP + 18 },
         { x: ROOM_RIGHT - 22, y: ROOM_BOTTOM - 18 },
@@ -483,7 +541,7 @@ export function generateSectorFloor(
         }
       }
 
-      const baseCount = floorIndex === 1 ? 2 : floorIndex === 2 ? 3 : 4;
+      const baseCount = sector === 5 ? 4 : floorIndex === 1 ? 2 : floorIndex === 2 ? 3 : 4;
       const enemyCount = Math.min(
         6,
         baseCount + Math.floor(depth * 0.75) + (Math.random() < 0.35 ? 1 : 0),
@@ -502,7 +560,6 @@ export function generateSectorFloor(
         { x: ROOM_LEFT + 34, y: ROOM_CENTER_Y - 44 },
         { x: ROOM_RIGHT - 34, y: ROOM_CENTER_Y + 44 },
       ];
-      // Filter spots guaranteed clear of obstacles and chasms!
       const candidateSpots = rawSpots.filter(
         (s) => !hitsAnyRect(obstacles, s.x, s.y, 14) && !hitsAnyRect(chasms, s.x, s.y, 14),
       );
@@ -517,8 +574,54 @@ export function generateSectorFloor(
       for (let i = 0; i < enemyCount; i++) {
         const spot = candidateSpots[i % candidateSpots.length];
         const r = Math.random();
-        let kind: EnemySpawn['kind'] = sector === 2 ? 'crystal_crawler' : 'slime';
-        if (sector === 2) {
+        let kind: EnemySpawn['kind'] = 'slime';
+        if (sector === 5) {
+          // Omega Anomaly: Elite All-Star Gauntlet mixing top foes across all 4 sectors!
+          const omegaPool: EnemySpawn['kind'][] = [
+            'monolith_guard',
+            'void_wraith',
+            'star_lancer',
+            'forge_golem',
+            'ember_stalker',
+            'resonance_warden',
+            'phase_stalker',
+          ];
+          kind = omegaPool[(i + Math.floor(Math.random() * omegaPool.length)) % omegaPool.length];
+        } else if (sector === 4) {
+          if (floorIndex === 1) {
+            kind = r > 0.48 ? 'chrono_eye' : 'astral_scarab';
+          } else if (floorIndex === 2) {
+            if (i === 0) kind = Math.random() < 0.52 ? 'star_lancer' : 'void_wraith';
+            else if (r > 0.68) kind = 'star_lancer';
+            else if (r > 0.4) kind = 'void_wraith';
+            else if (r > 0.18) kind = 'chrono_eye';
+            else kind = 'astral_scarab';
+          } else {
+            if (i === 0) kind = 'monolith_guard';
+            else if (i === 1) kind = Math.random() < 0.55 ? 'star_lancer' : 'void_wraith';
+            else if (r > 0.7) kind = 'monolith_guard';
+            else if (r > 0.45) kind = 'star_lancer';
+            else if (r > 0.22) kind = 'void_wraith';
+            else kind = 'chrono_eye';
+          }
+        } else if (sector === 3) {
+          if (floorIndex === 1) {
+            kind = r > 0.48 ? 'solar_drone' : 'slag_beetle';
+          } else if (floorIndex === 2) {
+            if (i === 0) kind = Math.random() < 0.52 ? 'magma_mortar' : 'ember_stalker';
+            else if (r > 0.68) kind = 'magma_mortar';
+            else if (r > 0.4) kind = 'ember_stalker';
+            else if (r > 0.18) kind = 'solar_drone';
+            else kind = 'slag_beetle';
+          } else {
+            if (i === 0) kind = 'forge_golem';
+            else if (i === 1) kind = Math.random() < 0.55 ? 'magma_mortar' : 'ember_stalker';
+            else if (r > 0.7) kind = 'forge_golem';
+            else if (r > 0.45) kind = 'magma_mortar';
+            else if (r > 0.22) kind = 'ember_stalker';
+            else kind = 'solar_drone';
+          }
+        } else if (sector === 2) {
           if (floorIndex === 1) {
             kind = r > 0.48 ? 'prism_drone' : 'crystal_crawler';
           } else if (floorIndex === 2) {
@@ -582,7 +685,6 @@ export function generateSectorFloor(
   }
 
   // ==================== MOONLIGHTER SECRET SPARKLING PIT ====================
-  // Designate 1 rare chasm on this floor as a Secret Pit leading down to a Hidden Underground Treasure Chamber!
   const pitRooms = [...rooms.values()].filter(
     (r) => (r.type === 'combat' || r.type === 'treasure') && r.chasms.length > 0,
   );
@@ -593,7 +695,14 @@ export function generateSectorFloor(
     chosenChasm.secretVisited = false;
 
     const secretKey = `secret:${parent.key}`;
-    const secretArchKind: ObstacleRect['kind'] = sector === 2 ? 'crystal_spire' : 'pillar';
+    const secretArchKind: ObstacleRect['kind'] =
+      sector === 2
+        ? 'crystal_spire'
+        : sector === 3
+          ? 'forge_pillar'
+          : sector >= 4
+            ? 'monolith_obelisk'
+            : 'pillar';
     rooms.set(secretKey, {
       key: secretKey,
       gx: parent.gx,
@@ -631,10 +740,21 @@ export function generateSectorFloor(
     });
   }
 
+  const floorNames =
+    sector === 5
+      ? FLOOR_NAMES_S5
+      : sector === 4
+        ? FLOOR_NAMES_S4
+        : sector === 3
+          ? FLOOR_NAMES_S3
+          : sector === 2
+            ? FLOOR_NAMES_S2
+            : FLOOR_NAMES_S1;
+
   return {
     sector,
     floorIndex,
-    floorName: (sector === 2 ? FLOOR_NAMES_S2 : FLOOR_NAMES_S1)[floorIndex],
+    floorName: floorNames[floorIndex],
     rooms,
     startKey: roomKey(0, 0),
     bossKey,

@@ -1,4 +1,4 @@
-import type { CompanionId, MarketEventId, MusicTrack } from '../types';
+import type { CompanionId, MarketEventId, MusicTrack, SuitThemeId } from '../types';
 
 export interface CompanionDef {
   id: CompanionId;
@@ -183,9 +183,87 @@ export const MUSIC_TRACK_META: Record<
     subtitle: 'Schimmernde Äther-Arpeggios (Sektor 2)',
     accent: '#c084fc',
   },
+  dungeon_s3: {
+    title: 'Solar-Gießerei Takt',
+    subtitle: 'Glühender Industrie-Synth-Groove (Sektor 3)',
+    accent: '#f97316',
+  },
+  dungeon_s4: {
+    title: 'Ältesten-Monolith Hymne',
+    subtitle: 'Majestätische Sternen-Arpeggios (Sektor 4 & 5. Tor)',
+    accent: '#fde047',
+  },
   boss: {
     title: 'A.E.G.I.S. Alarmprotokoll',
     subtitle: 'Treibendes Boss-Battle Chiptune-Theme',
     accent: '#f43f5e',
   },
 };
+
+export interface SuitThemeDef {
+  id: SuitThemeId;
+  name: string;
+  accent: string;
+  auraColor: string;
+  unlockText: string;
+}
+
+export const SUIT_THEME_ORDER: SuitThemeId[] = ['classic', 'crystal', 'solar', 'elder', 'omega'];
+
+export const SUIT_THEMES: Record<SuitThemeId, SuitThemeDef> = {
+  classic: {
+    id: 'classic',
+    name: 'Solaris-Orange (Standard)',
+    accent: '#fb923c',
+    auraColor: '#38e8d4',
+    unlockText: 'Von Anfang an verfügbar',
+  },
+  crystal: {
+    id: 'crystal',
+    name: 'Nebel-Amethyst',
+    accent: '#c084fc',
+    auraColor: '#e879f9',
+    unlockText: 'Besiege ★ PRISMA-ARCHON (Sektor 2)',
+  },
+  solar: {
+    id: 'solar',
+    name: 'Vulkan-Gold',
+    accent: '#f97316',
+    auraColor: '#fbbf24',
+    unlockText: 'Besiege ★ VULKAN-TITAN (Sektor 3)',
+  },
+  elder: {
+    id: 'elder',
+    name: 'Ältesten-Astral',
+    accent: '#38e8d4',
+    auraColor: '#fde047',
+    unlockText: 'Besiege ★ DER STERNEN-ARCHON (Sektor 4)',
+  },
+  omega: {
+    id: 'omega',
+    name: '★ Omega-Sternenlicht',
+    accent: '#fde047',
+    auraColor: '#ffffff',
+    unlockText: 'Bezwinge das 5. Tiefenraum-Tor (Omega-Anomalie)',
+  },
+};
+
+export interface AchievementDef {
+  id: string;
+  icon: string;
+  title: string;
+  desc: string;
+}
+
+export const ACHIEVEMENT_DEFS: AchievementDef[] = [
+  { id: 'first_sale', icon: '💰', title: 'Erster Handel', desc: 'Verkaufe dein erstes Relikt in Astro-Barter.' },
+  { id: 'master_merchant', icon: '🏪', title: 'Flaggschiff-Händler', desc: 'Baue Astro-Barter auf Stufe III aus & verkaufe 30 Relikte.' },
+  { id: 'sector1_clear', icon: '🏆', title: 'Leviathan-Bezwinger', desc: 'Bezwinge Sektor 1 (A.E.G.I.S. Leviathan).' },
+  { id: 'sector2_clear', icon: '💎', title: 'Kristall-Meister', desc: 'Bezwinge Sektor 2 (★ Prisma-Archon).' },
+  { id: 'sector3_clear', icon: '🔥', title: 'Sonnen-Schmied', desc: 'Bezwinge Sektor 3 (★ Vulkan-Titan).' },
+  { id: 'sector4_clear', icon: '👑', title: 'Erbe der Ältesten', desc: 'Bezwinge Sektor 4 (★ Der Sternen-Archon).' },
+  { id: 'omega_clear', icon: '🌌', title: 'Meister des 5. Tors', desc: 'Vollende das Finale in der Omega-Anomalie!' },
+  { id: 'all_companions', icon: '🤖', title: 'Drohnen-Geschwader', desc: 'Schalte alle 4 Begleiter-Drohnen frei.' },
+  { id: 'arsenal_6', icon: '⚔️', title: 'Waffen-Sammler', desc: 'Schmiede alle 6 Waffenklassen bei Kael.' },
+  { id: 'ng_plus', icon: '♾️', title: 'Sternen-Legende (NG+)', desc: 'Starte einen New-Game+-Durchlauf.' },
+];

@@ -4,7 +4,7 @@ import { getAtlas } from '../assets/sprites';
 import { sound } from '../engine/audio';
 import { VIRTUAL_HEIGHT, VIRTUAL_WIDTH, type InputManager } from '../engine/input';
 import type { GameState } from '../systems/gameState';
-import type { Direction } from '../types';
+import type { Direction, SectorId } from '../types';
 
 interface Particle {
   x: number;
@@ -21,6 +21,9 @@ export interface HangarCallbacks {
   onReturnToHub: () => void;
   onLaunchSector1: () => void;
   onLaunchSector2: () => void;
+  onLaunchSector3: () => void;
+  onLaunchSector4: () => void;
+  onLaunchOmegaGate: () => void;
   onToast: (msg: string, tone?: 'info' | 'good' | 'warn') => void;
 }
 
@@ -28,15 +31,15 @@ export interface HangarCallbacks {
 const PROMENADE_GATE_POS = { x: 64, y: 138 };
 const DOCK1_POS = { x: 146, y: 86 }; // Sektor 1: Verlassene Korvette (Unlocked & Ship Docked!)
 const DOCK2_POS = { x: 364, y: 86 }; // Sektor 2: Kristall-Nebel (Ship docks once Sector 1 cleared!)
-const DOCK3_POS = { x: 146, y: 202 }; // Sektor 3: Plasma-Gießerei (Empty Pad)
-const DOCK4_POS = { x: 364, y: 202 }; // Sektor 4: Quanten-Abgrund (Empty Pad)
-const OMEGA_GATE_POS = { x: 248, y: 144 }; // Central 5th Deep-Space Portal (4 Sector Keys)
+const DOCK3_POS = { x: 146, y: 202 }; // Sektor 3: Solar-Gießerei (Ship docks once Sector 2 cleared!)
+const DOCK4_POS = { x: 364, y: 202 }; // Sektor 4: Ältesten-Monolith (Ship docks once Sector 3 cleared!)
+const OMEGA_GATE_POS = { x: 248, y: 144 }; // Central 5th Deep-Space Portal (4 Sector Keys -> Omega-Anomalie!)
 
 const SEAL_SOCKETS = [
-  { x: 223, y: 120, sector: 1 },
-  { x: 273, y: 120, sector: 2 },
-  { x: 223, y: 166, sector: 3 },
-  { x: 273, y: 166, sector: 4 },
+  { x: 223, y: 120, sector: 1 as const, color: '#fde047' },
+  { x: 273, y: 120, sector: 2 as const, color: '#e879f9' },
+  { x: 223, y: 166, sector: 3 as const, color: '#fb923c' },
+  { x: 273, y: 166, sector: 4 as const, color: '#38e8d4' },
 ];
 
 export class HangarScene {
@@ -53,8 +56,8 @@ export class HangarScene {
   private dashVy = 0;
   private entryCooldown = 0;
 
-  // Ship launch takeoff animation when boarding Dock I or Dock II!
-  private launchingSector: 1 | 2 | null = null;
+  // Ship launch takeoff animation when boarding Docks I–IV!
+  private launchingSector: 1 | 2 | 3 | 4 | null = null;
   private launchTimer = 0;
   private shipLiftY = 0;
 
@@ -77,7 +80,16 @@ export class HangarScene {
     }
   }
 
-  public onEnter(from: 'hub' | 'dungeon', returnedSector: 1 | 2 = 1): void {
+  private countSectorKeys(): number {
+    return (
+      (this.state.sector1Cleared ? 1 : 0) +
+      (this.state.sector2Cleared ? 1 : 0) +
+      (this.state.sector3Cleared ? 1 : 0) +
+      (this.state.sector4Cleared ? 1 : 0)
+    );
+  }
+
+  public onEnter(from: 'hub' | 'dungeon', returnedSector: SectorId = 1): void {
     this.state.restoreFullVitals();
     this.dashTimer = 0;
     this.dashCooldown = 0;
@@ -88,13 +100,27 @@ export class HangarScene {
     this.particles = [];
 
     if (from === 'dungeon') {
-      if (returnedSector === 2 && this.state.sector1Cleared) {
+      if (returnedSector === 5) {
+        this.playerX = OMEGA_GATE_POS.x;
+        this.playerY = OMEGA_GATE_POS.y + 44;
+        this.facing = 'down';
+        this.spawnBurst(OMEGA_GATE_POS.x, OMEGA_GATE_POS.y, '#fde047', 26);
+      } else if (returnedSector === 4 && this.state.sector3Cleared) {
+        this.playerX = 312;
+        this.playerY = 178;
+        this.facing = 'up';
+        this.spawnBurst(DOCK4_POS.x, DOCK4_POS.y + 18, '#38e8d4', 22);
+      } else if (returnedSector === 3 && this.state.sector2Cleared) {
+        this.playerX = 198;
+        this.playerY = 178;
+        this.facing = 'up';
+        this.spawnBurst(DOCK3_POS.x, DOCK3_POS.y + 18, '#fb923c', 22);
+      } else if (returnedSector === 2 && this.state.sector1Cleared) {
         this.playerX = 312;
         this.playerY = 128;
         this.facing = 'down';
         this.spawnBurst(DOCK2_POS.x, DOCK2_POS.y + 24, '#c084fc', 20);
       } else {
-        // Stepping cleanly off Dock I ramp after landing back from Sector 1!
         this.playerX = 198;
         this.playerY = 128;
         this.facing = 'down';
@@ -130,43 +156,55 @@ export class HangarScene {
     if (this.entryCooldown > 0) this.entryCooldown -= dt;
     if (this.dashCooldown > 0) this.dashCooldown -= dt;
 
-    // Idle starship ion exhaust micro-sparks on Dock I
-    if (Math.random() < dt * 9 && this.launchingSector !== 1) {
+    // Idle starship thruster exhaust sparks on all docked ships
+    const spawnIdleSparks = (pos: { x: number; y: number }, colA: string, colB: string) => {
       const side = Math.random() < 0.5 ? -8 : 8;
       this.particles.push({
-        x: DOCK1_POS.x + side + (Math.random() - 0.5) * 3,
-        y: DOCK1_POS.y + 24,
+        x: pos.x + side + (Math.random() - 0.5) * 3,
+        y: pos.y + 24,
         vx: (Math.random() - 0.5) * 6,
         vy: 14 + Math.random() * 14,
-        color: Math.random() < 0.7 ? '#38e8d4' : '#a5f3fc',
+        color: Math.random() < 0.65 ? colA : colB,
         size: 1.4,
         life: 0.25 + Math.random() * 0.2,
         maxLife: 0.45,
       });
+    };
+
+    if (Math.random() < dt * 8 && this.launchingSector !== 1) spawnIdleSparks(DOCK1_POS, '#38e8d4', '#a5f3fc');
+    if (this.state.sector1Cleared && Math.random() < dt * 8 && this.launchingSector !== 2) {
+      spawnIdleSparks(DOCK2_POS, '#c084fc', '#38e8d4');
+    }
+    if (this.state.sector2Cleared && Math.random() < dt * 8 && this.launchingSector !== 3) {
+      spawnIdleSparks(DOCK3_POS, '#f97316', '#fde047');
+    }
+    if (this.state.sector3Cleared && Math.random() < dt * 8 && this.launchingSector !== 4) {
+      spawnIdleSparks(DOCK4_POS, '#38e8d4', '#fde047');
     }
 
-    // Idle violet-cyan crystal thruster micro-sparks on Dock II once unlocked!
-    if (this.state.sector1Cleared && Math.random() < dt * 9 && this.launchingSector !== 2) {
-      const side = Math.random() < 0.5 ? -8 : 8;
-      this.particles.push({
-        x: DOCK2_POS.x + side + (Math.random() - 0.5) * 3,
-        y: DOCK2_POS.y + 24,
-        vx: (Math.random() - 0.5) * 6,
-        vy: 14 + Math.random() * 14,
-        color: Math.random() < 0.6 ? '#c084fc' : '#38e8d4',
-        size: 1.4,
-        life: 0.25 + Math.random() * 0.2,
-        maxLife: 0.45,
-      });
-    }
-
-    // Active starship launch sequence when boarding Dock I or Dock II!
+    // Active starship launch sequence when boarding Docks I–IV!
     if (this.launchingSector !== null) {
       this.launchTimer += dt;
       this.activePrompt = null;
       const p = Math.min(1, this.launchTimer / 0.68);
       this.shipLiftY = p * p * 125;
-      const dock = this.launchingSector === 2 ? DOCK2_POS : DOCK1_POS;
+      const dock =
+        this.launchingSector === 4
+          ? DOCK4_POS
+          : this.launchingSector === 3
+            ? DOCK3_POS
+            : this.launchingSector === 2
+              ? DOCK2_POS
+              : DOCK1_POS;
+      const flameA =
+        this.launchingSector === 4
+          ? '#fde047'
+          : this.launchingSector === 3
+            ? '#f97316'
+            : this.launchingSector === 2
+              ? '#c084fc'
+              : '#fbbf24';
+      const flameB = this.launchingSector === 3 ? '#fde047' : '#38e8d4';
       for (let i = 0; i < 2; i++) {
         const side = i === 0 ? -8 : 8;
         this.particles.push({
@@ -174,14 +212,7 @@ export class HangarScene {
           y: dock.y + 24 - this.shipLiftY,
           vx: (Math.random() - 0.5) * 18,
           vy: 42 + Math.random() * 48,
-          color:
-            this.launchingSector === 2
-              ? Math.random() < 0.5
-                ? '#c084fc'
-                : '#38e8d4'
-              : Math.random() < 0.5
-                ? '#fbbf24'
-                : '#38e8d4',
+          color: Math.random() < 0.5 ? flameA : flameB,
           size: 2.2,
           life: 0.35,
           maxLife: 0.35,
@@ -191,11 +222,10 @@ export class HangarScene {
       if (this.launchTimer >= 0.68) {
         const target = this.launchingSector;
         this.launchingSector = null;
-        if (target === 2) {
-          this.callbacks.onLaunchSector2();
-        } else {
-          this.callbacks.onLaunchSector1();
-        }
+        if (target === 4) this.callbacks.onLaunchSector4();
+        else if (target === 3) this.callbacks.onLaunchSector3();
+        else if (target === 2) this.callbacks.onLaunchSector2();
+        else this.callbacks.onLaunchSector1();
       }
       return;
     }
@@ -256,14 +286,12 @@ export class HangarScene {
 
   private isWalkable(x: number, y: number): boolean {
     if (x < 56 || x > 438 || y < 44 || y > 244) return false;
-    // Left upper decorative portal & plant obstacle
     if (x < 84 && y < 112) return false;
-    // Central 5th Omega Stargate circular pedestal obstacle
     if (Math.hypot(x - OMEGA_GATE_POS.x, y - OMEGA_GATE_POS.y) < 35) return false;
-    // Keep hero clear of docked Sector 1 starship fuselage
     if (x > 118 && x < 174 && y > 54 && y < 114) return false;
-    // Keep hero clear of docked Sector 2 Kristall-Kreuzer fuselage when unlocked!
     if (this.state.sector1Cleared && x > 336 && x < 392 && y > 54 && y < 114) return false;
+    if (this.state.sector2Cleared && x > 118 && x < 174 && y > 170 && y < 230) return false;
+    if (this.state.sector3Cleared && x > 336 && x < 392 && y > 170 && y < 230) return false;
     return true;
   }
 
@@ -284,7 +312,7 @@ export class HangarScene {
       return;
     }
 
-    // 2. Dock I — Sektor 1 (Verlassene Korvette · Unlocked & Starship Docked!)
+    // 2. Dock I — Sektor 1 (Verlassene Korvette)
     if (Math.hypot(this.playerX - DOCK1_POS.x, this.playerY - DOCK1_POS.y) < 58) {
       this.activePrompt = {
         label:
@@ -304,7 +332,7 @@ export class HangarScene {
       return;
     }
 
-    // 3. Dock II — Sektor 2 (Kristall-Nebel · Kristall-Kreuzer docked once Sector 1 is cleared!)
+    // 3. Dock II — Sektor 2 (Kristall-Nebel)
     if (Math.hypot(this.playerX - DOCK2_POS.x, this.playerY - DOCK2_POS.y) < 58) {
       const unlocked = this.state.sector1Cleared;
       this.activePrompt = {
@@ -334,74 +362,88 @@ export class HangarScene {
       return;
     }
 
-    // 4. Dock III — Sektor 3 (Plasma-Gießerei · Empty Pad)
-    if (Math.hypot(this.playerX - DOCK3_POS.x, this.playerY - DOCK3_POS.y) < 52) {
-      const hasKey3 = this.state.sector2Cleared;
+    // 4. Dock III — Sektor 3 (Solar-Gießerei · Solar-Fregatte docked once Sector 2 is cleared!)
+    if (Math.hypot(this.playerX - DOCK3_POS.x, this.playerY - DOCK3_POS.y) < 58) {
+      const unlocked = this.state.sector2Cleared;
       this.activePrompt = {
-        label: hasKey3
-          ? '[E] Dock III · Sektor 3 (★ S3-Schlüssel bereit!)'
+        label: unlocked
+          ? this.state.timeOfDay === 'night'
+            ? '[E] 🚀 Einsteigen · Nacht-Start Sektor 3 (+35 % Rar)'
+            : '[E] 🚀 Einsteigen & Start zu Sektor 3: Solar-Gießerei!'
           : '[E] Dock III · Sektor 3 (Gesperrt — kein Schiff)',
         x: DOCK3_POS.x + 12,
         y: DOCK3_POS.y - 46,
       };
       if (input.interactPressed()) {
-        sound.playUiClick();
-        if (hasKey3) {
-          this.callbacks.onToast(
-            '★ Sektor-3-Schlüssel erkannt! Dock III (Plasma-Gießerei) öffnet sich mit Meilenstein 6!',
-            'good',
-          );
+        if (unlocked) {
+          sound.playWarp();
+          this.launchingSector = 3;
+          this.launchTimer = 0;
+          this.spawnBurst(DOCK3_POS.x, DOCK3_POS.y + 22, '#f97316', 24);
+          this.callbacks.onToast('🔥 Solar-Fregatte zündet Plasmadüsen — Kurs auf Sektor 3: Solar-Gießerei!', 'good');
         } else {
+          sound.playUiClick();
           this.callbacks.onToast(
-            'Dock III (Plasma-Gießerei): Kein Schiff angedockt — besiege PRISMA-ARCHON in Sektor 2 für den S3-Schlüssel!',
-            'info',
+            'Dock III (Solar-Gießerei): Kein Schiff angedockt — besiege ★ PRISMA-ARCHON in Sektor 2!',
+            'warn',
           );
         }
       }
       return;
     }
 
-    // 5. Dock IV — Sektor 4 (Quanten-Abgrund · Empty Pad)
-    if (Math.hypot(this.playerX - DOCK4_POS.x, this.playerY - DOCK4_POS.y) < 52) {
+    // 5. Dock IV — Sektor 4 (Ältesten-Monolith · Sternen-Jäger docked once Sector 3 is cleared!)
+    if (Math.hypot(this.playerX - DOCK4_POS.x, this.playerY - DOCK4_POS.y) < 58) {
+      const unlocked = this.state.sector3Cleared;
       this.activePrompt = {
-        label: '[E] Dock IV · Sektor 4 (Gesperrt — kein Schiff)',
-        x: DOCK4_POS.x - 12,
+        label: unlocked
+          ? this.state.timeOfDay === 'night'
+            ? '[E] 🚀 Einsteigen · Nacht-Start Sektor 4 (+35 % Rar)'
+            : '[E] 🚀 Einsteigen & Start zu Sektor 4: Ältesten-Monolith!'
+          : '[E] Dock IV · Sektor 4 (Gesperrt — kein Schiff)',
+        x: DOCK4_POS.x - 16,
         y: DOCK4_POS.y - 46,
       };
       if (input.interactPressed()) {
-        sound.playUiClick();
-        this.callbacks.onToast(
-          'Dock IV (Quanten-Abgrund): Kein Expeditionsschiff angedockt — Sektor-4-Schlüssel erforderlich.',
-          'info',
-        );
+        if (unlocked) {
+          sound.playWarp();
+          this.launchingSector = 4;
+          this.launchTimer = 0;
+          this.spawnBurst(DOCK4_POS.x, DOCK4_POS.y + 22, '#fde047', 24);
+          this.callbacks.onToast('👑 Ältesten-Jäger startet — Kurs auf Sektor 4: Ältesten-Monolith!', 'good');
+        } else {
+          sound.playUiClick();
+          this.callbacks.onToast(
+            'Dock IV (Ältesten-Monolith): Kein Schiff angedockt — besiege ★ VULKAN-TITAN in Sektor 3!',
+            'warn',
+          );
+        }
       }
       return;
     }
 
-    // 6. Central 5th Deep-Space Omega Stargate (requires all 4 Sector Keys!)
-    if (Math.hypot(this.playerX - OMEGA_GATE_POS.x, this.playerY - OMEGA_GATE_POS.y) < 50) {
-      const keys = (this.state.sector1Cleared ? 1 : 0) + (this.state.sector2Cleared ? 1 : 0);
+    // 6. Central 5th Deep-Space Omega Stargate (active once ALL 4 Sector Keys are unlocked!)
+    if (Math.hypot(this.playerX - OMEGA_GATE_POS.x, this.playerY - OMEGA_GATE_POS.y) < 52) {
+      const keys = this.countSectorKeys();
       this.activePrompt = {
-        label: `[E] 5. Tiefenraum-Tor inspizieren (${keys} / 4 Sektor-Schlüssel)`,
+        label:
+          keys >= 4
+            ? '[E] ★ 5. TOR BETRETEN: Omega-Anomalie (FINALE!)'
+            : `[E] 5. Tiefenraum-Tor inspizieren (${keys} / 4 Sektor-Schlüssel)`,
         x: OMEGA_GATE_POS.x,
         y: OMEGA_GATE_POS.y - 42,
       };
       if (input.interactPressed()) {
-        sound.playUiClick();
-        if (keys >= 2) {
-          this.callbacks.onToast(
-            `★ ${keys}/4 Sektor-Siegel glühen (Sektor 1 & Sektor 2)! Bezwinge auch Sektor 3 & 4, um das 5. Omega-Tor zu öffnen!`,
-            'good',
-          );
-        } else if (keys === 1) {
-          this.callbacks.onToast(
-            `★ Das 1. Sektor-Siegel glüht bereits (${keys}/4)! Starte auf Dock II in den Kristall-Nebel für Siegel #2!`,
-            'good',
-          );
+        if (keys >= 4) {
+          sound.playWarp();
+          this.spawnBurst(OMEGA_GATE_POS.x, OMEGA_GATE_POS.y, '#fde047', 30);
+          this.callbacks.onToast('🌌 ALLE 4 SIEGEL GLÜHEN — Sprung durch das 5. Tor in die OMEGA-ANOMALIE!', 'good');
+          this.callbacks.onLaunchOmegaGate();
         } else {
+          sound.playUiClick();
           this.callbacks.onToast(
-            'Das 5. Tiefenraum-Tor ist mit 4 antiken Siegeln verschlossen. Bezwinge alle 4 Sektoren, um es zu öffnen!',
-            'info',
+            `Das 5. Tiefenraum-Tor zeigt ${keys}/4 aktive Siegel. Bezwinge alle 4 Sektoren, um die Omega-Anomalie zu öffnen!`,
+            keys > 0 ? 'good' : 'info',
           );
         }
       }
@@ -435,43 +477,69 @@ export class HangarScene {
       ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
     }
 
-    // Twinkling stars along top deep-space railing
     for (const s of this.stars) {
       const a = 0.25 + 0.75 * Math.max(0, Math.sin(this.time * 2.5 + s.phase));
       ctx.fillStyle = `rgba(255, 252, 224, ${a})`;
       ctx.fillRect(s.x, s.y, 1.5, 1.5);
     }
 
-    // Subtle warm lantern glows along upper railing
     for (const lx of [91, 198, 310, 415]) {
       drawGlow(ctx, lx, 22, 24, '#fbbf24', 0.2 + pulse * 0.06);
     }
 
-    // Left Promenade gateway glow
     drawGlow(ctx, 56, 134, 34, '#38e8d4', 0.26 + pulse * 0.1);
 
     // Central 5th Omega Stargate core & 4 Sector Key Seal Sockets
-    const keysLit = (this.state.sector1Cleared ? 1 : 0) + (this.state.sector2Cleared ? 1 : 0);
+    const keysLit = this.countSectorKeys();
+    const gateColor =
+      keysLit >= 4 ? '#fde047' : keysLit === 3 ? '#fb923c' : keysLit === 2 ? '#c084fc' : keysLit === 1 ? '#fbbf24' : '#38e8d4';
     drawGlow(
       ctx,
       OMEGA_GATE_POS.x,
       OMEGA_GATE_POS.y,
-      38,
-      keysLit >= 2 ? '#c084fc' : keysLit > 0 ? '#fbbf24' : '#38e8d4',
-      (keysLit >= 2 ? 0.34 : keysLit > 0 ? 0.24 : 0.12) + pulse * 0.09,
+      keysLit >= 4 ? 54 : 38,
+      gateColor,
+      (keysLit >= 4 ? 0.55 : keysLit >= 2 ? 0.34 : keysLit > 0 ? 0.24 : 0.12) + pulse * 0.12,
     );
+
+    // Swirling Celestial Omega Vortex inside the 5th Gate when ALL 4 Keys are unlocked!
+    if (keysLit >= 4) {
+      ctx.save();
+      ctx.translate(OMEGA_GATE_POS.x, OMEGA_GATE_POS.y);
+      ctx.rotate(this.time * 1.4);
+      const grad = ctx.createRadialGradient(0, 0, 2, 0, 0, 22);
+      grad.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+      grad.addColorStop(0.45, 'rgba(56, 232, 212, 0.8)');
+      grad.addColorStop(0.8, 'rgba(250, 204, 21, 0.45)');
+      grad.addColorStop(1, 'rgba(250, 204, 21, 0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(0, 0, 22, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(254, 240, 138, 0.9)';
+      ctx.lineWidth = 1.4;
+      ctx.setLineDash([5, 4]);
+      ctx.beginPath();
+      ctx.arc(0, 0, 16 + pulse * 2, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+
     for (const sock of SEAL_SOCKETS) {
-      const lit1 = sock.sector === 1 && this.state.sector1Cleared;
-      const lit2 = sock.sector === 2 && this.state.sector2Cleared;
-      if (lit1 || lit2) {
-        const col = lit2 ? '#e879f9' : '#fde047';
-        drawGlow(ctx, sock.x, sock.y, 15, col, 0.58 + pulse * 0.22);
-        ctx.fillStyle = col;
+      const lit =
+        (sock.sector === 1 && this.state.sector1Cleared) ||
+        (sock.sector === 2 && this.state.sector2Cleared) ||
+        (sock.sector === 3 && this.state.sector3Cleared) ||
+        (sock.sector === 4 && this.state.sector4Cleared);
+      if (lit) {
+        drawGlow(ctx, sock.x, sock.y, 16, sock.color, 0.62 + pulse * 0.22);
+        ctx.fillStyle = sock.color;
         ctx.beginPath();
-        ctx.arc(sock.x, sock.y, 3.3, 0, Math.PI * 2);
+        ctx.arc(sock.x, sock.y, 3.4, 0, Math.PI * 2);
         ctx.fill();
       } else {
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.78)';
         ctx.beginPath();
         ctx.arc(sock.x, sock.y, 2.5, 0, Math.PI * 2);
         ctx.fill();
@@ -482,63 +550,57 @@ export class HangarScene {
     if (!this.state.sector1Cleared) {
       this.renderEmptyDockHolo(ctx, DOCK2_POS.x, DOCK2_POS.y, '#64748b', 'GESPERRT', pulse);
     }
-    this.renderEmptyDockHolo(
-      ctx,
-      DOCK3_POS.x,
-      DOCK3_POS.y,
-      this.state.sector2Cleared ? '#fb923c' : '#64748b',
-      this.state.sector2Cleared ? 'S3 SCHLÜSSEL' : 'GESPERRT',
-      pulse,
-    );
-    this.renderEmptyDockHolo(ctx, DOCK4_POS.x, DOCK4_POS.y, '#64748b', 'GESPERRT', pulse);
-
-    // Dock I — Docked Starlighter Explorer Ship (with hover hum & launch takeoff!)
-    const hover1 = this.launchingSector === 1 ? 0 : Math.sin(this.time * 3.4) * 1.1;
-    const lift1 = this.launchingSector === 1 ? this.shipLiftY : 0;
-    const ship1X = DOCK1_POS.x;
-    const ship1Y = DOCK1_POS.y - lift1 + hover1;
-    drawPixelShadow(ctx, DOCK1_POS.x, DOCK1_POS.y + 18, 22, 8, Math.max(0.06, 0.45 - lift1 / 160));
-    drawGlow(
-      ctx,
-      ship1X,
-      ship1Y + 18,
-      this.launchingSector === 1 ? 34 : 22,
-      this.launchingSector === 1 ? '#fbbf24' : '#38e8d4',
-      0.34 + pulse * 0.14,
-    );
-    if (art.shipCorvette) {
-      ctx.drawImage(art.shipCorvette, ship1X - 24, ship1Y - 30.5, 48, 57);
+    if (!this.state.sector2Cleared) {
+      this.renderEmptyDockHolo(ctx, DOCK3_POS.x, DOCK3_POS.y, '#64748b', 'GESPERRT', pulse);
+    }
+    if (!this.state.sector3Cleared) {
+      this.renderEmptyDockHolo(ctx, DOCK4_POS.x, DOCK4_POS.y, '#64748b', 'GESPERRT', pulse);
     }
 
-    // Dock II — Docked Kristall-Kreuzer Starship once Sector 1 is cleared!
-    if (this.state.sector1Cleared) {
-      const hover2 = this.launchingSector === 2 ? 0 : Math.sin(this.time * 3.6 + 1.5) * 1.1;
-      const lift2 = this.launchingSector === 2 ? this.shipLiftY : 0;
-      const ship2X = DOCK2_POS.x;
-      const ship2Y = DOCK2_POS.y - lift2 + hover2;
-      drawPixelShadow(ctx, DOCK2_POS.x, DOCK2_POS.y + 18, 23, 8, Math.max(0.06, 0.45 - lift2 / 160));
-      drawGlow(
-        ctx,
-        ship2X,
-        ship2Y + 18,
-        this.launchingSector === 2 ? 36 : 24,
-        this.launchingSector === 2 ? '#e879f9' : '#c084fc',
-        0.38 + pulse * 0.14,
-      );
-      if (art.shipCrystal) {
-        ctx.drawImage(art.shipCrystal, ship2X - 27, ship2Y - 30.5, 54, 57);
+    // Helper to render any docked ship with idle hover, shadow, glow & takeoff animation
+    const drawDockedShip = (
+      sectorNum: 1 | 2 | 3 | 4,
+      pos: { x: number; y: number },
+      spr: HTMLCanvasElement | null,
+      w: number,
+      h: number,
+      idleCol: string,
+      launchCol: string,
+      phase: number,
+    ) => {
+      const launching = this.launchingSector === sectorNum;
+      const hover = launching ? 0 : Math.sin(this.time * 3.4 + phase) * 1.1;
+      const lift = launching ? this.shipLiftY : 0;
+      const sx = pos.x;
+      const sy = pos.y - lift + hover;
+      drawPixelShadow(ctx, pos.x, pos.y + 18, 22, 8, Math.max(0.06, 0.45 - lift / 160));
+      drawGlow(ctx, sx, sy + 18, launching ? 36 : 23, launching ? launchCol : idleCol, 0.36 + pulse * 0.14);
+      if (spr) {
+        ctx.drawImage(spr, sx - w / 2, sy - h / 2 - 2, w, h);
       }
+    };
+
+    // Dock I — Starlighter Corvette (always unlocked)
+    drawDockedShip(1, DOCK1_POS, art.shipCorvette, 48, 57, '#38e8d4', '#fbbf24', 0);
+    // Dock II — Kristall-Kreuzer (unlocked after Sector 1)
+    if (this.state.sector1Cleared) {
+      drawDockedShip(2, DOCK2_POS, art.shipCrystal, 54, 57, '#c084fc', '#e879f9', 1.5);
+    }
+    // Dock III — Solar-Fregatte (unlocked after Sector 2)
+    if (this.state.sector2Cleared) {
+      drawDockedShip(3, DOCK3_POS, art.shipSolar, 54, 54, '#f97316', '#fde047', 3.0);
+    }
+    // Dock IV — Ältesten-Sternenjäger (unlocked after Sector 3)
+    if (this.state.sector3Cleared) {
+      drawDockedShip(4, DOCK4_POS, art.shipMonolith, 54, 54, '#38e8d4', '#fde047', 4.5);
     }
 
-    // Compact station sign pills
     this.renderSignPills(ctx);
 
-    // Hero (hidden once boarded & lifting off!)
     if (this.launchingSector === null) {
       this.renderPlayer(ctx);
     }
 
-    // Particles
     for (const p of this.particles) {
       ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
       ctx.fillStyle = p.color;
@@ -580,7 +642,7 @@ export class HangarScene {
     ctx.font = 'bold 5px Silkscreen, monospace';
     ctx.textAlign = 'center';
     const isNight = this.state.timeOfDay === 'night';
-    const keys = (this.state.sector1Cleared ? 1 : 0) + (this.state.sector2Cleared ? 1 : 0);
+    const keys = this.countSectorKeys();
 
     const pills = [
       { text: '◀ PROMENADE', x: 66, y: 174, color: '#38e8d4' },
@@ -601,17 +663,30 @@ export class HangarScene {
         color: this.state.sector1Cleared ? '#c084fc' : '#94a3b8',
       },
       {
-        text: this.state.sector2Cleared ? 'DOCK III · S3 BEREIT ★' : 'DOCK III · PLASMA-GIESSEREI',
+        text: this.state.sector2Cleared
+          ? isNight
+            ? 'DOCK III · SOLAR-GIESSEREI 🌙'
+            : 'DOCK III · SOLAR-GIESSEREI'
+          : 'DOCK III · GESPERRT',
         x: DOCK3_POS.x,
         y: 160,
         color: this.state.sector2Cleared ? '#fb923c' : '#94a3b8',
       },
-      { text: 'DOCK IV · QUANTEN-ABGRUND', x: DOCK4_POS.x, y: 160, color: '#94a3b8' },
       {
-        text: `5. TOR · ${keys}/4 SCHLÜSSEL`,
+        text: this.state.sector3Cleared
+          ? isNight
+            ? 'DOCK IV · MONOLITH 🌙'
+            : 'DOCK IV · ÄLTESTEN-MONOLITH'
+          : 'DOCK IV · GESPERRT',
+        x: DOCK4_POS.x,
+        y: 160,
+        color: this.state.sector3Cleared ? '#38e8d4' : '#94a3b8',
+      },
+      {
+        text: keys >= 4 ? '★ 5. TOR · OMEGA AKTIV!' : `5. TOR · ${keys}/4 SCHLÜSSEL`,
         x: OMEGA_GATE_POS.x,
         y: 188,
-        color: keys >= 2 ? '#e879f9' : keys > 0 ? '#fde047' : '#94a3b8',
+        color: keys >= 4 ? '#fde047' : keys >= 2 ? '#e879f9' : keys > 0 ? '#fbbf24' : '#94a3b8',
       },
     ];
 

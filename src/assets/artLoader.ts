@@ -12,6 +12,8 @@ export interface HDArtAssets {
   hangarBg: HTMLImageElement | null;
   dungeonBg: HTMLImageElement | null;
   dungeonBgS2: HTMLImageElement | null;
+  dungeonBgS3: HTMLImageElement | null;
+  dungeonBgS4: HTMLImageElement | null;
 
   heroDown: HTMLCanvasElement | null;
   heroUp: HTMLCanvasElement | null;
@@ -34,6 +36,8 @@ export interface HDArtAssets {
   botClerk: HTMLCanvasElement | null;
   shipCorvette: HTMLCanvasElement | null;
   shipCrystal: HTMLCanvasElement | null;
+  shipSolar: HTMLCanvasElement | null;
+  shipMonolith: HTMLCanvasElement | null;
 
   pedestal: HTMLCanvasElement | null;
   propSaleBox: HTMLCanvasElement | null;
@@ -82,6 +86,32 @@ export interface HDArtAssets {
   resonanceWardenFlash: HTMLCanvasElement | null;
   bossPrismaArchon: HTMLCanvasElement | null;
   bossPrismaArchonFlash: HTMLCanvasElement | null;
+  // Sector 3 Solar Foundry Enemies & Vulkan-Titan Boss
+  slagBeetle: HTMLCanvasElement | null;
+  slagBeetleFlash: HTMLCanvasElement | null;
+  solarDrone: HTMLCanvasElement | null;
+  solarDroneFlash: HTMLCanvasElement | null;
+  magmaMortar: HTMLCanvasElement | null;
+  magmaMortarFlash: HTMLCanvasElement | null;
+  emberStalker: HTMLCanvasElement | null;
+  emberStalkerFlash: HTMLCanvasElement | null;
+  forgeGolem: HTMLCanvasElement | null;
+  forgeGolemFlash: HTMLCanvasElement | null;
+  bossVulkanTitan: HTMLCanvasElement | null;
+  bossVulkanTitanFlash: HTMLCanvasElement | null;
+  // Sector 4 Elder Monolith Enemies & Star-Archon Final Boss
+  astralScarab: HTMLCanvasElement | null;
+  astralScarabFlash: HTMLCanvasElement | null;
+  chronoEye: HTMLCanvasElement | null;
+  chronoEyeFlash: HTMLCanvasElement | null;
+  starLancer: HTMLCanvasElement | null;
+  starLancerFlash: HTMLCanvasElement | null;
+  voidWraith: HTMLCanvasElement | null;
+  voidWraithFlash: HTMLCanvasElement | null;
+  monolithGuard: HTMLCanvasElement | null;
+  monolithGuardFlash: HTMLCanvasElement | null;
+  bossStarArchon: HTMLCanvasElement | null;
+  bossStarArchonFlash: HTMLCanvasElement | null;
 
   items: Record<string, HTMLCanvasElement>;
   itemUrls: Record<string, string>;
@@ -97,6 +127,8 @@ const art: HDArtAssets = {
   hangarBg: null,
   dungeonBg: null,
   dungeonBgS2: null,
+  dungeonBgS3: null,
+  dungeonBgS4: null,
   heroDown: null,
   heroUp: null,
   heroRight: null,
@@ -140,6 +172,8 @@ const art: HDArtAssets = {
   botClerk: null,
   shipCorvette: null,
   shipCrystal: null,
+  shipSolar: null,
+  shipMonolith: null,
   pedestal: null,
   propSaleBox: null,
   propSleepPod: null,
@@ -185,6 +219,30 @@ const art: HDArtAssets = {
   resonanceWardenFlash: null,
   bossPrismaArchon: null,
   bossPrismaArchonFlash: null,
+  slagBeetle: null,
+  slagBeetleFlash: null,
+  solarDrone: null,
+  solarDroneFlash: null,
+  magmaMortar: null,
+  magmaMortarFlash: null,
+  emberStalker: null,
+  emberStalkerFlash: null,
+  forgeGolem: null,
+  forgeGolemFlash: null,
+  bossVulkanTitan: null,
+  bossVulkanTitanFlash: null,
+  astralScarab: null,
+  astralScarabFlash: null,
+  chronoEye: null,
+  chronoEyeFlash: null,
+  starLancer: null,
+  starLancerFlash: null,
+  voidWraith: null,
+  voidWraithFlash: null,
+  monolithGuard: null,
+  monolithGuardFlash: null,
+  bossStarArchon: null,
+  bossStarArchonFlash: null,
   items: {},
   itemUrls: Object.fromEntries(ITEMS.map((i) => [i.id, `/art/sprites/item_${i.id}.png`])),
 };
@@ -280,6 +338,22 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
     voidCrawlerImg,
     resonanceWardenImg,
     bossPrismaArchonImg,
+    dungeonBgS3,
+    dungeonBgS4,
+    shipSolarImg,
+    shipMonolithImg,
+    slagBeetleImg,
+    solarDroneImg,
+    magmaMortarImg,
+    emberStalkerImg,
+    forgeGolemImg,
+    bossVulkanTitanImg,
+    astralScarabImg,
+    chronoEyeImg,
+    starLancerImg,
+    voidWraithImg,
+    monolithGuardImg,
+    bossStarArchonImg,
     ...itemImgs
   ] = await Promise.all([
     loadImage('/art/shop_bg.png'),
@@ -344,6 +418,22 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
     loadImage('/art/sprites/enemy_void_crawler.png'),
     loadImage('/art/sprites/enemy_resonance_warden.png'),
     loadImage('/art/sprites/boss_prisma_archon.png'),
+    loadImage('/art/dungeon_bg_s3.png'),
+    loadImage('/art/dungeon_bg_s4.png'),
+    loadImage('/art/sprites/ship_solar.png'),
+    loadImage('/art/sprites/ship_monolith.png'),
+    loadImage('/art/sprites/enemy_slag_beetle.png'),
+    loadImage('/art/sprites/enemy_solar_drone.png'),
+    loadImage('/art/sprites/enemy_magma_mortar.png'),
+    loadImage('/art/sprites/enemy_ember_stalker.png'),
+    loadImage('/art/sprites/enemy_forge_golem.png'),
+    loadImage('/art/sprites/boss_vulkan_titan.png'),
+    loadImage('/art/sprites/enemy_astral_scarab.png'),
+    loadImage('/art/sprites/enemy_chrono_eye.png'),
+    loadImage('/art/sprites/enemy_star_lancer.png'),
+    loadImage('/art/sprites/enemy_void_wraith.png'),
+    loadImage('/art/sprites/enemy_monolith_guard.png'),
+    loadImage('/art/sprites/boss_star_archon.png'),
     ...ITEMS.map((item) => loadImage(`/art/sprites/item_${item.id}.png`)),
   ]);
 
@@ -355,6 +445,8 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
   art.hangarBg = hangarBg;
   art.dungeonBg = dungeonBg;
   art.dungeonBgS2 = dungeonBgS2;
+  art.dungeonBgS3 = dungeonBgS3;
+  art.dungeonBgS4 = dungeonBgS4;
 
   art.heroDown = imgToCanvas(heroDownImg);
   art.heroUp = imgToCanvas(heroUpImg);
@@ -387,6 +479,8 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
   art.botClerk = imgToCanvas(botClerkImg);
   art.shipCorvette = imgToCanvas(shipCorvetteImg);
   art.shipCrystal = imgToCanvas(shipCrystalImg);
+  art.shipSolar = imgToCanvas(shipSolarImg);
+  art.shipMonolith = imgToCanvas(shipMonolithImg);
 
   art.pedestal = imgToCanvas(pedestalImg);
   art.propSaleBox = imgToCanvas(saleBoxImg);
@@ -435,6 +529,32 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
   art.resonanceWardenFlash = art.resonanceWarden ? makeFlashSilhouette(art.resonanceWarden, '#ffffff') : null;
   art.bossPrismaArchon = imgToCanvas(bossPrismaArchonImg);
   art.bossPrismaArchonFlash = art.bossPrismaArchon ? makeFlashSilhouette(art.bossPrismaArchon, '#ffffff') : null;
+
+  art.slagBeetle = imgToCanvas(slagBeetleImg);
+  art.slagBeetleFlash = art.slagBeetle ? makeFlashSilhouette(art.slagBeetle, '#ffffff') : null;
+  art.solarDrone = imgToCanvas(solarDroneImg);
+  art.solarDroneFlash = art.solarDrone ? makeFlashSilhouette(art.solarDrone, '#ffffff') : null;
+  art.magmaMortar = imgToCanvas(magmaMortarImg);
+  art.magmaMortarFlash = art.magmaMortar ? makeFlashSilhouette(art.magmaMortar, '#ffffff') : null;
+  art.emberStalker = imgToCanvas(emberStalkerImg);
+  art.emberStalkerFlash = art.emberStalker ? makeFlashSilhouette(art.emberStalker, '#ffffff') : null;
+  art.forgeGolem = imgToCanvas(forgeGolemImg);
+  art.forgeGolemFlash = art.forgeGolem ? makeFlashSilhouette(art.forgeGolem, '#ffffff') : null;
+  art.bossVulkanTitan = imgToCanvas(bossVulkanTitanImg);
+  art.bossVulkanTitanFlash = art.bossVulkanTitan ? makeFlashSilhouette(art.bossVulkanTitan, '#ffffff') : null;
+
+  art.astralScarab = imgToCanvas(astralScarabImg);
+  art.astralScarabFlash = art.astralScarab ? makeFlashSilhouette(art.astralScarab, '#ffffff') : null;
+  art.chronoEye = imgToCanvas(chronoEyeImg);
+  art.chronoEyeFlash = art.chronoEye ? makeFlashSilhouette(art.chronoEye, '#ffffff') : null;
+  art.starLancer = imgToCanvas(starLancerImg);
+  art.starLancerFlash = art.starLancer ? makeFlashSilhouette(art.starLancer, '#ffffff') : null;
+  art.voidWraith = imgToCanvas(voidWraithImg);
+  art.voidWraithFlash = art.voidWraith ? makeFlashSilhouette(art.voidWraith, '#ffffff') : null;
+  art.monolithGuard = imgToCanvas(monolithGuardImg);
+  art.monolithGuardFlash = art.monolithGuard ? makeFlashSilhouette(art.monolithGuard, '#ffffff') : null;
+  art.bossStarArchon = imgToCanvas(bossStarArchonImg);
+  art.bossStarArchonFlash = art.bossStarArchon ? makeFlashSilhouette(art.bossStarArchon, '#ffffff') : null;
 
   ITEMS.forEach((item, idx) => {
     const c = imgToCanvas(itemImgs[idx] ?? null);

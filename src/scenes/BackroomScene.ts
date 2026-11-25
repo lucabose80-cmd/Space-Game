@@ -10,6 +10,7 @@ import type { Direction } from '../types';
 export interface BackroomCallbacks {
   onReturnToShop: () => void;
   onOpenChest: () => void;
+  onOpenLogbook: () => void;
   onOpenCompanionDock: () => void;
   onOpenJukebox: () => void;
   onAdvanceTime: () => void;
@@ -186,22 +187,42 @@ export class BackroomScene {
       return;
     }
 
-    // 3. Eingebauter Sektor-Trophäen-Altar (Sektor 1 Leviathan & Sektor 2 Prisma-Archon)
+    // 3. Eingebauter Sektor-Trophäen-Altar (Sektor 1–4 & 5. Omega-Tor)
     if (Math.hypot(this.playerX - TROPHY_PLINTH_POS.x, this.playerY - TROPHY_PLINTH_POS.y) < 28) {
+      const clearedCount =
+        (this.state.sector1Cleared ? 1 : 0) +
+        (this.state.sector2Cleared ? 1 : 0) +
+        (this.state.sector3Cleared ? 1 : 0) +
+        (this.state.sector4Cleared ? 1 : 0);
       this.activePrompt = {
-        label: this.state.sector2Cleared
-          ? '[E] ★ S1 & S2 Trophäen inspizieren (Leviathan & Prisma-Archon)'
-          : this.state.sector1Cleared
-            ? '[E] ★ A.E.G.I.S. Leviathan Trophäe (S2 im Raumhafen aktiv!)'
+        label: this.state.omegaCleared
+          ? `[E] ★ OMEGA-LEGENDE (Alle 4 Sektoren + 5. Tor${this.state.ngPlusLevel > 0 ? ` · NG+${this.state.ngPlusLevel}` : ''})`
+          : clearedCount > 0
+            ? `[E] ★ Sektor-Trophäen inspizieren (${clearedCount}/4 Schlüssel aktiv)`
             : `[E] Sektor-1-Trophäe (Tiefste Ebene: ${this.state.deepestFloor}/3)`,
         x: TROPHY_PLINTH_POS.x,
         y: TROPHY_PLINTH_POS.y - 28,
       };
       if (input.interactPressed()) {
         sound.playUiClick();
-        if (this.state.sector2Cleared) {
+        if (this.state.omegaCleared) {
           this.callbacks.onToast(
-            '★ Sektor 1 & Sektor 2 bezwungen! Der goldene Leviathan-Kern & das violette Archon-Herz leuchten — 2/4 Sektor-Schlüssel für das 5. Tor aktiv!',
+            `🌌 OMEGA-MEISTER! Alle 4 Sektor-Kerne & das 5. Tiefenraum-Tor bezwungen! Öffne dein Logbuch für Anzug-Stile & New Game+!`,
+            'good',
+          );
+        } else if (this.state.sector4Cleared) {
+          this.callbacks.onToast(
+            '★ ALLE 4 SEKTOR-SCHLÜSSEL ERRUNGEN! Das zentrale 5. Tiefenraum-Tor im Raumhafen ist jetzt offen!',
+            'good',
+          );
+        } else if (this.state.sector3Cleared) {
+          this.callbacks.onToast(
+            `🔥 Sektor 1–3 bezwungen (3/4 Schlüssel)! Der Ältesten-Sternenjäger wartet an Dock IV für Sektor 4 (Ebene ${this.state.deepestFloorS4}/3)!`,
+            'good',
+          );
+        } else if (this.state.sector2Cleared) {
+          this.callbacks.onToast(
+            `💎 Sektor 1 & 2 bezwungen (2/4 Schlüssel)! Die Solar-Fregatte wartet an Dock III für Sektor 3 (Ebene ${this.state.deepestFloorS3}/3)!`,
             'good',
           );
         } else if (this.state.sector1Cleared) {
@@ -233,16 +254,16 @@ export class BackroomScene {
       return;
     }
 
-    // 5. Eingebaute Waffen-Nische (unten links)
+    // 5. Eingebaute Garderobe & Kapitäns-Logbuch (unten links)
     if (Math.hypot(this.playerX - WEAPON_RACK_POS.x, this.playerY - WEAPON_RACK_POS.y) < 28) {
       this.activePrompt = {
-        label: '[E] Waffen-Regal & Ausrüstung',
-        x: WEAPON_RACK_POS.x + 10,
+        label: '[E] Anzug-Stil, Logbuch & Savegame',
+        x: WEAPON_RACK_POS.x + 14,
         y: WEAPON_RACK_POS.y - 22,
       };
       if (input.interactPressed()) {
         sound.playUiClick();
-        this.callbacks.onOpenChest();
+        this.callbacks.onOpenLogbook();
       }
       return;
     }
@@ -305,7 +326,7 @@ export class BackroomScene {
       ctx.fillRect(s.x, s.y, isNight ? 1.8 : 1.4, isNight ? 1.8 : 1.4);
     }
 
-    // Subtle living atmospheric lighting synced to built-in fixtures (lanterns, bunk, drone bay, altar, jukebox, exit)
+    // Subtle living atmospheric lighting synced to built-in fixtures
     drawGlow(ctx, 108, 56, 36, '#fbbf24', 0.16 + nightBoost + pulse * 0.05);
     drawGlow(ctx, 404, 56, 36, '#fbbf24', 0.16 + nightBoost + pulse * 0.05);
     drawGlow(ctx, 86, 94, 30, isNight ? '#818cf8' : '#38e8d4', 0.14 + pulse * 0.06);
@@ -325,10 +346,9 @@ export class BackroomScene {
       }
     }
 
-    // Radiant golden (S1) + amethyst-violet (S2) victory aura & rising sparkles over the built-in altar relics!
+    // Radiant multi-sector victory auras over the built-in trophy altar!
     if (this.state.sector1Cleared) {
       drawGlow(ctx, 240, 100, 32, '#fbbf24', 0.34 + pulse * 0.14);
-      drawGlow(ctx, 240, 92, 16, '#fef08a', 0.28 + pulse * 0.12);
       for (let i = 0; i < 4; i++) {
         const phase = (this.time * 0.65 + i * 0.25) % 1;
         const sx = 226 + i * 9 + Math.sin(this.time * 3 + i * 1.7) * 3;
@@ -338,13 +358,18 @@ export class BackroomScene {
       }
     }
     if (this.state.sector2Cleared) {
-      drawGlow(ctx, 240, 96, 38, '#c084fc', 0.32 + pulse * 0.14);
-      drawGlow(ctx, 240, 88, 18, '#f0abfc', 0.28 + pulse * 0.12);
-      for (let i = 0; i < 4; i++) {
-        const phase = (this.time * 0.78 + i * 0.25 + 0.12) % 1;
-        const sx = 224 + i * 10 + Math.cos(this.time * 3.4 + i * 2.1) * 4;
-        const sy = 102 - phase * 26;
-        ctx.fillStyle = `rgba(232, 121, 249, ${Math.sin(phase * Math.PI) * 0.95})`;
+      drawGlow(ctx, 240, 96, 36, '#c084fc', 0.28 + pulse * 0.12);
+    }
+    if (this.state.sector3Cleared) {
+      drawGlow(ctx, 240, 94, 40, '#f97316', 0.28 + pulse * 0.12);
+    }
+    if (this.state.sector4Cleared || this.state.omegaCleared) {
+      drawGlow(ctx, 240, 90, 44, this.state.omegaCleared ? '#fde047' : '#38e8d4', 0.36 + pulse * 0.16);
+      for (let i = 0; i < 5; i++) {
+        const phase = (this.time * 0.85 + i * 0.2) % 1;
+        const sx = 222 + i * 9 + Math.cos(this.time * 3.6 + i * 2.0) * 5;
+        const sy = 100 - phase * 28;
+        ctx.fillStyle = `rgba(165, 243, 252, ${Math.sin(phase * Math.PI) * 0.95})`;
         ctx.fillRect(sx, sy, 2.0, 2.0);
       }
     }
@@ -391,21 +416,35 @@ export class BackroomScene {
     ctx.font = 'bold 5px Silkscreen, monospace';
     ctx.textAlign = 'center';
 
+    const trophyText = this.state.omegaCleared
+      ? '★ OMEGA-MEISTER'
+      : this.state.sector4Cleared
+        ? '★ 4/4 SEKTOREN'
+        : this.state.sector3Cleared
+          ? '★ S1–S3 SIEGER'
+          : this.state.sector2Cleared
+            ? '★ S1 & S2 SIEGER'
+            : this.state.sector1Cleared
+              ? '★ LEVIATHAN'
+              : 'TROPHÄE';
+    const trophyCol = this.state.omegaCleared
+      ? '#fde047'
+      : this.state.sector4Cleared
+        ? '#38e8d4'
+        : this.state.sector3Cleared
+          ? '#fb923c'
+          : this.state.sector2Cleared
+            ? '#e879f9'
+            : this.state.sector1Cleared
+              ? '#fde047'
+              : '#94a3b8';
+
     const badges = [
       { text: 'RUHEKOJE', x: 86, y: 66, color: '#38e8d4' },
       { text: 'DROHNEN', x: 164, y: 80, color: '#38bdf8' },
-      {
-        text: this.state.sector2Cleared
-          ? '★ S1 & S2 SIEGER'
-          : this.state.sector1Cleared
-            ? '★ LEVIATHAN'
-            : 'TROPHÄE',
-        x: 240,
-        y: 74,
-        color: this.state.sector2Cleared ? '#e879f9' : this.state.sector1Cleared ? '#fde047' : '#94a3b8',
-      },
+      { text: trophyText, x: 240, y: 74, color: trophyCol },
       { text: 'JUKEBOX', x: 326, y: 74, color: '#e879f9' },
-      { text: 'WAFFEN', x: 80, y: 150, color: '#fb923c' },
+      { text: 'STIL & LOGBUCH', x: 84, y: 150, color: '#fb923c' },
       { text: 'LAGERTRUHE', x: 400, y: 150, color: '#fbbf24' },
       { text: '▼ ASTRO-BARTER', x: EXIT_DOOR_POS.x, y: 252, color: '#fde047' },
     ];

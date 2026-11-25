@@ -1,10 +1,13 @@
 import { getHDArt } from '../assets/artLoader';
 import {
+  ACHIEVEMENT_DEFS,
   COMPANION_DEFS,
   COMPANION_ORDER,
   evaluateCompanionUnlock,
   MARKET_EVENT_META,
   MUSIC_TRACK_META,
+  SUIT_THEME_ORDER,
+  SUIT_THEMES,
 } from '../data/companions';
 import { getItemDef, ITEMS, RARITY_META } from '../data/items';
 import { UPGRADE_TRACKS, WEAPON_META } from '../data/upgrades';
@@ -34,6 +37,8 @@ import type {
   PedestalSlot,
   RunSummary,
   SceneId,
+  SectorId,
+  SuitThemeId,
   UpgradeKey,
   WeaponId,
 } from '../types';
@@ -59,14 +64,14 @@ export class UIManager {
   private titleEl: HTMLElement;
 
   public currentScene: SceneId = 'shop';
-  public dungeonSector: 1 | 2 = 1;
+  public dungeonSector: SectorId = 1;
   public dungeonFloor: 1 | 2 | 3 = 1;
   public shopIsOpen = false;
   public modalOpen = false;
   public titleVisible = true;
 
   private selectedSlot: { container: ContainerId; index: number } | null = null;
-  private activeInvTab: 'bag' | 'codex' | 'help' = 'bag';
+  private activeInvTab: 'bag' | 'codex' | 'logbook' | 'help' = 'bag';
   private chestMode = false;
 
   // Pedestal modal working state
@@ -99,11 +104,11 @@ export class UIManager {
 
     this.titleEl.innerHTML = `
       <div class="title-card">
-        <div class="title-kicker">PORT SOLARIS · ASTRO-BARTER</div>
+        <div class="title-kicker">PORT SOLARIS · ASTRO-BARTER${this.state.ngPlusLevel > 0 ? ` · NG+${this.state.ngPlusLevel}` : ''}</div>
         <h1 class="title-logo">STARLIGHTER</h1>
         <p class="title-sub">
-          Führe deinen Relikt-Shop auf Port Solaris, schmiede 6 Waffenklassen bis Kristall-Meister MK-VI bei Kael
-          und bezwinge Sektor 1 (Wrackfeld) &amp; Sektor 2 (Kristall-Nebel) bis zum Prisma-Archon!
+          Führe deinen Relikt-Shop auf Port Solaris, schmiede 6 Waffenklassen bis Ältesten-Meister MK-VIII bei Kael
+          und bezwinge alle 4 Sektoren sowie das 5. Tiefenraum-Tor (Omega-Anomalie)!
         </p>
         <div class="title-buttons">
           ${
@@ -116,14 +121,14 @@ export class UIManager {
           </button>
         </div>
         <div class="title-controls-grid">
-          <div><strong>WASD / Stick</strong> Bewegen</div>
-          <div><strong>SPACE</strong> Jetpack-Dash</div>
-          <div><strong>LMB / J</strong> Aktive Waffe</div>
-          <div><strong>RMB / K</strong> Schild / Spezial</div>
-          <div><strong>C</strong> Waffe wechseln</div>
-          <div><strong>E</strong> Interagieren / Kasse</div>
-          <div><strong>I / TAB</strong> Fracht &amp; Codex</div>
-          <div><strong>R halten</strong> Extraktion (Warp)</div>
+          <div><strong>WASD / Stick / Pad</strong> Bewegen</div>
+          <div><strong>SPACE / A</strong> Jetpack-Dash</div>
+          <div><strong>LMB / J / X</strong> Aktive Waffe</div>
+          <div><strong>RMB / K / B</strong> Schild / Spezial</div>
+          <div><strong>C / RB</strong> Waffe wechseln</div>
+          <div><strong>E / Y</strong> Interagieren / Kasse</div>
+          <div><strong>I / TAB</strong> Fracht &amp; Logbuch</div>
+          <div><strong>R / LT</strong> Extraktion (Warp)</div>
         </div>
       </div>
     `;
@@ -174,20 +179,36 @@ export class UIManager {
     const compDef = this.state.equippedCompanion ? COMPANION_DEFS[this.state.equippedCompanion] : null;
     const evMeta = MARKET_EVENT_META[this.state.marketEvent];
     const isNight = this.state.timeOfDay === 'night';
-    const timeLabel = isNight ? `🌙 NACHT ${this.state.day}` : `☀ TAG ${this.state.day}`;
+    const ngTag = this.state.ngPlusLevel > 0 ? ` · NG+${this.state.ngPlusLevel}` : '';
+    const timeLabel = isNight ? `🌙 NACHT ${this.state.day}${ngTag}` : `☀ TAG ${this.state.day}${ngTag}`;
     const timeColor = isNight ? '#818cf8' : 'var(--accent-amber)';
+
     const floorTag =
-      this.dungeonSector === 2
-        ? this.dungeonFloor === 1
-          ? 'EBENE I · QUARZ-KAVERNE'
-          : this.dungeonFloor === 2
-            ? 'EBENE II · RESONANZ-ADER'
-            : 'EBENE III · HERZ DES NEBELS'
-        : this.dungeonFloor === 1
-          ? 'EBENE I · FRACHTDECK'
-          : this.dungeonFloor === 2
-            ? 'EBENE II · MASCHINEN-DECK'
-            : 'EBENE III · REAKTOR-KERN';
+      this.dungeonSector === 5
+        ? '5. TOR · OMEGA-ANOMALIE'
+        : this.dungeonSector === 4
+          ? this.dungeonFloor === 1
+            ? 'EBENE I · STERNEN-VORHOF'
+            : this.dungeonFloor === 2
+              ? 'EBENE II · ASTRAL-BIBLIOTHEK'
+              : 'EBENE III · THRON DER ÄLTESTEN'
+          : this.dungeonSector === 3
+            ? this.dungeonFloor === 1
+              ? 'EBENE I · SCHLACKEN-HALLE'
+              : this.dungeonFloor === 2
+                ? 'EBENE II · SCHMELZ-TRAKT'
+                : 'EBENE III · HERZ DER SONNE'
+            : this.dungeonSector === 2
+              ? this.dungeonFloor === 1
+                ? 'EBENE I · QUARZ-KAVERNE'
+                : this.dungeonFloor === 2
+                  ? 'EBENE II · RESONANZ-ADER'
+                  : 'EBENE III · HERZ DES NEBELS'
+              : this.dungeonFloor === 1
+                ? 'EBENE I · FRACHTDECK'
+                : this.dungeonFloor === 2
+                  ? 'EBENE II · MASCHINEN-DECK'
+                  : 'EBENE III · REAKTOR-KERN';
 
     const locationText =
       this.currentScene === 'shop'
@@ -197,26 +218,34 @@ export class UIManager {
           : this.currentScene === 'hub'
             ? `${timeLabel} · PORT SOLARIS`
             : this.currentScene === 'hangar'
-              ? `${timeLabel} · RAUMHAFEN (DOCKS I–IV)`
-              : isNight
-                ? `🌙 S${this.dungeonSector} · ${floorTag} (+35% RAR)`
-                : `SEKTOR ${this.dungeonSector} · ${floorTag}`;
+              ? `${timeLabel} · RAUMHAFEN (DOCKS I–IV & 5. TOR)`
+              : this.dungeonSector === 5
+                ? `🌌 ${floorTag}${ngTag}`
+                : isNight
+                  ? `🌙 S${this.dungeonSector} · ${floorTag} (+35% RAR)`
+                  : `SEKTOR ${this.dungeonSector} · ${floorTag}`;
+
+    const keysUnlocked =
+      (this.state.sector1Cleared ? 1 : 0) +
+      (this.state.sector2Cleared ? 1 : 0) +
+      (this.state.sector3Cleared ? 1 : 0) +
+      (this.state.sector4Cleared ? 1 : 0);
 
     const hintText =
       this.currentScene === 'shop'
         ? this.shopIsOpen
           ? 'Kunden stöbern! Geh rechts hinter den Tresen [E] · VIP-Sammler zahlen +40 % · Diebe fangen [SPACE]!'
-          : 'Podeste [E] · Oben links: Hinterzimmer (Bett, Truhen, Drohnen & Jukebox) · Laden [O]'
+          : 'Podeste [E] · Oben links: Hinterzimmer (Bett, Truhen, Drohnen & Logbuch) · Laden [O]'
         : this.currentScene === 'backroom'
-          ? 'Kapitäns-Quartier: Ruhekapsel (Tag↔Nacht), Drohnen-Dock (Begleiter), Sternen-Jukebox & Lagertruhen!'
+          ? 'Kapitäns-Quartier: Ruhekoje, Drohnen-Dock, Trophäen-Altar, Jukebox, Anzug-Stil/Logbuch & Lagertruhen!'
           : this.currentScene === 'hub'
             ? isNight
               ? '🌙 Nacht-Bonus aktiv: +35 % seltener Loot · Rechts: Raumhafen (Docks I–IV) · Unten links: Nyx!'
-              : 'Oben: Kael (6 Waffen) & Dr. Lyra · Unten: Nyx & Vex · Rechts: Raumhafen (Sektor-Docks I–IV)!'
+              : 'Oben: Kael (MK-VIII) & Dr. Lyra · Unten: Nyx & Vex · Rechts: Raumhafen (Docks I–IV & 5. Tor)!'
             : this.currentScene === 'hangar'
-              ? this.state.sector1Cleared
-                ? 'Raumhafen: Dock I → Sektor 1 · Dock II (Kristall-Kreuzer) → Sektor 2 · 5. Tor (Mitte) zeigt Sektor-Siegel!'
-                : 'Raumhafen: Dock I (oben links) startet nach Sektor 1 · Docks II–IV & 5. Tor (Mitte) über Sektor-Schlüssel!'
+              ? keysUnlocked >= 4
+                ? '★ ALLE 4 SCHLÜSSEL AKTIV! Betritt das leuchtende 5. Tor in der Mitte für die OMEGA-ANOMALIE!'
+                : `Raumhafen: Docks I–IV starten in die 4 Sektoren · 5. Tor (Mitte): ${keysUnlocked}/4 Sektor-Schlüssel aktiv!`
               : `${wMeta.name} (${this.state.equippedWeapon === 'blade' ? 'Schild verbraucht EN · Perfekt-Parade!' : wMeta.secondaryLabel}) · [R] Extraktion`;
 
     const eventPillHtml =
@@ -425,8 +454,12 @@ export class UIManager {
     });
   }
 
-  // ==================== INVENTORY, CHEST & SCAN-CODEX ====================
-  public openInventoryModal(withChest: boolean, tab: 'bag' | 'codex' | 'help' = 'bag'): void {
+  // ==================== INVENTORY, CHEST, SCAN-CODEX & KAPITÄNS-LOGBUCH ====================
+  public openLogbookModal(): void {
+    this.openInventoryModal(true, 'logbook');
+  }
+
+  public openInventoryModal(withChest: boolean, tab: 'bag' | 'codex' | 'logbook' | 'help' = 'bag'): void {
     this.chestMode = withChest;
     this.activeInvTab = tab;
     this.selectedSlot = null;
@@ -615,7 +648,13 @@ export class UIManager {
                   <div>
                     <div style="font-family:var(--font-pixel);font-size:11px">??? (Unentdeckt)</div>
                     <div style="font-size:11px;color:var(--text-muted);margin-top:3px">${
-                      item.sector === 2 ? 'Finde dieses Kristall-Relikt in Sektor 2.' : 'Finde dieses Relikt in Sektor 1.'
+                      item.sector === 4
+                        ? 'Finde dieses Ältesten-Relikt in Sektor 4.'
+                        : item.sector === 3
+                          ? 'Finde dieses Solar-Relikt in Sektor 3.'
+                          : item.sector === 2
+                            ? 'Finde dieses Kristall-Relikt in Sektor 2.'
+                            : 'Finde dieses Relikt in Sektor 1.'
                     }</div>
                   </div>
                 </div>
@@ -643,6 +682,84 @@ export class UIManager {
           }).join('')}
         </div>
       `;
+    } else if (this.activeInvTab === 'logbook') {
+      this.state.checkAchievements(false);
+      const unlockedSet = new Set(this.state.unlockedAchievements);
+      const canNgPlus = this.state.sector4Cleared || this.state.omegaCleared;
+
+      const suitCards = SUIT_THEME_ORDER.map((id) => {
+        const theme = SUIT_THEMES[id];
+        const unlocked = this.state.isSuitThemeUnlocked(id);
+        const equipped = this.state.suitTheme === id;
+        return `
+          <button class="btn ${equipped ? 'btn-amber' : unlocked ? '' : ''}" data-suit-id="${id}"
+            style="display:flex;align-items:center;gap:8px;justify-content:space-between;padding:7px 9px;opacity:${unlocked ? '1' : '0.5'};border-color:${equipped ? theme.accent : 'var(--border-steel)'}"
+            ${unlocked ? '' : 'disabled'}>
+            <span style="display:flex;align-items:center;gap:7px">
+              <span style="width:12px;height:12px;border-radius:50%;background:${theme.accent};box-shadow:0 0 8px ${theme.auraColor};display:inline-block"></span>
+              <span style="text-align:left">
+                <div style="font-family:var(--font-pixel);font-size:9.5px;color:${unlocked ? theme.accent : 'var(--text-muted)'}">${theme.name}</div>
+                <div style="font-size:10px;color:var(--text-muted)">${equipped ? '✓ Aktiv' : unlocked ? 'Freigeschaltet' : theme.unlockText}</div>
+              </span>
+            </span>
+          </button>
+        `;
+      }).join('');
+
+      const achCards = ACHIEVEMENT_DEFS.map((a) => {
+        const done = unlockedSet.has(a.id);
+        return `
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid ${done ? 'rgba(250,204,21,0.45)' : 'rgba(71,85,105,0.45)'};background:${done ? 'rgba(250,204,21,0.08)' : 'rgba(15,23,42,0.55)'};opacity:${done ? '1' : '0.62'}">
+            <span style="font-size:16px">${done ? a.icon : '🔒'}</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-family:var(--font-pixel);font-size:9.5px;color:${done ? '#fde047' : 'var(--text-muted)'}">${a.title}</div>
+              <div style="font-size:11px;color:var(--text-muted)">${a.desc}</div>
+            </div>
+            <span style="font-family:var(--font-pixel);font-size:8.5px;color:${done ? '#4ade80' : '#64748b'}">${done ? '✓' : '—'}</span>
+          </div>
+        `;
+      }).join('');
+
+      bodyHtml = `
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div class="inspector-box" style="gap:8px">
+            <div style="font-family:var(--font-pixel);font-size:11px;color:#fb923c">★ EXO-ANZUG FARBSCHEMA &amp; AURA</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:6px">${suitCards}</div>
+          </div>
+
+          <div class="inspector-box" style="gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-family:var(--font-pixel);font-size:11px;color:#fde047">★ KAPITÄNS-LOGBUCH (${unlockedSet.size} / ${ACHIEVEMENT_DEFS.length})</span>
+              <span style="font-size:11px;color:var(--text-muted)">S1–S4 &amp; Omega · NG+${this.state.ngPlusLevel}</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:6px">${achCards}</div>
+          </div>
+
+          <div class="inspector-box" style="gap:8px;border-color:${canNgPlus ? 'rgba(250,204,21,0.5)' : 'var(--border-steel)'}">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+              <div>
+                <div style="font-family:var(--font-pixel);font-size:11px;color:#c084fc">♾️ NEW GAME+ (ENDLOS-ANOMALIE)</div>
+                <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px">
+                  Behalte alle Waffen, MK-VIII Upgrades, Begleiter, Credits, Stile &amp; Truhe — starte die 4 Sektoren mit +35 % Gegner-HP &amp; neuem Ruhm!
+                </div>
+              </div>
+              <button id="btn-start-ngplus" class="btn ${canNgPlus ? 'btn-amber' : ''}" ${canNgPlus ? '' : 'disabled'}>
+                ${canNgPlus ? `★ NG+${this.state.ngPlusLevel + 1} starten` : '🔒 Sektor 4 / Omega nötig'}
+              </button>
+            </div>
+          </div>
+
+          <div class="inspector-box" style="gap:8px">
+            <div style="font-family:var(--font-pixel);font-size:11px;color:var(--accent-cyan)">💾 SAVEGAME-TRANSFER (HANDY ↔ PC · JSON)</div>
+            <textarea id="save-json-box" rows="3" placeholder="Klicke auf Exportieren oder füge hier einen kopierten STARLIGHTER-Spielstand ein..."
+              style="width:100%;background:rgba(8,13,24,0.9);color:#e2e8f0;border:1px solid var(--border-steel);padding:6px 8px;font-family:monospace;font-size:10.5px;resize:vertical"></textarea>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button id="btn-export-save" class="btn btn-primary">Spielstand exportieren &amp; kopieren</button>
+              <button id="btn-import-save" class="btn btn-amber">Spielstand importieren</button>
+            </div>
+          </div>
+        </div>
+      `;
     } else {
       bodyHtml = `
         <div class="inspector-box" style="gap:10px">
@@ -652,12 +769,10 @@ export class UIManager {
             Am linken <strong>Shop-Ausbau-Terminal</strong> vergrößerst du deinen Laden (Stufe I → II → III: bis zu 8 Podeste, 48 Truhen-Slots &amp; automatische <strong>Sonderangebots-Kiste</strong>).
           </p>
           <p style="font-size:13px;line-height:1.5;color:var(--text-muted)">
-            <strong>2. Tag-/Nacht-Rhythmus &amp; Aufträge:</strong> Nutze die <strong>Chrono-Ruhekapsel</strong> (oben links), um zwischen Tag und Nacht zu wechseln — <strong>Nacht-Expeditionen</strong> geben <strong>+35 % Chance auf seltene &amp; epische Relikte</strong>!
-            An der <strong>Auftrags-Pinnwand</strong> (oben rechts) warten täglich lukrative Kunden-Aufträge (+65 % Bonus-Erlös).
+            <strong>2. 4 Sektoren &amp; 5. Omega-Tor:</strong> Im Raumhafen (Docks I–IV) startest du in alle 4 Sektoren (Wrackfeld, Kristall-Nebel, Solar-Gießerei, Ältesten-Monolith). Besiege alle 4 Endbosse für die 4 Siegel am zentralen <strong>5. Tiefenraum-Tor</strong>!
           </p>
           <p style="font-size:13px;line-height:1.5;color:var(--text-muted)">
-            <strong>3. Skill-Schild &amp; Fracht-Synergien:</strong> Dein Hex-Aegis-Schild verbraucht beim Halten Energie und überhitzt bei 0 EN — time <strong>Perfekt-Paraden</strong> (+16 EN &amp; Konter!) oder weiche per Dash [SPACE] aus.
-            Sortiere Relikte clever im Rucksack: <strong>↑ Klon-Würfel</strong>, <strong>→ Quanten-Gyroskop</strong>, <strong>← Nova-Kondensator</strong> &amp; <strong>▲ Phasen-Splitter</strong> (nur oberste Reihe!).
+            <strong>3. Gamepad, Skill-Schild &amp; Geheime Abgründe:</strong> Gamepads (Xbox/PlayStation/Switch) werden direkt unterstützt! Weiche per Dash [SPACE/A] über schmale Schluchten — achte auf winzige funkelnde Abgründe für geheime Schatzkammern!
           </p>
           <div style="display:flex;justify-content:flex-end;margin-top:6px">
             <button id="btn-reset-save" class="btn btn-danger">Spielstand zurücksetzen</button>
@@ -669,10 +784,11 @@ export class UIManager {
     this.showModalHtml(`
       <div class="modal-window">
         <div class="modal-header">
-          <span class="modal-title">${this.chestMode ? 'LAGERTRUHE &amp; RUCKSACK' : 'EXPEDITIONS-RUCKSACK'}</span>
+          <span class="modal-title">${this.activeInvTab === 'logbook' ? 'KAPITÄNS-LOGBUCH &amp; STIL' : this.chestMode ? 'LAGERTRUHE &amp; RUCKSACK' : 'EXPEDITIONS-RUCKSACK'}</span>
           <div class="modal-tabs">
             <button class="tab-btn ${this.activeInvTab === 'bag' ? 'active' : ''}" data-tab="bag">Fracht</button>
-            <button class="tab-btn ${this.activeInvTab === 'codex' ? 'active' : ''}" data-tab="codex">Scan-Codex</button>
+            <button class="tab-btn ${this.activeInvTab === 'codex' ? 'active' : ''}" data-tab="codex">Codex</button>
+            <button class="tab-btn ${this.activeInvTab === 'logbook' ? 'active' : ''}" data-tab="logbook">Logbuch</button>
             <button class="tab-btn ${this.activeInvTab === 'help' ? 'active' : ''}" data-tab="help">Hilfe</button>
           </div>
           <button id="modal-close-btn" class="modal-close">ESC ✕</button>
@@ -684,9 +800,61 @@ export class UIManager {
     this.modalEl.querySelectorAll<HTMLElement>('.tab-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         sound.playUiClick();
-        this.activeInvTab = btn.dataset.tab as 'bag' | 'codex' | 'help';
+        this.activeInvTab = btn.dataset.tab as 'bag' | 'codex' | 'logbook' | 'help';
         this.renderInventoryModal();
       });
+    });
+
+    this.modalEl.querySelectorAll<HTMLElement>('[data-suit-id]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const sid = btn.dataset.suitId as SuitThemeId;
+        if (this.state.setSuitTheme(sid)) {
+          sound.playUpgrade();
+          this.toast(`★ Anzug-Stil aktiviert: ${SUIT_THEMES[sid].name}!`, 'good');
+          this.renderInventoryModal();
+        }
+      });
+    });
+
+    this.modalEl.querySelector('#btn-start-ngplus')?.addEventListener('click', () => {
+      if (!this.state.sector4Cleared && !this.state.omegaCleared) return;
+      this.state.startNewGamePlus();
+      sound.playWarp();
+      this.closeModal();
+      this.renderHud();
+      this.toast(`♾️ NEW GAME+ ${this.state.ngPlusLevel} gestartet! Alle Upgrades, Waffen & Truhe behalten!`, 'good');
+    });
+
+    this.modalEl.querySelector('#btn-export-save')?.addEventListener('click', () => {
+      const box = this.modalEl.querySelector('#save-json-box') as HTMLTextAreaElement | null;
+      const json = this.state.exportSaveJson();
+      if (box) {
+        box.value = json;
+        box.select();
+      }
+      if (navigator.clipboard?.writeText) {
+        void navigator.clipboard.writeText(json).catch(() => {});
+      }
+      sound.playUiClick();
+      this.toast('💾 Spielstand exportiert & in die Zwischenablage kopiert!', 'good');
+    });
+
+    this.modalEl.querySelector('#btn-import-save')?.addEventListener('click', () => {
+      const box = this.modalEl.querySelector('#save-json-box') as HTMLTextAreaElement | null;
+      const raw = box?.value.trim() ?? '';
+      if (!raw) {
+        this.toast('Bitte zuerst einen JSON-Spielstand ins Textfeld einfügen!', 'warn');
+        return;
+      }
+      const res = this.state.importSaveJson(raw);
+      if (res.ok) {
+        sound.playUpgrade();
+        this.renderHud();
+        this.renderInventoryModal();
+        this.toast('✓ Spielstand erfolgreich importiert!', 'good');
+      } else {
+        this.toast(res.error ?? 'Import fehlgeschlagen!', 'warn');
+      }
     });
 
     this.modalEl.querySelectorAll<HTMLElement>('.btn-equip-bag').forEach((btn) => {
@@ -1008,36 +1176,28 @@ export class UIManager {
       ? `
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:8px 10px;background:rgba(12,20,36,0.72);border:1px solid rgba(56,232,212,0.35)">
           <div style="text-align:center;font-size:10px">
-            <div style="font-family:var(--font-pixel);color:${this.state.deepestFloor >= 1 ? '#38e8d4' : 'var(--text-muted)'}">EBENE I</div>
-            <div style="color:var(--text-muted);margin-top:2px">Schott-Brecher</div>
+            <div style="font-family:var(--font-pixel);color:${this.state.sector1Cleared ? '#fde047' : '#38e8d4'}">${this.state.sector1Cleared ? '★ S1 CLEAR' : `S1 · E${this.state.deepestFloor}/3`}</div>
+            <div style="color:var(--text-muted);margin-top:2px">Wrackfeld</div>
           </div>
           <div style="text-align:center;font-size:10px">
-            <div style="font-family:var(--font-pixel);color:${this.state.deepestFloor >= 2 ? '#34d399' : 'var(--text-muted)'}">EBENE II</div>
-            <div style="color:var(--text-muted);margin-top:2px">Core-Wächter</div>
+            <div style="font-family:var(--font-pixel);color:${this.state.sector2Cleared ? '#e879f9' : this.state.sector1Cleared ? '#c084fc' : 'var(--text-muted)'}">${this.state.sector2Cleared ? '★ S2 CLEAR' : this.state.sector1Cleared ? `S2 · E${this.state.deepestFloorS2}/3` : '🔒 S2'}</div>
+            <div style="color:var(--text-muted);margin-top:2px">Kristall-Nebel</div>
           </div>
           <div style="text-align:center;font-size:10px">
-            <div style="font-family:var(--font-pixel);color:${this.state.deepestFloor >= 3 ? '#fb923c' : 'var(--text-muted)'}">EBENE III</div>
-            <div style="color:var(--text-muted);margin-top:2px">A.E.G.I.S. Leviathan</div>
+            <div style="font-family:var(--font-pixel);color:${this.state.sector3Cleared ? '#fb923c' : this.state.sector2Cleared ? '#f97316' : 'var(--text-muted)'}">${this.state.sector3Cleared ? '★ S3 CLEAR' : this.state.sector2Cleared ? `S3 · E${this.state.deepestFloorS3}/3` : '🔒 S3'}</div>
+            <div style="color:var(--text-muted);margin-top:2px">Solar-Gießerei</div>
           </div>
           <div style="text-align:center;font-size:10px;border-left:1px solid rgba(255,255,255,0.12);padding-left:6px">
-            <div style="font-family:var(--font-pixel);color:${
-              this.state.sector2Cleared ? '#e879f9' : this.state.sector1Cleared ? '#fde047' : '#94a3b8'
-            }">${
-              this.state.sector2Cleared
-                ? '★ S2 BEZWUNGEN'
-                : this.state.sector1Cleared
-                  ? `★ S2 · E${this.state.deepestFloorS2}/3`
-                  : '🔒 SEKTOR 2'
+            <div style="font-family:var(--font-pixel);color:${this.state.omegaCleared ? '#fde047' : this.state.sector4Cleared ? '#38e8d4' : this.state.sector3Cleared ? '#38bdf8' : '#94a3b8'}">${
+              this.state.omegaCleared
+                ? '🌌 OMEGA ★'
+                : this.state.sector4Cleared
+                  ? '★ 5. TOR OFFEN'
+                  : this.state.sector3Cleared
+                    ? `S4 · E${this.state.deepestFloorS4}/3`
+                    : '🔒 S4 & 5. TOR'
             }</div>
-            <div style="color:${
-              this.state.sector2Cleared ? '#f0abfc' : this.state.sector1Cleared ? '#fde047' : 'var(--text-muted)'
-            };margin-top:2px">${
-              this.state.sector2Cleared
-                ? 'S3-Schlüssel aktiv!'
-                : this.state.sector1Cleared
-                  ? 'Dock II bereit!'
-                  : 'Leviathan nötig'
-            }</div>
+            <div style="color:var(--text-muted);margin-top:2px">Ältesten-Monolith</div>
           </div>
         </div>
       `
@@ -1048,8 +1208,8 @@ export class UIManager {
         <div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:rgba(249,115,22,0.1);border:1px solid rgba(251,146,60,0.4)">
           <img src="/art/sprites/npc_kael.png" alt="Schmied Kael" style="width:42px;height:46px;image-rendering:pixelated" />
           <div style="font-size:12px;line-height:1.4">
-            <strong style="font-family:var(--font-pixel);font-size:11px;color:#fbbf24">SCHMIED KAEL</strong>
-            <div style="color:var(--text-muted)">„6 Waffenklassen bis Kristall-Meister MK-VI! Bring mir Materialien aus Sektor 1 sowie Amethyst-Kerne, Prisma-Matrizen &amp; Archon-Herzen aus Sektor 2.“</div>
+            <strong style="font-family:var(--font-pixel);font-size:11px;color:#fbbf24">SCHMIED KAEL · EXO-SCHMIEDE (BIS MK-VIII)</strong>
+            <div style="color:var(--text-muted)">„6 Waffenklassen bis Ältesten-Meister MK-VIII! Schmiede mit Relikten aus Sektor 1–4: Prisma-Matrizen (S2), Vulkan-Herzen (S3) &amp; Archon-Kronen (S4).“</div>
           </div>
         </div>
       `
@@ -1544,37 +1704,70 @@ export class UIManager {
 
   // ==================== EXPEDITION SUMMARY MODAL ====================
   public openRunSummaryModal(summary: RunSummary): void {
-    const isS2 = summary.sector === 2;
-    const title = summary.sector2Cleared
-      ? '★ SEKTOR 2 BEZWUNGEN!'
-      : summary.sector1Cleared
-        ? '★ SEKTOR 1 BEZWUNGEN!'
-        : summary.reason === 'boss_victory'
-          ? 'TRIUMPHALE EXTRAKTION!'
-          : summary.victory
-            ? 'EXTRAKTION ERFOLGREICH!'
-            : isS2
-              ? 'IM KRISTALL-NEBEL GEFALLEN (0 HP)'
-              : 'IM WRACK GEFALLEN (0 HP)';
-    const titleColor = summary.sector2Cleared
-      ? '#e879f9'
-      : summary.sector1Cleared
-        ? '#fde047'
-        : summary.victory
-          ? 'var(--accent-emerald)'
-          : 'var(--accent-coral)';
-    const floorLabel = `${isS2 ? 'S2 · ' : 'S1 · '}${
-      summary.floorReached === 3
-        ? 'Ebene III'
-        : summary.floorReached === 2
-          ? 'Ebene II'
-          : 'Ebene I'
-    }`;
+    const sec = summary.sector ?? 1;
+    const title = summary.omegaCleared
+      ? '🌌 OMEGA-ANOMALIE BEZWUNGEN! (FINALE)'
+      : summary.sector4Cleared
+        ? '👑 SEKTOR 4 BEZWUNGEN!'
+        : summary.sector3Cleared
+          ? '🔥 SEKTOR 3 BEZWUNGEN!'
+          : summary.sector2Cleared
+            ? '★ SEKTOR 2 BEZWUNGEN!'
+            : summary.sector1Cleared
+              ? '★ SEKTOR 1 BEZWUNGEN!'
+              : summary.reason === 'boss_victory'
+                ? 'TRIUMPHALE EXTRAKTION!'
+                : summary.victory
+                  ? 'EXTRAKTION ERFOLGREICH!'
+                  : sec === 5
+                    ? 'IN DER OMEGA-ANOMALIE GEFALLEN'
+                    : sec === 4
+                      ? 'IM ÄLTESTEN-MONOLITH GEFALLEN'
+                      : sec === 3
+                        ? 'IN DER SOLAR-GIESSEREI GEFALLEN'
+                        : sec === 2
+                          ? 'IM KRISTALL-NEBEL GEFALLEN (0 HP)'
+                          : 'IM WRACK GEFALLEN (0 HP)';
+    const titleColor = summary.omegaCleared
+      ? '#fde047'
+      : summary.sector4Cleared
+        ? '#38e8d4'
+        : summary.sector3Cleared
+          ? '#fb923c'
+          : summary.sector2Cleared
+            ? '#e879f9'
+            : summary.sector1Cleared
+              ? '#fde047'
+              : summary.victory
+                ? 'var(--accent-emerald)'
+                : 'var(--accent-coral)';
+    const floorLabel =
+      sec === 5
+        ? '5. Tor · Omega'
+        : `S${sec} · ${
+            summary.floorReached === 3
+              ? 'Ebene III'
+              : summary.floorReached === 2
+                ? 'Ebene II'
+                : 'Ebene I'
+          }`;
 
     const extraNotes: string[] = [];
-    if (summary.sector2Cleared) {
+    if (summary.omegaCleared) {
       extraNotes.push(
-        `💎 <strong>PRISMA-ARCHON BESIEGT!</strong> <strong>Sektor-3-Schlüssel</strong> &amp; <strong>Siegel #2</strong> am 5. Tor im Raumhafen sowie das violette Archon-Herz im Kapitäns-Quartier aktiviert!`,
+        `🌌 <strong>STORY-FINALE VOLLENDET!</strong> Du hast das Geheimnis des 5. Tiefenraum-Tors gelüftet und den <strong>★ OMEGA STERNEN-ARCHON</strong> bezwungen! Der legendäre <strong>★ Omega-Sternenlicht-Anzug</strong> &amp; <strong>New Game+</strong> sind im <strong>Kapitäns-Logbuch</strong> freigeschaltet!`,
+      );
+    } else if (summary.sector4Cleared) {
+      extraNotes.push(
+        `👑 <strong>DER STERNEN-ARCHON BESIEGT!</strong> Alle <strong>4/4 Sektor-Siegel</strong> glühen jetzt im Raumhafen — das zentrale <strong>5. Tiefenraum-Tor (Omega-Anomalie)</strong> steht offen! Außerdem: <strong>Ältesten-Astral-Anzug</strong> &amp; <strong>MK-VIII Schmiede-Pläne</strong> freigeschaltet!`,
+      );
+    } else if (summary.sector3Cleared) {
+      extraNotes.push(
+        `🔥 <strong>VULKAN-TITAN BESIEGT!</strong> <strong>Sektor-4-Schlüssel</strong> (<em>Ältesten-Monolith</em>) an <strong>Dock IV</strong> im Raumhafen, <strong>Siegel #3</strong> am 5. Tor &amp; der <strong>Vulkan-Gold-Anzug</strong> wurden freigeschaltet!`,
+      );
+    } else if (summary.sector2Cleared) {
+      extraNotes.push(
+        `💎 <strong>PRISMA-ARCHON BESIEGT!</strong> <strong>Sektor-3-Schlüssel</strong> (<em>Solar-Gießerei</em>) an <strong>Dock III</strong> im Raumhafen, <strong>Siegel #2</strong> am 5. Tor &amp; der <strong>Nebel-Amethyst-Anzug</strong> wurden freigeschaltet!`,
       );
     } else if (summary.sector1Cleared) {
       extraNotes.push(
@@ -1608,7 +1801,7 @@ export class UIManager {
     }
     if (!summary.victory) {
       extraNotes.push(
-        'Alle ungeschützten Relikte im Expeditions-Rucksack gingen im Wrack verloren! Nutze beim nächsten Mal den Warp-Beacon [R] oder platziere dein Quanten-Gyroskop (→) links neben dem wichtigsten Relikt.',
+        'Alle ungeschützten Relikte im Expeditions-Rucksack gingen im Sektor verloren! Nutze beim nächsten Mal den Warp-Beacon [R] oder platziere dein Quanten-Gyroskop (→) links neben dem wichtigsten Relikt.',
       );
     } else if (summary.itemsSaved > 0) {
       extraNotes.push(
@@ -1617,7 +1810,7 @@ export class UIManager {
     }
 
     this.showModalHtml(`
-      <div class="modal-window" style="max-width:560px">
+      <div class="modal-window" style="max-width:580px">
         <div class="modal-header">
           <span class="modal-title" style="color:${titleColor}">${title}</span>
           <button id="modal-close-btn" class="modal-close">ESC ✕</button>
@@ -1836,7 +2029,7 @@ export class UIManager {
     const override = sound.getJukeboxOverride();
     const activeTrack = sound.getActiveMusicTrack();
     const musicMuted = sound.isMusicMuted() || sound.isMuted();
-    const trackIds: MusicTrack[] = ['shop_day', 'shop_night', 'hub', 'dungeon', 'dungeon_s2', 'boss'];
+    const trackIds: MusicTrack[] = ['shop_day', 'shop_night', 'hub', 'dungeon', 'dungeon_s2', 'dungeon_s3', 'dungeon_s4', 'boss'];
 
     const rowsHtml = trackIds
       .map((tid) => {

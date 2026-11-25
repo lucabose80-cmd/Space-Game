@@ -1,5 +1,9 @@
 export type SceneId = 'shop' | 'backroom' | 'hub' | 'hangar' | 'dungeon';
 
+export type SectorId = 1 | 2 | 3 | 4 | 5;
+
+export type SuitThemeId = 'classic' | 'crystal' | 'solar' | 'elder' | 'omega';
+
 export type TimeOfDay = 'day' | 'night';
 
 export type WeaponId = 'blade' | 'blaster' | 'hammer' | 'spear' | 'fists' | 'discus';
@@ -8,7 +12,15 @@ export type CompanionId = 'puck' | 'spark' | 'luma' | 'halo';
 
 export type MarketEventId = 'normal' | 'trade_fair' | 'collector_visit' | 'night_rush';
 
-export type MusicTrack = 'shop_day' | 'shop_night' | 'hub' | 'dungeon' | 'dungeon_s2' | 'boss';
+export type MusicTrack =
+  | 'shop_day'
+  | 'shop_night'
+  | 'hub'
+  | 'dungeon'
+  | 'dungeon_s2'
+  | 'dungeon_s3'
+  | 'dungeon_s4'
+  | 'boss';
 
 export interface BlackMarketOffer {
   id: string;
@@ -51,7 +63,7 @@ export interface ItemDef {
   glowColor: string;
   dropWeight: number;
   minDepth: number;
-  sector?: 1 | 2;
+  sector?: 1 | 2 | 3 | 4;
 }
 
 export interface ItemStack {
@@ -91,22 +103,22 @@ export interface CodexEntry {
 }
 
 export interface UpgradeLevels {
-  blade: number; // 0..4
-  blaster: number; // 0..4
-  hammer: number; // 0..4
-  spear: number; // 0..4 (Ionen-Speer!)
-  fists: number; // 0..4 (Kinetik-Fäuste!)
-  discus: number; // 0..4 (Phasen-Diskus!)
-  suit: number; // 0..4
+  blade: number; // 0..7
+  blaster: number; // 0..7
+  hammer: number; // 0..7
+  spear: number; // 0..7
+  fists: number; // 0..7
+  discus: number; // 0..7
+  suit: number; // 0..7
   stimpack: number; // 0..3
   bioRegen: number; // 0..3 (Dr. Lyra Med-Bay)
-  shopTier: number; // 0..2 (Astro-Barter expansion: 4 -> 6 -> 8 pedestals, Sale-Box & 28/36/48 chest!)
-  shopAura: number; // 0..2 (Astro-Barter Shop-Terminal: decor & tips)
-  shopScanner: number; // 0..2 (Astro-Barter Shop-Terminal: checkout bonus & patience)
-  shopAssistant: number; // 0..2 (Handels-Droide hinter dem Tresen, ab Shop-Stufe II!)
-  modCrit: number; // 0..3 (Vex' Tech-Labor: Ionen-Kette Crit Chance)
-  modThruster: number; // 0..3 (Vex' Tech-Labor: Schub-Kondensator Speed & Dash CD)
-  modLuck: number; // 0..3 (Vex' Tech-Labor: Relikt-Scanner Rare/Epic Drop Boost)
+  shopTier: number; // 0..2
+  shopAura: number; // 0..2
+  shopScanner: number; // 0..2
+  shopAssistant: number; // 0..2
+  modCrit: number; // 0..3
+  modThruster: number; // 0..3
+  modLuck: number; // 0..3
 }
 
 export type UpgradeKey = keyof UpgradeLevels;
@@ -146,10 +158,13 @@ export interface InventoryData {
 export interface RunSummary {
   victory: boolean;
   reason: 'warp' | 'boss_victory' | 'defeat';
-  sector?: 1 | 2;
+  sector?: SectorId;
   floorReached: number;
   sector1Cleared?: boolean;
   sector2Cleared?: boolean;
+  sector3Cleared?: boolean;
+  sector4Cleared?: boolean;
+  omegaCleared?: boolean;
   roomsCleared: number;
   enemiesDefeated: number;
   itemsSaved: number;
@@ -173,13 +188,21 @@ export interface SaveData {
   bossDefeatedCount: number;
   sector1Cleared?: boolean;
   sector2Cleared?: boolean;
+  sector3Cleared?: boolean;
+  sector4Cleared?: boolean;
+  omegaCleared?: boolean;
+  ngPlusLevel?: number;
   deepestFloor?: number;
   deepestFloorS2?: number;
+  deepestFloorS3?: number;
+  deepestFloorS4?: number;
   totalEnemiesDefeated?: number;
   breacherDefeated?: boolean;
   coreWatcherDefeated?: boolean;
   unlockedCompanions?: Record<CompanionId, boolean>;
   equippedCompanion?: CompanionId | null;
+  suitTheme?: SuitThemeId;
+  unlockedAchievements?: string[];
   marketEvent?: MarketEventId;
   nyxStock?: BlackMarketOffer[];
   pinnedRecipes?: string[];

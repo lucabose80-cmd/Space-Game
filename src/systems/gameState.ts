@@ -1,4 +1,4 @@
-import { COMPANION_ORDER, evaluateCompanionUnlock } from '../data/companions';
+import { COMPANION_ORDER, evaluateCompanionUnlock, SUIT_THEME_ORDER } from '../data/companions';
 import { getItemDef, ITEMS } from '../data/items';
 import { getPlayerCombatStats, UPGRADE_TRACKS } from '../data/upgrades';
 import type {
@@ -11,6 +11,7 @@ import type {
   MarketEventId,
   PedestalSlot,
   SaveData,
+  SuitThemeId,
   TimeOfDay,
   UpgradeKey,
   UpgradeLevels,
@@ -29,7 +30,7 @@ import {
 
 const SAVE_KEY = 'starlighter_save_v2';
 const LEGACY_SAVE_KEY = 'starlighter_save_v1';
-const SAVE_VERSION = 5;
+const SAVE_VERSION = 6;
 
 export const SALE_BOX_MAX_SLOTS = 6;
 
@@ -100,8 +101,16 @@ export class GameState {
   public bossDefeatedCount = 0;
   public sector1Cleared = false;
   public sector2Cleared = false;
+  public sector3Cleared = false;
+  public sector4Cleared = false;
+  public omegaCleared = false;
+  public ngPlusLevel = 0;
   public deepestFloor = 1;
   public deepestFloorS2 = 1;
+  public deepestFloorS3 = 1;
+  public deepestFloorS4 = 1;
+  public suitTheme: SuitThemeId = 'classic';
+  public unlockedAchievements: string[] = [];
   public totalEnemiesDefeated = 0;
   public breacherDefeated = false;
   public coreWatcherDefeated = false;
@@ -169,8 +178,16 @@ export class GameState {
     this.bossDefeatedCount = 0;
     this.sector1Cleared = false;
     this.sector2Cleared = false;
+    this.sector3Cleared = false;
+    this.sector4Cleared = false;
+    this.omegaCleared = false;
+    this.ngPlusLevel = 0;
     this.deepestFloor = 1;
     this.deepestFloorS2 = 1;
+    this.deepestFloorS3 = 1;
+    this.deepestFloorS4 = 1;
+    this.suitTheme = 'classic';
+    this.unlockedAchievements = [];
     this.totalEnemiesDefeated = 0;
     this.breacherDefeated = false;
     this.coreWatcherDefeated = false;
@@ -355,7 +372,13 @@ export class GameState {
 
   // ==================== NYX' SCHWARZMARKT (TÄGLICH ROTIERENDE SELTENE TEILE) ====================
   public generateNyxStock(): BlackMarketOffer[] {
-    const allowedSector = (i: (typeof ITEMS)[number]) => (i.sector ?? 1) === 1 || this.sector1Cleared;
+    const allowedSector = (i: (typeof ITEMS)[number]) => {
+      const sec = i.sector ?? 1;
+      if (sec === 1) return true;
+      if (sec === 2) return this.sector1Cleared;
+      if (sec === 3) return this.sector2Cleared;
+      return this.sector3Cleared;
+    };
     const commonPool = ITEMS.filter(
       (i) => allowedSector(i) && (i.rarity === 'common' || i.rarity === 'uncommon'),
     );
@@ -370,7 +393,9 @@ export class GameState {
         allowedSector(i) &&
         i.rarity === 'epic' &&
         (i.id !== 'leviathan_core' || this.sector1Cleared || this.deepestFloor >= 3) &&
-        (i.id !== 'archon_heart' || this.sector2Cleared || this.deepestFloorS2 >= 3),
+        (i.id !== 'archon_heart' || this.sector2Cleared || this.deepestFloorS2 >= 3) &&
+        (i.id !== 'vulkan_heart' || this.sector3Cleared || this.deepestFloorS3 >= 3) &&
+        (i.id !== 'archon_crown' || this.sector4Cleared || this.deepestFloorS4 >= 3),
     );
 
     const pickFrom = (arr: typeof ITEMS, exclude: Set<string>) => {
@@ -767,6 +792,141 @@ export class GameState {
     };
   }
 
+  // ==================== ANZUG-STILE, KAPITÄNS-LOGBUCH, NEW GAME+ & SAVEGAME EXPORT/IMPORT ====================
+  public isSuitThemeUnlocked(id: SuitThemeId): boolean {
+    if (id === 'classic') return true;
+    if (id === 'crystal') return this.sector2Cleared || this.omegaCleared;
+    if (id === 'solar') return this.sector3Cleared || this.omegaCleared;
+    if (id === 'elder') return this.sector4Cleared || this.omegaCleared;
+    return this.omegaCleared;
+  }
+
+  public setSuitTheme(id: SuitThemeId): boolean {
+    if (!SUIT_THEME_ORDER.includes(id) || !this.isSuitThemeUnlocked(id)) return false;
+    this.suitTheme = id;
+    this.save();
+    return true;
+  }
+
+  public checkAchievements(persist = true): string[] {
+    const unlockedSet = new Set(this.unlockedAchievements);
+    const newly: string[] = [];
+    const grant = (id: string, cond: boolean) => {
+      if (cond && !unlockedSet.has(id)) {
+        unlockedSet.add(id);
+        this.unlockedAchievements.push(id);
+        newly.push(id);
+      }
+    };
+
+    const allComp = Object.values(this.unlockedCompanions).every(Boolean);
+    const allWeps = Object.values(this.unlockedWeapons).every(Boolean);
+
+    grant('first_sale', this.totalSold >= 1);
+    grant('master_merchant', (this.upgrades.shopTier ?? 0) >= 2 && this.totalSold >= 30);
+    grant('sector1_clear', this.sector1Cleared);
+    grant('sector2_clear', this.sector2Cleared);
+    grant('sector3_clear', this.sector3Cleared);
+    grant('sector4_clear', this.sector4Cleared);
+    grant('omega_clear', this.omegaCleared);
+    grant('all_companions', allComp);
+    grant('arsenal_6', allWeps);
+    grant('ng_plus', this.ngPlusLevel >= 1);
+
+    if (persist && newly.length > 0) {
+      this.save();
+    }
+    return newly;
+  }
+
+  public startNewGamePlus(): void {
+    this.ngPlusLevel += 1;
+    this.day = 1;
+    this.timeOfDay = 'day';
+    // Keep all upgrades, forged weapons, companions, codex, credits, suit themes, achievements & chest items!
+    this.sector1Cleared = false;
+    this.sector2Cleared = false;
+    this.sector3Cleared = false;
+    this.sector4Cleared = false;
+    this.deepestFloor = 1;
+    this.deepestFloorS2 = 1;
+    this.deepestFloorS3 = 1;
+    this.deepestFloorS4 = 1;
+    this.bounties = this.generateBounties();
+    this.nyxStock = this.generateNyxStock();
+    this.checkAchievements(false);
+    this.restoreFullVitals();
+    this.save();
+  }
+
+  private buildSavePayload(): SaveData {
+    return {
+      version: SAVE_VERSION,
+      day: this.day,
+      timeOfDay: this.timeOfDay,
+      credits: this.credits,
+      totalEarned: this.totalEarned,
+      totalSold: this.totalSold,
+      bossDefeatedCount: this.bossDefeatedCount,
+      sector1Cleared: this.sector1Cleared,
+      sector2Cleared: this.sector2Cleared,
+      sector3Cleared: this.sector3Cleared,
+      sector4Cleared: this.sector4Cleared,
+      omegaCleared: this.omegaCleared,
+      ngPlusLevel: this.ngPlusLevel,
+      deepestFloor: this.deepestFloor,
+      deepestFloorS2: this.deepestFloorS2,
+      deepestFloorS3: this.deepestFloorS3,
+      deepestFloorS4: this.deepestFloorS4,
+      suitTheme: this.suitTheme,
+      unlockedAchievements: this.unlockedAchievements,
+      totalEnemiesDefeated: this.totalEnemiesDefeated,
+      breacherDefeated: this.breacherDefeated,
+      coreWatcherDefeated: this.coreWatcherDefeated,
+      unlockedCompanions: this.unlockedCompanions,
+      equippedCompanion: this.equippedCompanion,
+      marketEvent: this.marketEvent,
+      nyxStock: this.nyxStock,
+      pinnedRecipes: this.pinnedRecipes,
+      inventory: this.inventory,
+      pedestals: this.pedestals.map((p) => ({
+        id: p.id,
+        itemId: p.itemId,
+        qty: p.qty,
+        price: p.price,
+      })),
+      saleBox: this.saleBox,
+      bounties: this.bounties,
+      codex: this.codex,
+      upgrades: this.upgrades,
+      unlockedWeapons: this.unlockedWeapons,
+      equippedWeapon: this.equippedWeapon,
+      secondaryWeapon: this.secondaryWeapon,
+      muted: this.muted,
+      musicMuted: this.musicMuted,
+    };
+  }
+
+  public exportSaveJson(): string {
+    return JSON.stringify(this.buildSavePayload(), null, 2);
+  }
+
+  public importSaveJson(raw: string): { ok: boolean; error?: string } {
+    try {
+      const parsed = JSON.parse(raw) as Partial<SaveData>;
+      if (!parsed || typeof parsed !== 'object' || typeof parsed.credits !== 'number') {
+        return { ok: false, error: 'Ungültiges STARLIGHTER-Savegame-Format!' };
+      }
+      localStorage.setItem(SAVE_KEY, JSON.stringify(parsed));
+      const loaded = this.load();
+      if (!loaded) return { ok: false, error: 'Spielstand konnte nicht geladen werden.' };
+      this.save();
+      return { ok: true };
+    } catch {
+      return { ok: false, error: 'JSON-Syntaxfehler — bitte vollständigen Export-Code einfügen.' };
+    }
+  }
+
   public hasSave(): boolean {
     try {
       return localStorage.getItem(SAVE_KEY) !== null || localStorage.getItem(LEGACY_SAVE_KEY) !== null;
@@ -777,44 +937,7 @@ export class GameState {
 
   public save(): void {
     try {
-      const payload: SaveData = {
-        version: SAVE_VERSION,
-        day: this.day,
-        timeOfDay: this.timeOfDay,
-        credits: this.credits,
-        totalEarned: this.totalEarned,
-        totalSold: this.totalSold,
-        bossDefeatedCount: this.bossDefeatedCount,
-        sector1Cleared: this.sector1Cleared,
-        sector2Cleared: this.sector2Cleared,
-        deepestFloor: this.deepestFloor,
-        deepestFloorS2: this.deepestFloorS2,
-        totalEnemiesDefeated: this.totalEnemiesDefeated,
-        breacherDefeated: this.breacherDefeated,
-        coreWatcherDefeated: this.coreWatcherDefeated,
-        unlockedCompanions: this.unlockedCompanions,
-        equippedCompanion: this.equippedCompanion,
-        marketEvent: this.marketEvent,
-        nyxStock: this.nyxStock,
-        pinnedRecipes: this.pinnedRecipes,
-        inventory: this.inventory,
-        pedestals: this.pedestals.map((p) => ({
-          id: p.id,
-          itemId: p.itemId,
-          qty: p.qty,
-          price: p.price,
-        })),
-        saleBox: this.saleBox,
-        bounties: this.bounties,
-        codex: this.codex,
-        upgrades: this.upgrades,
-        unlockedWeapons: this.unlockedWeapons,
-        equippedWeapon: this.equippedWeapon,
-        secondaryWeapon: this.secondaryWeapon,
-        muted: this.muted,
-        musicMuted: this.musicMuted,
-      };
-      localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
+      localStorage.setItem(SAVE_KEY, JSON.stringify(this.buildSavePayload()));
     } catch {
       // Ignore storage errors
     }
@@ -835,8 +958,19 @@ export class GameState {
       this.bossDefeatedCount = parsed.bossDefeatedCount ?? 0;
       this.sector1Cleared = Boolean(parsed.sector1Cleared);
       this.sector2Cleared = Boolean(parsed.sector2Cleared);
+      this.sector3Cleared = Boolean(parsed.sector3Cleared);
+      this.sector4Cleared = Boolean(parsed.sector4Cleared);
+      this.omegaCleared = Boolean(parsed.omegaCleared);
+      this.ngPlusLevel = Math.max(0, Math.floor(parsed.ngPlusLevel ?? 0));
       this.deepestFloor = Math.max(1, Math.min(3, parsed.deepestFloor ?? 1));
       this.deepestFloorS2 = Math.max(1, Math.min(3, parsed.deepestFloorS2 ?? 1));
+      this.deepestFloorS3 = Math.max(1, Math.min(3, parsed.deepestFloorS3 ?? 1));
+      this.deepestFloorS4 = Math.max(1, Math.min(3, parsed.deepestFloorS4 ?? 1));
+      this.suitTheme =
+        parsed.suitTheme && SUIT_THEME_ORDER.includes(parsed.suitTheme) ? parsed.suitTheme : 'classic';
+      this.unlockedAchievements = Array.isArray(parsed.unlockedAchievements)
+        ? parsed.unlockedAchievements.filter((a): a is string => typeof a === 'string')
+        : [];
       this.totalEnemiesDefeated = parsed.totalEnemiesDefeated ?? 0;
       this.breacherDefeated = Boolean(parsed.breacherDefeated || this.deepestFloor >= 2 || this.bossDefeatedCount >= 1);
       this.coreWatcherDefeated = Boolean(
@@ -862,7 +996,6 @@ export class GameState {
         modLuck: parsed.upgrades?.modLuck ?? 0,
       };
 
-      // Companion unlocks: default all false, restore saved, then retroactively grant any already-earned milestones!
       this.unlockedCompanions = {
         puck: Boolean(parsed.unlockedCompanions?.puck),
         spark: Boolean(parsed.unlockedCompanions?.spark),
@@ -879,7 +1012,6 @@ export class GameState {
       this.marketEvent =
         parsed.marketEvent && validEvents.includes(parsed.marketEvent) ? parsed.marketEvent : 'normal';
 
-      // Migrate v1/v2/v3/v4 inventory cleanly up to current shopTier chest capacity (28 / 36 / 48)
       const chestCap = this.getStats().chestCapacity;
       const inv = createEmptyInventory(chestCap);
       const rawChest = parsed.inventory?.chest ?? [];
@@ -954,6 +1086,7 @@ export class GameState {
         ? parsed.pinnedRecipes.filter((k): k is string => typeof k === 'string').slice(0, 4)
         : [];
       this.prunePinnedRecipes();
+      this.checkAchievements(false);
 
       this.restoreFullVitals();
       return true;

@@ -63,6 +63,26 @@ const TRACK_PATTERNS: Record<MusicTrack, TrackPattern> = {
     lead: [78, 81, 85, null, 88, 85, 81, 78, 76, 80, 83, null, 85, 81, 78, null],
     bass: [42, null, 49, null, 45, null, 52, null, 40, null, 47, null, 44, null, 49, null],
   },
+  dungeon_s3: {
+    stepMs: 195,
+    leadType: 'sawtooth',
+    bassType: 'square',
+    leadVol: 0.021,
+    bassVol: 0.019,
+    // Heavy volcanic industrial Solar Foundry groove (C phrygian)
+    lead: [60, null, 61, 63, 67, null, 68, 67, 63, null, 61, 60, 67, null, 61, null],
+    bass: [36, 36, null, 37, 36, null, 43, null, 36, 36, null, 39, 37, null, 36, null],
+  },
+  dungeon_s4: {
+    stepMs: 220,
+    leadType: 'triangle',
+    bassType: 'sine',
+    leadVol: 0.028,
+    bassVol: 0.026,
+    // Majestic cosmic Elder Monolith astral hymn (E lydian / B celestial)
+    lead: [76, 79, 83, 86, 88, null, 86, 83, 78, 81, 85, 88, 90, null, 83, null],
+    bass: [40, null, 47, null, 44, null, 51, null, 42, null, 49, null, 47, null, 54, null],
+  },
   boss: {
     stepMs: 155,
     leadType: 'square',
