@@ -93,7 +93,7 @@ function doorCorridors(room: DungeonRoom): Array<{ x: number; y: number; w: numb
  * Gegner-Spawns und bereits platzierte Mechaniken.
  * Exportiert, damit Tests die Regeln unabhängig nachprüfen können.
  */
-export function isFreeSpot(room: DungeonRoom, x: number, y: number, r: number, placed: Circle[]): boolean {
+export function isFreeSpot(room: DungeonRoom, x: number, y: number, r: number, placed: Circle[], gap = 14): boolean {
   if (x - r < ROOM_LEFT + 6 || x + r > ROOM_RIGHT - 6 || y - r < ROOM_TOP + 6 || y + r > ROOM_BOTTOM - 6) return false;
   if (hitsAnyRect(room.obstacles, x, y, r + 2)) return false;
   if (hitsAnyRect(room.chasms, x, y, r + 2)) return false;
@@ -103,7 +103,7 @@ export function isFreeSpot(room: DungeonRoom, x: number, y: number, r: number, p
   if (Math.hypot(x - ROOM_CENTER_X, y - ROOM_CENTER_Y) < r + 22) return false;
   for (const z of doorCorridors(room)) if (hitsAnyRect([z], x, y, r)) return false;
   for (const sp of room.spawns) if (Math.hypot(x - sp.x, y - sp.y) < 26) return false; // Plan: ≥ 26 px zu jedem Spawn
-  for (const c of placed) if (Math.hypot(x - c.x, y - c.y) < r + c.r + 14) return false;
+  for (const c of placed) if (Math.hypot(x - c.x, y - c.y) < r + c.r + gap) return false;
   return true;
 }
 
@@ -179,7 +179,7 @@ function placeFoundryMechanics(room: DungeonRoom, rng: Rng, floorIndex: 1 | 2 | 
     const phase = rng() * 5;
     for (const c of candidates(rng)) {
       // Bodendekal (nicht solide): Platzierung mit kleinerem Prüf-Radius, Wirkungsradius bleibt PLATE_RADIUS
-      if (!isFreeSpot(room, c.x, c.y, PLATE_PLACE_RADIUS, existingCircles(room))) continue;
+      if (!isFreeSpot(room, c.x, c.y, PLATE_PLACE_RADIUS, existingCircles(room), 6)) continue;
       room.magnetPlates = [{ x: c.x, y: c.y, r: PLATE_RADIUS, polarity, phase }];
       break;
     }
