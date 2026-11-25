@@ -155,11 +155,62 @@ export interface InventoryData {
   chest: Array<ItemStack | null>; // 28 / 36 / 48 shop storage slots (always safe!)
 }
 
+export interface CaptainRecords {
+  /** Fastest real-time clear in seconds for Sectors 1..4 & 5th Omega Gate */
+  bestSectorClearSec: Partial<Record<SectorId, number>>;
+  /** Fewest Day/Night cycles (day count) to beat Sector 4 */
+  fastestSector4Days: number | null;
+  /** Fewest Day/Night cycles (day count) to beat the 5th Omega Gate */
+  fastestOmegaDays: number | null;
+  /** Fewest Day/Night cycles to complete a New Game+ Omega clear */
+  fastestNgPlusDays: number | null;
+  /** Total Day↔Night transitions played across this save */
+  totalCyclesPlayed: number;
+  /** Latest notable in-game milestone shown on the Guild Board */
+  lastActivityText: string;
+  /** Recent local/personal activity log entries */
+  recentMilestones: Array<{ text: string; badge: string; accent: string; ts: number }>;
+}
+
+export interface LeaderboardEntry {
+  uid: string;
+  captainName: string;
+  sectorsCleared: number;
+  omegaCleared: boolean;
+  ngPlusLevel: number;
+  day: number;
+  totalCyclesPlayed: number;
+  fastestSector4Days: number | null;
+  fastestOmegaDays: number | null;
+  fastestNgPlusDays: number | null;
+  bestSectorClearSec: Partial<Record<SectorId, number>>;
+  totalEarned: number;
+  totalSold: number;
+  bossDefeatedCount: number;
+  achievementsCount: number;
+  suitTheme: SuitThemeId;
+  equippedWeapon: WeaponId;
+  shopTier: number;
+  lastActivityText: string;
+  updatedAt: number;
+}
+
+export interface ActivityFeedEntry {
+  id: string;
+  uid: string;
+  captainName: string;
+  text: string;
+  badge: string;
+  accent: string;
+  createdAt: number;
+}
+
 export interface RunSummary {
   victory: boolean;
   reason: 'warp' | 'boss_victory' | 'defeat';
   sector?: SectorId;
   floorReached: number;
+  runDurationSec?: number;
   sector1Cleared?: boolean;
   sector2Cleared?: boolean;
   sector3Cleared?: boolean;
@@ -182,6 +233,7 @@ export interface SaveData {
   version: number;
   day: number;
   timeOfDay?: TimeOfDay;
+  captainName?: string;
   credits: number;
   totalEarned: number;
   totalSold: number;
@@ -203,6 +255,7 @@ export interface SaveData {
   equippedCompanion?: CompanionId | null;
   suitTheme?: SuitThemeId;
   unlockedAchievements?: string[];
+  records?: CaptainRecords;
   marketEvent?: MarketEventId;
   nyxStock?: BlackMarketOffer[];
   pinnedRecipes?: string[];

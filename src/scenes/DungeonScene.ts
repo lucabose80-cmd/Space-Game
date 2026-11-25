@@ -415,6 +415,7 @@ export class DungeonScene {
   private time = 0;
 
   // Run telemetry
+  public runElapsedSec = 0;
   private roomsCleared = 0;
   private enemiesDefeated = 0;
   private floorBossDefeated = false;
@@ -440,6 +441,7 @@ export class DungeonScene {
   public startRun(sector: SectorId = 1): void {
     this.currentSector = sector;
     this.state.restoreFullVitals();
+    this.runElapsedSec = 0;
     this.roomsCleared = 0;
     this.enemiesDefeated = 0;
     this.maxFloorReached = 1;
@@ -1093,6 +1095,7 @@ export class DungeonScene {
   public update(dt: number, input: InputManager): void {
     if (this.finished) return;
     this.time += dt;
+    this.runElapsedSec += dt;
     this.roomFade = Math.max(0, this.roomFade - dt);
 
     if (this.shakeTimer > 0) {
@@ -5117,6 +5120,7 @@ export class DungeonScene {
       this.state.bossDefeatedCount += 1;
       this.state.sector1Cleared = true;
       this.sector1ClearedInRun = true;
+      this.state.recordSectorClear(1, this.runElapsedSec);
       // Drop Leviathan Omega Core + 4 rare/epic relics in center of arena!
       const dropY = ROOM_CENTER_Y - 12;
       this.spawnLootDrop(ROOM_CENTER_X, dropY, 'leviathan_core');
@@ -5193,6 +5197,7 @@ export class DungeonScene {
       this.state.bossDefeatedCount += 1;
       this.state.sector2Cleared = true;
       this.sector2ClearedInRun = true;
+      this.state.recordSectorClear(2, this.runElapsedSec);
       // Clear any remaining Prism-Drone escorts when Archon falls!
       for (let j = this.enemies.length - 1; j >= 0; j--) {
         if (!this.isBossKind(this.enemies[j].kind)) {
@@ -5245,6 +5250,7 @@ export class DungeonScene {
       this.state.bossDefeatedCount += 1;
       this.state.sector3Cleared = true;
       this.sector3ClearedInRun = true;
+      this.state.recordSectorClear(3, this.runElapsedSec);
       for (let j = this.enemies.length - 1; j >= 0; j--) {
         if (!this.isBossKind(this.enemies[j].kind)) this.enemies.splice(j, 1);
       }
@@ -5289,6 +5295,7 @@ export class DungeonScene {
       this.state.bossDefeatedCount += 1;
       this.state.sector4Cleared = true;
       this.sector4ClearedInRun = true;
+      this.state.recordSectorClear(4, this.runElapsedSec);
       for (let j = this.enemies.length - 1; j >= 0; j--) {
         if (!this.isBossKind(this.enemies[j].kind)) this.enemies.splice(j, 1);
       }
@@ -5313,6 +5320,7 @@ export class DungeonScene {
       this.state.bossDefeatedCount += 1;
       this.state.omegaCleared = true;
       this.omegaClearedInRun = true;
+      this.state.recordSectorClear(5, this.runElapsedSec);
       for (let j = this.enemies.length - 1; j >= 0; j--) {
         if (!this.isBossKind(this.enemies[j].kind)) this.enemies.splice(j, 1);
       }
@@ -6051,6 +6059,7 @@ export class DungeonScene {
       resonanceBonus: 0,
       nightRun: this.state.timeOfDay === 'night',
       floorReached: this.maxFloorReached,
+      runDurationSec: Math.max(1, Math.round(this.runElapsedSec)),
       sector1Cleared: this.sector1ClearedInRun,
       sector2Cleared: this.sector2ClearedInRun,
       sector3Cleared: this.sector3ClearedInRun,
@@ -6077,6 +6086,7 @@ export class DungeonScene {
       shatteredItems: res.shatteredItems,
       nightRun: this.state.timeOfDay === 'night',
       floorReached: this.maxFloorReached,
+      runDurationSec: Math.max(1, Math.round(this.runElapsedSec)),
       sector1Cleared: false,
       sector2Cleared: false,
       sector3Cleared: false,
@@ -9250,6 +9260,20 @@ export class DungeonScene {
       }
       ctx.fillRect(rx - 2, ry - 2, 5, 5);
     }
+
+    // Crisp live Speedrun Timer directly beneath the minimap
+    const totalSec = Math.floor(this.runElapsedSec);
+    const mm = String(Math.floor(totalSec / 60)).padStart(2, '0');
+    const ss = String(totalSec % 60).padStart(2, '0');
+    ctx.fillStyle = 'rgba(10, 15, 26, 0.88)';
+    ctx.fillRect(cx - 22, cy + 19, 44, 10);
+    ctx.strokeStyle = 'rgba(56, 232, 212, 0.45)';
+    ctx.lineWidth = 0.7;
+    ctx.strokeRect(cx - 21.5, cy + 19.5, 43, 9);
+    ctx.fillStyle = '#a5f3fc';
+    ctx.font = 'bold 5px Silkscreen, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('⏱ ' + mm + ':' + ss, cx, cy + 25.8);
   }
 
   private renderBossBar(ctx: CanvasRenderingContext2D): void {

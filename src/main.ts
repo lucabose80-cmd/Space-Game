@@ -9,6 +9,7 @@ import { DungeonScene } from './scenes/DungeonScene';
 import { HangarScene } from './scenes/HangarScene';
 import { HubScene } from './scenes/HubScene';
 import { ShopScene } from './scenes/ShopScene';
+import { firebaseService } from './services/firebaseService';
 import { GameState } from './systems/gameState';
 import type { MusicTrack, RunSummary, SceneId, SectorId } from './types';
 import { TouchControls } from './ui/TouchControls';
@@ -176,8 +177,28 @@ class StarlighterGame {
       onOpenMedBay: () => this.ui.openMedBayModal(),
       onOpenTechLab: () => this.ui.openTechLabModal(),
       onOpenBlackMarket: () => this.ui.openBlackMarketModal(),
+      onOpenGuildBoard: () => this.ui.openGuildBoardModal(),
       onEnterDungeon: () => this.transitionTo('hangar', 'hub'),
       onToast: (msg, tone) => this.ui.toast(msg, tone),
+    });
+
+    // Seamless Firebase Cloud-Save & Captain Profile Sync on Login (Handy <-> PC)
+    firebaseService.onAuthChange((user) => {
+      if (!user) return;
+      if (!this.state.captainName || this.state.captainName === 'Sternen-Kapitän') {
+        this.state.captainName = user.displayName;
+      }
+      void firebaseService.downloadCloudSave().then((res) => {
+        if (res.ok && res.saveJson && firebaseService.isCloudSaveAhead(this.state, res.saveJson)) {
+          const imp = this.state.importSaveJson(res.saveJson);
+          if (imp.ok) {
+            this.ui.renderHud();
+            this.ui.toast(`☁ Cloud-Spielstand von ${user.displayName} geladen (Tag ${this.state.day})!`, 'good');
+          }
+        } else {
+          void firebaseService.syncAllToCloud(this.state);
+        }
+      });
     });
 
     this.hangarScene = new HangarScene(this.state, {

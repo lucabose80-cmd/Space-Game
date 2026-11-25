@@ -48,6 +48,7 @@ export interface HDArtAssets {
   propJukebox: HTMLCanvasElement | null;
   propBotDock: HTMLCanvasElement | null;
   propTrophyS1: HTMLCanvasElement | null;
+  propScoreboard: HTMLCanvasElement | null;
   podIntact: HTMLCanvasElement | null;
   chestClosed: HTMLCanvasElement | null;
   chestOpen: HTMLCanvasElement | null;
@@ -183,6 +184,7 @@ const art: HDArtAssets = {
   propJukebox: null,
   propBotDock: null,
   propTrophyS1: null,
+  propScoreboard: null,
   podIntact: null,
   chestClosed: null,
   chestOpen: null,
@@ -318,6 +320,7 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
     jukeboxImg,
     botDockImg,
     trophyS1Img,
+    scoreboardImg,
     podImg,
     chestClosedImg,
     chestOpenImg,
@@ -398,6 +401,7 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
     loadImage('/art/sprites/prop_jukebox.png'),
     loadImage('/art/sprites/prop_bot_dock.png'),
     loadImage('/art/sprites/prop_trophy_s1.png'),
+    loadImage('/art/sprites/prop_scoreboard.png'),
     loadImage('/art/sprites/pod_intact.png'),
     loadImage('/art/sprites/chest_closed.png'),
     loadImage('/art/sprites/chest_open.png'),
@@ -491,6 +495,7 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
   art.propJukebox = imgToCanvas(jukeboxImg);
   art.propBotDock = imgToCanvas(botDockImg);
   art.propTrophyS1 = imgToCanvas(trophyS1Img);
+  art.propScoreboard = imgToCanvas(scoreboardImg);
   art.podIntact = imgToCanvas(podImg);
   art.chestClosed = imgToCanvas(chestClosedImg);
   art.chestOpen = imgToCanvas(chestOpenImg);

@@ -1,9 +1,11 @@
 import { COMPANION_ORDER, evaluateCompanionUnlock, SUIT_THEME_ORDER } from '../data/companions';
 import { getItemDef, ITEMS } from '../data/items';
 import { getPlayerCombatStats, UPGRADE_TRACKS } from '../data/upgrades';
+import { firebaseService, formatDurationSec } from '../services/firebaseService';
 import type {
   BlackMarketOffer,
   BountyContract,
+  CaptainRecords,
   CodexEntry,
   CompanionId,
   InventoryData,
@@ -11,6 +13,7 @@ import type {
   MarketEventId,
   PedestalSlot,
   SaveData,
+  SectorId,
   SuitThemeId,
   TimeOfDay,
   UpgradeKey,
@@ -30,7 +33,19 @@ import {
 
 const SAVE_KEY = 'starlighter_save_v2';
 const LEGACY_SAVE_KEY = 'starlighter_save_v1';
-const SAVE_VERSION = 6;
+const SAVE_VERSION = 7;
+
+function createEmptyRecords(): CaptainRecords {
+  return {
+    bestSectorClearSec: {},
+    fastestSector4Days: null,
+    fastestOmegaDays: null,
+    fastestNgPlusDays: null,
+    totalCyclesPlayed: 0,
+    lastActivityText: 'Startet gerade in Astro-Barter',
+    recentMilestones: [],
+  };
+}
 
 export const SALE_BOX_MAX_SLOTS = 6;
 
@@ -95,6 +110,7 @@ export interface PinnedRecipeDetail {
 export class GameState {
   public day = 1;
   public timeOfDay: TimeOfDay = 'day';
+  public captainName = 'Sternen-Kapitän';
   public credits = 120;
   public totalEarned = 0;
   public totalSold = 0;
@@ -111,6 +127,7 @@ export class GameState {
   public deepestFloorS4 = 1;
   public suitTheme: SuitThemeId = 'classic';
   public unlockedAchievements: string[] = [];
+  public records: CaptainRecords = createEmptyRecords();
   public totalEnemiesDefeated = 0;
   public breacherDefeated = false;
   public coreWatcherDefeated = false;
@@ -172,6 +189,7 @@ export class GameState {
   public initFreshState(): void {
     this.day = 1;
     this.timeOfDay = 'day';
+    this.captainName = firebaseService.currentUser?.displayName || 'Sternen-Kapitän';
     this.credits = 120;
     this.totalEarned = 0;
     this.totalSold = 0;
@@ -188,6 +206,7 @@ export class GameState {
     this.deepestFloorS4 = 1;
     this.suitTheme = 'classic';
     this.unlockedAchievements = [];
+    this.records = createEmptyRecords();
     this.totalEnemiesDefeated = 0;
     this.breacherDefeated = false;
     this.coreWatcherDefeated = false;
@@ -349,6 +368,7 @@ export class GameState {
     newDay: boolean;
     marketEvent: MarketEventId;
   } {
+    this.records.totalCyclesPlayed += 1;
     if (this.timeOfDay === 'day') {
       this.timeOfDay = 'night';
       this.restoreFullVitals();
@@ -839,11 +859,64 @@ export class GameState {
     return newly;
   }
 
+  public logMilestone(text: string, badge: string, accent: string): void {
+    this.records.lastActivityText = text;
+    this.records.recentMilestones.unshift({ text, badge, accent, ts: Date.now() });
+    if (this.records.recentMilestones.length > 15) {
+      this.records.recentMilestones.length = 15;
+    }
+    void firebaseService.publishActivity(this.captainName, text, badge, accent);
+  }
+
+  public recordSectorClear(sector: SectorId, elapsedSec: number): boolean {
+    const cleanSec = Math.max(1, Math.round(elapsedSec));
+    const prev = this.records.bestSectorClearSec[sector];
+    const isNewRecord = prev === undefined || cleanSec < prev;
+    if (isNewRecord) {
+      this.records.bestSectorClearSec[sector] = cleanSec;
+    }
+
+    const sectorLabels: Record<SectorId, { boss: string; badge: string; accent: string }> = {
+      1: { boss: 'A.E.G.I.S. LEVIATHAN', badge: 'S1 CLEAR', accent: '#fde047' },
+      2: { boss: '★ PRISMA-ARCHON', badge: 'S2 CLEAR', accent: '#e879f9' },
+      3: { boss: '★ VULKAN-TITAN', badge: 'S3 CLEAR', accent: '#fb923c' },
+      4: { boss: '★ DER STERNEN-ARCHON', badge: 'S4 CLEAR', accent: '#38e8d4' },
+      5: { boss: '★ OMEGA STERNEN-ARCHON', badge: '5. TOR FINALE', accent: '#fde047' },
+    };
+    const meta = sectorLabels[sector];
+    const timeStr = formatDurationSec(cleanSec);
+    const ngSuffix = this.ngPlusLevel > 0 ? ` (NG+${this.ngPlusLevel})` : '';
+
+    if (sector === 4) {
+      if (this.records.fastestSector4Days === null || this.day < this.records.fastestSector4Days) {
+        this.records.fastestSector4Days = this.day;
+      }
+    }
+    if (sector === 5) {
+      if (this.records.fastestOmegaDays === null || this.day < this.records.fastestOmegaDays) {
+        this.records.fastestOmegaDays = this.day;
+      }
+      if (
+        this.ngPlusLevel > 0 &&
+        (this.records.fastestNgPlusDays === null || this.day < this.records.fastestNgPlusDays)
+      ) {
+        this.records.fastestNgPlusDays = this.day;
+      }
+    }
+
+    this.logMilestone(
+      `Besiegte ${meta.boss} in ${timeStr} an Tag ${this.day}${ngSuffix}!`,
+      meta.badge,
+      meta.accent,
+    );
+    return isNewRecord;
+  }
+
   public startNewGamePlus(): void {
     this.ngPlusLevel += 1;
     this.day = 1;
     this.timeOfDay = 'day';
-    // Keep all upgrades, forged weapons, companions, codex, credits, suit themes, achievements & chest items!
+    // Keep all upgrades, forged weapons, companions, codex, credits, suit themes, achievements, records & chest items!
     this.sector1Cleared = false;
     this.sector2Cleared = false;
     this.sector3Cleared = false;
@@ -855,6 +928,7 @@ export class GameState {
     this.bounties = this.generateBounties();
     this.nyxStock = this.generateNyxStock();
     this.checkAchievements(false);
+    this.logMilestone(`Startete New Game+ ${this.ngPlusLevel}!`, `NG+${this.ngPlusLevel}`, '#c084fc');
     this.restoreFullVitals();
     this.save();
   }
@@ -864,6 +938,7 @@ export class GameState {
       version: SAVE_VERSION,
       day: this.day,
       timeOfDay: this.timeOfDay,
+      captainName: this.captainName,
       credits: this.credits,
       totalEarned: this.totalEarned,
       totalSold: this.totalSold,
@@ -880,6 +955,7 @@ export class GameState {
       deepestFloorS4: this.deepestFloorS4,
       suitTheme: this.suitTheme,
       unlockedAchievements: this.unlockedAchievements,
+      records: this.records,
       totalEnemiesDefeated: this.totalEnemiesDefeated,
       breacherDefeated: this.breacherDefeated,
       coreWatcherDefeated: this.coreWatcherDefeated,
@@ -938,6 +1014,7 @@ export class GameState {
   public save(): void {
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify(this.buildSavePayload()));
+      firebaseService.scheduleAutoSync(this);
     } catch {
       // Ignore storage errors
     }
@@ -952,6 +1029,10 @@ export class GameState {
 
       this.day = parsed.day ?? 1;
       this.timeOfDay = parsed.timeOfDay === 'night' ? 'night' : 'day';
+      this.captainName =
+        typeof parsed.captainName === 'string' && parsed.captainName.trim().length > 0
+          ? parsed.captainName.trim().slice(0, 22)
+          : firebaseService.currentUser?.displayName || 'Sternen-Kapitän';
       this.credits = parsed.credits ?? 120;
       this.totalEarned = parsed.totalEarned ?? 0;
       this.totalSold = parsed.totalSold ?? 0;
@@ -971,6 +1052,22 @@ export class GameState {
       this.unlockedAchievements = Array.isArray(parsed.unlockedAchievements)
         ? parsed.unlockedAchievements.filter((a): a is string => typeof a === 'string')
         : [];
+      const baseRec = createEmptyRecords();
+      if (parsed.records && typeof parsed.records === 'object') {
+        this.records = {
+          bestSectorClearSec: { ...(parsed.records.bestSectorClearSec ?? {}) },
+          fastestSector4Days: parsed.records.fastestSector4Days ?? null,
+          fastestOmegaDays: parsed.records.fastestOmegaDays ?? null,
+          fastestNgPlusDays: parsed.records.fastestNgPlusDays ?? null,
+          totalCyclesPlayed: Math.max(0, Math.floor(parsed.records.totalCyclesPlayed ?? 0)),
+          lastActivityText: parsed.records.lastActivityText || baseRec.lastActivityText,
+          recentMilestones: Array.isArray(parsed.records.recentMilestones)
+            ? parsed.records.recentMilestones.slice(0, 15)
+            : [],
+        };
+      } else {
+        this.records = baseRec;
+      }
       this.totalEnemiesDefeated = parsed.totalEnemiesDefeated ?? 0;
       this.breacherDefeated = Boolean(parsed.breacherDefeated || this.deepestFloor >= 2 || this.bossDefeatedCount >= 1);
       this.coreWatcherDefeated = Boolean(

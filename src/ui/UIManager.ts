@@ -13,6 +13,11 @@ import { getItemDef, ITEMS, RARITY_META } from '../data/items';
 import { UPGRADE_TRACKS, WEAPON_META } from '../data/upgrades';
 import { sound } from '../engine/audio';
 import {
+  firebaseService,
+  formatDurationSec,
+  formatRelativeTime,
+} from '../services/firebaseService';
+import {
   getDemandLabel,
   getDemandLevel,
   getSuggestedStartPrice,
@@ -31,8 +36,10 @@ import {
   type ContainerId,
 } from '../systems/inventory';
 import type {
+  ActivityFeedEntry,
   CompanionId,
   ItemStack,
+  LeaderboardEntry,
   MusicTrack,
   PedestalSlot,
   RunSummary,
@@ -241,7 +248,7 @@ export class UIManager {
           : this.currentScene === 'hub'
             ? isNight
               ? '🌙 Nacht-Bonus aktiv: +35 % seltener Loot · Rechts: Raumhafen (Docks I–IV) · Unten links: Nyx!'
-              : 'Oben: Kael (MK-VIII) & Dr. Lyra · Unten: Nyx & Vex · Rechts: Raumhafen (Docks I–IV & 5. Tor)!'
+              : 'Oben: Kael (MK-VIII), Kapitäns-Tafel & Lyra · Unten: Nyx & Vex · Rechts: Raumhafen!'
             : this.currentScene === 'hangar'
               ? keysUnlocked >= 4
                 ? '★ ALLE 4 SCHLÜSSEL AKTIV! Betritt das leuchtende 5. Tor in der Mitte für die OMEGA-ANOMALIE!'
@@ -1818,7 +1825,7 @@ export class UIManager {
         <div class="modal-body">
           <div class="summary-grid">
             <div class="summary-stat">
-              <div style="font-size:11px;color:var(--text-muted)">Tiefe erreicht</div>
+              <div style="font-size:11px;color:var(--text-muted)">Tiefe erreicht${summary.runDurationSec ? ` · ⏱ ${formatDurationSec(summary.runDurationSec)}` : ''}</div>
               <div class="val" style="color:#38e8d4">${floorLabel}</div>
             </div>
             <div class="summary-stat">
@@ -2404,6 +2411,504 @@ export class UIManager {
     this.modalEl.querySelector('#btn-chest-done')?.addEventListener('click', () => {
       sound.playUiClick();
       this.closeModal();
+    });
+  }
+
+  // ==================== GALAKTISCHE KAPITÄNS-TAFEL (FIREBASE SCOREBOARD, REKORDE & CLOUD-SYNC) ====================
+  private guildTab: 'leaderboard' | 'feed' | 'account' = 'leaderboard';
+  private guildSort: 'progress' | 'speed_sector' | 'speed_days' | 'merchant' = 'progress';
+  private guildSectorFilter: SectorId = 1;
+  private guildLeaderboardCache: LeaderboardEntry[] = [];
+  private guildFeedCache: ActivityFeedEntry[] = [];
+  private guildLoading = false;
+  private guildAuthMode: 'login' | 'register' = 'login';
+
+  public openGuildBoardModal(tab: 'leaderboard' | 'feed' | 'account' = 'leaderboard'): void {
+    this.guildTab = tab;
+    this.renderGuildBoardModal();
+    if (firebaseService.isConfigured()) {
+      void this.refreshGuildBoardData();
+    }
+  }
+
+  private async refreshGuildBoardData(): Promise<void> {
+    this.guildLoading = true;
+    this.renderGuildBoardModal();
+    const [board, feed] = await Promise.all([
+      firebaseService.fetchLeaderboard(30),
+      firebaseService.fetchRecentActivities(18),
+    ]);
+    this.guildLeaderboardCache = board;
+    this.guildFeedCache = feed;
+    this.guildLoading = false;
+    if (this.modalOpen) {
+      this.renderGuildBoardModal();
+    }
+  }
+
+  private renderGuildBoardModal(): void {
+    const configured = firebaseService.isConfigured();
+    const user = firebaseService.currentUser;
+    const localUid = user?.uid ?? 'local_captain';
+    const localName = this.state.captainName || user?.displayName || 'Sternen-Kapitän';
+    const ownEntry = firebaseService.buildLeaderboardEntry(this.state, localUid, localName);
+
+    // Merge remote entries with always-current local captain entry
+    const byUid = new Map<string, LeaderboardEntry>();
+    for (const row of this.guildLeaderboardCache) {
+      byUid.set(row.uid, row);
+    }
+    byUid.set(ownEntry.uid, ownEntry);
+    const allRows = [...byUid.values()];
+
+    const escapeHtml = (str: string) =>
+      str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+
+    const sortRows = (rows: LeaderboardEntry[]): LeaderboardEntry[] => {
+      const copy = [...rows];
+      if (this.guildSort === 'speed_sector') {
+        const sec = this.guildSectorFilter;
+        return copy.sort((a, b) => {
+          const ta = a.bestSectorClearSec?.[sec] ?? Number.POSITIVE_INFINITY;
+          const tb = b.bestSectorClearSec?.[sec] ?? Number.POSITIVE_INFINITY;
+          if (ta !== tb) return ta - tb;
+          return b.sectorsCleared - a.sectorsCleared;
+        });
+      }
+      if (this.guildSort === 'speed_days') {
+        return copy.sort((a, b) => {
+          const da = a.fastestOmegaDays ?? a.fastestSector4Days ?? Number.POSITIVE_INFINITY;
+          const db = b.fastestOmegaDays ?? b.fastestSector4Days ?? Number.POSITIVE_INFINITY;
+          if (da !== db) return da - db;
+          return (b.omegaCleared ? 1 : 0) - (a.omegaCleared ? 1 : 0);
+        });
+      }
+      if (this.guildSort === 'merchant') {
+        return copy.sort((a, b) => b.totalEarned - a.totalEarned || b.totalSold - a.totalSold);
+      }
+      // Default: Progress & NG+
+      return copy.sort((a, b) => {
+        const score = (e: LeaderboardEntry) =>
+          e.ngPlusLevel * 10000 +
+          (e.omegaCleared ? 4000 : 0) +
+          e.sectorsCleared * 500 +
+          e.achievementsCount * 40 +
+          Math.min(500, Math.floor(e.totalEarned / 100));
+        return score(b) - score(a);
+      });
+    };
+
+    const statusPill = !configured
+      ? `<span style="font-family:var(--font-pixel);font-size:8.5px;color:#fbbf24;border:1px solid rgba(251,191,36,0.45);padding:2px 6px">LOKAL-MODUS</span>`
+      : user
+        ? `<span style="font-family:var(--font-pixel);font-size:8.5px;color:#4ade80;border:1px solid rgba(74,222,128,0.45);padding:2px 6px">☁ ${escapeHtml(user.displayName)}</span>`
+        : `<span style="font-family:var(--font-pixel);font-size:8.5px;color:#94a3b8;border:1px solid rgba(148,163,184,0.45);padding:2px 6px">GAST (NICHT ANGEMELDET)</span>`;
+
+    let bodyHtml = '';
+
+    if (this.guildTab === 'leaderboard') {
+      const sorted = sortRows(allRows);
+      const secFilterBar =
+        this.guildSort === 'speed_sector'
+          ? `
+            <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">
+              ${([1, 2, 3, 4, 5] as SectorId[])
+                .map(
+                  (sid) => `
+                  <button class="btn ${this.guildSectorFilter === sid ? 'btn-amber' : ''}" data-gsec="${sid}" style="padding:3px 7px;font-size:9px">
+                    ${sid === 5 ? '🌌 5. Tor (Omega)' : `Sektor ${sid}`}
+                  </button>
+                `,
+                )
+                .join('')}
+            </div>
+          `
+          : '';
+
+      const rowsHtml = sorted
+        .map((r, idx) => {
+          const isMe = r.uid === localUid;
+          const suit = SUIT_THEMES[r.suitTheme] ?? SUIT_THEMES.classic;
+          const wep = WEAPON_META[r.equippedWeapon] ?? WEAPON_META.blade;
+          const rankColor = idx === 0 ? '#fde047' : idx === 1 ? '#e2e8f0' : idx === 2 ? '#fb923c' : '#64748b';
+          const metricHtml =
+            this.guildSort === 'speed_sector'
+              ? `<div style="text-align:right">
+                   <div style="font-family:var(--font-pixel);font-size:11px;color:#38e8d4">⏱ ${formatDurationSec(r.bestSectorClearSec?.[this.guildSectorFilter])}</div>
+                   <div style="font-size:10px;color:var(--text-muted)">${this.guildSectorFilter === 5 ? 'Omega-Clear' : `Sektor-${this.guildSectorFilter}-Bestzeit`}</div>
+                 </div>`
+              : this.guildSort === 'speed_days'
+                ? `<div style="text-align:right">
+                     <div style="font-family:var(--font-pixel);font-size:11px;color:#fde047">${
+                       r.fastestOmegaDays !== null
+                         ? `Tag ${r.fastestOmegaDays} (Omega)`
+                         : r.fastestSector4Days !== null
+                           ? `Tag ${r.fastestSector4Days} (S4)`
+                           : `Tag ${r.day} (aktiv)`
+                     }</div>
+                     <div style="font-size:10px;color:var(--text-muted)">${
+                       r.fastestNgPlusDays !== null ? `NG+ Rekord: Tag ${r.fastestNgPlusDays}` : `${r.totalCyclesPlayed} Tag/Nacht-Zyklen`
+                     }</div>
+                   </div>`
+                : this.guildSort === 'merchant'
+                  ? `<div style="text-align:right">
+                       <div style="font-family:var(--font-pixel);font-size:11px;color:#fbbf24">${r.totalEarned.toLocaleString('de-DE')} Cr</div>
+                       <div style="font-size:10px;color:var(--text-muted)">${r.totalSold} Relikte · Shop St. ${r.shopTier + 1}</div>
+                     </div>`
+                  : `<div style="text-align:right">
+                       <div style="font-family:var(--font-pixel);font-size:10.5px;color:${r.omegaCleared ? '#fde047' : '#38e8d4'}">
+                         ${r.ngPlusLevel > 0 ? `NG+${r.ngPlusLevel} · ` : ''}${r.omegaCleared ? '🌌 OMEGA ★' : `${r.sectorsCleared}/4 Sektoren`}
+                       </div>
+                       <div style="font-size:10px;color:var(--text-muted)">${r.achievementsCount}/10 Erfolge · Tag ${r.day}</div>
+                     </div>`;
+
+          return `
+            <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid ${isMe ? 'rgba(56,232,212,0.7)' : 'var(--border-steel)'};background:${isMe ? 'rgba(56,232,212,0.1)' : 'rgba(13,20,34,0.72)'}">
+              <div style="font-family:var(--font-pixel);font-size:12px;width:24px;text-align:center;color:${rankColor}">#${idx + 1}</div>
+              <span style="width:11px;height:11px;border-radius:50%;background:${suit.accent};box-shadow:0 0 8px ${suit.auraColor};flex-shrink:0" title="Anzug: ${suit.name}"></span>
+              <img src="${wep.iconUrl}" alt="${wep.shortName}" style="width:20px;height:20px;image-rendering:pixelated;flex-shrink:0" title="Waffe: ${wep.name}" />
+              <div style="flex:1;min-width:0">
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                  <strong style="font-family:var(--font-pixel);font-size:10.5px;color:${isMe ? '#38e8d4' : '#f8fafc'}">${escapeHtml(r.captainName)}</strong>
+                  ${isMe ? '<span style="font-family:var(--font-pixel);font-size:8px;background:rgba(56,232,212,0.2);color:#38e8d4;padding:1px 4px">DU</span>' : ''}
+                </div>
+                <div style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(r.lastActivityText)}</div>
+              </div>
+              ${metricHtml}
+            </div>
+          `;
+        })
+        .join('');
+
+      bodyHtml = `
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div class="npc-banner" style="border-color:rgba(253,224,71,0.42)">
+            <img src="/art/sprites/prop_scoreboard.png" alt="Kapitäns-Tafel" style="width:48px;height:48px;image-rendering:pixelated" />
+            <div style="flex:1">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+                <strong style="font-family:var(--font-pixel);font-size:11px;color:#fde047">GALAKTISCHE KAPITÄNS-TAFEL</strong>
+                ${statusPill}
+              </div>
+              <div style="font-size:11.5px;color:var(--text-muted);margin-top:3px">
+                Vergleiche Fortschritt, NG+-Speedruns in Tag/Nacht-Zyklen, schnellste Sektor-Clears (mm:ss) &amp; Astro-Barter-Umsätze aller angemeldeten Kapitäne!
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:space-between">
+            <div style="display:flex;gap:5px;flex-wrap:wrap">
+              <button class="btn ${this.guildSort === 'progress' ? 'btn-primary' : ''}" data-gsort="progress" style="padding:4px 8px;font-size:9.5px">★ Fortschritt &amp; NG+</button>
+              <button class="btn ${this.guildSort === 'speed_sector' ? 'btn-primary' : ''}" data-gsort="speed_sector" style="padding:4px 8px;font-size:9.5px">⏱ Sektor-Bestzeit</button>
+              <button class="btn ${this.guildSort === 'speed_days' ? 'btn-primary' : ''}" data-gsort="speed_days" style="padding:4px 8px;font-size:9.5px">☀ Schnellste Tage</button>
+              <button class="btn ${this.guildSort === 'merchant' ? 'btn-primary' : ''}" data-gsort="merchant" style="padding:4px 8px;font-size:9.5px">💰 Händler-Ruhm</button>
+            </div>
+            ${configured ? `<button id="btn-guild-refresh" class="btn" style="padding:4px 8px;font-size:9.5px">${this.guildLoading ? 'Lädt…' : '↻ Aktualisieren'}</button>` : ''}
+          </div>
+          ${secFilterBar}
+
+          <div style="display:flex;flex-direction:column;gap:6px;max-height:290px;overflow-y:auto">
+            ${rowsHtml}
+          </div>
+          ${
+            !configured
+              ? `<div style="font-size:11px;color:var(--text-muted);padding:6px 8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3)">
+                   💡 <strong>Firebase-Verknüpfung bereit:</strong> Öffne den Tab <strong>„Konto &amp; Cloud“</strong>, um deine Firebase-Keys (Vercel) zu verbinden — danach erscheinen hier automatisch alle angemeldeten Kapitäne!
+                 </div>`
+              : !user
+                ? `<div style="font-size:11px;color:var(--text-muted);padding:6px 8px;background:rgba(56,232,212,0.08);border:1px solid rgba(56,232,212,0.3)">
+                     ☁ Melde dich im Tab <strong>„Konto &amp; Cloud“</strong> an, um deine Bestzeiten automatisch zu teilen &amp; deinen Spielstand zwischen Handy &amp; PC zu synchronisieren!
+                   </div>`
+                : ''
+          }
+        </div>
+      `;
+    } else if (this.guildTab === 'feed') {
+      const feedItems: ActivityFeedEntry[] =
+        this.guildFeedCache.length > 0
+          ? this.guildFeedCache
+          : this.state.records.recentMilestones.map((m, i) => ({
+              id: `local_${i}`,
+              uid: localUid,
+              captainName: localName,
+              text: m.text,
+              badge: m.badge,
+              accent: m.accent,
+              createdAt: m.ts,
+            }));
+
+      bodyHtml = `
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-family:var(--font-pixel);font-size:11px;color:#38e8d4">📡 GALAKTISCHER AKTIVITÄTS-FEED</span>
+            ${configured ? `<button id="btn-guild-refresh" class="btn" style="padding:4px 8px;font-size:9.5px">${this.guildLoading ? 'Lädt…' : '↻ Aktualisieren'}</button>` : ''}
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto">
+            ${
+              feedItems.length === 0
+                ? `<div class="inspector-box" style="color:var(--text-muted);font-size:12px">Noch keine Meilensteine verzeichnet. Bezwinge Sektor-Bosse, das 5. Tor oder starte New Game+, um hier im Gilden-Feed zu erscheinen!</div>`
+                : feedItems
+                    .map(
+                      (f) => `
+                    <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid rgba(71,85,105,0.55);background:rgba(13,20,34,0.72)">
+                      <span style="font-family:var(--font-pixel);font-size:8.5px;color:${f.accent};border:1px solid ${f.accent};padding:2px 5px;flex-shrink:0">${escapeHtml(f.badge)}</span>
+                      <div style="flex:1;min-width:0">
+                        <strong style="font-family:var(--font-pixel);font-size:10px;color:#f8fafc">${escapeHtml(f.captainName)}</strong>
+                        <div style="font-size:11.5px;color:var(--text-muted);margin-top:1px">${escapeHtml(f.text)}</div>
+                      </div>
+                      <span style="font-size:10px;color:#64748b;flex-shrink:0">${formatRelativeTime(f.createdAt)}</span>
+                    </div>
+                  `,
+                    )
+                    .join('')
+            }
+          </div>
+        </div>
+      `;
+    } else {
+      // Tab 3: Kapitäns-Konto, Persönliche Bestzeiten & Firebase Cloud-Sync
+      const rec = this.state.records;
+      const personalRecordsHtml = `
+        <div class="inspector-box" style="gap:8px">
+          <div style="font-family:var(--font-pixel);font-size:10.5px;color:#fde047">⏱ DEINE PERSÖNLICHEN REKORDE</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(108px,1fr));gap:6px">
+            ${([1, 2, 3, 4, 5] as SectorId[])
+              .map(
+                (sid) => `
+                <div style="padding:5px 7px;background:rgba(10,16,28,0.75);border:1px solid rgba(71,85,105,0.5);text-align:center">
+                  <div style="font-family:var(--font-pixel);font-size:8.5px;color:var(--text-muted)">${sid === 5 ? '5. TOR OMEGA' : `SEKTOR ${sid}`}</div>
+                  <div style="font-family:var(--font-pixel);font-size:11px;color:#38e8d4;margin-top:2px">${formatDurationSec(rec.bestSectorClearSec[sid])}</div>
+                </div>
+              `,
+              )
+              .join('')}
+          </div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--text-muted)">
+            <span>☀ S4-Rekord: <strong style="color:#fde047">${rec.fastestSector4Days !== null ? `Tag ${rec.fastestSector4Days}` : '—'}</strong></span>
+            <span>🌌 Omega-Rekord: <strong style="color:#fde047">${rec.fastestOmegaDays !== null ? `Tag ${rec.fastestOmegaDays}` : '—'}</strong></span>
+            <span>♾️ NG+-Rekord: <strong style="color:#c084fc">${rec.fastestNgPlusDays !== null ? `Tag ${rec.fastestNgPlusDays}` : '—'}</strong></span>
+            <span>🌓 Zyklen: <strong style="color:#f8fafc">${rec.totalCyclesPlayed}</strong></span>
+          </div>
+        </div>
+      `;
+
+      const nameEditorHtml = `
+        <div class="inspector-box" style="gap:7px">
+          <div style="font-family:var(--font-pixel);font-size:10.5px;color:#38e8d4">★ KAPITÄNS-RUFNAME</div>
+          <div style="display:flex;gap:8px">
+            <input id="input-captain-name" type="text" maxlength="22" value="${escapeHtml(localName)}"
+              style="flex:1;background:rgba(8,13,24,0.9);color:#f8fafc;border:1px solid var(--border-steel);padding:6px 8px;font-family:var(--font-pixel);font-size:10.5px" />
+            <button id="btn-save-captain-name" class="btn btn-primary">Speichern</button>
+          </div>
+        </div>
+      `;
+
+      const cloudSectionHtml = !configured
+        ? `
+          <div class="inspector-box" style="gap:7px;border-color:rgba(251,191,36,0.45)">
+            <div style="font-family:var(--font-pixel);font-size:10.5px;color:#fbbf24">☁ FIREBASE EINRICHTUNG (1× IN VERCEL)</div>
+            <div style="font-size:11.5px;line-height:1.5;color:var(--text-muted)">
+              1. Kostenloses Firebase-Projekt anlegen → <strong>Authentication</strong> (Google + E-Mail/Passwort) &amp; <strong>Cloud Firestore</strong> aktivieren.<br/>
+              2. Inhalt aus <code>firestore.rules</code> im Firebase-Tab <em>Firestore → Regeln</em> einfügen.<br/>
+              3. Die 6 Keys aus <code>.env.example</code> (<code>VITE_FIREBASE_API_KEY</code> …) in <strong>Vercel → Environment Variables</strong> eintragen &amp; neu deployen — sofort aktiv!
+            </div>
+          </div>
+        `
+        : user
+          ? `
+            <div class="inspector-box" style="gap:8px;border-color:rgba(74,222,128,0.45)">
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+                <div>
+                  <div style="font-family:var(--font-pixel);font-size:10.5px;color:#4ade80">☁ ANGEMELDET: ${escapeHtml(user.displayName)}</div>
+                  <div style="font-size:11px;color:var(--text-muted)">${escapeHtml(user.email || 'Google-Konto')} · ${
+                    firebaseService.lastSyncAt
+                      ? `Zuletzt synchronisiert: ${formatRelativeTime(firebaseService.lastSyncAt)}`
+                      : 'Cloud-Sync aktiv'
+                  }</div>
+                </div>
+                <button id="btn-cloud-logout" class="btn btn-danger" style="padding:5px 9px;font-size:9.5px">Abmelden</button>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button id="btn-cloud-upload" class="btn btn-primary">☁ Jetzt in Cloud &amp; Scoreboard sichern</button>
+                <button id="btn-cloud-download" class="btn btn-amber">⬇ Cloud-Spielstand laden</button>
+              </div>
+            </div>
+          `
+          : `
+            <div class="inspector-box" style="gap:9px;border-color:rgba(56,232,212,0.45)">
+              <div style="font-family:var(--font-pixel);font-size:10.5px;color:#38e8d4">☁ ANMELDEN (CLOUD-SAVE &amp; SCOREBOARD)</div>
+              <button id="btn-google-login" class="btn btn-amber" style="width:100%">Mit Google anmelden (1 Klick)</button>
+              <div style="display:flex;gap:6px;margin-top:2px">
+                <button class="btn ${this.guildAuthMode === 'login' ? 'btn-primary' : ''}" data-authmode="login" style="flex:1;padding:4px;font-size:9.5px">E-Mail Login</button>
+                <button class="btn ${this.guildAuthMode === 'register' ? 'btn-primary' : ''}" data-authmode="register" style="flex:1;padding:4px;font-size:9.5px">Neu registrieren</button>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <input id="input-auth-email" type="email" placeholder="E-Mail-Adresse"
+                  style="background:rgba(8,13,24,0.9);color:#f8fafc;border:1px solid var(--border-steel);padding:6px 8px;font-size:12px" />
+                <input id="input-auth-pass" type="password" placeholder="Passwort (mind. 6 Zeichen)"
+                  style="background:rgba(8,13,24,0.9);color:#f8fafc;border:1px solid var(--border-steel);padding:6px 8px;font-size:12px" />
+                <button id="btn-email-submit" class="btn btn-primary" style="width:100%">
+                  ${this.guildAuthMode === 'register' ? 'Konto erstellen & verbinden' : 'Mit E-Mail anmelden'}
+                </button>
+              </div>
+            </div>
+          `;
+
+      bodyHtml = `
+        <div style="display:flex;flex-direction:column;gap:10px">
+          ${personalRecordsHtml}
+          ${nameEditorHtml}
+          ${cloudSectionHtml}
+        </div>
+      `;
+    }
+
+    this.showModalHtml(`
+      <div class="modal-window" style="max-width:680px">
+        <div class="modal-header" style="gap:8px">
+          <span class="modal-title" style="color:#fde047;white-space:nowrap">🏆 KAPITÄNS-TAFEL</span>
+          <div class="modal-tabs" style="flex-wrap:nowrap">
+            <button class="tab-btn ${this.guildTab === 'leaderboard' ? 'active' : ''}" data-gtab="leaderboard" style="white-space:nowrap">Rangliste</button>
+            <button class="tab-btn ${this.guildTab === 'feed' ? 'active' : ''}" data-gtab="feed" style="white-space:nowrap">Aktivitäten</button>
+            <button class="tab-btn ${this.guildTab === 'account' ? 'active' : ''}" data-gtab="account" style="white-space:nowrap">Konto &amp; Cloud</button>
+          </div>
+          <button id="modal-close-btn" class="modal-close" style="white-space:nowrap">ESC ✕</button>
+        </div>
+        <div class="modal-body">${bodyHtml}</div>
+      </div>
+    `);
+
+    this.modalEl.querySelectorAll<HTMLElement>('[data-gtab]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        sound.playUiClick();
+        this.guildTab = btn.dataset.gtab as 'leaderboard' | 'feed' | 'account';
+        this.renderGuildBoardModal();
+      });
+    });
+
+    this.modalEl.querySelectorAll<HTMLElement>('[data-gsort]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        sound.playUiClick();
+        this.guildSort = btn.dataset.gsort as 'progress' | 'speed_sector' | 'speed_days' | 'merchant';
+        this.renderGuildBoardModal();
+      });
+    });
+
+    this.modalEl.querySelectorAll<HTMLElement>('[data-gsec]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        sound.playUiClick();
+        this.guildSectorFilter = Number(btn.dataset.gsec) as SectorId;
+        this.renderGuildBoardModal();
+      });
+    });
+
+    this.modalEl.querySelector('#btn-guild-refresh')?.addEventListener('click', () => {
+      sound.playUiClick();
+      void this.refreshGuildBoardData();
+    });
+
+    this.modalEl.querySelector('#btn-save-captain-name')?.addEventListener('click', () => {
+      const inp = this.modalEl.querySelector('#input-captain-name') as HTMLInputElement | null;
+      const next = (inp?.value ?? '').trim().slice(0, 22);
+      if (!next) {
+        this.toast('Bitte einen gültigen Kapitäns-Namen eingeben!', 'warn');
+        return;
+      }
+      this.state.captainName = next;
+      this.state.save();
+      void firebaseService.updateCaptainName(next).then(() => {
+        if (firebaseService.currentUser) {
+          void firebaseService.syncAllToCloud(this.state);
+        }
+      });
+      sound.playUpgrade();
+      this.toast(`★ Kapitäns-Name gespeichert: ${next}`, 'good');
+      this.renderGuildBoardModal();
+    });
+
+    this.modalEl.querySelectorAll<HTMLElement>('[data-authmode]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        sound.playUiClick();
+        this.guildAuthMode = btn.dataset.authmode as 'login' | 'register';
+        this.renderGuildBoardModal();
+      });
+    });
+
+    this.modalEl.querySelector('#btn-google-login')?.addEventListener('click', () => {
+      sound.playUiClick();
+      void firebaseService.signInWithGoogle().then((res) => {
+        if (res.ok) {
+          this.toast('☁ Erfolgreich mit Google angemeldet!', 'good');
+          void this.refreshGuildBoardData();
+        } else {
+          this.toast(res.error ?? 'Google-Login fehlgeschlagen', 'warn');
+        }
+      });
+    });
+
+    this.modalEl.querySelector('#btn-email-submit')?.addEventListener('click', () => {
+      const email = (this.modalEl.querySelector('#input-auth-email') as HTMLInputElement | null)?.value ?? '';
+      const pass = (this.modalEl.querySelector('#input-auth-pass') as HTMLInputElement | null)?.value ?? '';
+      if (!email.trim() || pass.length < 6) {
+        this.toast('Bitte gültige E-Mail & Passwort (mind. 6 Zeichen) eingeben.', 'warn');
+        return;
+      }
+      sound.playUiClick();
+      const action =
+        this.guildAuthMode === 'register'
+          ? firebaseService.registerWithEmail(email, pass, this.state.captainName)
+          : firebaseService.signInWithEmail(email, pass);
+      void action.then((res) => {
+        if (res.ok) {
+          this.toast('☁ Anmeldung erfolgreich — Cloud-Sync aktiv!', 'good');
+          void this.refreshGuildBoardData();
+        } else {
+          this.toast(res.error ?? 'Anmeldung fehlgeschlagen', 'warn');
+        }
+      });
+    });
+
+    this.modalEl.querySelector('#btn-cloud-upload')?.addEventListener('click', () => {
+      sound.playUiClick();
+      void firebaseService.syncAllToCloud(this.state).then((res) => {
+        if (res.ok) {
+          sound.playUpgrade();
+          this.toast('☁ Spielstand & Rekorde in der Cloud gespeichert!', 'good');
+          void this.refreshGuildBoardData();
+        } else {
+          this.toast(res.error ?? 'Cloud-Upload fehlgeschlagen', 'warn');
+        }
+      });
+    });
+
+    this.modalEl.querySelector('#btn-cloud-download')?.addEventListener('click', () => {
+      sound.playUiClick();
+      void firebaseService.downloadCloudSave().then((res) => {
+        if (res.ok && res.saveJson) {
+          const imp = this.state.importSaveJson(res.saveJson);
+          if (imp.ok) {
+            sound.playUpgrade();
+            this.renderHud();
+            this.toast(`⬇ Cloud-Spielstand geladen (Tag ${this.state.day})!`, 'good');
+            this.renderGuildBoardModal();
+          } else {
+            this.toast(imp.error ?? 'Import fehlgeschlagen', 'warn');
+          }
+        } else {
+          this.toast(res.error ?? 'Kein Cloud-Spielstand gefunden', 'warn');
+        }
+      });
+    });
+
+    this.modalEl.querySelector('#btn-cloud-logout')?.addEventListener('click', () => {
+      sound.playUiClick();
+      void firebaseService.signOutUser().then(() => {
+        this.toast('Vom Cloud-Konto abgemeldet (lokaler Spielstand bleibt erhalten).', 'info');
+        this.renderGuildBoardModal();
+      });
     });
   }
 }

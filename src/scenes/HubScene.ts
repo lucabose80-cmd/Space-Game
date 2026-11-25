@@ -33,6 +33,7 @@ export interface HubCallbacks {
   onOpenMedBay: () => void;
   onOpenTechLab: () => void;
   onOpenBlackMarket: () => void;
+  onOpenGuildBoard: () => void;
   onEnterDungeon: () => void;
   onToast: (msg: string, tone?: 'info' | 'good' | 'warn') => void;
 }
@@ -46,6 +47,7 @@ const PLAZA_BOTTOM = 224;
 // Interactive station hotspots matching architecturally integrated public/art/hub_bg.png
 const SHOP_DOOR_POS = { x: 74, y: 132 };
 const FORGE_POS = { x: 144, y: 126 };
+const GUILD_BOARD_POS = { x: 240, y: 84 };
 const MEDBAY_POS = { x: 348, y: 126 };
 const NYX_NPC_POS = { x: 185, y: 178 };
 const TECHLAB_NPC_POS = { x: 295, y: 178 };
@@ -245,8 +247,9 @@ export class HubScene {
   }
 
   private isWalkable(x: number, y: number): boolean {
-    // Upper central nebula overlook bridge between Forge & Med-Bay
+    // Upper central nebula overlook bridge between Forge & Med-Bay (leave room for Guild Board kiosk at 240,84!)
     if (x >= 206 && x <= 274 && y >= 78 && y <= 130) {
+      if (x >= 220 && x <= 260 && y <= 98) return false;
       return true;
     }
     if (x < PLAZA_LEFT || x > PLAZA_RIGHT || y < PLAZA_TOP || y > PLAZA_BOTTOM) {
@@ -265,7 +268,7 @@ export class HubScene {
       { x: 214, y: 174 },
       { x: 240, y: 164 },
       { x: 266, y: 174 },
-      { x: 240, y: 94 },
+      { x: 240, y: 112 },
       { x: 216, y: 204 },
       { x: 264, y: 204 },
     ];
@@ -293,6 +296,20 @@ export class HubScene {
   private updateInteraction(input: InputManager): void {
     this.activePrompt = null;
 
+    // 0. Galaktische Kapitäns-Tafel (Online Scoreboard & Cloud-Save Terminal!)
+    if (Math.hypot(this.playerX - GUILD_BOARD_POS.x, this.playerY - (GUILD_BOARD_POS.y + 18)) < 32) {
+      this.activePrompt = {
+        label: '[E] 🏆 Kapitäns-Tafel (Rangliste & Cloud)',
+        x: GUILD_BOARD_POS.x,
+        y: GUILD_BOARD_POS.y + 42,
+      };
+      if (input.interactPressed()) {
+        sound.playUiClick();
+        this.callbacks.onOpenGuildBoard();
+      }
+      return;
+    }
+
     // 1. Astro-Barter (Your Shop)
     if (Math.hypot(this.playerX - SHOP_DOOR_POS.x, this.playerY - SHOP_DOOR_POS.y) < 30 && this.playerY <= 142) {
       this.activePrompt = {
@@ -310,7 +327,7 @@ export class HubScene {
     // 2. Kael's Exo-Schmiede (Weapons & Suit)
     if (Math.hypot(this.playerX - FORGE_POS.x, this.playerY - FORGE_POS.y) < 30 && this.playerY <= 138) {
       this.activePrompt = {
-        label: "[E] Kael's Exo-Schmiede (Waffen & MK-V)",
+        label: "[E] Kael's Exo-Schmiede (Waffen & MK-VIII)",
         x: FORGE_POS.x,
         y: FORGE_POS.y - 28,
       };
@@ -441,6 +458,8 @@ export class HubScene {
     const pulse = 0.5 + 0.5 * Math.sin(this.time * 4.2);
     const nightBoost = isNight ? 0.14 : 0;
     drawGlow(ctx, 132, 82, 38, '#fb923c', 0.24 + nightBoost + pulse * 0.1);
+    drawGlow(ctx, GUILD_BOARD_POS.x, GUILD_BOARD_POS.y - 4, 34, '#38e8d4', 0.24 + nightBoost + pulse * 0.1);
+    drawGlow(ctx, GUILD_BOARD_POS.x, GUILD_BOARD_POS.y - 16, 22, '#fbbf24', 0.18 + pulse * 0.08);
     drawGlow(ctx, 354, 72, 36, '#34d399', 0.22 + nightBoost + pulse * 0.08);
     drawGlow(ctx, 120, 194, 42, '#c084fc', 0.22 + nightBoost + pulse * 0.1);
     drawGlow(ctx, 362, 178, 42, '#38e8d4', 0.22 + nightBoost + pulse * 0.08);
@@ -454,7 +473,6 @@ export class HubScene {
       0.3 + nightBoost + pulse * 0.12,
     );
     if (isNight) {
-      // Cozy street-lamp pools at night!
       drawGlow(ctx, 196, 100, 26, '#fbbf24', 0.24);
       drawGlow(ctx, 288, 100, 26, '#fbbf24', 0.24);
       drawGlow(ctx, 186, 212, 26, '#fbbf24', 0.24);
@@ -464,9 +482,20 @@ export class HubScene {
     // Subtle crisp building signage pills
     this.renderSignPills(ctx);
 
-    // Depth-sorted entities: Kael, Dr. Lyra, Nyx, Vex, Strollers, Player
+    // Depth-sorted entities: Guild Board Terminal, Kael, Dr. Lyra, Nyx, Vex, Strollers, Player
     type Drawable = { y: number; draw: () => void };
     const drawables: Drawable[] = [];
+
+    // Integrated Galactic Guild Scoreboard Holo-Terminal on the scenic nebula overlook!
+    drawables.push({
+      y: GUILD_BOARD_POS.y + 8,
+      draw: () => {
+        drawPixelShadow(ctx, GUILD_BOARD_POS.x, GUILD_BOARD_POS.y + 11, 20, 5.5, 0.54);
+        if (art.propScoreboard) {
+          ctx.drawImage(art.propScoreboard, GUILD_BOARD_POS.x - 22, GUILD_BOARD_POS.y - 31, 44, 44);
+        }
+      },
+    });
 
     // Schmied Kael standing right in front of Exo-Schmiede
     drawables.push({
@@ -564,13 +593,19 @@ export class HubScene {
     ctx.textAlign = 'center';
     const pills = [
       { text: 'SCHMIEDE', x: 144, y: 40, color: '#fb923c' },
+      { text: '★ KAPITÄNS-TAFEL', x: GUILD_BOARD_POS.x, y: 48, color: '#fde047' },
       { text: 'MED-BAY', x: 356, y: 24, color: '#34d399' },
       { text: 'SCHWARZMARKT', x: 120, y: 148, color: '#c084fc' },
       { text: 'TECH-LABOR', x: 358, y: 148, color: '#38e8d4' },
       { text: 'RAUMHAFEN →', x: 416, y: 90, color: '#38e8d4' },
     ];
-    if (this.state.sector1Cleared) {
-      pills.push({ text: '★ S2 SCHLÜSSEL', x: 416, y: 101, color: '#fde047' });
+    const keysLit =
+      (this.state.sector1Cleared ? 1 : 0) +
+      (this.state.sector2Cleared ? 1 : 0) +
+      (this.state.sector3Cleared ? 1 : 0) +
+      (this.state.sector4Cleared ? 1 : 0);
+    if (keysLit > 0) {
+      pills.push({ text: `★ ${keysLit}/4 SCHLÜSSEL`, x: 416, y: 101, color: '#fde047' });
     }
     for (const p of pills) {
       const w = Math.ceil(ctx.measureText(p.text).width) + 10;
