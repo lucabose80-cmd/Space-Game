@@ -41,6 +41,7 @@ import type {
   WeaponId,
   WeeklyTrialInfo,
   WeeklyTrialRecord,
+  WeeklyTrialResultSummary,
 } from '../types';
 import { createInitialCodex, decayDemandForNewDay, getOptimalCodexPrice } from './economy';
 import {
@@ -52,7 +53,17 @@ import {
   createEmptyInventory,
   ensureChestCapacity,
 } from './inventory';
-import { sanitizeBadgeHistory, sanitizeTrialRecord } from './weeklyTrial';
+import {
+  computeTrialScore,
+  countBadges,
+  formatWeekLabel,
+  getTrialBadge,
+  isBetterBadge,
+  sanitizeBadgeHistory,
+  sanitizeTrialRecord,
+  TRIAL_COMBAT_LEVELS,
+  trimBadgeHistory,
+} from './weeklyTrial';
 
 const SAVE_KEY = 'starlighter_save_v2';
 const LEGACY_SAVE_KEY = 'starlighter_save_v1';
@@ -340,8 +351,10 @@ export class GameState {
   }
 
   public getStats() {
-    const base = getPlayerCombatStats(this.upgrades);
-    const buff = this.activeAlchemyBuff;
+    // Galaktische Prüfung: normierte Kampf-Stufen, kein Alchemie-Buff (Shop-Upgrades bleiben unberührt)
+    const trialActive = this.activeTrial !== null;
+    const base = getPlayerCombatStats(trialActive ? { ...this.upgrades, ...TRIAL_COMBAT_LEVELS } : this.upgrades);
+    const buff = trialActive ? null : this.activeAlchemyBuff;
     const dmgMult = buff === 'solar_espresso' ? 1.2 : 1.0;
     const maxHpMult = buff === 'aegis_tonic' ? 1.25 : 1.0;
     const extraStim = buff === 'aegis_tonic' ? 1 : 0;
@@ -984,6 +997,8 @@ export class GameState {
     grant('spiral_walker', (this.records.deepestRiftFloor ?? 0) >= 6);
     grant('master_haggler', this.haggleWinsTotal >= 10);
     grant('guild_patron', anyTier3Patron);
+    grant('trial_runner', Boolean(this.weeklyTrial?.completed) || Object.keys(this.trialBadgeHistory).length > 0);
+    grant('trial_gold', Object.values(this.trialBadgeHistory).includes('gold'));
 
     if (persist && newly.length > 0) {
       this.save();
@@ -1247,6 +1262,7 @@ export class GameState {
 
   // ==================== ELEMENTAR-PRÄGUNGEN (MEILENSTEIN 7) ====================
   public getActiveInfusion(weaponId: WeaponId = this.equippedWeapon): InfusionId {
+    if (this.activeTrial) return 'none'; // Prüfung: keine Prägungen (faire Ausgangslage)
     return this.weaponInfusions[weaponId] ?? 'none';
   }
 
@@ -1377,6 +1393,70 @@ export class GameState {
       meta.accent,
     );
     return isNewRecord;
+  }
+
+  // ==================== MEILENSTEIN 9: WÖCHENTLICHE GALAKTISCHE PRÜFUNG ====================
+  /** Freigeschaltet ab Sektor 1 (bleibt nach NG+-Reset durch ngPlusLevel/omegaCleared erhalten). */
+  public isWeeklyTrialUnlocked(): boolean {
+    return this.sector1Cleared || this.omegaCleared || this.ngPlusLevel >= 1;
+  }
+
+  public recordWeeklyTrialResult(input: {
+    weekId: string;
+    sector: 1 | 2 | 3 | 4;
+    completed: boolean;
+    timeSec: number;
+    floorReached: number;
+    roomsCleared: number;
+  }): WeeklyTrialResultSummary {
+    let rec = this.weeklyTrial;
+    if (!rec || rec.weekId !== input.weekId) {
+      rec = {
+        weekId: input.weekId,
+        sector: input.sector,
+        attempts: 0,
+        completed: false,
+        bestTimeSec: null,
+        bestFloorReached: 0,
+        bestRoomsCleared: 0,
+        bestScore: 2_000_000,
+        badge: null,
+        uploaded: true,
+      };
+    }
+    rec.attempts += 1;
+    const score = computeTrialScore(input);
+    const isNewBest = score < rec.bestScore;
+    if (isNewBest) {
+      rec.sector = input.sector;
+      rec.completed = input.completed;
+      rec.bestTimeSec = input.completed ? Math.max(1, Math.round(input.timeSec)) : null;
+      rec.bestFloorReached = Math.max(0, Math.min(3, input.floorReached));
+      rec.bestRoomsCleared = Math.max(0, input.roomsCleared);
+      rec.bestScore = score;
+      rec.badge = getTrialBadge(input.sector, input.completed, input.timeSec);
+      rec.uploaded = false;
+      if (rec.badge && isBetterBadge(rec.badge, this.trialBadgeHistory[input.weekId] ?? null)) {
+        this.trialBadgeHistory[input.weekId] = rec.badge;
+        this.trialBadgeHistory = trimBadgeHistory(this.trialBadgeHistory);
+      }
+      const label = formatWeekLabel(input.weekId);
+      this.logMilestone(
+        input.completed
+          ? `Bestand die Galaktische Prüfung ${label} in ${formatDurationSec(input.timeSec)}${rec.badge ? ` (${rec.badge === 'gold' ? 'Gold' : rec.badge === 'silver' ? 'Silber' : 'Bronze'})` : ''}!`
+          : `Wagte die Galaktische Prüfung ${label} (Ebene ${rec.bestFloorReached}/3).`,
+        'PRÜFUNG',
+        '#fde047',
+      );
+    }
+    this.weeklyTrial = rec;
+    this.checkAchievements(false);
+    this.save();
+    return { isNewBest, badge: rec.badge, record: { ...rec } };
+  }
+
+  public getTrialBadgeCounts(): { gold: number; silver: number; bronze: number } {
+    return countBadges(this.trialBadgeHistory);
   }
 
   public startNewGamePlus(): void {

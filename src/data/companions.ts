@@ -270,4 +270,6 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
   { id: 'spiral_walker', icon: '🌀', title: 'Spiral-Läufer', desc: 'Erreiche Ebene 6 in der Unendlichen Spirale (Endlos-Rift).' },
   { id: 'master_haggler', icon: '🤝', title: 'Meister-Feilscher', desc: 'Schließe 10 Verhandlungen in Astro-Barter erfolgreich ab.' },
   { id: 'guild_patron', icon: '🏛️', title: 'Gilden-Ehrengast', desc: 'Erreiche Rufstufe 3 bei einem Stammkunden der Händler-Gilde.' },
+  { id: 'trial_runner', icon: '🏅', title: 'Galaktischer Prüfling', desc: 'Schließe eine Galaktische Prüfung am 5. Tor ab.' },
+  { id: 'trial_gold', icon: '🥇', title: 'Gold-Kapitän', desc: 'Erreiche ein Gold-Abzeichen in einer Galaktischen Prüfung.' },
 ];

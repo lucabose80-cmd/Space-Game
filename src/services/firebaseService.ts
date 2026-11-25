@@ -340,6 +340,10 @@ class FirebaseCloudService {
       achievementIds: state.unlockedAchievements.slice(0, 32),
       riftsCleared: state.records.riftsCleared ?? 0,
       ghostGreeting: sanitizeGreeting(state.ghostGreeting),
+      trialBadges: state.getTrialBadgeCounts(),
+      ...(state.weeklyTrial?.completed && state.weeklyTrial.bestTimeSec
+        ? { bestTrialWeekId: state.weeklyTrial.weekId, bestTrialTimeSec: state.weeklyTrial.bestTimeSec }
+        : {}),
     };
   }
 
