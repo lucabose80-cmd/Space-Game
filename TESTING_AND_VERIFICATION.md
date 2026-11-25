@@ -106,6 +106,17 @@ await cdp.evalJs(`(async () => {
 | **Vite-HMR / Firebase-Netzwerk-Meldungen im VM-Offline-Test** | In der isolierten Test-VM gibt es ggf. keinen direkten Zugriff auf `firestore.googleapis.com` oder `favicon.ico`. | Beim Auswerten von `cdp.errors` nur `favicon`, `firestore` und `googleapis` filtern; alle JS-Exceptions (`Runtime.exceptionThrown`) immer hart fehlschlagen lassen. |
 | **Modal-Header-Buttons brechen unschön um** | Pixel-Font (`Silkscreen`) ist breit bei langen Titeln + 3 Tabs + `ESC ✕`. | `white-space: nowrap` auf Titel, Tabs und Close-Button + `max-width: 670px–680px` am `.modal-window`. |
 | **Unklare `UIManager` / `DungeonScene` Mock-Callbacks** | `UIManager` erwartet `UIHooks`, `DungeonScene` erwartet `DungeonCallbacks`. | Immer `{ onStartNewGame: () => {}, onContinueGame: () => {}, onToggleShopOpen: () => {}, onSwapWeapon: () => {}, onModalStateChange: () => {}, onMuteToggle: () => {}, onMusicToggle: () => {} }` bzw. `{ onReturnToHub: () => {}, onOpenDungeonChest: () => {}, onToast: () => {}, onHudDirty: () => {} }` übergeben. |
+| **Prüfungs-Uploads scheitern (M9)** | Die Regeln für `weeklyTrials/{weekId}/entries/{uid}` sind nicht in der Firebase-Konsole veröffentlicht (Vercel deployt `firestore.rules` NICHT). | Regeln aus `firestore.rules` in Firebase → Firestore → Regeln einfügen & veröffentlichen. Bis dahin bleibt `weeklyTrial.uploaded = false` und der Upload wird bei jedem Sync erneut versucht. |
+| **Test-Mocks mit `Proxy` schlucken Zuweisungen (M9)** | Ein `new Proxy({}, { get: () => () => {} })` überschreibt per `get`-Trap auch zuvor gesetzte Callbacks. | Für Callbacks, die du prüfen willst, ein normales Objekt mit expliziten Funktionen verwenden. |
+| **Geseedeter Zufall bleibt aktiv (M9)** | `withSeededRandom` patcht `Math.random` global. | Nur um **synchrone** Generatoren verwenden; `try/finally` stellt das Original wieder her. Test: `Math.random` vor/nach dem Aufruf vergleichen (auch nach geworfener Exception). |
+
+### 3.1 Test-Hooks für Meilenstein 9
+
+- `galacticNetwork.setGhostPoolForTest([...])` / `(null)` — Geister-Pool ohne Netzwerk erzwingen; `ShopScene.spawnCustomer(true)` erzwingt den Geister-Wurf.
+- `setMarketTrendOverrideForTest('crystal_boom' | null)` — Trend erzwingen; alternativ `getTodayMarketTrend(new Date(...))` mit festem Datum.
+- `getIsoWeekId(new Date(...))`, `getCurrentWeeklyTrial(new Date(...))` — deterministische Wochen-Tests (`2026-01-01` → `2026-W01`, `2027-01-01` → `2026-W53`).
+- Seed-Vergleich: zwei Aufrufe `withSeededRandom('x', () => generateSectorFloor(2, 1))` müssen identische `JSON.stringify([...floor.rooms.entries()])` liefern; ohne Seed müssen sie sich unterscheiden.
+- Prüfungs-Invarianten testen: nach `startWeeklyTrial(info)` + Boss-`onEnemyKilled` + `triggerDefeat()`/`triggerSafeWarp()` müssen `credits`, `inventory`, `bossDefeatedCount`, `sectorNCleared` unverändert sein.
 
 ---
 

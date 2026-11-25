@@ -1,6 +1,6 @@
 # Architektur- & Vorgehensplan: Meilenstein 9 — Galaktisches Netzwerk & Lebendige Community
 
-> **Status:** 🔜 Geplant — Umsetzungsvorlage für einen KI-Coding-Agent (z. B. Sonnet)
+> **Status:** ✅ Umgesetzt auf Branch `claude/architektur-vorgehensplan-lgme5i` (Phasen 0–5) — siehe Abschnitt 10 „Umsetzungsnotizen“
 > **Basis:** `main` nach Meilenstein 8 (`SaveData v9`, Firebase `starlighter-15b1f`, Architektur-Split)
 > **Ziel-Save-Version:** `SAVE_VERSION = 10`
 > **Quelle der Anforderungen:** [GAME_DESIGN_DOCUMENT.md §5](GAME_DESIGN_DOCUMENT.md) (Roadmap M9, Punkte 1–4)
@@ -573,3 +573,18 @@ trialBadgeHistory?: Record<string, TrialBadge>;
 - [TESTING_AND_VERIFICATION.md](TESTING_AND_VERIFICATION.md) — Build-, Invarianten- & CDP-Harness
 - [ART_AND_DESIGN_GUIDE.md](ART_AND_DESIGN_GUIDE.md) — UI-Regeln & Farbpaletten
 - [firestore.rules](firestore.rules) — Sicherheitsregeln
+
+---
+
+## 10. Umsetzungsnotizen (Abweichungen & Ergänzungen zum Plan)
+
+- **`WeeklyTrialInfo`** liegt in `types.ts` (statt in `weeklyTrial.ts`) und wird von dort re-exportiert — vermeidet einen Zirkelbezug `gameState ↔ weeklyTrial`.
+- **Upload-Logik** (`submitWeeklyTrialEntry`, `fetchWeeklyTrialEntries`, `buildWeeklyTrialEntry`) lebt in `firebaseService.ts`; `galacticNetwork.ts` delegiert und cached nur (Import-Zirkel `firebaseService ↔ galacticNetwork` vermieden). `syncAllToCloud` holt ausstehende Prüfungs-Uploads automatisch nach.
+- **Prüfungs-Freischaltung:** `GameState.isWeeklyTrialUnlocked()` = `sector1Cleared || omegaCleared || ngPlusLevel ≥ 1` (NG+ setzt `sectorNCleared` zurück, die Prüfung soll aber verfügbar bleiben).
+- **5. Tor:** Die Spirale ist jetzt ab `omegaCleared` erreichbar (vorher zusätzlich 4/4 Siegel nötig, was nach NG+ zu einem unbeabsichtigten Lock führte). Omega bleibt an 4/4 Siegel gebunden.
+- **Rift-Risse in der Prüfung:** werden nach der geseedeten Generierung entfernt (Portale + `rift:*`-Kammern), damit Layout für alle gleich bleibt und kein Beute-Pfad existiert.
+- **Boss-Guard:** statt eines frühen `return` ist der Prüfungs-Zweig der erste Zweig der Boss-`if`-Kette in `onEnemyKilled` (Gegner-Spezialeffekte wie Magma-Eruption laufen weiter).
+- **Prüfungs-Abbruch:** jeder Extraktions-/Warp-Pfad (`triggerSafeWarp`) → Abbruch (keine Gebühr); Sieg nur mit `reason === 'boss_victory' && currentFloor ≥ 3 && floorBossDefeated`.
+- **Par-Zeiten** sind Startwerte (§4.4.2) und sollten nach echten Spieldaten justiert werden.
+- **Manuell nötig:** Firestore-Regeln in der Firebase-Konsole veröffentlichen (siehe §4.6).
+- **Verifikation:** Phasen-Tests per Headless-Chromium (Playwright) — Seeds/Determinismus, Save-Migration v9→v10, Trend-Preise, Geister-Trinkgeld (+10 %), Prüfungs-Invarianten (keine Credits/Inventar-/Progressions-Änderung), 5.-Tor-Modal, Ergebnis-/Ranglisten-Ansichten (Desktop + Mobile); Zero-Dungeon-Credits-`rg` = 0 Treffer.

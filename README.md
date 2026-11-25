@@ -4,7 +4,7 @@ Ein **Cozy Retro-Sci-Fi Action-RPG & Space-Shop-Spiel** im Browser, inspiriert v
 
 Bei Tag betreibst du deinen Relikt- und Bergungsladen **Astro-Barter** auf der Frontier-Raumstation **Port Solaris** – bei Nacht (oder auf Expedition) plünderst du prozedurale Raumschiff-Wracks, Kristall-Nebel, Solar-Gießereien, Ältesten-Monolithen und instabile Dimensions-Rifts nach wertvoller Alien-Technologie.
 
-## Features (Version 1.1)
+## Features (Version 1.2)
 
 - **Vollständige Galaxie (4 Sektoren + 5. Tiefenraum-Tor + Endlos-Rift):**
   - **Sektor 1 (*Verlassene Korvette*):** 3 Ebenen & 3 Bosse (*Schott-Brecher MK-II* → *Core-Wächter MK-IV* → **A.E.G.I.S. LEVIATHAN**).
@@ -21,6 +21,8 @@ Bei Tag betreibst du deinen Relikt- und Bergungsladen **Astro-Barter** auf der F
   - Privates Hinterzimmer mit Chrono-Ruhekapsel (Tag ↔ Nacht), **4 Begleiter-Drohnen** (*Puck*, *Spark*, *Luma*, *Halo*), **Sternen-Jukebox**, **5 Anzug-Farbschemata** & Trophäen-Sockel.
 - **Firebase Cloud-Save & In-Game Kapitäns-Tafel (`Port Solaris`):**
   - Direkt begehbares **★ Kapitäns-Tafel**-Terminal auf der Promenade mit **Google- & E-Mail-Login**, automatischem **Handy ↔ PC Cloud-Sync**, **Live-Expeditionstimer (`⏱ mm:ss`)**, **Tag/Nacht-Rekorden**, **Live-Aktivitäts-Feed** & Ranglisten (*Fortschritt*, *🌀 Tiefster Rift*, *Sektor-Zeit*, *Tage*, *Händler*).
+- **Galaktisches Netzwerk (Meilenstein 9):**
+  - **Klickbare Kapitäns-Akten** an der Kapitäns-Tafel, **globale Markt-Konjunktur** (weltweiter Tages-Trend), **Geister-Kapitäne** als Holo-Kunden in deinem Laden (+10 % Gilden-Trinkgeld) und die **🏅 Wöchentliche Galaktische Prüfung** am 5. Tor (gleiches Layout & normierte Ausrüstung für alle, Wochen-Rangliste & Gold/Silber/Bronze-Abzeichen).
 - **HD-Pixel-Art (`960×540`), Mobile-Touch & Gamepad:**
   - Gestochen scharfe Pixel-Art, responsiver virtueller Analog-Stick, nativer HTML5-Controller-Support, Web-Audio-Synth-Soundtrack & JSON-Savegame-Export/Import.
 
@@ -43,7 +45,8 @@ Bei Tag betreibst du deinen Relikt- und Bergungsladen **Astro-Barter** auf der F
 ## Projekt-Dokumentation (für Entwickler & KI-Agents)
 
 - **[AGENTS.md](AGENTS.md)** — Einstiegs-Leitfaden für KI-Coding-Agents (Regeln, Architektur-Kurzreferenz & „How to Add X“).
-- **[GAME_DESIGN_DOCUMENT.md](GAME_DESIGN_DOCUMENT.md)** — Aktueller Stand (v1.1), Meilensteine 1–7, Codebase-Karte & Phase-2-Roadmap (M8–M10).
+- **[GAME_DESIGN_DOCUMENT.md](GAME_DESIGN_DOCUMENT.md)** — Aktueller Stand (v1.2), Meilensteine 1–9, Codebase-Karte & Phase-2-Roadmap (M10-A).
+- **[MILESTONE_9_ARCHITECTURE.md](MILESTONE_9_ARCHITECTURE.md)** — Architektur & Umsetzung des Galaktischen Netzwerks (Save v10).
 - **[ART_AND_DESIGN_GUIDE.md](ART_AND_DESIGN_GUIDE.md)** — HD-Pixel-Art-Prompt-Formeln, Flood-Fill-Freistellung, Farbpaletten & UI-Regeln.
 - **[TESTING_AND_VERIFICATION.md](TESTING_AND_VERIFICATION.md)** — Build-, Invarianten- & Headless-Chrome-CDP-Test-Playbook.
 
