@@ -11,6 +11,7 @@ export interface BackroomCallbacks {
   onReturnToShop: () => void;
   onOpenChest: () => void;
   onOpenLogbook: () => void;
+  onOpenWeaponRack: () => void;
   onOpenCompanionDock: () => void;
   onOpenJukebox: () => void;
   onAdvanceTime: () => void;
@@ -257,13 +258,13 @@ export class BackroomScene {
     // 5. Eingebaute Garderobe & Kapitäns-Logbuch (unten links)
     if (Math.hypot(this.playerX - WEAPON_RACK_POS.x, this.playerY - WEAPON_RACK_POS.y) < 28) {
       this.activePrompt = {
-        label: '[E] Anzug-Stil, Logbuch & Savegame',
+        label: '[E] Waffenschrank (Haupt- & Zweitwaffe)',
         x: WEAPON_RACK_POS.x + 14,
         y: WEAPON_RACK_POS.y - 22,
       };
       if (input.interactPressed()) {
         sound.playUiClick();
-        this.callbacks.onOpenLogbook();
+        this.callbacks.onOpenWeaponRack();
       }
       return;
     }

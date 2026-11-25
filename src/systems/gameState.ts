@@ -762,6 +762,13 @@ export class GameState {
     return true;
   }
 
+  /** M10-C: Zweitwaffe entfernen (Slot ② leeren). */
+  public clearSecondaryWeapon(): void {
+    if (this.secondaryWeapon === null) return;
+    this.secondaryWeapon = null;
+    this.save();
+  }
+
   public equipWeapon(weaponId: WeaponId, slot: 'primary' | 'secondary' = 'primary'): void {
     if (!this.unlockedWeapons[weaponId]) return;
     if (slot === 'primary') {

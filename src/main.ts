@@ -183,6 +183,7 @@ class StarlighterGame {
       onReturnToShop: () => this.transitionTo('shop', 'backroom'),
       onOpenChest: () => this.ui.openInventoryModal(true, 'bag'),
       onOpenLogbook: () => this.ui.openLogbookModal(),
+      onOpenWeaponRack: () => this.ui.openLoadoutModal(),
       onOpenCompanionDock: () => this.ui.openCompanionDockModal(),
       onOpenJukebox: () => this.ui.openJukeboxModal(),
       onAdvanceTime: () => this.handleAdvanceTime(),

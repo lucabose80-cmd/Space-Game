@@ -89,6 +89,7 @@ import {
   renderTrialGateCardHtml,
   renderWeeklyTrialResultHtml,
 } from './NetworkModals';
+import { bindLoadout, renderLoadoutHtml } from './LoadoutPanel';
 import { renderChronicleHtml, StoryDialogController, type StoryDialogOptions, type StoryHost } from './StoryModals';
 
 export interface UIHooks {
@@ -298,7 +299,7 @@ export class UIManager {
           ? 'Kunden stöbern! Geh rechts hinter den Tresen [E] (VIP/Stammkunden: Feilschen!) · Diebe fangen [SPACE]!'
           : 'Podeste [E] · Schnell-Nachfüllen [F] · Hinten links: Quartier · Laden öffnen [O]'
         : this.currentScene === 'backroom'
-          ? 'Kapitäns-Quartier: Ruhekoje, Drohnen-Dock, Trophäen-Altar, Jukebox, Anzug-Stil/Logbuch & Lagertruhen!'
+          ? 'Kapitäns-Quartier: Ruhekoje, Drohnen-Dock, Trophäen-Altar, Jukebox, Waffenschrank (Logbuch & Anzug-Stil darin) & Lagertruhen!'
           : this.currentScene === 'hub'
             ? isNight
               ? '🌙 Nacht-Bonus (+35 % Rar-Loot) · Unten: Marktplatz-Terrasse (Alchemie & Bank) · Rechts: Raumhafen!'
@@ -655,6 +656,33 @@ export class UIManager {
   }
 
   // ==================== INVENTORY, CHEST, SCAN-CODEX & KAPITÄNS-LOGBUCH ====================
+  /** M10-C: Waffenschrank im Hinterzimmer – Haupt- & Zweitwaffe; Logbuch/Anzug/Savegame bleiben erreichbar. */
+  public openLoadoutModal(): void {
+    this.showModalHtml(`
+      <div class="modal-window">
+        <div class="modal-header">
+          <span class="modal-title" style="white-space:nowrap">WAFFENSCHRANK</span>
+          <button id="modal-close-btn" class="modal-close" style="white-space:nowrap">ESC ✕</button>
+        </div>
+        <div class="modal-body" style="display:flex;flex-direction:column;gap:10px">
+          ${renderLoadoutHtml(this.state)}
+          <div style="display:flex;justify-content:flex-end">
+            <button id="btn-rack-logbook" class="btn">📖 Logbuch, Anzug &amp; Savegame</button>
+          </div>
+        </div>
+      </div>
+    `);
+    bindLoadout(this.modalEl, this.state, () => {
+      sound.playWeaponSwap();
+      this.openLoadoutModal();
+      this.renderHud();
+    });
+    this.modalEl.querySelector('#btn-rack-logbook')?.addEventListener('click', () => {
+      sound.playUiClick();
+      this.openLogbookModal();
+    });
+  }
+
   public openLogbookModal(): void {
     this.openInventoryModal(true, 'logbook');
   }
@@ -724,30 +752,7 @@ export class UIManager {
       const selPin = selDef ? this.state.getPinnedItemNeed(selDef.id) : null;
 
       // Active Weapon Loadout Strip (all 6 Frontier weapon classes!)
-      const unlockedList = (['blade', 'spear', 'fists', 'discus', 'blaster', 'hammer'] as WeaponId[]).filter(
-        (id) => this.state.unlockedWeapons[id],
-      );
-      const weaponBarHtml = `
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:8px 10px;background:var(--panel-bg-soft);border:1px solid var(--border-steel)">
-          <span style="font-family:var(--font-pixel);font-size:10px;color:var(--text-muted)">AUSGERÜSTETE WAFFE:</span>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            ${unlockedList
-              .map((wid) => {
-                const m = WEAPON_META[wid];
-                const isMain = this.state.equippedWeapon === wid;
-                const isSec = this.state.secondaryWeapon === wid;
-                return `
-                  <button class="btn btn-equip-bag" data-wid="${wid}" style="padding:5px 10px;font-size:9.5px;display:inline-flex;align-items:center;gap:5px;border-color:${isMain ? m.accentColor : isSec ? '#64748b' : 'var(--border-steel)'}">
-                    <img src="${m.iconUrl}" alt="${m.name}" style="width:16px;height:16px;image-rendering:pixelated" />
-                    <span>${m.name}</span>
-                    ${isMain ? '<span style="color:var(--accent-emerald)">(AKTIV)</span>' : isSec ? '<span style="color:var(--text-muted)">(2.)</span>' : ''}
-                  </button>
-                `;
-              })
-              .join('')}
-          </div>
-        </div>
-      `;
+      const weaponBarHtml = renderLoadoutHtml(this.state, { compact: true });
 
       const inspectorHtml =
         selDef && selStack && selEntry && selRarity
@@ -1094,14 +1099,10 @@ export class UIManager {
       }
     });
 
-    this.modalEl.querySelectorAll<HTMLElement>('.btn-equip-bag').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const wid = btn.dataset.wid as WeaponId;
-        this.state.equipWeapon(wid, 'primary');
-        sound.playWeaponSwap();
-        this.renderInventoryModal();
-        this.renderHud();
-      });
+    bindLoadout(this.modalEl, this.state, () => {
+      sound.playWeaponSwap();
+      this.renderInventoryModal();
+      this.renderHud();
     });
 
     this.modalEl.querySelectorAll<HTMLElement>('.inv-slot').forEach((el) => {
@@ -1547,22 +1548,8 @@ export class UIManager {
           .map((_, idx) => `<span class="pip ${idx < curLvl ? 'filled' : ''}"></span>`)
           .join('');
 
-        const equipControls = wid
-          ? (() => {
-              const isMain = this.state.equippedWeapon === wid;
-              const isSec = this.state.secondaryWeapon === wid;
-              return `
-                <div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap">
-                  <button class="btn btn-equip-forge" data-wid="${wid}" data-slot="primary" style="padding:4px 8px;font-size:9px;${isMain ? 'border-color:var(--accent-emerald);color:var(--accent-emerald)' : ''}" ${isMain ? 'disabled' : ''}>
-                    ${isMain ? '✓ Hauptwaffe' : 'Als Hauptwaffe'}
-                  </button>
-                  <button class="btn btn-equip-forge" data-wid="${wid}" data-slot="secondary" style="padding:4px 8px;font-size:9px;${isSec ? 'border-color:var(--accent-cyan);color:var(--accent-cyan)' : ''}" ${isSec || isMain ? 'disabled' : ''}>
-                    ${isSec ? '✓ 2. Slot [C]' : 'In 2. Slot [C]'}
-                  </button>
-                </div>
-              `;
-            })()
-          : '';
+        // M10-C: Ausrüsten läuft über das Loadout-Panel oben (keine Knöpfe mehr je Karte)
+        const equipControls = '';
 
         if (!nextTier) {
           return `
@@ -1666,6 +1653,7 @@ export class UIManager {
         </div>
         <div class="modal-body">
           ${npcBanner}
+          ${isForge ? renderLoadoutHtml(this.state, { compact: true }) : ''}
           <div class="upgrade-list">${cardsHtml}</div>
         </div>
       </div>
@@ -1709,16 +1697,13 @@ export class UIManager {
       });
     });
 
-    this.modalEl.querySelectorAll<HTMLElement>('.btn-equip-forge').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const wid = btn.dataset.wid as WeaponId;
-        const slot = btn.dataset.slot as 'primary' | 'secondary';
-        this.state.equipWeapon(wid, slot);
+    if (isForge) {
+      bindLoadout(this.modalEl, this.state, () => {
         sound.playWeaponSwap();
         this.openStationShopModal(shop);
         this.renderHud();
       });
-    });
+    }
 
     this.modalEl.querySelectorAll<HTMLElement>('.btn-buy-upgrade').forEach((btn) => {
       btn.addEventListener('click', () => {

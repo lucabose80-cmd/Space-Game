@@ -1931,3 +1931,153 @@ body.touch-device #touch-deck.touch-stacked .touch-right {
   font-size: 9.5px;
   white-space: nowrap;
 }
+
+
+/* M10-C: Waffen-Loadout-Panel (Waffenschrank, Fracht, Schmiede) */
+.loadout {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lo-slots {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lo-slot {
+  flex: 1 1 180px;
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--panel-bg-soft);
+  border: 2px solid var(--border-steel);
+}
+
+.lo-slot.main {
+  border-color: var(--lo-accent, var(--accent-emerald));
+}
+
+.lo-slot.sec {
+  border-color: var(--lo-accent, var(--accent-cyan));
+  border-style: dashed;
+}
+
+.lo-slot.empty {
+  opacity: 0.7;
+  justify-content: center;
+}
+
+.lo-slot-label {
+  font-family: var(--font-pixel);
+  font-size: 9px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.lo-slot-body,
+.lo-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lo-slot-empty {
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.lo-icon {
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+}
+
+.lo-icon.small {
+  width: 22px;
+  height: 22px;
+}
+
+.lo-name {
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  color: #fff;
+}
+
+.lo-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.lo-swap {
+  align-self: center;
+  min-height: 36px;
+  white-space: nowrap;
+}
+
+.lo-clear {
+  align-self: flex-start;
+  min-height: 30px;
+  font-size: 9px;
+}
+
+.lo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lo-card {
+  padding: 5px 8px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border-steel);
+}
+
+.lo-card.is-main {
+  border-color: var(--lo-accent, var(--accent-emerald));
+}
+
+.lo-card.is-sec {
+  border-color: #64748b;
+}
+
+.lo-card-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.lo-card-btns {
+  display: flex;
+  gap: 5px;
+}
+
+.lo-assign {
+  min-height: 36px;
+  min-width: 48px;
+  padding: 4px 8px;
+  font-size: 10px;
+}
+
+.loadout.compact .lo-icon {
+  width: 24px;
+  height: 24px;
+}
+
+@media (max-width: 540px) {
+  .lo-slots {
+    flex-direction: column;
+  }
+  .lo-slot {
+    flex: 0 0 auto;
+  }
+  .lo-swap {
+    align-self: stretch;
+  }
+}
