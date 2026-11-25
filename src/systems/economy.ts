@@ -1,4 +1,5 @@
 import { getItemDef, ITEMS } from '../data/items';
+import { getMarketTrendMultiplier } from '../data/marketTrends';
 import type { CodexEntry, DemandLevel, PriceReaction } from '../types';
 
 export function createInitialCodex(): Record<string, CodexEntry> {
@@ -46,7 +47,9 @@ export function getEffectiveFairPrice(itemId: string, entry: CodexEntry): number
   const def = getItemDef(itemId);
   const demandMult = getDemandMultiplier(getDemandLevel(entry));
   const smugglerMult = def.modifier === 'smuggler' ? 1.15 : 1.0;
-  return Math.round(def.baseValue * demandMult * smugglerMult);
+  // Milestone 9: Globale Markt-Konjunktur (weltweiter Tages-Trend, offline-deterministisch)
+  const trendMult = getMarketTrendMultiplier(itemId);
+  return Math.round(def.baseValue * demandMult * smugglerMult * trendMult);
 }
 
 /**
@@ -127,7 +130,7 @@ export function getSuggestedStartPrice(itemId: string, entry?: CodexEntry): numb
   if (entry?.minFairPrice !== null && entry?.minFairPrice !== undefined) return entry.minFairPrice;
   // Slightly rounded guess so player still gets the fun of discovering exact sweet spot
   const def = getItemDef(itemId);
-  return Math.max(10, Math.round((def.baseValue * 0.9) / 5) * 5);
+  return Math.max(10, Math.round((def.baseValue * 0.9 * getMarketTrendMultiplier(itemId)) / 5) * 5);
 }
 
 /**

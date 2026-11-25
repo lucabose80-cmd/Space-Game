@@ -11,6 +11,7 @@ import {
 } from '../data/companions';
 import { ALCHEMY_BUFFS } from '../data/guildMarket';
 import { getInfusionDef, INFUSIONS } from '../data/infusions';
+import { getTodayMarketTrend } from '../data/marketTrends';
 import { getItemDef, ITEMS, RARITY_META } from '../data/items';
 import { UPGRADE_TRACKS, WEAPON_META } from '../data/upgrades';
 import { sound } from '../engine/audio';
@@ -63,7 +64,7 @@ import {
   renderTradeBankModal,
   type MarketModalHost,
 } from './MarketModals';
-import { escapeHtml, renderCaptainFileHtml } from './NetworkModals';
+import { escapeHtml, renderCaptainFileHtml, renderTrendBannerHtml, renderTrendPillHtml } from './NetworkModals';
 
 export interface UIHooks {
   onStartNewGame: () => void;
@@ -288,7 +289,15 @@ export class UIManager {
         ? `<div style="margin-top:2px;padding:2px 6px;border:1px solid #4ade80;background:rgba(6,58,40,0.88);font-family:var(--font-pixel);font-size:8px;color:#4ade80;text-align:center" title="Handelsroute abgeschlossen — auf der Marktplatz-Terrasse abholen!">🏦 AUSZAHLUNG BEREIT</div>`
         : '';
 
+    const trend = getTodayMarketTrend();
+    const trendPillHtml =
+      trend.id !== 'calm' &&
+      (this.currentScene === 'shop' || this.currentScene === 'hub' || this.currentScene === 'market_terrace')
+        ? `<div style="margin-top:2px;padding:2px 6px;border:1px solid ${trend.accent};background:rgba(15,23,42,0.85);font-family:var(--font-pixel);font-size:8px;color:${trend.accent};text-align:center" title="Globale Markt-Konjunktur: ${trend.description}">${trend.icon} ${trend.name.toUpperCase()}</div>`
+        : '';
+
     const eventPillHtml =
+      trendPillHtml +
       (this.state.marketEvent !== 'normal' && (this.currentScene === 'shop' || this.currentScene === 'hub')
         ? `<div style="margin-top:2px;padding:2px 6px;border:1px solid ${evMeta.color};background:rgba(15,23,42,0.85);font-family:var(--font-pixel);font-size:8px;color:${evMeta.color};text-align:center" title="${evMeta.description}">★ ${evMeta.shortBadge}</div>`
         : '') +
@@ -717,7 +726,7 @@ export class UIManager {
                 <div style="flex:1;min-width:0">
                   <div style="display:flex;justify-content:space-between;align-items:center;gap:6px">
                     <strong style="font-family:var(--font-pixel);font-size:11px;color:${rarity.color}">${item.name}</strong>
-                    <span style="font-size:10px;color:${demand.color}">${demand.arrow} ${demand.text.split(' ')[0]}</span>
+                    <span style="display:inline-flex;gap:5px;align-items:center">${renderTrendPillHtml(item.id)}<span style="font-size:10px;color:${demand.color}">${demand.arrow} ${demand.text.split(' ')[0]}</span></span>
                   </div>
                   <div class="codex-hints" style="margin-top:5px">
                     <div class="codex-hint-chip"><span style="color:#38e8d4">★ Billig</span><span>${entry.maxCheapPrice ? `≤${entry.maxCheapPrice}` : '—'}</span></div>
@@ -1057,7 +1066,7 @@ export class UIManager {
         <div class="price-panel">
           <div style="display:flex;justify-content:space-between;align-items:center">
             <strong style="font-family:var(--font-pixel);font-size:12px;color:#fff">${selDef.name}</strong>
-            <span style="font-size:11px;color:${demand.color}">${demand.arrow} ${demand.text}</span>
+            <span style="display:inline-flex;gap:6px;align-items:center">${renderTrendPillHtml(selDef.id)}<span style="font-size:11px;color:${demand.color}">${demand.arrow} ${demand.text}</span></span>
           </div>
 
           <div class="price-readout">${this.pickedPrice} CR</div>
@@ -3133,7 +3142,7 @@ export class UIManager {
           </div>
           <button id="modal-close-btn" class="modal-close" style="white-space:nowrap">ESC ✕</button>
         </div>
-        <div class="modal-body">${bodyHtml}</div>
+        <div class="modal-body">${renderTrendBannerHtml()}${bodyHtml}</div>
       </div>
     `);
 

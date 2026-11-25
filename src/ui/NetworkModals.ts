@@ -5,6 +5,7 @@
  */
 import { ACHIEVEMENT_DEFS, SUIT_THEMES } from '../data/companions';
 import { getInfusionDef } from '../data/infusions';
+import { getMarketTrendPctLabel, getTodayMarketTrend } from '../data/marketTrends';
 import { WEAPON_META } from '../data/upgrades';
 import { formatDurationSec, formatRelativeTime } from '../services/firebaseService';
 import type { LeaderboardEntry, SectorId } from '../types';
@@ -123,4 +124,29 @@ export function renderCaptainFileHtml(e: LeaderboardEntry, isMe: boolean): strin
         </div>
       </div>
     </div>`;
+}
+
+// ==================== F2: GLOBALE MARKT-KONJUNKTUR ====================
+/** Banner für die Kapitäns-Tafel (alle Tabs). */
+export function renderTrendBannerHtml(now: Date = new Date()): string {
+  const t = getTodayMarketTrend(now);
+  const midnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
+  const hours = Math.max(0, Math.ceil((midnight - now.getTime()) / 3600000));
+  return `
+    <div class="m9-trend-banner" style="border-color:${t.accent}" title="Weltweiter Tages-Trend — gilt für alle Kapitäne gleichzeitig">
+      <span class="m9-trend-icon" style="color:${t.accent}">${t.icon}</span>
+      <div style="flex:1;min-width:0">
+        <div class="m9-trend-title" style="color:${t.accent}">MARKT-KONJUNKTUR · ${escapeHtml(t.name)}</div>
+        <div class="m9-file-sub">${escapeHtml(t.description)} · noch ~${hours} Std. (bis 00:00 UTC)</div>
+      </div>
+    </div>`;
+}
+
+/** Kleine Pille „📈 +25 %“ / „📉 −15 %“ für Codex & Podest-Modal, leer wenn Item unbetroffen. */
+export function renderTrendPillHtml(itemId: string, now: Date = new Date()): string {
+  const label = getMarketTrendPctLabel(itemId, now);
+  if (!label) return '';
+  const up = label.startsWith('+');
+  const t = getTodayMarketTrend(now);
+  return `<span class="m9-trend-pill ${up ? 'up' : 'down'}" title="${escapeHtml(t.name)}: ${escapeHtml(t.description)}">${up ? '📈' : '📉'} ${label}</span>`;
 }

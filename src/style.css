@@ -1597,3 +1597,39 @@ body.touch-device #hud-shop-toggle {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+
+.m9-trend-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  margin-bottom: 10px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid;
+}
+.m9-trend-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.m9-trend-title {
+  font-family: var(--font-pixel);
+  font-size: 10px;
+}
+.m9-trend-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 5px;
+  font-family: var(--font-pixel);
+  font-size: 8.5px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+.m9-trend-pill.up {
+  color: #4ade80;
+  border-color: rgba(74, 222, 128, 0.55);
+}
+.m9-trend-pill.down {
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.55);
+}
