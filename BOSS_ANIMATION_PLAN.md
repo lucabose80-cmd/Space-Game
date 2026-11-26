@@ -125,7 +125,13 @@ Arme `clawR` (Greifzange) / `clawL` (Schrott-Haken + Säge), Indizes je Seite: 0
 | Phase 2 / < 25 % HP | wie oben | 4 / 5 | — |
 | Treffer (`flashTimer`) | Arme federn nach außen | Zittern `dx` | nicht in Angriffsposen |
 
-Die Engine setzt `bossStateMax` nur in der Vorwarnung; die Erholungsdauer je Zug steht deshalb in `KRALL_RECOVER` (muss zu `defs.ts` passen). Offen für Krall: Beine/Effekte-Sheets, Maßstab bleibt `torsoDisplayH: 36` (alle Krall-Teile).
+Die Engine setzt `bossStateMax` nur in der Vorwarnung; die Erholungsdauer je Zug steht deshalb in `KRALL_RECOVER` (muss zu `defs.ts` passen). **Krall — Feinschliff „weniger Puppe“ (umgesetzt, Commit `4c1eb4d`):** Schrittphase aus Strecke (`stridePhase`, Beine stehen im Stand), Renderer wippt nur beim Laufen (`renderBreacherBoss`, halbe Amplitude) und nutzt `smoothBossBody`, `KRALL_TAU` 0,1 s, `VARIANT_LAG` (Arm L folgt R nach 0,07 s), `CLAW_BETWEEN` (Zwischen-Posen Anlauf/Ausschwingen).
+**Krall — noch offen / bekannt unbefriedigend:**
+- Beine drehen nur um ein Gelenk (Schrittposen erst mit `krall_legs_R/L.png`); Effekte (Schrott, Magnet-Funken, Splitter) sind Platzhalter bis `krall_effects.png`.
+- Arme sehr dünn gezeichnet (Zeichnungsfrage); Posen-Zeitpunkte (Stoß-Ausschwingen 0,55 s, Magnet-Sog 1,1 s) noch nicht gegen das Spielgefühl abgestimmt; Zwischen-Posen nur als Näherung.
+- Kern-Wächter nutzt weiter die alte Glättung (`SMOOTH_TAU`) und die Uhr-basierte Schrittlogik — ggf. `stridePhase`/Träges-Tau übernehmen, falls er sich ebenfalls „zappelig“ anfühlt.
+- Abnahme im echten Kampf fehlt (Rückmeldung des Projektinhabers: Bewegung wirkte „wie eine zappelnde Puppe“ → Feinabstimmung nach 1–2 Kämpfen mit konkreten Stellen).
+Offen für Krall: Beine/Effekte-Sheets, Maßstab bleibt `torsoDisplayH: 36` (alle Krall-Teile).
 
 **Aktueller Stand je Boss**
 | Boss | Rig | Pose-Sets | Phase 2 | Teilen | Nächster Schritt |
