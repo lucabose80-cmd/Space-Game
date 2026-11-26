@@ -93,13 +93,13 @@ Format & Regeln wie `ART_BRIEF_M11.md` §2 (512×512-Zellen, Gelenk in Zellmitte
   ✅ eingebunden: `armR_7…12`/`armL_7…12`; Zwischen-Posen 0,08 s beim Wechsel hängend→ausholen (6), ausholen→Schlag (7), Schlag→hängend (8) (`ARM_BETWEEN` in `smoothPose`); Laser-Ladung beim `laser_windup`, Block-Treffer im Pylonen-Block, beschädigt als Phase-2-Ruhe.
 - [x] **S3 · Rumpf „Brust offen – Laser“ (Typ S)** ✅ `art_source/rigs/core_warden_torsos2.png` erzeugt & per `art:check` geprüft (Kern im Fadenkreuz, `min_margin ≥ 40 px`, 6 Varianten: Brustklappen offen · halb offen · Sprung gestreckt · Landung gestaucht · Phase 2 Laser · Phase 2 beschädigt).
 - [x] **S4 · Arme ohne Faust + Faust einzeln (Typ L/E)** ✅ `art_source/rigs/core_warden_fists.png` erzeugt & per `art:check` geprüft (Arme R/L ohne Faust mit leuchtender Manschette = Schulter im Fadenkreuz; Fäuste vorn/geladen/schräg-oben + Energie-Schweif = Mitte im Fadenkreuz, `min_margin ≥ 115 px`).
-- [ ] **S6 · Arme OHNE Faust in den Angriffsposen (Typ L, Phase 2)** — `core_warden_arms_R3.png` und `core_warden_arms_L3.png`, 3×2 (wie `arms_R`/`arms_L`, aber ohne Faust, leuchtende Manschette am Handgelenk wie in `core_warden_fists.png` Zelle 1/2): 1 Ausholen · 2 Schlag zur Kamera (offener Energie-Stumpf statt Faust) · 3 seitlich/Laser · 4 Block · 5 Boden-Stampfer · 6 halb ausgeholt. **Warum:** In Phase 2 kreisen die Fäuste und werden abgefeuert; nur *hängend* gibt es schon eine Variante ohne Faust (`armX_nf`). In Ausholen/Schlag/Stampfer/Laser zeigen die Arme noch Fäuste — dort sind sie doppelt. Code danach: Sets als `armR_13…18`/`armL_13…18` anhängen, in `coreWardenSet` bei `p2` die Faust-losen Varianten wählen (Index-Offset +13 bzw. Karte `NOFIST_OF`).
+- [x] **S6 · Arme OHNE Faust in den Angriffsposen (Typ L, Phase 2)** ✅ `art_source/rigs/core_warden_arms_R3.png` und `art_source/rigs/core_warden_arms_L3.png` erzeugt & per `art:check` geprüft (Licht links-oben, Schulterring im Fadenkreuz, `min_margin ≥ 63 px`: 1 Ausholen · 2 Kamera-Stoß/Energie-Stumpf · 3 seitlich/Laser · 4 Block · 5 Boden-Stampfer · 6 halb ausgeholt; alle ohne Faust mit leuchtender Manschette). Code danach: Sets als `armR_13…18`/`armL_13…18` anhängen, in `coreWardenSet` bei `p2` die Faust-losen Varianten wählen (Index-Offset +13 bzw. Karte `NOFIST_OF`).
 - [x] **S5 · Köpfe Zusatz (Typ S)** ✅ `art_source/rigs/core_warden_heads2.png` erzeugt & per `art:check` geprüft (Halsgelenk im Fadenkreuz, `min_margin ≥ 36 px`: 1 Visier feuert Laser · 2 Blick links · 3 Blick rechts · 4 brüllend Phase 2 · 5 stark beschädigt < 15 % HP mit zerbrochenem Halo · 6 Blinzeln/Visier zu).
 
-**Reihenfolge für Credits:** Offen: **S6** (nur Phase-2-Fäuste). Erledigt: S1 → S3 → S4 → S2 → S5.
+**Reihenfolge für Credits:** Alle Sprite-Aufgaben **S1–S6 erledigt!** (S1–S5 eingebunden, S6 liegt bereit zum Import/Verdrahten).
 
 ### 2.4 Abnahme Kern-Wächter
-Alle Punkte D1–D10 erfüllt, K1–K8 abgehakt, S1–S5 erledigt (S2–S5 eingebunden), Projektinhaber hat einen vollständigen Kampf (Phase 1 + 2) im echten Spiel gesehen und freigegeben → hier „✅ abgenommen am …“ eintragen.
+Alle Punkte D1–D10 erfüllt, K1–K8 abgehakt, S1–S6 erledigt (S1–S5 eingebunden, S6 liegt bereit), Projektinhaber hat einen vollständigen Kampf (Phase 1 + 2) im echten Spiel gesehen und freigegeben → hier „✅ abgenommen am …“ eintragen.
 
 ---
 
@@ -126,18 +126,18 @@ Arme `clawR` (Greifzange) / `clawL` (Schrott-Haken + Säge), Indizes je Seite: 0
 | Treffer (`flashTimer`) | Arme federn nach außen | Zittern `dx` | nicht in Angriffsposen |
 
 Die Engine setzt `bossStateMax` nur in der Vorwarnung; die Erholungsdauer je Zug steht deshalb in `KRALL_RECOVER` (muss zu `defs.ts` passen). **Krall — Feinschliff „weniger Puppe“ (umgesetzt, Commit `4c1eb4d`):** Schrittphase aus Strecke (`stridePhase`, Beine stehen im Stand), Renderer wippt nur beim Laufen (`renderBreacherBoss`, halbe Amplitude) und nutzt `smoothBossBody`, `KRALL_TAU` 0,1 s, `VARIANT_LAG` (Arm L folgt R nach 0,07 s), `CLAW_BETWEEN` (Zwischen-Posen Anlauf/Ausschwingen).
-**Krall — noch offen / bekannt unbefriedigend:**
-- Beine drehen nur um ein Gelenk (Schrittposen erst mit `krall_legs_R/L.png`); Effekte (Schrott, Magnet-Funken, Splitter) sind Platzhalter bis `krall_effects.png`.
+**Krall — noch offen (Code):**
+- `krall_legs_R.png`, `krall_legs_L.png` und `krall_effects.png` liegen jetzt geprüft in `art_source/rigs/` bereit → in `rigs.json` eintragen, importieren und in `bossAnims.ts`/Renderer einbinden (ersetzen starre Einzelbeine und Platzhalter-Effekte).
 - Arme sehr dünn gezeichnet (Zeichnungsfrage); Posen-Zeitpunkte (Stoß-Ausschwingen 0,55 s, Magnet-Sog 1,1 s) noch nicht gegen das Spielgefühl abgestimmt; Zwischen-Posen nur als Näherung.
 - Kern-Wächter: Schritte laufen jetzt wie bei Krall aus der zurückgelegten Strecke (`stridePhase`, `CW_STRIDE_K`, Polish Teil 2). Die alte Glättung (`SMOOTH_TAU` 0,05 s) blieb bewusst — ggf. träger stellen (`KRALL_TAU`-Muster), falls er sich im Kampf noch „zappelig“ anfühlt.
 - Abnahme im echten Kampf fehlt (Rückmeldung des Projektinhabers: Bewegung wirkte „wie eine zappelnde Puppe“ → Feinabstimmung nach 1–2 Kämpfen mit konkreten Stellen).
-Offen für Krall: Beine/Effekte-Sheets, Maßstab bleibt `torsoDisplayH: 36` (alle Krall-Teile).
+Offen für Krall: Einbindung von `krall_legs_R/L` + `krall_effects`, Maßstab bleibt `torsoDisplayH: 36` (alle Krall-Teile).
 
 **Aktueller Stand je Boss**
 | Boss | Rig | Pose-Sets | Phase 2 | Teilen | Nächster Schritt |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| Kern-Wächter | ✅ | ✅ (S1–S5 eingebunden, K1–K8) | ✅ Platten fliegen, Faust-Salve | — | **S6** (Arme ohne Faust in Angriffsposen) + Abnahme im echten Kampf §2.4 |
-| Krall | ✅ Rumpf-Set (6), `clawR`/`clawL` (je 6 Posen), Phase-2-Skelettrahmen, `krallSet()` | ✅ Arme L/R + Rümpfe eingebunden; Beine (`legs_R/L`) + Effekte (`effects`) fehlen | ✅ Panzer fällt ab, Skelett-Rumpf | — | letzte 3 Sheets (`krall_legs_R/L`, `krall_effects`) (Antigravity); Abnahme im echten Kampf |
+| Kern-Wächter | ✅ | ✅ (S1–S6 fertig, S1–S5 eingebunden, K1–K8) | ✅ Platten fliegen, Faust-Salve | — | **S6** in `rigs.json`/`bossAnims.ts` einbinden + Abnahme im echten Kampf §2.4 |
+| Krall | ✅ Rumpf-Set (6), `clawR`/`clawL` (je 6 Posen), Phase-2-Skelettrahmen, `krallSet()` | ✅ **6/6 Sheets fertig** (Arme L/R + Rümpfe eingebunden; `legs_R/L` + `effects` bereit) | ✅ Panzer fällt ab, Skelett-Rumpf | — | `krall_legs_R/L` + `krall_effects` einbinden (Claude Code); Abnahme im echten Kampf |
 | Quarz-Koloss | – | – | – | ✅ Logik (Hälften gleich aussehend, 85 %) | Teile-Sheets (`ART_BRIEF_M11.md` §4.3) |
 | Sternen-Archon | – | – | – | ✅ Logik | Teile-Sheets |
 | übrige Bosse | – | – | – | – | Teile-Sheets |
