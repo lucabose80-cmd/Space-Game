@@ -61,7 +61,7 @@ export class InputManager {
     if (len > 0.25) this.mouseActive = false;
 
     // Standard Gamepad Mapping (Xbox / DualSense / Switch Pro):
-    // A(0)=Attack, B(1)=Secondary/Shield, X(2)=Dash, Y(3)=Interact, LB(4)=Heal, RB(5)=Swap, LT(6)=Warp, RT(7)=Attack, Select(8)=Bag, Start(9)=ESC
+    // A(0)/RT(7)=Attack, B(1)=Special/Shield, X(2)=Dash, Y(3)=Interact, LB(4)=Heal, RB(5)=Swap weapon, Select(8)=Bag, Start(9)=ESC (kein Warp seit M10-C)
     const btnMap: Array<[number, string]> = [
       [0, 'KeyJ'],
       [7, 'KeyJ'],

@@ -144,20 +144,3 @@ export function getOptimalCodexPrice(itemId: string, entry?: CodexEntry): number
   if (entry?.minFairPrice !== null && entry?.minFairPrice !== undefined) return entry.minFairPrice;
   return getSuggestedStartPrice(itemId, entry);
 }
-
-export function getReactionMeta(reaction: PriceReaction): {
-  label: string;
-  symbol: string;
-  color: string;
-} {
-  switch (reaction) {
-    case 'cheap':
-      return { label: 'Spottbillig', symbol: '★', color: '#38e8d4' };
-    case 'fair':
-      return { label: 'Perfekt!', symbol: '✓', color: '#4ade80' };
-    case 'expensive':
-      return { label: 'Zu teuer', symbol: '?', color: '#fb923c' };
-    case 'outrageous':
-      return { label: 'Wucher!', symbol: '!', color: '#f87171' };
-  }
-}

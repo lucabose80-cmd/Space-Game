@@ -1,5 +1,5 @@
 import type { Direction, RunSummary } from '../types';
-import type { RoomChest } from '../world/dungeonGen';
+import type { EnemyKind, RoomChest } from '../world/dungeonGen';
 
 export type BossState =
   | 'stalk'
@@ -90,43 +90,7 @@ export interface DiscusProjectile {
 
 export interface Enemy {
   id: number;
-  kind:
-    | 'slime'
-    | 'slime_magma'
-    | 'drone'
-    | 'drone_arc'
-    | 'turret'
-    | 'shield_drone'
-    | 'spore_spitter'
-    | 'phase_stalker'
-    | 'boss_breacher'
-    | 'boss'
-    | 'boss_leviathan'
-    | 'crystal_crawler'
-    | 'prism_drone'
-    | 'shard_sniper'
-    | 'void_crawler'
-    | 'resonance_warden'
-    | 'boss_quartz_golem'
-    | 'boss_prism_weaver'
-    | 'boss_prisma_archon'
-    | 'slag_beetle'
-    | 'solar_drone'
-    | 'magma_mortar'
-    | 'ember_stalker'
-    | 'forge_golem'
-    | 'boss_slag_overlord'
-    | 'boss_forge_warden'
-    | 'boss_vulkan_titan'
-    | 'astral_scarab'
-    | 'chrono_eye'
-    | 'star_lancer'
-    | 'void_wraith'
-    | 'monolith_guard'
-    | 'boss_chrono_sentinel'
-    | 'boss_monolith_colossus'
-    | 'boss_star_archon'
-    | 'boss_omega_archon';
+  kind: EnemyKind;
   x: number;
   y: number;
   vx: number;

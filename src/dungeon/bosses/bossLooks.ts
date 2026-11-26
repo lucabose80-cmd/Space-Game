@@ -44,10 +44,6 @@ function tinted(src: HTMLCanvasElement, color: string, alpha: number): HTMLCanva
   return c;
 }
 
-export function hasBossLook(kind: Enemy['kind']): boolean {
-  return LOOKS[kind] !== undefined;
-}
-
 /** Zeichnet den Boss-Körper (x,y = linke obere Ecke der Sprite-Fläche, w×h) samt Merkmalen. */
 export function drawBossLook(
   ctx: CanvasRenderingContext2D,

@@ -51,7 +51,6 @@ export interface SpriteAtlas {
   bossFlash: HTMLCanvasElement;
 
   items: Record<string, HTMLCanvasElement>;
-  itemDataUrls: Record<string, string>;
 
   props: {
     pedestalEmpty: HTMLCanvasElement;
@@ -69,11 +68,6 @@ export interface SpriteAtlas {
   };
 
   emotes: Record<'cheap' | 'fair' | 'expensive' | 'outrageous' | 'coin', HTMLCanvasElement>;
-
-  tiles: {
-    wood: HTMLCanvasElement[];
-    deck: HTMLCanvasElement[];
-  };
 }
 
 let cachedAtlas: SpriteAtlas | null = null;
@@ -1183,179 +1177,19 @@ function createEmotes() {
   return { cheap, fair, expensive, outrageous, coin };
 }
 
-function createTiles() {
-  // Cozy warm wooden planks (Shop floor) - 3 subtle variants
-  const woodPal: Palette = {
-    a: '#8c5432',
-    b: '#7b4728',
-    c: '#693a1f',
-    d: '#542d18',
-    h: '#a1643e',
-  };
-  const wood0 = compilePixelArt(
-    [
-      'dddddddddddddddd',
-      'hhhhhhhaaaahhhhh',
-      'aaaaabbbbaaaabba',
-      'abbbbbaaaabbbbba',
-      'bbbbccccccbbbbcc',
-      'dddddddddddddddd',
-      'aaahhhhhhaaaahhh',
-      'bbaaaaabbbbaaaab',
-      'bbbaabbbbbaabbbb',
-      'ccccbbbbccccbbbb',
-      'dddddddddddddddd',
-      'hhhhhaaaahhhhhha',
-      'aaaabbbbaaaabbbb',
-      'bbbbaaaabbbbaaaa',
-      'bbbbccccbbbbcccc',
-      'dddddddddddddddd',
-    ],
-    woodPal,
-  );
-  const wood1 = compilePixelArt(
-    [
-      'dddddddddddddddd',
-      'aaaahhhhhhhaaaah',
-      'bbbaaaabbbbaaaab',
-      'bbbbbbbbbaaaabbb',
-      'ccccbbbbccccbbbb',
-      'dddddddddddddddd',
-      'hhhhhaaaahhhhhha',
-      'aaabbbbaaaabbbba',
-      'abbbdaabbbbbaabb',
-      'bbbbccccbbbbcccc',
-      'dddddddddddddddd',
-      'aaahhhhhhaaaahhh',
-      'bbaaaabbbbaaaabb',
-      'bbbbaabbbbaabbbb',
-      'ccccbbbbccccbbbb',
-      'dddddddddddddddd',
-    ],
-    woodPal,
-  );
-
-  // Derelict Starship Deck Tiles (Dungeon floor) - 4 variants (clean, riveted, cracked, biolum moss!)
-  const deckPal: Palette = {
-    a: '#4b5563',
-    b: '#3b4452',
-    c: '#2f3744',
-    d: '#232934',
-    h: '#5d697a',
-    g: '#14b8a6',
-    t: '#38e8d4',
-    l: '#0f766e',
-  };
-  const deck0 = compilePixelArt(
-    [
-      'dddddddddddddddd',
-      'dhhhhhhhhhhhhhhd',
-      'dhaaaaaaaaaaaaad',
-      'dhabbbbbbbbbbbad',
-      'dhabbbbbbbbbbbad',
-      'dhabbbbbbbbbbbad',
-      'dhabbbbbbbbbbbad',
-      'dhabbbbbbbbbbbad',
-      'dhabbbbbbbbbbbad',
-      'dhabbbbbbbbbbbad',
-      'dhabbbbbbbbbbbad',
-      'dhabbbbbbbbbbbad',
-      'dhabbbbbbbbbbbad',
-      'dhacccccccccccad',
-      'dccccccccccccccd',
-      'dddddddddddddddd',
-    ],
-    deckPal,
-  );
-  const deck1 = compilePixelArt(
-    [
-      'dddddddddddddddd',
-      'dhhhhhhhhhhhhhhd',
-      'dhdaaaaaaaaaadhd',
-      'dhabbbbbbbbbbbad',
-      'dhabbbccccccbbad',
-      'dhabbbddddddbbad',
-      'dhabbbccccccbbad',
-      'dhabbbddddddbbad',
-      'dhabbbccccccbbad',
-      'dhabbbddddddbbad',
-      'dhabbbbbbbbbbbad',
-      'dhabbbbbbbbbbbad',
-      'dhdbbbbbbbbbbdhd',
-      'dhacccccccccccad',
-      'dccccccccccccccd',
-      'dddddddddddddddd',
-    ],
-    deckPal,
-  );
-  const deck2 = compilePixelArt(
-    [
-      'dddddddddddddddd',
-      'dhhhhhhhhhhhhhhd',
-      'dhaaaaaaaaaaaaad',
-      'dhabbbdbbbbbbbad',
-      'dhabbbbdbbbbbbad',
-      'dhabbbbbdbbbbbad',
-      'dhabbbbddbbbbbad',
-      'dhabbbdbbbbbbbad',
-      'dhabbbbbbbbbbbad',
-      'dhabbbbbbbdbbbad',
-      'dhabbbbbbbdbbbad',
-      'dhabbbbbbbbbbbad',
-      'dhabbbbbbbbbbbad',
-      'dhacccccccccccad',
-      'dccccccccccccccd',
-      'dddddddddddddddd',
-    ],
-    deckPal,
-  );
-  const deckMoss = compilePixelArt(
-    [
-      'dddddddddddddddd',
-      'dhhhhlllhhhhhhhd',
-      'dhaalgglaaaaaaad',
-      'dhallgtgllbbbbad',
-      'dhabllgglbbbbbad',
-      'dhabbbllbbbbbbad',
-      'dhabbbbbbbbbbbad',
-      'dhabbbbbbbbbbbad',
-      'dhabbbbbbbbbbbad',
-      'dhabbbbbbbllbbad',
-      'dhabbbbbbllglbad',
-      'dhabbbbbblgtlbad',
-      'dhabbbbbblggllad',
-      'dhacccccccclllad',
-      'dccccccccccccccd',
-      'dddddddddddddddd',
-    ],
-    deckPal,
-  );
-
-  return {
-    wood: [wood0, wood1],
-    deck: [deck0, deck1, deck2, deckMoss],
-  };
-}
-
 export function getAtlas(): SpriteAtlas {
   if (cachedAtlas) return cachedAtlas;
   const hero = createHeroSprites();
   const enemies = createEnemySprites();
   const items = createItemSprites();
-  const itemDataUrls: Record<string, string> = {};
-  for (const [id, canvas] of Object.entries(items)) {
-    itemDataUrls[id] = canvas.toDataURL();
-  }
 
   cachedAtlas = {
     ...hero,
     customers: createCustomerSprites(),
     ...enemies,
     items,
-    itemDataUrls,
     props: createProps(),
     emotes: createEmotes(),
-    tiles: createTiles(),
   };
 
   return cachedAtlas;

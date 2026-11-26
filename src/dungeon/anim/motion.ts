@@ -10,8 +10,6 @@ export interface Motion {
   rot: number;
 }
 
-export const NO_MOTION: Motion = { dx: 0, dy: 0, sx: 1, sy: 1, rot: 0 };
-
 const clamp = (v: number, a: number, b: number): number => Math.max(a, Math.min(b, v));
 
 /** Kinds, die bereits eigene Squash-/Hover-Animationen haben (oder Bosse). */

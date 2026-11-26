@@ -101,11 +101,6 @@ export type DemandLevel = 'high' | 'normal' | 'low';
 
 export type Direction = 'down' | 'up' | 'left' | 'right';
 
-export interface Vec2 {
-  x: number;
-  y: number;
-}
-
 export interface ItemDef {
   id: string;
   name: string;

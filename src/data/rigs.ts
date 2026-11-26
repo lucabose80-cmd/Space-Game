@@ -5,7 +5,17 @@ import rigData from './rigs.json';
 
 interface RigJson {
   kind: Enemy['kind'];
-  sheet: { file: string; order: string[]; pixelRatio?: number };
+  sheet: {
+    file: string;
+    order: string[];
+    pixelRatio?: number;
+    cols?: number;
+    rows?: number;
+    scaleRef?: string;
+    torsoDisplayH?: number;
+    /** Pose-Sets (M11 v2): Sheet-Datei, Modus, Bildnamen; `cells` teilt ein Sheet in mehrere Sets */
+    sets?: { file: string; mode: 'limb' | 'swap'; ids: string[]; cells?: number[] }[];
+  };
   parts: RigPartDef[];
   /** zusätzliche Bilder ohne eigenes Teil (z. B. kreisende Fäuste) — werden mitgeladen */
   extraImages?: string[];

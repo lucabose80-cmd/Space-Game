@@ -25,7 +25,7 @@
 | [ART_BRIEF_M11_ENEMIES.md](ART_BRIEF_M11_ENEMIES.md) | **Sprite briefing for normal enemies (M11):** one 3×2 cut-out parts sheet per enemy (joint at cell centre), per-enemy cell lists, ready-to-use prompt, generation order & credit plan. Read before generating any enemy rig sheet. |
 | [ART_AND_DESIGN_GUIDE.md](ART_AND_DESIGN_GUIDE.md) | Generating new pixel-art sprites/backgrounds (prompt templates, color palettes, Python flood-fill extraction script, `artLoader.ts` & UI rules). |
 | [TESTING_AND_VERIFICATION.md](TESTING_AND_VERIFICATION.md) | Running `npm run build`, checking invariants, Headless Chrome CDP verification harness, visual screenshot QA, and known pitfalls. |
-| [CLEANUP_PLAN.md](CLEANUP_PLAN.md) | **Offene Aufräum-Liste (Audit 2026-11-26):** veraltete Doku-Stellen, Namens-Vereinheitlichung, Repo-Hygiene, toter Code — Schritt für Schritt mit Prüfung. Vor größeren Doku-Änderungen lesen. |
+| [CLEANUP_PLAN.md](CLEANUP_PLAN.md) | **Aufräum-Liste (Audit 2026-11-26):** C1–C5 erledigt, nur optionaler Block C6 offen. |
 | [firestore.rules](firestore.rules) | Production Firestore security rules (`saves/{uid}`, `leaderboard/{uid}`, `activities`, `weeklyTrials/{weekId}/entries/{uid}`). |
 
 ---
@@ -57,7 +57,7 @@
 - **Add a new Enemy or Boss:**
   0. Boss names ↔ `kind` ↔ sprite ↔ rig id: table in `RIGGING_GUIDE.md` §2.1 (never rename existing `kind` values).
   1. Add sprite `public/art/sprites/<name>.png` (`96×96` or `128×128`), register in `src/assets/artLoader.ts` (including flash silhouette).
-  2. Add kind to `EnemySpawn['kind']` in `src/world/dungeonGen.ts`, spawn stats in `DungeonScene.spawnEnemy()`, AI in `src/dungeon/enemyAi.ts`, and rendering in `src/dungeon/dungeonRenderer.ts`.
+  2. Add kind to the `EnemyKind` union in `src/world/dungeonGen.ts` (shared by `EnemySpawn.kind` and `Enemy.kind`), spawn stats in `DungeonScene.spawnEnemy()`, AI in `src/dungeon/enemyAi.ts`, and rendering in `src/dungeon/dungeonRenderer.ts`.
 - **Change boss/enemy animation (M11):** poses per boss state live in `src/dungeon/anim/bossAnims.ts` (`getBossPose` → smoothing/impulse; `coreWardenSet`, `krallSet`), rig definitions in `src/data/rigs.json` (parts tree, `variants`, `detach`, `sets`, `extraImages`), sprites in `art_source/rigs/*.png` → `npm run art:import -- <rig> --force`. Pure visuals: no hitbox/damage changes in `bossAnims.ts`/renderer (exception: the Kern-Wächter phase-2 fist volley in `enemyAi.updateBossAI`). Check with `node scripts/rig-sheet.cjs core_warden|krall` + `?bosslab`; tests `m11p1–m11p4`. Full guide: `RIGGING_GUIDE.md`; open tasks: `BOSS_ANIMATION_PLAN.md`.
 - **Add a new Hub Station / In-Game Modal:**
   1. Place prop + prompt in `src/scenes/HubScene.ts` (or `ShopScene.ts` / `BackroomScene.ts` / `HangarScene.ts`) with `drawPixelShadow` + `drawGlow` + Y-sorting.

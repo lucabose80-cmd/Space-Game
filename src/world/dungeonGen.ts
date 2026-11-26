@@ -95,47 +95,50 @@ export interface TeleportPad {
   colorIdx: 0 | 1 | 2;
 }
 
+/** Alle Gegner- und Boss-Arten (einzige Quelle; `Enemy.kind` in dungeonTypes.ts nutzt denselben Typ). */
+export type EnemyKind =
+  | 'slime'
+  | 'slime_magma'
+  | 'drone'
+  | 'drone_arc'
+  | 'turret'
+  | 'shield_drone'
+  | 'spore_spitter'
+  | 'phase_stalker'
+  | 'boss_breacher'
+  | 'boss'
+  | 'boss_leviathan'
+  // Sector 2: Kristall-Nebel enemies & bosses
+  | 'crystal_crawler'
+  | 'prism_drone'
+  | 'shard_sniper'
+  | 'void_crawler'
+  | 'resonance_warden'
+  | 'boss_quartz_golem'
+  | 'boss_prism_weaver'
+  | 'boss_prisma_archon'
+  // Sector 3: Solar-Gießerei enemies & bosses
+  | 'slag_beetle'
+  | 'solar_drone'
+  | 'magma_mortar'
+  | 'ember_stalker'
+  | 'forge_golem'
+  | 'boss_slag_overlord'
+  | 'boss_forge_warden'
+  | 'boss_vulkan_titan'
+  // Sector 4: Ältesten-Monolith & Sector 5: Omega-Anomalie enemies & bosses
+  | 'astral_scarab'
+  | 'chrono_eye'
+  | 'star_lancer'
+  | 'void_wraith'
+  | 'monolith_guard'
+  | 'boss_chrono_sentinel'
+  | 'boss_monolith_colossus'
+  | 'boss_star_archon'
+  | 'boss_omega_archon';
+
 export interface EnemySpawn {
-  kind:
-    | 'slime'
-    | 'slime_magma'
-    | 'drone'
-    | 'drone_arc'
-    | 'turret'
-    | 'shield_drone'
-    | 'spore_spitter'
-    | 'phase_stalker'
-    | 'boss_breacher'
-    | 'boss'
-    | 'boss_leviathan'
-    // Sector 2: Kristall-Nebel enemies & bosses
-    | 'crystal_crawler'
-    | 'prism_drone'
-    | 'shard_sniper'
-    | 'void_crawler'
-    | 'resonance_warden'
-    | 'boss_quartz_golem'
-    | 'boss_prism_weaver'
-    | 'boss_prisma_archon'
-    // Sector 3: Solar-Gießerei enemies & bosses
-    | 'slag_beetle'
-    | 'solar_drone'
-    | 'magma_mortar'
-    | 'ember_stalker'
-    | 'forge_golem'
-    | 'boss_slag_overlord'
-    | 'boss_forge_warden'
-    | 'boss_vulkan_titan'
-    // Sector 4: Ältesten-Monolith & Sector 5: Omega-Anomalie enemies & bosses
-    | 'astral_scarab'
-    | 'chrono_eye'
-    | 'star_lancer'
-    | 'void_wraith'
-    | 'monolith_guard'
-    | 'boss_chrono_sentinel'
-    | 'boss_monolith_colossus'
-    | 'boss_star_archon'
-    | 'boss_omega_archon';
+  kind: EnemyKind;
   /** M10-C: Elite (goldener Rand, ×2 HP, immer Mutator) */
   elite?: boolean;
   x: number;
@@ -1012,8 +1015,4 @@ export function generateEndlessRiftFloor(riftDepth: number): DungeonFloor {
     riftDepth: depthClean,
     visualSector,
   };
-}
-
-export function generateSector1Dungeon(targetRooms = 7): DungeonFloor {
-  return generateSector1Floor(1, targetRooms);
 }
