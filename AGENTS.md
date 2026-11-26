@@ -25,7 +25,6 @@
 | [ART_BRIEF_M11_ENEMIES.md](ART_BRIEF_M11_ENEMIES.md) | **Sprite briefing for normal enemies (M11):** one 3×2 cut-out parts sheet per enemy (joint at cell centre), per-enemy cell lists, ready-to-use prompt, generation order & credit plan. Read before generating any enemy rig sheet. |
 | [ART_AND_DESIGN_GUIDE.md](ART_AND_DESIGN_GUIDE.md) | Generating new pixel-art sprites/backgrounds (prompt templates, color palettes, Python flood-fill extraction script, `artLoader.ts` & UI rules). |
 | [TESTING_AND_VERIFICATION.md](TESTING_AND_VERIFICATION.md) | Running `npm run build`, checking invariants, Headless Chrome CDP verification harness, visual screenshot QA, and known pitfalls. |
-| [POLISH_PLAN.md](POLISH_PLAN.md) | **Offener Arbeitsplan (2026-11-26):** kleine Verbesserungen in 3 Teilen (Komfort · Kampfgefühl · Dungeon-Nachladen), je ein Commit/Push. |
 | [firestore.rules](firestore.rules) | Production Firestore security rules (`saves/{uid}`, `leaderboard/{uid}`, `activities`, `weeklyTrials/{weekId}/entries/{uid}`). |
 
 ---
