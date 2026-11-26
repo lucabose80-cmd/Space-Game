@@ -193,6 +193,19 @@ export class BossFx {
       ctx.globalAlpha = warn ? 0.4 + 0.4 * pulse : 0.85;
       this.path(ctx, z);
       ctx.stroke();
+      // Polish Teil 2: letzte 0,15 s vor dem Auslösen weiß aufblitzen → man sieht, WANN es knallt (nur Optik)
+      if (warn && z.delay > 0 && z.delay <= 0.15) {
+        const k = 1 - z.delay / 0.15;
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#ffffff';
+        ctx.globalAlpha = 0.18 + 0.32 * k;
+        this.path(ctx, z);
+        ctx.fill();
+        ctx.globalAlpha = 0.9;
+        ctx.lineWidth = 1.8;
+        this.path(ctx, z);
+        ctx.stroke();
+      }
     }
     for (const b of this.beams) {
       ctx.globalCompositeOperation = 'lighter';

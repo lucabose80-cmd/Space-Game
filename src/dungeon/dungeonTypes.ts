@@ -126,6 +126,8 @@ export interface Enemy {
   bossOrbitAngle?: number;
   bossPylonRadius?: number;
   bossPhase2?: boolean;
+  /** Laufzeit: Phase-2-Effekt (Hit-Stop/Vibration) schon gezeigt */
+  phase2FxShown?: boolean;
   bossStatusText?: string;
   bossAfterimageTick?: number;
   // Leviathan articulated giant gauntlets
@@ -294,6 +296,10 @@ export interface FloatingNum {
   color: string;
   life: number;
   maxLife: number;
+  /** Zusammenfassen von Schadenszahlen (Polish Teil 2) */
+  enemyId?: number;
+  sum?: number;
+  bornAt?: number;
 }
 
 export interface DungeonCallbacks {

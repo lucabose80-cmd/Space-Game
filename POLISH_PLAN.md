@@ -123,7 +123,7 @@ Sonst nichts ändern (Touch-Knopf „ÖFFNEN“ bleibt; der Toast erklärt es be
 
 ## Teil 2 — Kampfgefühl, rein optisch (Punkte 4, 5, 6, 7) · ein Commit `polish(teil-2): …`
 
-### [ ] 2.1 Kern-Wächter: Schrittphase aus der Strecke (wie Krall)
+### [x] 2.1 Kern-Wächter: Schrittphase aus der Strecke (wie Krall)
 **Ist:** In `src/dungeon/anim/bossAnims.ts` nutzt Krall `stridePhase(e, time, speed)` (Schritte aus zurückgelegter Strecke → im Stand ruhig). Der Kern-Wächter rechnet in `coreWardenSet` (~Z. 119) `const ph = time * (3 + speed / 25) + e.id;` (Uhr-basiert → „trippelt“ auch langsam).
 
 **Umsetzen:**
@@ -134,7 +134,7 @@ Sonst nichts ändern (Touch-Knopf „ÖFFNEN“ bleibt; der Toast erklärt es be
 - Test: `npm test -- m11p2` (Übergangs-Glätte) muss grün bleiben. Kontaktbogen: `node scripts/rig-sheet.cjs core_warden` (Dev-Server nötig, siehe RIGGING_GUIDE §6) ansehen.
 - `BOSS_ANIMATION_PLAN.md` §3 „Krall — noch offen“: den Punkt „Kern-Wächter nutzt weiter … Uhr-basierte Schrittlogik“ als erledigt markieren.
 
-### [ ] 2.2 Hit-Stop & Ruck bei großen Momenten (Punkt 5 — ergänzt Vorhandenes)
+### [x] 2.2 Hit-Stop & Ruck bei großen Momenten (Punkt 5 — ergänzt Vorhandenes)
 **Ist:** Hit-Stop existiert bereits (`DungeonScene.hitStop`, Auswertung ~Z. 1079: während `hitStop > 0` laufen nur Effekte mit 25 % Tempo; gesetzt bei Treffern ~0,02–0,055 s und Perfekt-Parade 0,04 s). **Fehlt** bei Boss-Phase-2-Wechsel, Boss-Sieg und Elite-Kill.
 
 **Umsetzen (nur `src/scenes/DungeonScene.ts` + 1 optionales Laufzeitfeld):**
@@ -154,7 +154,7 @@ Sonst nichts ändern (Touch-Knopf „ÖFFNEN“ bleibt; der Toast erklärt es be
 4. **Nicht ändern:** `triggerShake`-Werte, Zustandsdauern. Hit-Stop pausiert auch `mechanicsClock` & Boss-Timer gleichmäßig (früher `return` in `update`) → keine Logik-Verschiebung. `runElapsedSec` läuft weiter (Zeile davor) — für Par-Zeiten vernachlässigbar (< 0,2 s pro Run).
 5. Tests: `npm test -- m10cp7 m10cp8 m10cp10 m11p4` müssen grün bleiben (Boss-Simulation, Kampfdauer, Prüfung, Teilen). Wenn `m10cp8`-Kampfdauern minimal kippen: Hit-Stop **nicht** in die Messung einrechnen lassen (die Tests rufen meist direkt `damageEnemy` ohne `update` auf → sollte unberührt sein).
 
-### [ ] 2.3 Telegraph: letzter Moment vor dem Auslösen lesbar (Punkt 6)
+### [x] 2.3 Telegraph: letzter Moment vor dem Auslösen lesbar (Punkt 6)
 **Ist:** `src/dungeon/bosses/bossFx.ts` → `render()` (~Z. 181): Warn-Zonen mit `prog` (0…1) und Puls; kein besonderes Signal kurz vor dem Auslösen.
 
 **Umsetzen (nur Zeichnen):** in der Zonen-Schleife nach dem vorhandenen Stroke:
@@ -176,7 +176,7 @@ if (warn && z.delay > 0 && z.delay <= 0.15) {
 ```
 Beams (`BossBeam`) haben nur `warn: boolean` ohne Restzeit → **nicht** anfassen. Keine Timer-, Schadens- oder Hitbox-Änderung. Prüfen: `npm test -- m10cp7`; Screenshot einer Zone kurz vor dem Auslösen ansehen (z. B. im `?bosslab` mit 0,25× und Pause).
 
-### [ ] 2.4 Schadenszahlen zusammenfassen (Punkt 7)
+### [x] 2.4 Schadenszahlen zusammenfassen (Punkt 7)
 **Ist:** `damageEnemy` (~Z. 2737) pusht pro Treffer einen `FloatingNum` (`src/dungeon/dungeonTypes.ts`, Felder `x, y, text, color, life, maxLife`), Update/Entfernen ~Z. 4403, Zeichnen `dungeonRenderer.ts` ~Z. 785. Schnelle Waffen erzeugen viele Einzelzahlen.
 
 **Umsetzen:**

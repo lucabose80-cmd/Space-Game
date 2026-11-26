@@ -116,7 +116,7 @@ function coreWardenSet(e: Enemy, time: number, lookDx: number): { arms: number; 
     default: {
       // K3: Gehen — Wippen, gegenläufiger Armschwung, Kopf schwingt nach, leichtes Lehnen
       const w = clamp01(speed / 70);
-      const ph = time * (3 + speed / 25) + e.id;
+      const ph = stridePhase(e, time, speed) * CW_STRIDE_K; // Schritte aus zurückgelegter Strecke (steht der Boss, stehen die Schritte)
       const s = Math.sin(ph);
       fx.torso = { dy: -Math.abs(s) * Math.min(1.5, speed / 40), rot: Math.max(-0.04, Math.min(0.04, e.vx * 0.0008)) };
       fx.armL = { rot: s * 0.12 * w };
@@ -145,6 +145,9 @@ function coreWardenSet(e: Enemy, time: number, lookDx: number): { arms: number; 
  * Arme (clawR Greifzange / clawL Schrott-Haken, je Seite gleiche Posen): 0 hängend · 1 ausholend · 2 Stoß zur Kamera · 3 seitlich · 4 Block · 5 Boden-Stampfer.
  * Rumpf: 0 normal · 1 geduckt · 2 aufgerichtet (Kern hell, Magnet-Zug) · 3 nach vorn gebeugt (Stoß) · 4 Phase 2 (Rückenpanzer ab, Rahmen/Kern offen) · 5 beschädigt (Funken, Dellen).
  */
+/** Kern-Wächter: Umrechnung Strecken-Phase → Schritt-Takt (≈ alte Frequenz bei ~40 px/s). */
+const CW_STRIDE_K = 0.72;
+
 const KARM = { hang: 0, windup: 1, punch: 2, side: 3, block: 4, stomp: 5 } as const;
 const KTORSO = { normal: 0, duck: 1, upright: 2, fwd: 3, p2: 4, damaged: 5 } as const;
 /** Erholungszeit je Zug (defs.ts) — die Engine setzt `bossStateMax` nur für die Vorwarnung, `bossStateTimer` läuft in der Erholung von diesem Wert ab. */

@@ -129,7 +129,7 @@ Die Engine setzt `bossStateMax` nur in der Vorwarnung; die Erholungsdauer je Zug
 **Krall — noch offen / bekannt unbefriedigend:**
 - Beine drehen nur um ein Gelenk (Schrittposen erst mit `krall_legs_R/L.png`); Effekte (Schrott, Magnet-Funken, Splitter) sind Platzhalter bis `krall_effects.png`.
 - Arme sehr dünn gezeichnet (Zeichnungsfrage); Posen-Zeitpunkte (Stoß-Ausschwingen 0,55 s, Magnet-Sog 1,1 s) noch nicht gegen das Spielgefühl abgestimmt; Zwischen-Posen nur als Näherung.
-- Kern-Wächter nutzt weiter die alte Glättung (`SMOOTH_TAU`) und die Uhr-basierte Schrittlogik — ggf. `stridePhase`/Träges-Tau übernehmen, falls er sich ebenfalls „zappelig“ anfühlt.
+- Kern-Wächter: Schritte laufen jetzt wie bei Krall aus der zurückgelegten Strecke (`stridePhase`, `CW_STRIDE_K`, Polish Teil 2). Die alte Glättung (`SMOOTH_TAU` 0,05 s) blieb bewusst — ggf. träger stellen (`KRALL_TAU`-Muster), falls er sich im Kampf noch „zappelig“ anfühlt.
 - Abnahme im echten Kampf fehlt (Rückmeldung des Projektinhabers: Bewegung wirkte „wie eine zappelnde Puppe“ → Feinabstimmung nach 1–2 Kämpfen mit konkreten Stellen).
 Offen für Krall: Beine/Effekte-Sheets, Maßstab bleibt `torsoDisplayH: 36` (alle Krall-Teile).
 

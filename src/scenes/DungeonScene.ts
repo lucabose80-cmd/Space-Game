@@ -193,6 +193,8 @@ export class DungeonScene {
 
   // Juice & transitions
   public hitStop = 0;
+  /** Großer Moment (Phase 2, Boss-/Elite-Kill): wird von normalen Hit-Stops nicht überschrieben */
+  public heavyStop = 0;
   public shakeTimer = 0;
   public shakeMag = 0;
   public roomFade = 0;
@@ -1077,8 +1079,9 @@ export class DungeonScene {
       this.shakeTimer = Math.max(0, this.shakeTimer - dt);
     }
 
-    if (this.hitStop > 0) {
-      this.hitStop -= dt;
+    if (this.hitStop > 0 || this.heavyStop > 0) {
+      if (this.hitStop > 0) this.hitStop -= dt;
+      if (this.heavyStop > 0) this.heavyStop -= dt;
       this.updateEffects(dt * 0.25);
       return;
     }
@@ -1150,6 +1153,14 @@ export class DungeonScene {
     this.syncSplitPools();
     this.enemyAi.updateEnemies(dt);
     this.bossFx.update(this, dt);
+    // Polish Teil 2: Phase-2-Wechsel eines Bosses einmalig mit Hit-Stop + Vibration betonen (rein darstellend)
+    for (const be of this.enemies) {
+      if (be.bossPhase2 && !be.phase2FxShown && this.isBossKind(be.kind)) {
+        be.phase2FxShown = true;
+        this.heavyStop = Math.max(this.heavyStop, 0.09);
+        haptic([40, 40, 60]);
+      }
+    }
     this.updateProjectiles(dt);
     this.updateDiscs(dt);
     this.updateDrops(dt);
@@ -2817,14 +2828,26 @@ export class DungeonScene {
       isCrit ? '#fde047' : infDef ? infDef.color : '#38e8d4',
       isCrit ? 10 : 6,
     );
-    this.floats.push({
-      x: e.x + (Math.random() - 0.5) * 8,
-      y: e.y - e.radius - 4,
-      text: isCrit ? `KRIT! ${finalAmt}` : `${finalAmt}`,
-      color: isCrit ? '#fde047' : infDef ? infDef.color : '#f8fafc',
-      life: isCrit ? 0.85 : 0.65,
-      maxLife: isCrit ? 0.85 : 0.65,
-    });
+    // Polish Teil 2: Treffer am selben Gegner innerhalb 0,3 s zu EINER wachsenden Zahl zusammenfassen (Krits bleiben einzeln)
+    const mergeInto = isCrit
+      ? undefined
+      : this.floats.find((f) => f.enemyId === e.id && f.sum !== undefined && this.time - (f.bornAt ?? 0) < 0.3);
+    if (mergeInto) {
+      mergeInto.sum = (mergeInto.sum ?? 0) + finalAmt;
+      mergeInto.text = `${mergeInto.sum}`;
+      mergeInto.life = mergeInto.maxLife;
+    } else {
+      this.floats.push({
+        x: e.x + (Math.random() - 0.5) * 8,
+        y: e.y - e.radius - 4,
+        text: isCrit ? `KRIT! ${finalAmt}` : `${finalAmt}`,
+        color: isCrit ? '#fde047' : infDef ? infDef.color : '#f8fafc',
+        life: isCrit ? 0.85 : 0.65,
+        maxLife: isCrit ? 0.85 : 0.65,
+        ...(isCrit ? {} : { enemyId: e.id, sum: finalAmt, bornAt: this.time }),
+      });
+      if (this.floats.length > 48) this.floats.splice(0, this.floats.length - 48);
+    }
 
     // Apply Elementar-Prägung effects (Milestone 7)
     if (inf === 'solar_burn') {
@@ -2942,6 +2965,9 @@ export class DungeonScene {
     const idx = this.enemies.indexOf(e);
     if (idx !== -1) this.enemies.splice(idx, 1);
     if (this.isBossKind(e.kind)) this.bossFx.clear(); // M10-C: Boss-Zonen/Strahlen enden mit dem Boss
+    // Polish Teil 2: Hit-Stop bei Boss-Sieg / Elite-Kill (nur Darstellung, Logik pausiert kurz gleichmäßig)
+    if (this.isBossKind(e.kind)) this.heavyStop = Math.max(this.heavyStop, 0.12);
+    else if (e.elite) this.heavyStop = Math.max(this.heavyStop, 0.06);
 
     // 🔥 Solar-Brand Kill-Nova: burning enemies explode in a fiery shockwave on defeat!
     if (e.burnTimer && e.burnTimer > 0) {
