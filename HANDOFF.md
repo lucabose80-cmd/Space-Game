@@ -33,12 +33,12 @@ npm run verify                           # Build + Invarianten + Sprite-Check + 
 - **Typ L/S v2 (`ART_BRIEF_M11.md`, `1536×1024`, `512×512`/Zelle, Gelenk/Kern exakt im Fadenkreuz, alle per `npm run art:check` ohne Rand-Warnungen geprüft):**
   - **§4.2 Kern-Wächter — komplett (4/4 neue Sheets fertig):**
     - `art_source/rigs/core_warden_arms_R.png` (rechter Arm `x=0.93`, 6 Posen, `min_margin ≥ 31 px`)
-    - `art_source/rigs/core_warden_arms_L.png` (linker Arm `x=0.07`, 6 Posen, `min_margin ≥ 34 px`; Hinweis: Zellen 1, 3, 5, 6 neu mit Licht links-oben gezeichnet, Zellen 2 & 4 aus dem Sheet gespiegelt, da Bild-Quota erreicht — bei Bedarf nach Cooldown neu zeichbar)
+    - `art_source/rigs/core_warden_arms_L.png` (linker Arm `x=0.07`, 6 Posen, `min_margin ≥ 34 px`; **S1 erledigt**: Zellen 2 & 4 eigenständig mit Licht links-oben neu schattiert und re-importiert)
     - `art_source/rigs/core_warden_heads.png` (6 Helm+Halo-Varianten, Halsgelenk im Fadenkreuz, `min_margin ≥ 32 px`)
     - `art_source/rigs/core_warden_torsos.png` (6 Rumpf-Varianten inkl. Phase-2-Kern offen & überhitzt, Reaktorkern im Fadenkreuz, `min_margin ≥ 43 px`)
   - **§4.1 Krall (1/6 fertig):**
     - `art_source/rigs/krall_arms_R.png` (rechter Greifzangen-Arm `x=0.96`, 6 Posen, Schulterring im Fadenkreuz, `min_margin ≥ 31 px`)
-- **Noch offen (§4.1 Krall, 5 Sheets — pausiert wegen temporärem `gemini-3.1-flash-image`-Quota-Limit, ~3h 38m Cooldown):**
+- **Noch offen (§4.1 Krall, 5 Sheets):**
   - `krall_arms_L.png`, `krall_legs_R.png`, `krall_legs_L.png`, `krall_torsos.png`, `krall_effects.png`
 
 ## M11 Pose-Sets — Code (umgesetzt) · Handbuch: [`RIGGING_GUIDE.md`](RIGGING_GUIDE.md)
@@ -63,7 +63,7 @@ Nach und nach erzeugen, sobald Gemini-Volumen frei ist (Reihenfolge §5 im Brief
 - Code-Seite (Claude Code, sobald der Pilot da ist): Import-Modus `parts`, Rigs in `rigs.json`, `anim/enemyAnims.ts`.
 
 ## Nächster Schritt
-- **Boss-Animation (Stand):** `BOSS_ANIMATION_PLAN.md` §2.2 K1–K8 umgesetzt (K5 verworfen, K6 als Variante) — Kern-Wächter wartet auf **Abnahme im echten Kampf** (§2.4). Offen: Sprite-Aufgaben S1–S5 (Antigravity, zuerst S1 = `core_warden_arms_L` Zellen 2 & 4 neu zeichnen), danach Übertragung auf die anderen Bosse (§3).
+- **Boss-Animation (Stand):** `BOSS_ANIMATION_PLAN.md` §2.2 K1–K8 + S1 umgesetzt — Kern-Wächter wartet auf **Abnahme im echten Kampf** (§2.4). Offen: S3 → S4 → S2 → S5 (Antigravity), danach Übertragung auf die anderen Bosse (§3).
 - **Antigravity (Quota-Reset):** restliche 5 Krall-Sheets: `krall_arms_L.png` (Schrott-Haken + Mini-Säge), `krall_legs_R.png`, `krall_legs_L.png`, `krall_torsos.png`, `krall_effects.png` → `npm run art:check` → pushen. Danach Claude Code: Sets in `rigs.json` eintragen (linker Arm = neues Teil `clawL`, Beine/Rumpf-Sets) und Posen in `bossAnims.ts` verdrahten.
 - **Claude Code (ohne neue Sprites):** Teilen von Quarz-Koloss/Sternen-Archon (`MILESTONE_11_ARCHITECTURE.md` §4.3), prozedurale Bewegung der übrigen Bosse, Krall-Verdrahtung vorbereiten, Kern-Glühen des Kern-Wächters an die neue Kernposition anpassen (Schulter-Offsets sind justiert: `SHOULDER_ADJUST`), danach Plan-Phase 3 (Angriffe der Sektor-1-Bosse mit Teil-Abwurf/Splitting, `MILESTONE_11_ARCHITECTURE.md`).
 - Ökonomie & Boss-Kampfgefühl im echten Spiel beobachten und in `src/data/balance.ts` nachjustieren (Berichte: `tests/out/economy.json`, `tests/out/ttk.json`).

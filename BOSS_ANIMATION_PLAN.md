@@ -83,7 +83,7 @@ Reihenfolge = Priorität. Alle Änderungen rein darstellend (D8).
 ### 2.3 Sprite-Aufgaben — für Antigravity (Gemini)
 Format & Regeln wie `ART_BRIEF_M11.md` §2 (512×512-Zellen, Gelenk in Zellmitte, gleicher Maßstab wie die vorhandenen `core_warden_*`-Sheets, Referenzbilder: `public/art/sprites/boss.png` + das jeweils vorhandene Sheet). Prüfen mit `npm run art:check`.
 
-- [ ] **S1 · `core_warden_arms_L.png` Zellen 2 & 4 neu zeichnen** (sind derzeit nur gespiegelt, Licht kommt dort falsch von rechts). Nur diese zwei Zellen ersetzen, Rest unverändert lassen. *Kein Code nötig* (`npm run art:import -- core_warden --force`).
+- [x] **S1 · `core_warden_arms_L.png` Zellen 2 & 4 neu zeichnen** ✅ erledigt (eigenständig mit Licht von links-oben neu schattiert, Gelenk im Fadenkreuz, `art:check` + `art:import -- core_warden --force` + `npm run verify` + Kontaktbogen `rig_core_warden.png` geprüft).
 - [ ] **S2 · Zwischen-Posen Arme (Typ L)** `core_warden_arms_R2.png` und `core_warden_arms_L2.png`, 3×2:
   1 halb ausgeholt (zwischen hängend und Faust hoch) · 2 Schlag kurz vor dem Treffer (zwischen Ausholen und Schlag zur Kamera) · 3 nach dem Schlag zurückfedernd · 4 Laser-Pose mit Handfläche leuchtend (Ladung) · 5 Block mit Riss/Funken (Treffer im Block) · 6 Arm hängend **beschädigt** (Phase 2, Panzer abgeplatzt).
   Code danach: Sets in `rigs.json` an die Varianten anhängen (`armR_7…12`), Zuordnung in `coreWardenSet` (Zwischen-Posen für ~0,08 s zwischen den Hauptposen → ersetzt die Kreuzblende).
