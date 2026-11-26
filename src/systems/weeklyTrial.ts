@@ -1,3 +1,5 @@
+import { BOSS_EXPECTED, WEAPON_AVG_COOLDOWN } from '../data/balance';
+import { getPlayerCombatStats } from '../data/upgrades';
 /**
  * Meilenstein 9 — Wöchentliche „Galaktische Prüfung“ (reine Logik, keine UI/DOM).
  * Rotation, normierte Ausrüstung, Wertung & Abzeichen. Niedriger Score = besser.
@@ -43,11 +45,16 @@ export const TRIAL_COMBAT_LEVELS: Pick<
   modLuck: 0,
 };
 
+/**
+ * M10-C: neu kalibriert. Die Prüfung normiert Waffen auf Stufe 4; die Boss-HP werden dafür auf dieselbe
+ * Kampfdauer-Zielwerte wie im Normalspiel skaliert (siehe `trialBossHpFactor`). Boss-Zeit ≈ +180 s je Sektor
+ * gegenüber M9 (vorher 5–16 s Schadenszeit), daher +180 s auf alle Par-Zeiten.
+ */
 export const TRIAL_PAR_TIMES: Record<1 | 2 | 3 | 4, { gold: number; silver: number }> = {
-  1: { gold: 420, silver: 660 },
-  2: { gold: 480, silver: 720 },
-  3: { gold: 540, silver: 780 },
-  4: { gold: 600, silver: 840 },
+  1: { gold: 600, silver: 840 },
+  2: { gold: 660, silver: 900 },
+  3: { gold: 720, silver: 960 },
+  4: { gold: 780, silver: 1020 },
 };
 
 export const TRIAL_BADGE_META: Record<TrialBadge, { icon: string; label: string; color: string }> = {
@@ -190,4 +197,27 @@ export function countBadges(h: Record<string, TrialBadge>): { gold: number; silv
   const c = { gold: 0, silver: 0, bronze: 0 };
   for (const b of Object.values(h)) if (isTrialBadge(b)) c[b] += 1;
   return c;
+}
+
+
+// ---------------- M10-C: Boss-HP in der Prüfung ----------------
+const TRIAL_ALL_WEAPONS = ['blade', 'spear', 'fists', 'discus', 'blaster', 'hammer'] as const;
+
+/** Durchschnittliche Schadens-pro-Sekunde-Schätzung aller Waffen auf einer Stufe (Basis der Boss-Kalibrierung). */
+export function averageWeaponDps(level: number): number {
+  const zero = { blade: 0, spear: 0, fists: 0, discus: 0, blaster: 0, hammer: 0, suit: 0, stimpack: 0, bioRegen: 0, shopTier: 0, shopAura: 0, shopScanner: 0, shopAssistant: 0, modCrit: 0, modThruster: 0, modLuck: 0 };
+  let sum = 0;
+  for (const w of TRIAL_ALL_WEAPONS) {
+    const stats = getPlayerCombatStats({ ...zero, [w]: level });
+    const dmg = stats[`${w}Damage` as keyof typeof stats] as number;
+    sum += dmg / (w === 'blaster' ? stats.blasterCooldown : WEAPON_AVG_COOLDOWN[w]);
+  }
+  return sum / TRIAL_ALL_WEAPONS.length;
+}
+
+/** Faktor auf die Boss-HP in der Prüfung: gleiche Kampfdauer wie im Normalspiel trotz normierter Stufe-4-Ausrüstung. */
+export function trialBossHpFactor(kind: string): number {
+  const ex = (BOSS_EXPECTED as Record<string, { level: number } | undefined>)[kind];
+  if (!ex) return 1;
+  return averageWeaponDps(TRIAL_COMBAT_LEVELS.blade) / averageWeaponDps(ex.level);
 }

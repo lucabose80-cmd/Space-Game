@@ -1,6 +1,6 @@
 # Architektur- & Vorgehensplan: Meilenstein 10-C — Bugs, HUD, Spielschleife, Bosse & Balancing
 
-> **Status:** 🔜 Geplant — Umsetzungsvorlage für Claude Sonnet (mittlere Denktiefe)
+> **Status:** ✅ Umgesetzt (Phasen 0–10) — Umsetzungsnotizen siehe §9
 > **Basis:** Stand nach M10-A (`SAVE_VERSION = 11`, Commit `5c5dab6` auf `main`)
 > **Ziel-Save-Version:** bleibt `11`. Nur wenn eine Phase **zwingend** ein neues Feld braucht → `12`, Feld optional + Default in `GameState.load()` (AGENTS.md Regel 3).
 > **Quelle:** Feedback-Liste des Projektinhabers (Bugs, Mobile-HUD, Tag/Nacht, Teleport, Bosse, Schilde, Balancing).
@@ -430,12 +430,46 @@ Jede Phase: Code → neuer Test `tests/m10cp<N>.cjs` → `npm run verify` → Sc
 ---
 
 ## 9. Umsetzungsnotizen
-*(Wird bei der Umsetzung ausgefüllt.)* Pflichtangaben:
-- gemessene TTK-Tabelle + finale `BOSS_HP`-Werte;
-- Abweichungen von Startwerten (Preise, Sperren, Rift-Faktoren) mit Grund;
-- welche Boss-Sprites fehlen (Fallback aktiv);
-- neue Save-Felder (falls Save v12);
-- neue Prüfungs-Par-Zeiten.
+
+**Gemessene Boss-Kampfdauer** (reine Schadenszeit bei erwarteter Ausrüstung, `tests/m10cp8.cjs` → `tests/out/ttk.json`):
+
+| Boss | Basis-HP | Stufe | Zeit |
+| :--- | ---: | :---: | ---: |
+| S1 E1 Krall (`boss_breacher`) | 2700 | 2 | 24,9 s |
+| S1 E2 Kern-Wächter (`boss`) | 4700 | 3 | 37,1 s |
+| S1 E3 Leviathan | 6900 | 3 | 54,5 s |
+| S2 E1 Quarz-Koloss | 7100 | 4 | 25,0 s |
+| S2 E2 Prisma-Weberin | 10650 | 4 | 37,4 s |
+| S2 E3 ★ Prisma-Archon | 21600 | 5 | 54,9 s |
+| S3 E1 Schlacken-Koloss | 13400 | 6 | 24,9 s |
+| S3 E2 Gießerei-Meisterin | 20100 | 6 | 37,4 s |
+| S3 E3 ★ Vulkan-Titan | 29500 | 6 | 54,9 s |
+| S4 E1 Chrono-Wächter | 18300 | 7 | 25,0 s |
+| S4 E2 Monolith-Koloss | 27500 | 7 | 37,5 s |
+| S4 E3 ★ Sternen-Archon | 40300 | 7 | 55,0 s |
+| Omega-Archon | 47600 | 7 | 64,9 s |
+
+Methode: DPS = Schaden ÷ `WEAPON_AVG_COOLDOWN` (Blaster: Cooldown aus den Stats), Mittel über **alle sechs** Waffen auf der Stufe, die die Fortschritts-Sperren zulassen. Das echte Gefecht dauert wegen Ausweichen ca. 1,6–2× länger. Alte Boss-HP waren 255–2950 (≈ ×10 niedriger); daher der „fast One-Hit“-Eindruck.
+
+**Waffen-Schaden Stufe 0–4** (Klinge): `20 · 24 · 28 · 32 · 70` (vorher `20 · 28 · 38 · 52 · 70`). Der Sprung auf Stufe 4 ist gewollt (Belohnung nach Sektor 1). Standard-Gegner: bei erwarteter Ausrüstung 1–4 Treffer (S1: 2–4, ab S2 meist 2).
+
+**Ökonomie (Startwerte, bewusst iterativ):** `SELL_PRICE_MULT = 0.65`, Kopfgelder ×0,75 (Ø ≈ 473 Cr, 75–1310). Nyx-Preise unverändert (Geldsenke). Frühe Upgrades: Material ×1,5 (aufgerundet), Stufe 2 zusätzlich 1× `reactor_shard` (Ebene-II-Drop). Fortschritts-Sperren laut §4.9. Altspielstände: gelernte Codex-/Podest-Preise einmalig ×0,65 (`priceScaleV2`, optionales Feld, `SAVE_VERSION` bleibt 11).
+
+**Wochen-Prüfung:** Boss-HP werden auf die normierte Stufe-4-Ausrüstung skaliert (`trialBossHpFactor`, neu — nicht im ursprünglichen Plan), damit die Kampfdauer dem Normalspiel entspricht (Summe je Sektor ≈ 117–125 s). Par-Zeiten **+180 s**: Gold 600/660/720/780, Silber 840/900/960/1020. Ein gepanzerter Wochen-Mutator gibt weiterhin ×1,3 HP. Referenz-Layout-Hash: siehe `m10p4` (`trialHash`).
+
+**Abweichungen vom Plan:**
+- **G4 Schilde** hatte im Plan keine eigene Phase → als Phase 6b nachgetragen (§4.8b).
+- Phase 1 und 2 in einem Commit (gemeinsame Eingriffe in `DungeonScene`).
+- `m10p4`: Referenz ist jetzt `trialHash` (ohne Portale, Rift-Kammern, Notfall-Bake, Mechanik-Felder), bestimmt am Stand **vor** M10-C. Der alte Gesamt-Hash ändert sich legitim, weil Portale nun auf freien Plätzen liegen.
+- Navigation nur für Nahkampf-Bodenläufer (`slime`, `slime_magma`, `crystal_crawler`, `void_crawler`, `slag_beetle`, `astral_scarab`, `forge_golem`, `ember_stalker`, `phase_stalker`, `star_lancer`) — Schützen bleiben stehen. `runStartedAtNight` war unnötig, weil sich die Zeit während eines Runs nicht ändert.
+- Portal-Ausschluss auch für Teleporter-Pads und Prismen (nicht nur Düsen/Platten).
+- Notfall-Bake: drei Durchgänge (großzügig → knapp → Magnetplatten/Spawns dürfen überlappt werden), damit sie auch in sehr dichten Räumen existiert; Position über eigenen PRNG, nicht in der Prüfung.
+- **Bosse behalten ihre `kind`-Namen** (Fortschritt/Achievements hängen daran): `boss_breacher` ist jetzt Krall, der alte Breacher-KI-Code ist entfernt. Eigene Zug-Engine in `src/dungeon/bosses/`. Monolith-Säulen sind (noch) nicht zerbrechlich.
+- Boss-Optik: 5 optionale Sprites (`BOSS_OPTIONAL_SPRITES`), **alle fehlen** → eingefärbte Fallbacks mit eigenen Merkmalen (Beine/Magnet, Lavarisse, Hammer, Uhr-Ring, Platten); Vulkan-Titan (Lavakrone) und Sternen-Archon (Sternbild-Ring) behalten ihre Sprites + prozedurale Merkmale.
+- Touch-Deck: oben HEIL · INTER · SEKUNDÄR, unten DASH + große Angriffstaste (WARP-Taste entfällt).
+- Bot-Hürden wie geplant; `breacherDefeated` wird nicht mehr ausgewertet.
+- Rift: dritte Welle und Elite-Mutatoren deterministisch (Gegner-ID), Gefahr-Sterne aus dem HP-Faktor (<2,0 = ★, <2,6 = ★★, sonst ★★★).
+- Test `m10cp8` lässt 1–5 Treffer für Standard-Gegner zu (statt 2–4), weil Gegner späterer Sektoren mit erwarteter Ausrüstung in 1–2 Treffern fallen (Spieler-Stärke ist gewollt).
 
 ---
 

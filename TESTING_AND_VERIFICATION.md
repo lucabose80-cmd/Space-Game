@@ -162,3 +162,26 @@ Wenn neue Items, Props, Gegner oder Schiffe per Bildgenerierung erstellt werden:
 
 - `tests/*.cjs` (Playwright, Vite-Dev-Server auf Port 4197) laufen über `npm test` (alle) bzw. `npm test -- m10p3 t5` (einzelne). `tests/harness.cjs` startet Vite + Chromium; Screenshots landen in `tests/out/` (gitignored). Einmalig `npx playwright install chromium`.
 - `npm run check:invariants` prüft die harten Regeln aus AGENTS.md (ohne `rg`), `npm run check:sprites` listet fehlende optionale Sprites, `npm run verify` führt alles zusammen aus.
+
+
+### Tests & Fallstricke für Meilenstein 10-C
+
+| Test | Prüft |
+| :--- | :--- |
+| `m10cp0` | `balance.ts`, `check:sprites` über alle `*_OPTIONAL_SPRITES`-Blöcke |
+| `m10cp1` | Navigation (Wand-Umgehung), freie Bahn unverändert |
+| `m10cp2` | Portal nur auf freiem Platz, Seed-Treue der Prüfungs-Layouts |
+| `m10cp3` | HUD je Szene/Auflösung (Minimap frei), Ton-Zyklus |
+| `m10cp4` | Waffenschrank/Loadout-Panel |
+| `m10cp5` | Tag/Nacht-Zustandsfolge (Laden, Koje, Tag-/Nacht-Run, Prüfung) |
+| `m10cp6` / `m10cp6b` | Notfall-Bake & fehlender R-Teleport · Gegner-Schilde |
+| `m10cp7` | alle Boss-Züge + Phase 2 (Simulation), Zonen-Geometrie |
+| `m10cp8` | Preise, Waffenstufen, Sperren, Boss-Kampfdauer, Preis-Migration, schreibt `tests/out/ttk.json` & `economy.json` |
+| `m10cp9` | Bot-Hürden, Rift-Faktoren/Wellen/Elite |
+| `m10cp10` | Wochen-Prüfung: Boss-Kampfdauer, Par-Zeiten |
+
+- **Referenz-Hash der Prüfung (`m10p4`):** `trialHash` enthält absichtlich **keine** Portale/Rift-Kammern/Notfall-Bake/Mechanik-Felder (die Prüfung löscht oder erzeugt sie nicht). Ändert sich der Wert, haben sich die Prüfungs-Layouts geändert.
+- **Offene Modals blockieren Übergänge:** Ist ein Modal offen (z. B. Schicht-Zusammenfassung), läuft das Szenen-Fade nicht weiter. In Tests `ui.closeModal()` aufrufen, bevor auf einen Szenenwechsel gewartet wird.
+- **Test-Daten nie ersetzen, nur befüllen:** `Object.assign(st.pedestals[0], …)` statt `st.pedestals[0] = {…}` (sonst fehlen `x/y` → `NaN` im Renderer → Spielschleife stirbt).
+- **Prüfung + Wochen-Mutator:** Ist der Mutator „gepanzert“, haben Gegner ×1,3 HP. Für Kalibrier-Messungen `dng.activeRiftMutator = null` setzen.
+- **Parallele Läufe:** Nie zwei Harness-Läufe gleichzeitig starten (Port 4197) und während `npm run verify` keine Quelldateien ändern.

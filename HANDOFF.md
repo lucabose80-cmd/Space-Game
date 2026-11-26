@@ -3,8 +3,8 @@
 > **Zweck:** Jedes Werkzeug (und jede neue Sitzung) soll hier in 1 Minute wissen, wo das Projekt steht. **Am Ende jeder Arbeitssitzung aktualisieren** (kurz halten, veraltete Punkte löschen).
 
 ## Stand
-- Meilenstein 10-A ist umgesetzt, `SAVE_VERSION = 11`, alles auf `main` (Vercel deployt automatisch).
-- Doku: `GAME_DESIGN_DOCUMENT.md` (Status), `MILESTONE_10_ARCHITECTURE.md` §11 (Umsetzungsnotizen & Abweichungen).
+- Meilensteine 1–10-C sind umgesetzt, `SAVE_VERSION = 11` (Vercel deployt bei Push auf `main`). Letzter Stand: M10-C (Bugs, HUD, Tag/Nacht, Bosse, Balancing).
+- Doku: `GAME_DESIGN_DOCUMENT.md` (Status), `MILESTONE_10_ARCHITECTURE.md` §11 und `MILESTONE_10C_ARCHITECTURE.md` §9 (Umsetzungsnotizen, gemessene Werte, Abweichungen).
 
 ## Arbeitsablauf (in jeder Umgebung gleich)
 ```bash
@@ -23,7 +23,8 @@ npm run verify                    # Build + Invarianten + Sprite-Check + Tests
 - **Wer einen Fallback/Platzhalter neu anlegt, trägt ihn hier ein** (Datei, Key, Prompt-Abschnitt im Art-Guide).
 
 ## Nächster Schritt
-- **Meilenstein 10-C umsetzen:** `MILESTONE_10C_ARCHITECTURE.md` Phase für Phase (Phase 0 zuerst).
+- Ökonomie & Boss-Kampfgefühl im echten Spiel beobachten und in `src/data/balance.ts` nachjustieren (Berichte: `tests/out/economy.json`, `tests/out/ttk.json`).
+- Sprites erzeugen (siehe unten), sobald Bildgenerierung verfügbar ist.
 
 ## Offene Punkte
 - Bildgenerierung: Gemini-Image-API braucht ein Projekt mit Abrechnung (Free Tier = Limit 0); Antigravity-Credits sind wochenweise.

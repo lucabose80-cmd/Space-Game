@@ -1,6 +1,6 @@
 # Game Design Document (GDD): *STARLIGHTER*
 
-> **Stand:** Version 1.3 (nach Meilenstein 10-A — Story mit Entscheidungen, lebendige Raumstation, Sektor-Mechaniken, Save v11)  
+> **Stand:** Version 1.4 (nach Meilenstein 10-C — Bugfixes, HUD, Tag/Nacht-Schleife, Teleporter, eigene Bosse, Balancing; Save v11)  
 > **Kurzpitch:** Ein **Cozy Retro-Sci-Fi Action-RPG & Shop-Management-Spiel** im Browser, inspiriert von *Moonlighter 1*. Bei Tag führst du deinen eigenen Bergungs- und Relikt-Shop (*Astro-Barter*) auf der Frontier-Raumstation *Port Solaris* — bei Nacht (oder auf Expedition) plünderst du prozedurale Raumschiff-Wracks, Kristall-Nebel, Solar-Gießereien, Ältesten-Monolithen und instabile Dimensions-Rifts nach wertvoller Technologie.
 
 ---
@@ -24,7 +24,7 @@ flowchart LR
     B --> C{"Risiko-Entscheidung"}
     C -- "Tiefer vordringen" --> D["Neue Gegner-Varianten, Rift-Risse & Bosse"]
     D --> C
-    C -- "Warp-Beacon / Extraktion" --> E["Sichere Rückkehr zu Port Solaris"]
+    C -- "Teleporter (Start, Boss, Notfall-Bake)" --> E["Sichere Rückkehr zu Port Solaris"]
     C -- "Besiegt (0 HP)" --> F["Not-Teleport: Fracht verloren (außer Warp-Anker)"]
     F --> E
     E --> G["Astro-Barter öffnen: Relikte auf Holo-Podesten verkaufen"]
@@ -87,6 +87,14 @@ flowchart LR
   - **Sektor-Raum-Mechaniken:** S2 Kristall-Prismen (spiegeln/teilen Projektile), S3 Schmelz-Düsen & Magnetplatten, S4 Astral-Teleporter-Paare — deterministisch platziert (lokaler PRNG), auch in der ∞ Spirale; in der Wochen-Prüfung erst ab `2026-W49`.
   - **Boss-Phase-2-Musik** (Tempo +18 %, Hi-Hat, Oktav-Lead, Sting), **Touch-Größe 85–130 %**, **Zielhilfe Aus/Standard/Smart**, **Textgeschwindigkeit** — als Geräte-Einstellungen im Hilfe-Tab (nur `localStorage`, nicht im Cloud-Save). Erfolge: 18.
 
+- **✅ Meilenstein 10-C — Bugs, Mobile-HUD, Spielschleife, Bosse & Balancing (Save v11):** *(Spezifikation & Umsetzungsnotizen: [MILESTONE_10C_ARCHITECTURE.md](MILESTONE_10C_ARCHITECTURE.md))*
+  - **Gegner-Navigation:** Bodenläufer (u. a. Slimes) umgehen Hindernisse per Fluss-Feld + Anti-Hänger; **Rift-Portal** und Notfall-Bake spawnen nur auf freien Feldern.
+  - **HUD:** Kampfwerte nur im Dungeon (sonst kompakte Status-Pille); Dungeon-Buttons liegen unter der Minimap, ein Ton-Button; **Waffenschrank** mit Slots ①/②, Tauschen und „→①/→②“ (auch in Fracht & Schmiede).
+  - **Tag/Nacht-Schleife:** Laden nur nachts · Run am Tag → danach Nacht · Nacht-Run (+35 % Rar-Loot) → danach Tag, die Ladenschicht fällt aus · Koje nur nachts („Schicht überspringen“).
+  - **Heim-Teleport entfernt:** Rückkehr nur über Start-Raum, Boss-Teleporter und die **Notfall-Bake** (ab Ebene II, einmalig).
+  - **Eigene Bosse:** Krall (S1 E1), Schlacken-Koloss, Gießerei-Meisterin, Vulkan-Titan, Chrono-Wächter, Monolith-Koloss, Sternen-Archon — je 3–5 telegrafierte Angriffe + Phase 2; **Gegner-Schilde** mit Counterplay (Angriffs-Fenster, Überhitzung).
+  - **Balancing:** Verkaufspreise ×0,65, Kopfgelder ×0,75, flachere frühe Waffenstufen + Fortschritts-Sperren, Boss-HP über Kampfdauer kalibriert (`src/data/balance.ts`), Bots deutlich später, Rift-Kammern härter (HP-/Schadensfaktor, 3. Welle, Elite).
+
 ---
 
 ## 4b. Story & Figuren (Kurzfassung)
@@ -114,12 +122,13 @@ Boni wirken **nicht** in der Galaktischen Prüfung (Lyra, Vex) und geben **nie C
 
 ---
 
-## 5. Offene Punkte & Ideen (nach Meilenstein 10-A)
+## 5. Offene Punkte & Ideen (nach Meilenstein 10-C)
 
-1. **12 Promenaden-Sprites (optional, Fallbacks vorhanden):** Laternen, Obelisk, Banner, Hologramm, Denkmal, Schilder, Leuchtfeuer, Lehrtafel + 3 Passanten — fertige Prompts in [ART_AND_DESIGN_GUIDE.md §7](ART_AND_DESIGN_GUIDE.md); empfohlene Reihenfolge: Zyklus-Hologramm, Lehrtafel, Leuchtfeuer, Obelisk (die prozeduralen Fallbacks wirken dort am „aufgeklebtesten“).
-2. **Balancing nach echten Spieldaten:** Par-Zeiten der Wochen-Prüfung, Mechanik-Häufigkeiten/-Schaden (S2–S4), Vertrauens-Schwellen.
-3. **Story-Erweiterung:** weitere Szenen pro Kapitel, Antworten mit längerfristigen Folgen (z. B. Dialoge im Shop), vertonte Stimm-Jingles pro Figur.
-4. **Wöchentliche Prüfung:** zusätzliche Prüfungs-Regeln/Modifikatoren pro Woche (z. B. „nur Nahkampf“).
+1. **Sprites (optional, Fallbacks vorhanden):** 12 Promenaden-Sprites (Art-Guide §7) und 5 Boss-Sprites (Art-Guide §8). `npm run check:sprites` listet den Stand.
+2. **Ökonomie laufend beobachten:** `tests/out/economy.json` (Preise, Upgrade-Kosten, Kopfgelder) und `tests/out/ttk.json` (Boss-Kampfdauer) nach Spielgefühl nachjustieren — alle Werte in `src/data/balance.ts`.
+3. **Balancing nach echten Spieldaten:** Par-Zeiten der Wochen-Prüfung (M10-C neu: +180 s), Mechanik-Häufigkeiten, Vertrauens-Schwellen, Boss-Angriffe.
+4. **Story-Erweiterung:** weitere Szenen pro Kapitel, vertonte Jingles.
+5. **Wöchentliche Prüfung:** zusätzliche Wochen-Modifikatoren (z. B. „nur Nahkampf“).
 
 ---
 

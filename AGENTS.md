@@ -4,7 +4,7 @@
 
 ---
 
-## 1. Project Snapshot (v1.3 — Milestone 10-A implemented)
+## 1. Project Snapshot (v1.4 — Milestone 10-C implemented)
 - **Game:** **STARLIGHTER** — Cozy Retro-Sci-Fi Action-RPG & Space-Shop browser game inspired by *Moonlighter 1*.
 - **Stack:** `TypeScript` (strict) + `Vite 8` + custom HTML5 Canvas 2D engine (`960×540` HD pixel-art buffer at `RENDER_SCALE = 2` over `480×270` logical coordinates) + Web Audio procedural synth + Firebase Auth & Cloud Firestore (`starlighter-15b1f`).
 - **Deployment:** Pushing to `main` triggers automatic Vercel deployment. **Never** tell the user to open a `localhost` URL.
@@ -13,11 +13,11 @@
 ## 2. Documentation Map (Read When Relevant)
 | Document | When to Read |
 | :--- | :--- |
-| [GAME_DESIGN_DOCUMENT.md](GAME_DESIGN_DOCUMENT.md) | Current milestone status (M1–M10-A + Firebase + Architecture Split live), story bible, open ideas, and codebase directory map. |
+| [GAME_DESIGN_DOCUMENT.md](GAME_DESIGN_DOCUMENT.md) | Current milestone status (M1–M10-C + Firebase + Architecture Split live), story bible, open ideas, and codebase directory map. |
 | [MILESTONE_8_ARCHITECTURE.md](MILESTONE_8_ARCHITECTURE.md) | Architecture & subsystem spec for Milestone 8 (Haggling, Patron Reputation, Market Terrace, Alchemy Bar, Solaris Trade Bank & Save v9). |
 | [MILESTONE_9_ARCHITECTURE.md](MILESTONE_9_ARCHITECTURE.md) | Architecture & implementation record for M9 (Captain Files, Global Market Trend, Ghost Captains, Weekly Seeded Trial, Save v10). |
 | [MILESTONE_10_ARCHITECTURE.md](MILESTONE_10_ARCHITECTURE.md) | Architecture & implementation record for M10-A (branching NPC story with trust & flags, living Port Solaris incl. optional sprite pack, sector room mechanics S2–S4, boss phase-2 music, touch size, aim assist & text speed, Save v11). §11 lists deviations & open items. |
-| [MILESTONE_10C_ARCHITECTURE.md](MILESTONE_10C_ARCHITECTURE.md) | **Next up:** plan for M10-C (enemy navigation, rift-portal placement, mobile HUD, weapon locker, automatic day/night loop, teleport-only extraction, unique bosses, shield counterplay, economy/boss/bot/rift balancing). |
+| [MILESTONE_10C_ARCHITECTURE.md](MILESTONE_10C_ARCHITECTURE.md) | Architecture & implementation record for M10-C (enemy navigation, rift-portal placement, mobile HUD, weapon locker, day/night loop, teleporter-only extraction, unique bosses, shield counterplay, economy/boss/bot/rift balancing in `src/data/balance.ts`). §9 lists measured values & deviations. |
 | [ART_AND_DESIGN_GUIDE.md](ART_AND_DESIGN_GUIDE.md) | Generating new pixel-art sprites/backgrounds (prompt templates, color palettes, Python flood-fill extraction script, `artLoader.ts` & UI rules). |
 | [TESTING_AND_VERIFICATION.md](TESTING_AND_VERIFICATION.md) | Running `npm run build`, checking invariants, Headless Chrome CDP verification harness, visual screenshot QA, and known pitfalls. |
 | [firestore.rules](firestore.rules) | Production Firestore security rules (`saves/{uid}`, `leaderboard/{uid}`, `activities`). |
@@ -35,6 +35,8 @@
    - Verify Zero-Dungeon-Credits invariant.
    - Run Headless Chrome CDP logic + live screenshot check and **visually inspect** screenshots before committing and pushing to `origin main`.
 7. **Fehlende Sprites melden:** Legst du einen prozeduralen Fallback / Platzhalter anstelle eines Sprites an (z. B. weil kein Bildgenerator verfügbar ist), dann **musst** du (a) den Sprite-Key in `M10_OPTIONAL_SPRITES` (bzw. dem passenden optionalen Block in `artLoader.ts`) registrieren, damit `npm run check:sprites` ihn listet, (b) den Prompt in `ART_AND_DESIGN_GUIDE.md` §7 ergänzen und (c) im Abschnitt „Fehlende Sprites“ von `HANDOFF.md` eintragen. In deiner Abschlussmeldung weist du den Projektinhaber ausdrücklich darauf hin, dass neue Sprites benötigt werden.
+9. **Tag/Nacht-Schleife (M10-C):** Laden nur nachts; Run am Tag → danach Nacht; Nacht-Run → danach Tag (Ladenschicht fällt aus); Koje nur nachts. Zeitwechsel laufen **nur** über `GameState.startNight()` / `startDay()` — nie `timeOfDay` direkt setzen. Die Wochen-Prüfung ändert die Zeit nie.
+10. **Balancing zentral (M10-C):** Preise, Boss-HP, Rift-Faktoren, Waffen-Sperren, Schild-Werte stehen in `src/data/balance.ts`. Nach Änderungen `npm test -- m10cp8 m10cp10` (Boss-Kampfdauer, Prüfung) laufen lassen und `tests/out/economy.json` ansehen.
 8. **Übergabe:** Aktualisiere am Ende jeder Sitzung `HANDOFF.md`. Prüfe mit `npm run verify`, bevor du pushst (gilt für jedes Werkzeug; Claude Code liest `CLAUDE.md`, das auf diese Datei verweist).
 
 ---

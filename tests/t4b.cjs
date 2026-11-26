@@ -53,7 +53,7 @@ module.exports = async ({ page, scratch }) => {
     out.defeat = { n: T.summaries.length, s: T.summaries[0]?.isWeeklyTrial, outcome: T.summaries[0]?.trialOutcome, cargo: T.gs.inventory.cargo[0], active: T.gs.activeTrial, isTrial: T.dng.isWeeklyTrial };
     // victory
     const V = B; V.dng.startWeeklyTrial(info);
-    V.dng.startFloor(3, false, 1); V.dng.floorBossDefeated = true; V.dng.runElapsedSec = 450;
+    V.dng.startFloor(3, false, 1); V.dng.floorBossDefeated = true; V.dng.runElapsedSec = 630;
     V.dng.triggerSafeWarp('boss_victory', false);
     const sm = V.summaries[0];
     out.victory = { v: sm?.victory, outcome: sm?.trialOutcome, badge: sm?.trialResult?.badge, best: sm?.trialResult?.isNewBest, time: V.gs.weeklyTrial?.bestTimeSec, cargo: V.gs.inventory.cargo[0], credits: V.gs.credits, hist: V.gs.trialBadgeHistory };
@@ -80,7 +80,7 @@ module.exports = async ({ page, scratch }) => {
   const ok = r.restoredRandom && r.floorsEqual && r.floorsDifferAcrossFloors && r.noRiftPortals && r.hpEqual && r.mutator === 'armored' &&
     r.afterBoss.floorBossDefeated && !r.afterBoss.s1 && r.afterBoss.b === 0 && !r.afterBoss.breacher && r.afterBoss.credits === 500 && r.afterBoss.drops === 0 && r.dropsAfterSpawn === 0 &&
     r.defeat.n === 1 && r.defeat.s && r.defeat.outcome === 'defeat' && r.defeat.cargo?.qty === 3 && r.defeat.active === null && !r.defeat.isTrial &&
-    r.victory.v && r.victory.outcome === 'victory' && r.victory.badge === 'silver' && r.victory.time === 450 && r.victory.cargo?.qty === 3 && r.victory.credits === 500 &&
+    r.victory.v && r.victory.outcome === 'victory' && r.victory.badge === 'silver' && r.victory.time === 630 && r.victory.cargo?.qty === 3 && r.victory.credits === 500 &&
     r.abort.outcome === 'abort' && r.abort.credits === 500 && !r.abort.victory && r.normalAfter[0] === false && r.normalAfter[1] === null && r.companionInTrial === null;
   if (!ok) throw new Error('P4b assert failed');
   console.log('PHASE4b OK');

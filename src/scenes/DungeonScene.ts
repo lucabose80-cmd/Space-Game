@@ -23,7 +23,7 @@ import type {
 } from '../types';
 import { getDeviceSettings } from '../systems/deviceSettings';
 import { withSeededRandom } from '../systems/seededRng';
-import { formatWeekLabel, getTrialFloorSeed, TRIAL_FLOORS, trialHasMechanics } from '../systems/weeklyTrial';
+import { formatWeekLabel, getTrialFloorSeed, TRIAL_FLOORS, trialBossHpFactor, trialHasMechanics } from '../systems/weeklyTrial';
 import {
   generateEndlessRiftFloor,
   generateSector1Floor,
@@ -730,8 +730,10 @@ export class DungeonScene {
           (riftMutator === 'armored' ? 1.25 : 1.0)
         : 1.0;
 
+    // M10-C: Boss-HP in der Prüfung auf normierte Stufe-4-Ausrüstung skaliert (gleiche Kampfdauer wie im Normalspiel)
+    const trialBossMult = trial && this.isBossKind(kind) ? trialBossHpFactor(kind) : 1;
     const makeBase = (hp: number, radius: number): Enemy => {
-      const scaledHp = Math.max(10, Math.round(hp * riftHpMult));
+      const scaledHp = Math.max(10, Math.round(hp * riftHpMult * trialBossMult));
       return {
         id: this.nextEnemyId++,
         kind,

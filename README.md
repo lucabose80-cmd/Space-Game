@@ -4,7 +4,7 @@ Ein **Cozy Retro-Sci-Fi Action-RPG & Space-Shop-Spiel** im Browser, inspiriert v
 
 Bei Tag betreibst du deinen Relikt- und Bergungsladen **Astro-Barter** auf der Frontier-Raumstation **Port Solaris** – bei Nacht (oder auf Expedition) plünderst du prozedurale Raumschiff-Wracks, Kristall-Nebel, Solar-Gießereien, Ältesten-Monolithen und instabile Dimensions-Rifts nach wertvoller Alien-Technologie.
 
-## Features (Version 1.3)
+## Features (Version 1.4)
 
 - **Vollständige Galaxie (4 Sektoren + 5. Tiefenraum-Tor + Endlos-Rift):**
   - **Sektor 1 (*Verlassene Korvette*):** 3 Ebenen & 3 Bosse (*Schott-Brecher MK-II* → *Core-Wächter MK-IV* → **A.E.G.I.S. LEVIATHAN**).
@@ -28,6 +28,10 @@ Bei Tag betreibst du deinen Relikt- und Bergungsladen **Astro-Barter** auf der F
   - **Port Solaris wächst mit dir:** Lichterketten, Laternen, Obelisk, Feuerwerk … je nach Kapitel & Entscheidungen; mehr Passanten mit Sprechblasen.
   - **Sektor-Mechaniken:** Kristall-Prismen (S2), Schmelz-Düsen & Magnetplatten (S3), Astral-Teleporter (S4).
   - **Boss-Phase-2-Musik**, **Touch-Größe 85–130 %**, **Zielhilfe Aus/Standard/Smart** & **Textgeschwindigkeit** (Hilfe-Tab, pro Gerät).
+- **Bugs, HUD, Tag/Nacht & Bosse (Meilenstein 10-C):**
+  - **Tag/Nacht-Schleife:** Laden nachts, Runs tagsüber (Nacht-Runs +35 % Beute, dafür keine Ladenschicht); Rückkehr nur über Teleporter & Notfall-Bake.
+  - **7 eigene Bosse** mit telegrafierten Angriffen & Phase 2, **Schilde mit Counterplay**, Gegner-Wegfindung, **Waffenschrank**, aufgeräumtes Mobile-HUD.
+  - **Balancing:** neue Preise, Fortschritts-Sperren für Waffen, höhere Bot-Hürden, härtere Instabile Risse.
 - **HD-Pixel-Art (`960×540`), Mobile-Touch & Gamepad:**
   - Gestochen scharfe Pixel-Art, responsiver virtueller Analog-Stick, nativer HTML5-Controller-Support, Web-Audio-Synth-Soundtrack & JSON-Savegame-Export/Import.
 
@@ -50,7 +54,8 @@ Bei Tag betreibst du deinen Relikt- und Bergungsladen **Astro-Barter** auf der F
 ## Projekt-Dokumentation (für Entwickler & KI-Agents)
 
 - **[AGENTS.md](AGENTS.md)** — Einstiegs-Leitfaden für KI-Coding-Agents (Regeln, Architektur-Kurzreferenz & „How to Add X“).
-- **[GAME_DESIGN_DOCUMENT.md](GAME_DESIGN_DOCUMENT.md)** — Aktueller Stand (v1.3), Meilensteine 1–10-A, Story-Bibel, Codebase-Karte & offene Ideen.
+- **[GAME_DESIGN_DOCUMENT.md](GAME_DESIGN_DOCUMENT.md)** — Aktueller Stand (v1.4), Meilensteine 1–10-C, Story-Bibel, Codebase-Karte & offene Ideen.
+- **[MILESTONE_10C_ARCHITECTURE.md](MILESTONE_10C_ARCHITECTURE.md)** — Bugs, HUD, Tag/Nacht-Schleife, Bosse & Balancing (M10-C).
 - **[MILESTONE_10_ARCHITECTURE.md](MILESTONE_10_ARCHITECTURE.md)** — Architektur & Umsetzung von Story, Station, Mechaniken & Steuerung (Save v11).
 - **[MILESTONE_9_ARCHITECTURE.md](MILESTONE_9_ARCHITECTURE.md)** — Architektur & Umsetzung des Galaktischen Netzwerks (Save v10).
 - **[ART_AND_DESIGN_GUIDE.md](ART_AND_DESIGN_GUIDE.md)** — HD-Pixel-Art-Prompt-Formeln, Flood-Fill-Freistellung, Farbpaletten & UI-Regeln.

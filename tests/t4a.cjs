@@ -6,7 +6,7 @@ module.exports = async ({ page }) => {
     out.completedBeatsIncomplete = wt.computeTrialScore({ completed: true, timeSec: 5000, floorReached: 3, roomsCleared: 20 }) < wt.computeTrialScore({ completed: false, timeSec: 10, floorReached: 3, roomsCleared: 900 });
     out.fasterBetter = wt.computeTrialScore({ completed: true, timeSec: 300, floorReached: 3, roomsCleared: 1 }) < wt.computeTrialScore({ completed: true, timeSec: 301, floorReached: 3, roomsCleared: 1 });
     out.deeperBetter = wt.computeTrialScore({ completed: false, timeSec: 1, floorReached: 2, roomsCleared: 1 }) < wt.computeTrialScore({ completed: false, timeSec: 1, floorReached: 1, roomsCleared: 9 });
-    out.badges = [wt.getTrialBadge(1, true, 400), wt.getTrialBadge(1, true, 500), wt.getTrialBadge(1, true, 900), wt.getTrialBadge(1, false, 100)];
+    out.badges = [wt.getTrialBadge(1, true, 580), wt.getTrialBadge(1, true, 680), wt.getTrialBadge(1, true, 1000), wt.getTrialBadge(1, false, 100)];
     const a = wt.getCurrentWeeklyTrial(new Date('2026-11-25T10:00:00Z')), b = wt.getCurrentWeeklyTrial(new Date('2026-11-29T23:00:00Z')), c = wt.getCurrentWeeklyTrial(new Date('2026-11-30T00:00:01Z'));
     out.sameWeek = JSON.stringify(a) === JSON.stringify(b); out.nextWeek = a.weekId !== c.weekId; out.info = a;
     const sectors = new Set(); for (let w = 0; w < 30; w++) sectors.add(wt.getCurrentWeeklyTrial(new Date(Date.UTC(2026, 0, 5 + w * 7))).sector);
@@ -25,13 +25,13 @@ module.exports = async ({ page }) => {
     // record results
     const base = { weekId: '2026-W48', sector: 2, floorReached: 3, roomsCleared: 10 };
     const r1 = g.recordWeeklyTrialResult({ ...base, completed: false, timeSec: 100, floorReached: 1, roomsCleared: 3 });
-    const r2 = g.recordWeeklyTrialResult({ ...base, completed: true, timeSec: 700 }); // sector2 silver<720 → silver
-    const r3 = g.recordWeeklyTrialResult({ ...base, completed: true, timeSec: 800 }); // worse
-    const r4 = g.recordWeeklyTrialResult({ ...base, completed: true, timeSec: 470 }); // gold
+    const r2 = g.recordWeeklyTrialResult({ ...base, completed: true, timeSec: 880 }); // sector2 silver<900 → silver (M10-C: Par +180 s)
+    const r3 = g.recordWeeklyTrialResult({ ...base, completed: true, timeSec: 980 }); // worse
+    const r4 = g.recordWeeklyTrialResult({ ...base, completed: true, timeSec: 650 }); // gold <660
     out.rec = [r1.isNewBest, r2.isNewBest, r2.badge, r3.isNewBest, r4.isNewBest, r4.badge, g.weeklyTrial.attempts, g.weeklyTrial.bestTimeSec];
     out.hist = g.trialBadgeHistory; out.uploaded = g.weeklyTrial.uploaded;
     out.ach = g.unlockedAchievements.filter((x) => x.startsWith('trial'));
-    const r5 = g.recordWeeklyTrialResult({ weekId: '2026-W49', sector: 3, completed: true, timeSec: 900, floorReached: 3, roomsCleared: 5 });
+    const r5 = g.recordWeeklyTrialResult({ weekId: '2026-W49', sector: 3, completed: true, timeSec: 1080, floorReached: 3, roomsCleared: 5 });
     out.newWeek = [g.weeklyTrial.weekId, g.weeklyTrial.attempts, r5.badge, g.trialBadgeHistory['2026-W48'], g.trialBadgeHistory['2026-W49']];
     out.counts = g.getTrialBadgeCounts();
     // roundtrip
@@ -47,7 +47,7 @@ module.exports = async ({ page }) => {
   });
   console.log(JSON.stringify(r, null, 1));
   const ok = r.completedBeatsIncomplete && r.fasterBetter && r.deeperBetter && r.badges.join() === 'gold,silver,bronze,' && r.sameWeek && r.nextWeek && r.sectorsSeen >= 3 && r.normStats && r.unnormHigher && r.inf1 === 'solar_burn' && r.inf2 === 'none' &&
-    r.rec.join() === 'true,true,silver,false,true,gold,4,470' && r.hist['2026-W48'] === 'gold' && r.uploaded === false && r.ach.length === 2 && r.newWeek.join() === '2026-W49,1,bronze,gold,bronze' && r.rt && r.undef.length === 0;
+    r.rec.join() === 'true,true,silver,false,true,gold,4,650' && r.hist['2026-W48'] === 'gold' && r.uploaded === false && r.ach.length === 2 && r.newWeek.join() === '2026-W49,1,bronze,gold,bronze' && r.rt && r.undef.length === 0;
   if (!ok) throw new Error('P4a assert failed');
   console.log('PHASE4a OK');
 };
