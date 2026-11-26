@@ -1712,7 +1712,11 @@ export class GameState {
     }
   }
 
+  /** Dev-Werkzeug (Boss-Labor): verhindert jedes Speichern/Synchronisieren des Spielstands. */
+  public saveLocked = false;
+
   public save(): void {
+    if (this.saveLocked) return;
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify(this.buildSavePayload()));
       firebaseService.scheduleAutoSync(this);

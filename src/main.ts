@@ -15,6 +15,7 @@ import { ShopScene } from './scenes/ShopScene';
 import { firebaseService } from './services/firebaseService';
 import { galacticNetwork } from './services/galacticNetwork';
 import { GameState } from './systems/gameState';
+import { BossLab } from './dev/bossLab';
 import type { StoryResult } from './ui/StoryModals';
 import type { MusicTrack, RunSummary, SceneId, SectorId, StoryNpcId, WeeklyTrialInfo } from './types';
 import { TouchControls } from './ui/TouchControls';
@@ -35,6 +36,8 @@ class StarlighterGame {
   private hangarScene: HangarScene;
   private marketTerraceScene: MarketTerraceScene;
   private dungeonScene: DungeonScene;
+  /** Behelfsmäßiges Boss-Labor (nur mit ?bosslab in der Adresse) */
+  private bossLab: BossLab | null = null;
 
   private activeScene: SceneId = 'shop';
   private pendingDungeonSector: SectorId = 1;
@@ -307,6 +310,7 @@ class StarlighterGame {
     this.syncMusic();
     this.ui.showTitle();
     this.syncTouch();
+    if (new URLSearchParams(window.location.search).has('bosslab')) this.startBossLab();
 
     this.canvas.addEventListener('pointerdown', () => {
       sound.unlock();
@@ -323,6 +327,26 @@ class StarlighterGame {
 
     this.lastTime = performance.now();
     requestAnimationFrame((t) => this.loop(t));
+  }
+
+  // ==================== BEHELF: BOSS-LABOR (?bosslab) ====================
+  private startBossLab(): void {
+    this.ui.hideTitle();
+    this.activeScene = 'dungeon';
+    this.ui.currentScene = 'dungeon';
+    this.ui.shopIsOpen = false;
+    this.bossLab = new BossLab(this.dungeonScene, this.state, {
+      onSceneChange: () => {
+        this.ui.dungeonSector = this.dungeonScene.currentSector;
+        this.ui.dungeonFloor = this.dungeonScene.currentFloor;
+        this.ui.dungeonEndlessRift = false;
+        this.ui.dungeonWeeklyTrial = false;
+        this.ui.renderHud();
+        this.syncTouch();
+        this.syncMusic();
+      },
+    });
+    this.bossLab.enter();
   }
 
   // ==================== MEILENSTEIN 10-A: STORY ====================
@@ -536,6 +560,10 @@ class StarlighterGame {
   }
 
   private handleReturnFromDungeon(summary: RunSummary): void {
+    if (this.bossLab) {
+      this.bossLab.onReturnAttempt(); // Boss-Labor: nie wirklich zurückkehren
+      return;
+    }
     const newChapter = this.state.refreshStoryChapter();
     if (newChapter !== null) {
       this.ui.toast(`📜 ${this.state.getStoryChapterTitle()} — auf Port Solaris gibt es Neuigkeiten!`, 'info');
@@ -643,7 +671,8 @@ class StarlighterGame {
     } else if (this.activeScene === 'hangar') {
       if (!this.ui.modalOpen && !this.ui.titleVisible) this.hangarScene.update(dt, this.input);
     } else if (!this.ui.modalOpen && !this.ui.titleVisible) {
-      this.dungeonScene.update(dt, this.input);
+      this.dungeonScene.update(this.bossLab ? this.bossLab.scaleDt(dt) : dt, this.input);
+      this.bossLab?.afterUpdate(dt);
     }
 
     // Keep retro-synth zone & boss music dynamically synced!
