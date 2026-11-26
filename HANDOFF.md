@@ -68,8 +68,8 @@ Nach und nach erzeugen, sobald Gemini-Volumen frei ist (Reihenfolge §5 im Brief
 - Code-Seite (Claude Code, sobald der Pilot da ist): Import-Modus `parts`, Rigs in `rigs.json`, `anim/enemyAnims.ts`.
 
 ## Nächster Schritt
-- **Boss-Animation (Stand):** `BOSS_ANIMATION_PLAN.md` §2.2 K1–K8 **und alle Sprite-Aufgaben S1–S5** sind fertig! Claude Code kann jetzt direkt S2 (`arms_R2/L2`), S3 (`torsos2`), S4 (`fists`) und S5 (`heads2`) in `src/data/rigs.json` eintragen, per `npm run art:import -- core_warden --force` importieren und in `bossAnims.ts`/`dungeonRenderer.ts` verdrahten → danach finale Abnahme (§2.4).
-- **Antigravity (als Nächstes):** restliche 5 Krall-Sheets (`krall_arms_L`, `krall_legs_R/L`, `krall_torsos`, `krall_effects`) und/oder Gegner-Rig-Piloten (`turret_rig`, `phase_stalker_rig`).
+- **Boss-Animation (Stand):** Kern-Wächter komplett eingebunden — `BOSS_ANIMATION_PLAN.md` K1–K8 **und** S1–S5 (Zwischen-Posen, Laser-Rumpf, Faust-Pylonen, Blick/Blinzeln, beschädigte Phase-2-Posen). Es fehlt nur die **Abnahme im echten Kampf** (§2.4). Danach: Übertragung auf die anderen Bosse (§3).
+- **Antigravity (als Nächstes, Kern-Wächter ist durch):** restliche 5 Krall-Sheets (`krall_arms_L`, `krall_legs_R/L`, `krall_torsos`, `krall_effects`) und/oder Gegner-Rig-Piloten (`turret_rig`, `phase_stalker_rig`).
 - **Claude Code (ohne neue Sprites):** Teilen von Quarz-Koloss/Sternen-Archon (`MILESTONE_11_ARCHITECTURE.md` §4.3), prozedurale Bewegung der übrigen Bosse, Krall-Verdrahtung vorbereiten, Kern-Glühen des Kern-Wächters an die neue Kernposition anpassen (Schulter-Offsets sind justiert: `SHOULDER_ADJUST`), danach Plan-Phase 3 (Angriffe der Sektor-1-Bosse mit Teil-Abwurf/Splitting, `MILESTONE_11_ARCHITECTURE.md`).
 - Ökonomie & Boss-Kampfgefühl im echten Spiel beobachten und in `src/data/balance.ts` nachjustieren (Berichte: `tests/out/economy.json`, `tests/out/ttk.json`).
 - Optionale M10/M10-C-Einzel-Sprites bei Bedarf ebenfalls per Antigravity erzeugen.

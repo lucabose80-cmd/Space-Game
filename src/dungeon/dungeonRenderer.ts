@@ -1831,15 +1831,27 @@ export class DungeonRenderer {
     ctx.stroke();
     ctx.restore();
 
-    // M11 K6: in Phase 2 kreisen die abgelösten Fäuste statt der Rauten (Bild `fist` des Kern-Wächter-Rigs; Hitbox/Schüsse bleiben die der Pylonen)
-    const fist = enraged ? getHDArt().rigs.core_warden?.parts.fist : null;
-    if (fist) {
+    // M11 K6/S4: in Phase 2 kreisen die abgelösten Fäuste statt der Rauten (Bilder aus fists.png; Hitbox/Schüsse bleiben die der Pylonen)
+    const rigParts = enraged ? getHDArt().rigs.core_warden?.parts : null;
+    const fistImg = rigParts ? (charging ? rigParts.fist_charged : rigParts.fist_angled) : null;
+    if (rigParts && fistImg) {
       drawGlow(ctx, px, py, charging ? 16 : 11, coreColor, charging ? 0.6 : 0.3);
-      const ang = Math.atan2(py - bossY, px - bossX); // Manschette zeigt zum Boss, Faust nach außen
+      const ang = Math.atan2(py - bossY, px - bossX); // Richtung Boss → Pylon
+      const trail = charging ? rigParts.fist_trail : null;
+      if (trail) {
+        // Energie-Schweif hinter der Faust (entgegen der Umlaufrichtung)
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = 0.8;
+        ctx.translate(px, py);
+        ctx.rotate(ang + Math.PI / 2);
+        ctx.drawImage(trail, -trail.width / 2 - 4, -trail.height / 4, trail.width / 2, trail.height / 2);
+        ctx.restore();
+      }
       ctx.save();
       ctx.translate(px, py);
-      ctx.rotate(ang + Math.PI);
-      ctx.drawImage(fist, -fist.width / 4, -fist.height / 4, fist.width / 2, fist.height / 2);
+      if (!charging) ctx.rotate(ang + 0.4); // Manschette (unten links im Bild) zeigt zum Boss
+      ctx.drawImage(fistImg, -fistImg.width / 4, -fistImg.height / 4, fistImg.width / 2, fistImg.height / 2);
       ctx.restore();
       return;
     }
@@ -2207,7 +2219,7 @@ export class DungeonRenderer {
     if (!rigId) return false;
     const images = getHDArt().rigs[rigId];
     if (!images) return false;
-    const pose = getBossPose(rigId, e, this.scene.time);
+    const pose = getBossPose(rigId, e, this.scene.time, this.scene.playerX - e.x);
     // M11 Phase 2: Verwandlung — Teile mit `detach: 'phase2'` lösen sich genau einmal (Pose zeigt sie ab da nicht mehr)
     if (e.bossPhase2 && !e.rigDetached) {
       e.rigDetached = true;

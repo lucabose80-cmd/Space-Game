@@ -94,10 +94,18 @@ def import_set(rid, st, scale, args, outdir, meta, report):
         return 0
     sheet = Image.open(src)
     cleaned = []
+    # optional `cells`: Zellenindizes (0-basiert), die dieses Set aus dem Sheet nimmt (ids[k] ← Zelle cells[k]) — so lassen sich
+    # unterschiedlich große Teile eines Sheets in getrennte Sets mit eigenem Ausschnitt teilen (z. B. Arme ↔ Fäuste)
+    want = st.get("cells")
     for i, cell in cells(sheet, st.get("cols", 3), st.get("rows", 2)):
-        if i >= len(st["ids"]):
-            break
-        cleaned.append((st["ids"][i], clean_cell(cell)))
+        if want is not None:
+            if i not in want or want.index(i) >= len(st["ids"]):
+                continue
+            cleaned.append((st["ids"][want.index(i)], clean_cell(cell)))
+        else:
+            if i >= len(st["ids"]):
+                break
+            cleaned.append((st["ids"][i], clean_cell(cell)))
     hx = hy = 1
     for pid, img in cleaned:
         bb = img.getbbox()

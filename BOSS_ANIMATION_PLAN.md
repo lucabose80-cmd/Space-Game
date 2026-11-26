@@ -28,7 +28,10 @@ Ein Boss gilt erst als **„Animation fertig“**, wenn alle Punkte erfüllt **u
 ## 2. Kern-Wächter (`core_warden`, kind `boss`) — Pilot
 
 ### 2.1 Stand (erledigt)
-> **Update:** K1–K8 sind abgearbeitet (K5 verworfen, K6 als Variante). Offen: Abnahme durch den Projektinhaber (§2.4) und Sprite-Aufgaben S1–S5.
+> **Update:** K1–K8 abgearbeitet und **S1–S5 vollständig eingebunden** (K5 jetzt über S3 gelöst, K6 mit den echten Faust-Bildern aus S4). Offen: nur noch die **Abnahme durch den Projektinhaber im echten Kampf** (§2.4) und die Übertragung auf andere Bosse (§3).
+>
+> **Varianten-Karte (Indizes = Reihenfolge in `rigs.json` `variants`):**
+> Arme je Seite: 0–5 Hauptposen · 6 halb ausgeholt · 7 Schlag kurz vor Treffer · 8 zurückfedernd · 9 Laser-Ladung · 10 Block-Treffer · 11 Phase 2 beschädigt · 12 ohne Faust. Köpfe: 0–5 · 6 Visier feuert · 7 Blick links · 8 Blick rechts · 9 brüllend Phase 2 · 10 stark beschädigt (< 15 % HP) · 11 Blinzeln. Rümpfe: 0–5 · 6 Brust offen · 7 halb offen · 8 Sprung gestreckt · 9 Landung gestaucht · 10 Phase 2 Laser · 11 Phase 2 beschädigt. Fäuste (nur Bilder): `fist_front`, `fist_charged`, `fist_angled`, `fist_trail`.
 
 - [x] Pose-Sets Arme L/R, Köpfe, Rümpfe (je 6) importiert, Posen je Zustand (`coreWardenSet` in `src/dungeon/anim/bossAnims.ts`)
 - [x] Schulter-Feinjustierung je Rumpf-Variante (`SHOULDER_ADJUST`)
@@ -70,10 +73,10 @@ Reihenfolge = Priorität. Alle Änderungen rein darstellend (D8).
   - Achtung: der Renderer neigt den ganzen Boss bereits (`tilt`) — Werte klein halten, im Labor prüfen.
 - [x] **K4 · Treffer-Reaktion (D6)** — `bossAnims.ts` ✅ umgesetzt (voll im Ruhe-/Gehzustand, im Pylonen-Block nur Rumpfzittern, in Sturm/Sprung/Laser unverändert)
   - Bei `flashTimer > 0`: zusätzlich Rumpf `dx` ±1 px Zittern (deterministisch: `sin(time·90)`), Arme `rot` +0,08 nach außen, 0,12 s. Nicht während `charge_dash`/`slam_*`/`laser_sweep` (dort nur der Kopf-Ruck, wie jetzt).
-- [x] **K5 · Laser: Brust öffnet sich (Plan §4.1)** — `bossAnims.ts` + `rigs.json` ✅ **verworfen** — im Kontaktbogen verdecken die geschlossenen Brustplatten den offenen Kern (`node scripts/rig-sheet.cjs core_warden`, Zustand „laser_sweep“). Echte Lösung = Sprite-Aufgabe S3
+- [x] **K5 · Laser: Brust öffnet sich** ✅ gelöst über S3: `laser_windup` zeigt den Rumpf halb offen → offen, `laser_sweep` offen (Phase 2: eigener Laser-Rumpf). Die ursprünglich geplanten Typ-P-Platten wurden verworfen (verdeckten den Kern).
   - Während `laser_windup`/`laser_sweep` die vorhandenen Platten `plateL/plateR` (Typ-P-Bilder) **sichtbar** machen und seitlich aufklappen: `dx ∓ 3·p`, `rot ∓ 0.35·p`, dazu Rumpf-Variante `normal` → Kern bleibt sichtbar.
   - Erst im Kontaktbogen prüfen: wirkt es **doppelt** (Platten über intaktem Brustpanzer), dann verwerfen und stattdessen Sprite-Aufgabe **S3** abwarten. Teile mit `detach: 'phase2'` dürfen nach Phase 2 nicht wieder auftauchen (`getBossPose` blendet sie aus — so lassen).
-- [x] **K6 · Fäuste als Pylonen in Phase 2 (Plan §4.1)** — Renderer + `bossAnims.ts` ✅ umgesetzt als Variante: in Phase 2 zeichnet `drawBossPylon` statt der Rauten das Bild `fist` (über `extraImages` in `rigs.json` geladen), Manschette zum Boss; Hitbox/Schüsse unverändert. Die Arme zeigen ihre Fäuste weiter (doppelt) — saubere Lösung mit S4
+- [x] **K6 · Fäuste als Pylonen in Phase 2** ✅ umgesetzt: in Phase 2 zeichnet `drawBossPylon` statt der Rauten `fist_angled` (Umlauf) bzw. `fist_charged` + `fist_trail` (während `pylon_barrage`); die Arme zeigen in `pylon_barrage` die Variante 12 „ohne Faust“. Hitbox/Schüsse unverändert.
   - Heute kreisen eigene Plasma-Pylonen (`enemyAi.getBossPylonPositions`, `dungeonRenderer.drawBossPylon`). Variante **ohne** neue Sprites: In Phase 2 während `pylon_barrage` an zwei Pylon-Positionen zusätzlich das vorhandene Bild `fist.png` (Typ-P-Teil, aktuell ungenutzt) gedreht zeichnen (glühend über `drawGlow`), Arme in Pose `block`.
   - Ehrliche Einschränkung: die Arm-Posen enthalten die Faust schon → Fäuste wären doppelt. Saubere Lösung erst mit Sprite-Aufgabe **S4** (Arme ohne Faust). Ohne S4 nur umsetzen, wenn es im Labor überzeugt; sonst zurückstellen.
 - [x] **K7 · Schulter-/Halskontrolle in Bewegung** — `SHOULDER_ADJUST`, `rigs.json` (`offset` von `armL/armR/head`) ✅ umgesetzt (Bewegungsfolge im Labor bei 0,25× geprüft: Gehen, Pylonen-Block, Rückkehr in `stalk`; keine schwebenden Schulterkappen, `SHOULDER_ADJUST` unverändert)
@@ -85,7 +88,7 @@ Format & Regeln wie `ART_BRIEF_M11.md` §2 (512×512-Zellen, Gelenk in Zellmitte
 
 - [x] **S1 · `core_warden_arms_L.png` Zellen 2 & 4 neu zeichnen** ✅ erledigt (eigenständig mit Licht von links-oben neu schattiert, Gelenk im Fadenkreuz, `art:check` + `art:import -- core_warden --force` + `npm run verify` + Kontaktbogen `rig_core_warden.png` geprüft).
 - [x] **S2 · Zwischen-Posen Arme (Typ L)** ✅ `art_source/rigs/core_warden_arms_R2.png` und `art_source/rigs/core_warden_arms_L2.png` erzeugt & per `art:check` geprüft (Licht links-oben, Schulterring im Fadenkreuz, `min_margin ≥ 34 px` / `≥ 46 px`: 1 halb ausgeholt · 2 Schlag kurz vor Treffer · 3 zurückfedernd · 4 Laser-Ladung · 5 Block-Treffer · 6 Phase-2 beschädigt).
-  Code danach: Sets in `rigs.json` an die Varianten anhängen (`armR_7…12`), Zuordnung in `coreWardenSet` (Zwischen-Posen für ~0,08 s zwischen den Hauptposen → ersetzt die Kreuzblende).
+  ✅ eingebunden: `armR_7…12`/`armL_7…12`; Zwischen-Posen 0,08 s beim Wechsel hängend→ausholen (6), ausholen→Schlag (7), Schlag→hängend (8) (`ARM_BETWEEN` in `smoothPose`); Laser-Ladung beim `laser_windup`, Block-Treffer im Pylonen-Block, beschädigt als Phase-2-Ruhe.
 - [x] **S3 · Rumpf „Brust offen – Laser“ (Typ S)** ✅ `art_source/rigs/core_warden_torsos2.png` erzeugt & per `art:check` geprüft (Kern im Fadenkreuz, `min_margin ≥ 40 px`, 6 Varianten: Brustklappen offen · halb offen · Sprung gestreckt · Landung gestaucht · Phase 2 Laser · Phase 2 beschädigt).
 - [x] **S4 · Arme ohne Faust + Faust einzeln (Typ L/E)** ✅ `art_source/rigs/core_warden_fists.png` erzeugt & per `art:check` geprüft (Arme R/L ohne Faust mit leuchtender Manschette = Schulter im Fadenkreuz; Fäuste vorn/geladen/schräg-oben + Energie-Schweif = Mitte im Fadenkreuz, `min_margin ≥ 115 px`).
 - [x] **S5 · Köpfe Zusatz (Typ S)** ✅ `art_source/rigs/core_warden_heads2.png` erzeugt & per `art:check` geprüft (Halsgelenk im Fadenkreuz, `min_margin ≥ 36 px`: 1 Visier feuert Laser · 2 Blick links · 3 Blick rechts · 4 brüllend Phase 2 · 5 stark beschädigt < 15 % HP mit zerbrochenem Halo · 6 Blinzeln/Visier zu).
@@ -93,7 +96,7 @@ Format & Regeln wie `ART_BRIEF_M11.md` §2 (512×512-Zellen, Gelenk in Zellmitte
 **Reihenfolge für Credits:** S1 ✅ → S3 ✅ → S4 ✅ → S2 ✅ → S5 ✅ *(alle Sprite-Aufgaben für Kern-Wächter erledigt!)*
 
 ### 2.4 Abnahme Kern-Wächter
-Alle Punkte D1–D10 erfüllt, K1–K8 abgehakt, S1–S5 erledigt (S2–S5 warten noch auf Einbindung in `rigs.json`/`bossAnims.ts` durch Claude Code), Projektinhaber hat einen vollständigen Kampf (Phase 1 + 2) im echten Spiel gesehen und freigegeben → hier „✅ abgenommen am …“ eintragen.
+Alle Punkte D1–D10 erfüllt, K1–K8 abgehakt, S1–S5 erledigt (S2–S5 eingebunden), Projektinhaber hat einen vollständigen Kampf (Phase 1 + 2) im echten Spiel gesehen und freigegeben → hier „✅ abgenommen am …“ eintragen.
 
 ---
 

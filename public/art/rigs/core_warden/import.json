@@ -9,7 +9,12 @@
   "core_warden_arms_R.png": "224e7d1322078d95",
   "core_warden_arms_L.png": "bea727267cb928c0",
   "core_warden_heads.png": "9843045d20671ca9",
-  "core_warden_torsos.png": "dc5d3d58f7b2af27"
+  "core_warden_torsos.png": "dc5d3d58f7b2af27",
+  "core_warden_arms_R2.png": "21c354ad50f6b3cd",
+  "core_warden_arms_L2.png": "abef5f08fa9f8950",
+  "core_warden_torsos2.png": "1abd02c49c4158f0",
+  "core_warden_heads2.png": "d22a4597c681f0e7",
+  "core_warden_fists.png": "e5409b47ca5e25c9"
  },
  "parts": {
   "torso": {
@@ -191,6 +196,186 @@
    "h": 76,
    "mode": "swap",
    "set": "core_warden_torsos"
+  },
+  "armR_7": {
+   "w": 80,
+   "h": 54,
+   "mode": "limb",
+   "set": "core_warden_arms_R2"
+  },
+  "armR_8": {
+   "w": 80,
+   "h": 54,
+   "mode": "limb",
+   "set": "core_warden_arms_R2"
+  },
+  "armR_9": {
+   "w": 80,
+   "h": 54,
+   "mode": "limb",
+   "set": "core_warden_arms_R2"
+  },
+  "armR_10": {
+   "w": 80,
+   "h": 54,
+   "mode": "limb",
+   "set": "core_warden_arms_R2"
+  },
+  "armR_11": {
+   "w": 80,
+   "h": 54,
+   "mode": "limb",
+   "set": "core_warden_arms_R2"
+  },
+  "armR_12": {
+   "w": 80,
+   "h": 54,
+   "mode": "limb",
+   "set": "core_warden_arms_R2"
+  },
+  "armL_7": {
+   "w": 76,
+   "h": 54,
+   "mode": "limb",
+   "set": "core_warden_arms_L2"
+  },
+  "armL_8": {
+   "w": 76,
+   "h": 54,
+   "mode": "limb",
+   "set": "core_warden_arms_L2"
+  },
+  "armL_9": {
+   "w": 76,
+   "h": 54,
+   "mode": "limb",
+   "set": "core_warden_arms_L2"
+  },
+  "armL_10": {
+   "w": 76,
+   "h": 54,
+   "mode": "limb",
+   "set": "core_warden_arms_L2"
+  },
+  "armL_11": {
+   "w": 76,
+   "h": 54,
+   "mode": "limb",
+   "set": "core_warden_arms_L2"
+  },
+  "armL_12": {
+   "w": 76,
+   "h": 54,
+   "mode": "limb",
+   "set": "core_warden_arms_L2"
+  },
+  "torso_7": {
+   "w": 64,
+   "h": 78,
+   "mode": "swap",
+   "set": "core_warden_torsos2"
+  },
+  "torso_8": {
+   "w": 64,
+   "h": 78,
+   "mode": "swap",
+   "set": "core_warden_torsos2"
+  },
+  "torso_9": {
+   "w": 64,
+   "h": 78,
+   "mode": "swap",
+   "set": "core_warden_torsos2"
+  },
+  "torso_10": {
+   "w": 64,
+   "h": 78,
+   "mode": "swap",
+   "set": "core_warden_torsos2"
+  },
+  "torso_11": {
+   "w": 64,
+   "h": 78,
+   "mode": "swap",
+   "set": "core_warden_torsos2"
+  },
+  "torso_12": {
+   "w": 64,
+   "h": 78,
+   "mode": "swap",
+   "set": "core_warden_torsos2"
+  },
+  "head_7": {
+   "w": 64,
+   "h": 78,
+   "mode": "swap",
+   "set": "core_warden_heads2"
+  },
+  "head_8": {
+   "w": 64,
+   "h": 78,
+   "mode": "swap",
+   "set": "core_warden_heads2"
+  },
+  "head_9": {
+   "w": 64,
+   "h": 78,
+   "mode": "swap",
+   "set": "core_warden_heads2"
+  },
+  "head_10": {
+   "w": 64,
+   "h": 78,
+   "mode": "swap",
+   "set": "core_warden_heads2"
+  },
+  "head_11": {
+   "w": 64,
+   "h": 78,
+   "mode": "swap",
+   "set": "core_warden_heads2"
+  },
+  "head_12": {
+   "w": 64,
+   "h": 78,
+   "mode": "swap",
+   "set": "core_warden_heads2"
+  },
+  "armR_nf": {
+   "w": 36,
+   "h": 50,
+   "mode": "limb",
+   "set": "core_warden_fists"
+  },
+  "armL_nf": {
+   "w": 36,
+   "h": 50,
+   "mode": "limb",
+   "set": "core_warden_fists"
+  },
+  "fist_front": {
+   "w": 42,
+   "h": 32,
+   "mode": "swap",
+   "set": "core_warden_fists"
+  },
+  "fist_charged": {
+   "w": 42,
+   "h": 32,
+   "mode": "swap",
+   "set": "core_warden_fists"
+  },
+  "fist_angled": {
+   "w": 42,
+   "h": 32,
+   "mode": "swap",
+   "set": "core_warden_fists"
+  },
+  "fist_trail": {
+   "w": 42,
+   "h": 32,
+   "mode": "swap",
+   "set": "core_warden_fists"
   }
  }
 }
