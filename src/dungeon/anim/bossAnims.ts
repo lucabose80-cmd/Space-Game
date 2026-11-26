@@ -140,6 +140,10 @@ function coreWardenSet(e: Enemy, time: number, lookDx: number): { arms: number; 
     }
   }
   if (p2 && NOFIST_OF[arms] !== undefined) arms = NOFIST_OF[arms]; // S6: in Phase 2 immer die Faust-losen Posen
+  // D12 Beschädigungsstufen (HP-Anteil): P1 < 80 % Helm rissig · < 65 % Rumpf überhitzt/dampft · P2 < 35 % Arme zerfetzt · < 25 % Rumpf beschädigt · < 15 % Helm zerstört
+  if (!p2 && hpPct < 0.8 && (head === HEAD.neutral || head === HEAD.lookL || head === HEAD.lookR || head === HEAD.blink)) head = HEAD.damaged;
+  if (!p2 && hpPct < 0.65 && torso === TORSO.normal) torso = TORSO.hot;
+  if (p2 && hpPct < 0.35 && arms === ARM.noFist) arms = ARM.damagedP2;
   return { arms, head, torso, fx };
 }
 
@@ -402,7 +406,7 @@ function rawBossPose(rigId: string, e: Enemy, time: number, lookDx: number): Pos
       const walking = Math.hypot(e.vx, e.vy) > 8;
       const sway = (0.07 + sw * 0.05) * (walking ? 0.4 : 1);
       const sh = SHOULDER_ADJUST[set.torso] ?? SHOULDER_ADJUST[0];
-      const still = set.arms === ARM.hang || set.arms === ARM.noFist; // nur im Ruhezustand pendeln, Angriffsposen stehen
+      const still = set.arms === ARM.hang || set.arms === ARM.noFist || set.arms === ARM.damagedP2; // nur im Ruhezustand pendeln, Angriffsposen stehen
       return {
         torso: { variant: set.torso, dx: fx.torso.dx, dy: fx.torso.dy, rot: fx.torso.rot, sx: fx.torso.sx, sy: (fx.torso.sy ?? 1) * (1 + breathe * 0.012) },
         head: { variant: set.head, rot: Math.sin(time * 1.3) * 0.04 + (fx.head.rot ?? 0), dy: Math.sin(time * 2.4 + 0.6) * 0.5 },

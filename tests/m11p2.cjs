@@ -28,6 +28,7 @@ module.exports = async ({ page }) => {
     out.dash = [cw({ bossState: 'charge_dash' }).armR.variant, cw({ bossState: 'charge_dash' }).torso.variant];
     out.laser = cw({ bossState: 'laser_windup' }).armL.variant;
     out.stomp = cw({ bossState: 'slam_impact' }).armL.variant;
+    out.dmg = [cw({ hp: 100 }), cw({ hp: 75 }), cw({ hp: 60 }), cw({ bossPhase2: true, hp: 30 }), cw({ bossPhase2: true, hp: 20 }), cw({ hp: 10 })].map((p) => [p.head.variant, p.torso.variant, p.armL.variant]);
     out.plateP2 = cw({ bossPhase2: true }).plateL.hidden;
     out.krallPlate = [anim.getBossPose('krall', e({ kind: 'boss_breacher' }), 1).plate.hidden === true, anim.getBossPose('krall', e({ kind: 'boss_breacher', bossPhase2: true }), 1).plate.hidden === true];
     out.krall = ['idle', 'windup', 'active'].map((s) => anim.getBossPose("krall", e({ kind: "boss_breacher", bossSub: s, bossStatusText: "GREIFARM-STOSS", bossStateTimer: 1 }), 1).clawR.variant);
@@ -121,6 +122,8 @@ module.exports = async ({ page }) => {
   assert.strictEqual(r.laser, 9); // Laser-Ladung (S2)
   assert.strictEqual(r.stomp, 5);
   assert.strictEqual(r.plateP2, true);
+  // D12 Beschädigungsstufen Kern-Wächter: [Kopf, Rumpf, Arm]
+  assert.deepStrictEqual(r.dmg, [[0, 0, 0], [5, 0, 0], [5, 5, 0], [4, 4, 11], [4, 11, 11], [10, 5, 0]], 'Beschädigungsstufen Kern-Wächter');
   assert.deepStrictEqual(r.krallPlate, [false, true], 'Krall-Rückenpanzer sichtbar, ab Phase 2 weg');
   assert.deepStrictEqual(r.krall, [0, 1, 2]);
   const K = r.kr; // [clawR, clawL, torso]: Arme 0 hängend · 1 ausholen · 2 Stoß · 3 seitlich · 4 Block · 5 Stampfer; Rumpf 0 normal · 1 geduckt · 2 aufgerichtet · 3 gebeugt · 4 Phase 2 · 5 beschädigt
