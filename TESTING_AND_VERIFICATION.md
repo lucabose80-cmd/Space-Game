@@ -10,7 +10,7 @@
    ```bash
    npm run verify   # build (tsc + vite) → check:invariants → check:sprites → alle Playwright-Tests
    ```
-   - `npm run build`: `tsc` (strikt: `verbatimModuleSyntax`, `erasableSyntaxOnly`, `noUnusedLocals`, `noUnusedParameters`) + `vite build` inkl. Chunk-Splitting (`index`, `dungeon`, `firebase`).
+   - `npm run build`: `tsc` (strikt: `verbatimModuleSyntax`, `erasableSyntaxOnly`, `noUnusedLocals`, `noUnusedParameters`) + `vite build` inkl. Chunk-Splitting (`firebase` in `vite.config.ts`; Dungeon-Code und Firebase-SDK laden per `import()` nach).
    - `npm run check:invariants`: Zero-Dungeon-Credits (`state.credits +=` in `src/scenes/DungeonScene.ts` und ganz `src/dungeon/`) und kein `Math.random` in `mechanicsGen.ts`. Gleichwertig von Hand: `rg -n "state\.credits\s*\+=" src/scenes/DungeonScene.ts src/dungeon/` → 0 Treffer.
    - `npm run check:sprites`: listet fehlende optionale Sprites/Rigs (nur Hinweis).
    - `npm test` (`tests/run.cjs` → `tests/harness.cjs`: Vite-Dev-Server auf Port 4197 + Playwright-Chromium; einmalig `npx playwright install chromium`). Einzelne Tests: `npm test -- m10p3 t5`.
