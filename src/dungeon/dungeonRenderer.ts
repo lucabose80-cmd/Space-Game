@@ -2278,7 +2278,8 @@ export class DungeonRenderer {
     const art = getHDArt();
     const state = e.bossState ?? 'stalk';
     const enraged = Boolean(e.bossPhase2);
-    const stompBob = Math.abs(Math.sin(this.scene.time * (enraged ? 11 : 7))) * 2.4;
+    const moving = Math.min(1, Math.hypot(e.vx, e.vy) / 60);
+    const stompBob = Math.abs(Math.sin(this.scene.time * (enraged ? 11 : 7))) * 1.2 * moving; // nur beim Laufen wippen (stehend wirkte der Boss zappelig)
     let scaleX = 1;
     let scaleY = 1;
     let tilt = Math.max(-0.18, Math.min(0.18, e.vx * 0.0014));
@@ -2298,8 +2299,9 @@ export class DungeonRenderer {
     if (spr) {
       ctx.save();
       ctx.translate(e.x, e.y + 16 - stompBob);
-      ctx.rotate(tilt);
-      ctx.scale(scaleX, scaleY);
+      const sm = smoothBossBody(e, scaleX, scaleY, tilt, this.scene.time, 0.3);
+      ctx.rotate(sm.tilt);
+      ctx.scale(sm.sx, sm.sy);
       if (this.tryDrawRig(ctx, e, 0, 7, e.x, e.y + 16 - stompBob)) rigUsed = true;
       else drawBossLook(ctx, art, e, this.scene.time, spr, -27, -45, 54, 52);
       ctx.restore();

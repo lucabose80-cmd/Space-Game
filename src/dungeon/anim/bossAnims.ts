@@ -238,12 +238,19 @@ const ARM_BETWEEN: Record<string, number> = { '0>1': ARM.halfWindup, '1>2': ARM.
 const normArm = (v: number): number => (v === ARM.damagedP2 ? ARM.hang : v);
 /** Teile, deren Bildwechsel keinen Stauch-Impuls bekommen (Blinzeln/Blickwechsel des Kopfes wären sonst unruhig). */
 const NO_PULSE = new Set(['head']);
+/** Krall: schwere Maschine → trägere Annäherung als der Kern-Wächter. */
+const KRALL_TAU = 0.1;
+/** Krall-Zwischen-Posen der Arme (`von>nach`): Anlauf vor Stoß/Wurf/Stampfer, Ausschwingen nach dem Stoß. */
+const CLAW_BETWEEN: Record<string, number> = { '0>2': KARM.windup, '0>3': KARM.windup, '0>5': KARM.windup, '2>0': KARM.side, '3>0': KARM.windup };
+/** Bildwechsel dieses Teils erst nach x Sekunden — der linke Arm folgt dem rechten (wirkt weniger „synchron zappelnd“). */
+const VARIANT_LAG: Record<string, number> = { clawL: 0.07 };
 
 interface AnimState {
   cur: Record<string, Record<(typeof NUM_FIELDS)[number], number>>;
   variants: Record<string, number | undefined>;
   pulse: Record<string, number>;
   inter: Record<string, { v: number; until: number }>;
+  lag: Record<string, { v: number; until: number }>;
   time: number;
 }
 const animStates = new WeakMap<Enemy, AnimState>();
@@ -253,16 +260,16 @@ const animStates = new WeakMap<Enemy, AnimState>();
  * Bildwechsel (`variant`) bleiben hart, bekommen aber einen kurzen Stauch-Impuls (sx 1.08 / sy 0.94, Rumpf zusätzlich dy +0.6),
  * damit das Auge den Schnitt nicht sieht. Zustand je Boss in einer WeakMap, Zeit nur über `time` (kein Date.now).
  */
-function smoothPose(e: Enemy, target: Pose, time: number): Pose {
+function smoothPose(e: Enemy, target: Pose, time: number, tau = SMOOTH_TAU): Pose {
   let st = animStates.get(e);
   const first = !st;
   if (!st) {
-    st = { cur: {}, variants: {}, pulse: {}, inter: {}, time };
+    st = { cur: {}, variants: {}, pulse: {}, inter: {}, lag: {}, time };
     animStates.set(e, st);
   }
   const dt = first ? 0 : Math.max(0, Math.min(0.1, time - st.time));
   st.time = time;
-  const k = first ? 1 : 1 - Math.exp(-dt / SMOOTH_TAU);
+  const k = first ? 1 : 1 - Math.exp(-dt / tau);
   const out: Pose = {};
   for (const [id, tgt] of Object.entries(target)) {
     const cur = (st.cur[id] ??= { rot: tgt.rot ?? 0, dx: tgt.dx ?? 0, dy: tgt.dy ?? 0, sx: tgt.sx ?? 1, sy: tgt.sy ?? 1 });
@@ -270,15 +277,18 @@ function smoothPose(e: Enemy, target: Pose, time: number): Pose {
     const prev = st.variants[id];
     if (prev !== undefined && tgt.variant !== undefined && prev !== tgt.variant) {
       if (!NO_PULSE.has(id)) st.pulse[id] = PULSE_TIME;
-      const mid = id.startsWith('arm') ? ARM_BETWEEN[`${normArm(prev)}>${normArm(tgt.variant)}`] : undefined;
+      const mid = id.startsWith('arm') ? ARM_BETWEEN[`${normArm(prev)}>${normArm(tgt.variant)}`] : id.startsWith('claw') ? CLAW_BETWEEN[`${prev}>${tgt.variant}`] : undefined;
+      if (VARIANT_LAG[id]) st.lag[id] = { v: prev, until: time + VARIANT_LAG[id] };
       if (mid !== undefined && !(prev === ARM.damagedP2 && tgt.variant === ARM.hang)) st.inter[id] = { v: mid, until: time + BETWEEN_TIME };
     }
     if (tgt.variant !== undefined) st.variants[id] = tgt.variant;
     const pulse = (st.pulse[id] = Math.max(0, (st.pulse[id] ?? 0) - dt)) / PULSE_TIME;
     const inter = st.inter[id];
+    const lag = st.lag[id];
+    const lagV = lag && time < lag.until ? lag.v : undefined;
     out[id] = {
       ...tgt,
-      variant: inter && time < inter.until ? inter.v : tgt.variant,
+      variant: lagV !== undefined ? lagV : inter && time < inter.until ? inter.v : tgt.variant,
       rot: cur.rot,
       dx: cur.dx,
       dy: cur.dy + (id === 'torso' ? 0.6 * pulse : 0),
@@ -319,11 +329,23 @@ export function smoothBossBody(e: Enemy, sx: number, sy: number, tilt: number, t
 
 /** Pose des Boss-Rigs (geglättet). Teile mit `detach: 'phase2'` sind ab Phase 2 unsichtbar (sie fliegen als abgelöste Teile). */
 export function getBossPose(rigId: string, e: Enemy, time: number, lookDx = 0): Pose {
-  const pose = smoothPose(e, rawBossPose(rigId, e, time, lookDx), time);
+  const pose = smoothPose(e, rawBossPose(rigId, e, time, lookDx), time, rigId === 'krall' ? KRALL_TAU : SMOOTH_TAU);
   if (e.bossPhase2) {
     for (const p of RIGS[rigId]?.parts ?? []) if (p.detach === 'phase2') pose[p.id] = { ...pose[p.id], hidden: true };
   }
   return pose;
+}
+
+interface Stride { phase: number; time: number }
+const strides = new WeakMap<Enemy, Stride>();
+/** Schrittphase aus zurückgelegter Strecke statt aus der Uhr: steht der Boss, stehen auch die Beine; schneller = größere Schritte. */
+function stridePhase(e: Enemy, time: number, speed: number): number {
+  const st = strides.get(e) ?? { phase: e.id, time };
+  strides.set(e, st);
+  const dt = Math.max(0, Math.min(0.1, time - st.time));
+  st.time = time;
+  st.phase += speed * dt * 0.16;
+  return st.phase;
 }
 
 function rawBossPose(rigId: string, e: Enemy, time: number, lookDx: number): Pose {
@@ -331,8 +353,8 @@ function rawBossPose(rigId: string, e: Enemy, time: number, lookDx: number): Pos
   const walk = Math.min(1, speed / 60);
   switch (rigId) {
     case 'krall': {
-      const ph = time * (5 + walk * 4) + e.id;
-      const amp = 0.08 + walk * 0.32;
+      const ph = stridePhase(e, time, speed);
+      const amp = 0.03 + walk * 0.3;
       const s = Math.sin(ph);
       const c = Math.sin(ph + Math.PI);
       const breathe = Math.sin(time * 2.4 + e.id);
