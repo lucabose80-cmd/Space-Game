@@ -3,7 +3,6 @@ import { drawGlow, drawPixelShadow } from '../assets/pixelArt';
 import { drawBossLook } from './bosses/bossLooks';
 import { getBossPose } from './anim/bossAnims';
 import { drawDetached, spawnPhase2Parts } from './anim/detached';
-import { drawLegs } from './anim/legs';
 import { enemyMotion, wantsMotion } from './anim/motion';
 import { drawRig } from '../engine/rig';
 import { RIG_BY_KIND, RIGS } from '../data/rigs';
@@ -528,7 +527,6 @@ export class DungeonRenderer {
             this.renderEnemy(ctx, e);
             return;
           }
-          drawLegs(ctx, e, this.scene.time); // M11 Phase 2: Beine hinter dem Körper (nur Geschütz/Mörser/Scharfschütze)
           // M11: prozedurale Bewegung (Lehnen/Atmen/Ausholen/Zucken) um den Fußpunkt — nur Darstellung
           const m = enemyMotion(e, this.scene.time);
           ctx.save();

@@ -129,7 +129,7 @@ Für jeden Boss: **Arme L+R (Typ L)**, **Kopf/Rumpf (Typ S)**, ggf. Beine, Effek
 *(Die genauen Zellenlisten legen wir erst fest, wenn Krall und Kern-Wächter im Spiel gut aussehen — spart Credits.)*
 
 ### 4.4 Normale Gegner
-Weiterhin **Pose-Sheets 2×2** (`MILESTONE_11_ARCHITECTURE.md` §2.2 / §6.4). Bei Geschützen/Mörsern/Schützen: **ohne Beine** zeichnen (Beine entstehen im Code), Lauf/Rohr in Zelle 3 (Ausholen) **zurückgezogen**, Zelle 4 (Angriff) **vorgeschoben**.
+**Ersetzt durch [`ART_BRIEF_M11_ENEMIES.md`](ART_BRIEF_M11_ENEMIES.md):** normale Gegner werden wie Bosse als **Teile-Sheets (Typ G)** gerigged — mit Zellenliste, Gelenken und Prompt pro Gegner. Prozedurale Code-Beine wurden verworfen (passen nicht zum Pixel-Art-Stil); die frühere 2×2-Pose-Sheet-Idee ist damit ebenfalls überholt.
 
 ---
 

@@ -28,8 +28,8 @@ Wenn ein Rig fehlt oder ein Bild nicht lädt, wird automatisch das alte Einzelbi
 | `src/dungeon/dungeonRenderer.ts` (`tryDrawRig`) | zeichnet das Rig statt des Einzelbilds |
 | `src/assets/artLoader.ts` | lädt alle Teile-Bilder (+ Flash-Silhouetten); fehlt eins → Rig = `null` |
 | `src/dev/bossLab.ts` | Boss-Labor `?bosslab` (Zustände ansehen, Pause, „Phase II“, Rig an/aus) |
-| `src/dungeon/anim/legs.ts`, `detached.ts` | prozedurale Beine / abgelöste Teile (Phase 2) |
-| `tests/m11p1.cjs`, `m11p2.cjs`, `m11p3.cjs` | Tests Rig-Engine / Pose-Sets / Beine + abgelöste Teile |
+| `src/dungeon/anim/detached.ts` | abgelöste Teile (Phase-2-Verwandlung) |
+| `tests/m11p1.cjs`, `m11p2.cjs`, `m11p3.cjs` | Tests Rig-Engine / Pose-Sets / abgelöste Teile |
 
 ## 3. `rigs.json` verstehen
 ```jsonc
@@ -73,8 +73,8 @@ Wenn ein Rig fehlt oder ein Bild nicht lädt, wird automatisch das alte Einzelbi
 ### Schulter-Feinjustierung
 Der Rumpf neigt sich je Pose; die Arme hängen aber an einem festen Punkt (`offset` im Teil `armL/armR`). Ausgleich: `SHOULDER_ADJUST[rumpfVariante] = [L dx, L dy, R dx, R dy]` (Spielpixel) in `bossAnims.ts`. Aktuell: geduckt `[0.5,0.5,-3,1]`, zurückgelehnt `[0,1,-3,0.5]`, übrige `0`. **Vorgehen:** Kontaktbogen rendern (§6), schauen, ob die Schulterkappe am Rumpf klebt oder schwebt → Wert ändern, neu rendern. Grundposition der Schultern: `offset` der Teile `armL`/`armR` in `rigs.json` (aus Rumpf-Variante 1 gemessen: ±10 px seitlich, −6,2 px über dem Kern); Kopf: `offset [0,-9.5]` (Halsgelenk im Kragen).
 
-### Beine (prozedural, `src/dungeon/anim/legs.ts`)
-Für Gegner **ohne Beine im Sprite**: `LEG_SPECS[kind]` (Hüften, Ruhe-Füße, Gruppen, Längen, Farbe). Füße haften in der Welt, schreiten bei Abstand > `threshold`, zwei Gruppen wechseln sich ab, Zwei-Knochen-IK. Aktiv: `turret` (4), `magma_mortar` (6), `shard_sniper` (2). Krabbler/Käfer/Skarabäus **bewusst nicht** (Beine schon im Sprite) → erst mit „Körper ohne Beine“-Pose-Sheets (Phase 7). Neuer Gegner: Eintrag in `LEG_SPECS`, Aufruf passiert automatisch (`drawLegs` im Renderer).
+### Normale Gegner
+Prozedurale Code-Beine wurden **verworfen** (passten nicht zum Pixel-Art-Stil, doppelten vorhandene Beine). Normale Gegner bekommen stattdessen eigene Rigs aus **Teile-Sheets (Typ G)** — Aufträge, Zellen und Gelenke: [`ART_BRIEF_M11_ENEMIES.md`](ART_BRIEF_M11_ENEMIES.md). Bis dahin: Einzel-Sprite + dezentes Atmen/Lehnen/Zucken (`anim/motion.ts`).
 
 ### Abgelöste Teile / Phase-2-Verwandlung (`src/dungeon/anim/detached.ts`)
 Teil in `rigs.json` mit `"detach": "phase2"` markieren. Beim ersten Frame mit `bossPhase2` (einmalig, `Enemy.rigDetached`) löst `tryDrawRig` es ab: Bogenflug, ein Aufprall, ~1,7 s ausblenden (`scene.detached`, Update in `DungeonScene`). Danach liefert `getBossPose` das Teil als `hidden`. Aktuell: Kern-Wächter-Brustplatten (`plateL/R`), Krall-Rückenpanzer (`plate`). Rein visuell, kein Schaden.

@@ -136,6 +136,8 @@ Spalte „Teile“ = Zellen des Teile-Sheets (Reihenfolge für den Prompt). „V
 
 ## 5. Design für normale Gegner
 
+> **Überholt (Stand nach Phase 1):** Code-Beine und 2×2-Pose-Sheets wurden verworfen. Gültig ist [`ART_BRIEF_M11_ENEMIES.md`](ART_BRIEF_M11_ENEMIES.md) (Teile-Sheets + Rig je Gegner). Die Tabelle unten bleibt nur als Ideensammlung für die Bewegungen.
+
 | Gegner | Heute | Neu (Code) | Sprite-Bedarf |
 | :--- | :--- | :--- | :--- |
 | `turret` (bewegliches Geschütz) | Bild rutscht | **4 Spinnenbeine** (IK, Trippelschritt beim „Huschen“, Füße stemmen sich beim Feuern), Rückstoß | optional Pose-Sheet (ohne Beine) |
@@ -226,7 +228,7 @@ Jede Phase: Code → Test → `npm run verify` → Screenshots/Bildfolgen ansehe
 - Prozedurale Bewegung für **alle** Gegner (Lehnen, Atmen, Ausholen, Nachfedern, Rückstoß).
 - Test: `drawRig` mit Test-Rig (Pixelprüfung: Arm bei 90° an erwarteter Stelle), Bildfolge-Screenshot.
 
-### Phase 2 — Beine ✅ (Geschütz, Mörser, Scharfschütze; `anim/legs.ts`, Test m11p3)
+### Phase 2 — Beine ❌ verworfen (prozedurale Code-Beine passten nicht zum Pixel-Art-Stil; ersetzt durch Gegner-Rigs aus Teile-Sheets, `ART_BRIEF_M11_ENEMIES.md`)
 - `dungeon/anim/legs.ts`; Geschütz, Mörser, Scharfschütze, Krabbler/Käfer.
 - Test: Füße bleiben während der Stützphase ortsfest (±1 px), Beine skalieren mit Tempo; Screenshot-Folge.
 
@@ -237,7 +239,7 @@ Jede Phase: Code → Test → `npm run verify` → Screenshots/Bildfolgen ansehe
 ### Phase 4 — Bosse Sektor 2 (inkl. **Teilen** des Quarz-Koloss, §4.3)
 ### Phase 5 — Bosse Sektor 3
 ### Phase 6 — Bosse Sektor 4 + Omega (inkl. Teilen des Sternen-Archons)
-### Phase 7 — Pose-Sheets normaler Gegner (Takt-Wechsel, Ausholen/Angriff-Pose)
+### Phase 7 — Gegner-Rigs aus Teile-Sheets (Typ G, `ART_BRIEF_M11_ENEMIES.md`): Import-Modus `parts`, `anim/enemyAnims.ts`
 ### Phase 8 — Abschluss
 - Doku: GDD, AGENTS („How to add a rig“), Art-Guide (Formel E/F + Import), TESTING, HANDOFF, dieses Dokument ✅ + Umsetzungsnotizen.
 - Abschlussmeldung: welche Sheets noch fehlen (`npm run check:sprites`).

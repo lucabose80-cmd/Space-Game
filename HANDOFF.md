@@ -48,7 +48,17 @@ npm run verify                           # Build + Invarianten + Sprite-Check + 
 - **Krall:** `claw` = `krall_arms_R` (6 Posen) nach Zug-Name/`bossSub` (`krallClaw`); bleibt rechts, z = 1 (vor dem Rumpf). Maßstab des Krall-Rigs ist kleiner als beim Kern-Wächter → Zange wirkt zierlich; bei Bedarf Antigravity-Sheet größer zeichnen oder `torsoDisplayH` anpassen.
 - Test: `tests/m11p2.cjs`. Ansicht: `?bosslab` → Kern-Wächter / Krall (Pause + „Phase II“-Knopf zum Prüfen).
 
-- **Beine & abgelöste Teile (umgesetzt):** `legs.ts` (Geschütz, Mörser, Scharfschütze; Krabbler/Käfer/Skarabäus erst mit Körper-ohne-Beine-Sprites), `detached.ts` (Kern-Wächter-Brustplatten, Krall-Rückenpanzer fliegen bei Phase 2 weg). Tests `m11p3`. Details: `RIGGING_GUIDE.md`.
+- **Abgelöste Teile (umgesetzt):** `detached.ts` (Kern-Wächter-Brustplatten, Krall-Rückenpanzer fliegen bei Phase 2 weg), Test `m11p3`.
+- **Prozedurale Code-Beine: verworfen** (passten nicht zum Pixel-Art-Stil, doppelten Sprite-Beine) → wieder entfernt. Ersatz: Gegner-Rigs aus Teile-Sheets.
+
+## M11 Gegner-Rigs (`ART_BRIEF_M11_ENEMIES.md`, Typ G, je `art_source/rigs/<kind>_rig.png`)
+Nach und nach erzeugen, sobald Gemini-Volumen frei ist (Reihenfolge §5 im Brief). Abhaken, wenn per `art:check` geprüft und gepusht:
+- [ ] **Pilot:** `turret_rig` · `phase_stalker_rig` → danach Abnahme im Spiel durch den Projektinhaber
+- [ ] S1: `drone_rig` · `shield_drone_rig` · `spore_spitter_rig` · `drone_arc_rig`
+- [ ] S2: `crystal_crawler_rig` · `shard_sniper_rig` · `prism_drone_rig` · `void_crawler_rig` · `resonance_warden_rig`
+- [ ] S3: `magma_mortar_rig` · `slag_beetle_rig` · `ember_stalker_rig` · `forge_golem_rig` · `solar_drone_rig`
+- [ ] S4: `chrono_eye_rig` · `astral_scarab_rig` · `star_lancer_rig` · `void_wraith_rig` · `monolith_guard_rig`
+- Code-Seite (Claude Code, sobald der Pilot da ist): Import-Modus `parts`, Rigs in `rigs.json`, `anim/enemyAnims.ts`.
 
 ## Nächster Schritt
 - **Antigravity (Quota-Reset):** restliche 5 Krall-Sheets: `krall_arms_L.png` (Schrott-Haken + Mini-Säge), `krall_legs_R.png`, `krall_legs_L.png`, `krall_torsos.png`, `krall_effects.png` → `npm run art:check` → pushen. Danach Claude Code: Sets in `rigs.json` eintragen (linker Arm = neues Teil `clawL`, Beine/Rumpf-Sets) und Posen in `bossAnims.ts` verdrahten.
