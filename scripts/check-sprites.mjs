@@ -52,5 +52,54 @@ if (!missing.length) {
   console.log(`⚠ ${missing.length} Sprite(s) fehlen – im Spiel läuft ein prozeduraler Fallback:`);
   for (const m of missing) console.log(`  - public/art/sprites/${m.file}  (art.${m.key})`);
   console.log('→ Prompts: ART_AND_DESIGN_GUIDE.md §7 (Promenade) · §8 (Boss-Sprites) · neue PNG ablegen, keine Codeänderung nötig.');
-  if (process.argv.includes('--strict')) process.exit(1);
 }
+
+// SPRITE_QUEUE.md prüfen: Abgleich mit Dateisystem, neue Fallbacks erkennen, nächste Aufträge anzeigen
+const queueUrl = new URL('../SPRITE_QUEUE.md', import.meta.url);
+if (existsSync(queueUrl)) {
+  const queueText = readFileSync(queueUrl, 'utf8');
+  const queueFiles = new Set();
+  const ready = [];
+  const syncHints = [];
+  let lockedGate = false;
+  let gateNotice = '';
+  for (const line of queueText.split('\n')) {
+    if (/^>\s*\*\*⛔\s*STOP-GATE\s*\(GESPERRT\)/i.test(line)) {
+      if (!lockedGate) {
+        lockedGate = true;
+        gateNotice = line.replace(/^>\s*/, '').trim();
+      }
+      continue;
+    }
+    const m = line.match(/^\|\s*`([^`]+)`\s*\|\s*\[( |x|~|!)\]\s*\|\s*`([^`]+)`\s*\|/);
+    if (!m) continue;
+    const [, id, status, relPath] = m;
+    queueFiles.add(relPath);
+    const present = existsSync(new URL(`../${relPath}`, import.meta.url));
+    if ((status === ' ' || status === '~') && present) {
+      syncHints.push(`  - ${id} (${relPath}) existiert bereits → in SPRITE_QUEUE.md auf [x] setzen`);
+    } else if (status === 'x' && !present) {
+      syncHints.push(`  - ⚠ ${id} (${relPath}) ist [x], aber Datei fehlt im Repo!`);
+    } else if (status === ' ' && !present && !lockedGate) {
+      ready.push({ id, relPath });
+    }
+  }
+  for (const m of missing) {
+    const rel = `public/art/sprites/${m.file}`;
+    if (!queueFiles.has(rel)) {
+      syncHints.push(`  - ⚠ ${rel} (art.${m.key}) fehlt in SPRITE_QUEUE.md → bitte priorisiert einsortieren!`);
+    }
+  }
+  if (syncHints.length) console.log(`ℹ Sprite-Queue-Abgleich:\n${syncHints.join('\n')}`);
+  if (ready.length) {
+    const next = ready.slice(0, 2).map((r) => `${r.id} (${r.relPath})`).join(', ');
+    console.log(`▶ Sprite-Queue (SPRITE_QUEUE.md): ${ready.length} bereit vor nächstem STOP-GATE · Nächste: ${next}`);
+  } else if (lockedGate) {
+    console.log(`⏸ Sprite-Queue (SPRITE_QUEUE.md): vor STOP-GATE angehalten — ${gateNotice}`);
+  } else {
+    console.log('✔ Sprite-Queue (SPRITE_QUEUE.md): keine offenen Aufträge.');
+  }
+}
+
+if (missing.length && process.argv.includes('--strict')) process.exit(1);
+

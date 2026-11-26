@@ -25,7 +25,7 @@ npm run verify                           # Build + Invarianten + Sprite-Check + 
 (`prop_hub_*`, `prop_kael_memorial`, `prop_lyra_echo_sign`, `prop_nyx_free_lantern`, `prop_vex_*`, `npc_pilgrim`, `npc_foundry_worker`, `npc_elder_scholar`) **plus 5 Boss-Sprites (M10-C)**: `boss_scrap_collector` *(Krall hat inzwischen ein Rig → nur noch Rückfall, niedrige Priorität)*, `boss_slag_colossus`, `boss_forge_mistress`, `boss_chrono_warden`, `boss_monolith_colossus` (128×128, Prompts: Art-Guide §8).
 - Prompts & Maße: `ART_AND_DESIGN_GUIDE.md` §7–§8 · Ablage: `public/art/sprites/<datei>.png` (96×96 bzw. 128×128, kein Code nötig).
 - Schwächster Fallback zuerst ersetzen: Vex-Bake, Zyklus-Hologramm, Obelisk, Klassentafel.
-- **Wer einen Fallback/Platzhalter neu anlegt, trägt ihn hier ein** (Datei, Key, Prompt-Abschnitt im Art-Guide).
+- **Zentrale Warteschlange:** Alle offenen Sprites & M11-Sheets stehen priorisiert (`P0`–`P4`) in [`SPRITE_QUEUE.md`](SPRITE_QUEUE.md). **Wer einen Fallback/Platzhalter oder ein neues M11-Sheet anlegt, sortiert es dort sofort priorisiert ein** (`AGENTS.md` §3 Regel 7) und vermerkt es hier kurz.
 
 ## M11 Art-Sheets (`art_source/`)
 - **Typ P (Teile-Sheets, vorhanden & importiert):**
@@ -79,7 +79,7 @@ Nach und nach erzeugen, sobald Gemini-Volumen frei ist (Reihenfolge §5 im Brief
 - **Claude Code (sofort startklar!):**
   1. **S6 (Kern-Wächter):** `core_warden_arms_R3.png` & `core_warden_arms_L3.png` in `rigs.json` (`armR_13…18`/`armL_13…18`) importieren und in `bossAnims.ts` bei Phase 2 einbinden (`NOFIST_OF`) → Kern-Wächter komplett rund.
   2. **Krall 6/6 komplett:** `krall_legs_R.png`, `krall_legs_L.png` und `krall_effects.png` in `rigs.json` eintragen, importieren und Bein-Posen + Schrott-/Magnet-/Splitter-Effekte in `bossAnims.ts`/Renderer verdrahten.
-- **Antigravity (als Nächstes):** Gegner-Rig-Piloten (`turret_rig.png`, `phase_stalker_rig.png` nach `ART_BRIEF_M11_ENEMIES.md`), weitere Bosse (`ART_BRIEF_M11.md` §4.3) und/oder fehlende optionale M10-Sprites.
+- **Antigravity (als Nächstes):** Verbindliche Reihenfolge & STOP-GATES in [`SPRITE_QUEUE.md`](SPRITE_QUEUE.md) (1-Satz-Batch via Skill `sprite-batch`): **P0 komplett erledigt** → als Nächstes **P1** Gegner-Rig-Piloten (`turret_rig.png`, `phase_stalker_rig.png` nach `ART_BRIEF_M11_ENEMIES.md`, danach STOP-GATE), später weitere Bosse (`ART_BRIEF_M11.md` §4.3) und/oder fehlende optionale M10-Sprites.
 - Ökonomie & Boss-Kampfgefühl im echten Spiel beobachten und in `src/data/balance.ts` nachjustieren (Berichte: `tests/out/economy.json`, `tests/out/ttk.json`).
 - Optionale M10/M10-C-Einzel-Sprites bei Bedarf ebenfalls per Antigravity erzeugen.
 
