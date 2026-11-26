@@ -181,6 +181,9 @@ export interface Enemy {
   bossT?: number;
   /** M11: Phase-2-Teile (Rig `detach`) wurden bereits abgelöst — nur Darstellung, nicht gespeichert */
   rigDetached?: boolean;
+  /** M11 Teilen: gemeinsame Gruppen-ID beider Hälften (id der Original-Hälfte) und Rolle 0 = Nahkampf/A, 1 = Fernkampf/B */
+  splitGroup?: number;
+  splitRole?: 0 | 1;
   /** M10-C Schilde: Sekunden, die der Schild unten ist (Angriff/Überhitzung); Treffer-Hitze 0…n */
   shieldDownTimer?: number;
   shieldHeat?: number;

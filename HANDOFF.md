@@ -51,6 +51,8 @@ npm run verify                           # Build + Invarianten + Sprite-Check + 
 - **Abgelöste Teile (umgesetzt):** `detached.ts` (Kern-Wächter-Brustplatten, Krall-Rückenpanzer fliegen bei Phase 2 weg), Test `m11p3`.
 - **Prozedurale Code-Beine: verworfen** (passten nicht zum Pixel-Art-Stil, doppelten Sprite-Beine) → wieder entfernt. Ersatz: Gegner-Rigs aus Teile-Sheets.
 
+- **Teilen (umgesetzt, ohne neue Sprites):** Quarz-Koloss und Sternen-Archon spalten sich in Phase 2 (`DungeonScene.splitBoss`/`syncSplitPools`, Felder `Enemy.splitGroup/splitRole`): gemeinsamer HP-Pool, Sieg/Belohnung nur einmal, Hälften 85 % groß, Rollen (Quarz: A Beben · B Salve; Archon: A Sternbild/Brunnen · B Supernova, `BossDef.splitMoves`), Wiedervereinigung bei ≤ 15 % HP. Abweichung vom Plan: keine „10 s allein“-Regel (eine Hälfte kann nie allein sterben). Test `m11p4`. Kern-Wächter-Glühen sitzt am neuen Reaktorkern.
+
 ## M11 Gegner-Rigs (`ART_BRIEF_M11_ENEMIES.md`, Typ G, je `art_source/rigs/<kind>_rig.png`)
 Nach und nach erzeugen, sobald Gemini-Volumen frei ist (Reihenfolge §5 im Brief). Abhaken, wenn per `art:check` geprüft und gepusht:
 - [ ] **Pilot:** `turret_rig` · `phase_stalker_rig` → danach Abnahme im Spiel durch den Projektinhaber

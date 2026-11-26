@@ -236,7 +236,7 @@ Jede Phase: Code → Test → `npm run verify` → Screenshots/Bildfolgen ansehe
 - Rigs in `data/rigs.ts` (inkl. Fallback-Ausschnitte aus den Einzelbildern), Posen in `anim/bossAnims.ts`, abgelöste Teile (`detached.ts`), Verwandlung (`transform.ts`).
 - Test: je Zug eine Pose ≠ Ruhe-Pose; Phase-2-Verwandlung startet genau einmal; Screenshots pro Zug.
 
-### Phase 4 — Bosse Sektor 2 (inkl. **Teilen** des Quarz-Koloss, §4.3)
+### Phase 4 — Bosse Sektor 2 (inkl. **Teilen** des Quarz-Koloss, §4.3) — Teilen ✅ (Quarz-Koloss + Sternen-Archon, Test m11p4); Rigs warten auf Sprites
 ### Phase 5 — Bosse Sektor 3
 ### Phase 6 — Bosse Sektor 4 + Omega (inkl. Teilen des Sternen-Archons)
 ### Phase 7 — Gegner-Rigs aus Teile-Sheets (Typ G, `ART_BRIEF_M11_ENEMIES.md`): Import-Modus `parts`, `anim/enemyAnims.ts`

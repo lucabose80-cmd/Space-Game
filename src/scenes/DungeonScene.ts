@@ -1146,6 +1146,7 @@ export class DungeonScene {
     this.mechanics.update(dt);
     this.nav?.tick(dt, this.playerX, this.playerY);
     this.bossFx.beginFrame();
+    this.syncSplitPools();
     this.enemyAi.updateEnemies(dt);
     this.bossFx.update(this, dt);
     this.updateProjectiles(dt);
@@ -2789,6 +2790,7 @@ export class DungeonScene {
     }
 
     e.hp -= finalAmt;
+    if (e.splitGroup !== undefined) for (const o of this.enemies) if (o !== e && o.splitGroup === e.splitGroup) o.hp = e.hp; // gemeinsamer Pool
     e.flashTimer = 0.11;
     const resistance =
       e.kind === 'boss_leviathan'
@@ -2873,7 +2875,68 @@ export class DungeonScene {
     }
   }
 
+  /** M11 Teilen: Boss in zwei Hälften teilen (gemeinsamer HP-Pool, eine Boss-Leiste). Nur einmal pro Boss. */
+  public splitBoss(e: Enemy): boolean {
+    if (e.splitGroup !== undefined || !this.enemies.includes(e)) return false;
+    const side = e.x > ROOM_CENTER_X ? -1 : 1;
+    const twin: Enemy = { ...e, id: this.nextEnemyId++, x: Math.max(ROOM_LEFT + 30, Math.min(ROOM_RIGHT - 30, e.x + side * 46)), vx: 0, vy: 0, flashTimer: 0, splitRole: 1 };
+    e.splitGroup = e.id;
+    e.splitRole = 0;
+    twin.splitGroup = e.id;
+    for (const h of [e, twin]) {
+      h.radius = Math.max(8, Math.round(h.radius * 0.85));
+      h.bossSub = 'idle';
+      h.bossStateTimer = 1.1;
+      h.bossMoveIdx = h.splitRole === 1 ? 1 : 0;
+    }
+    this.enemies.push(twin);
+    this.spawnBurst(twin.x, twin.y, '#e879f9', 22);
+    this.spawnBurst(e.x, e.y, '#e879f9', 22);
+    this.callbacks.onToast('⚠ Der Boss teilt sich! Beide Hälften teilen sich dieselben Lebenspunkte.', 'warn');
+    return true;
+  }
+
+  /** M11 Teilen: Pool angleichen (HP aller Hälften gleich) und bei ≤ 15 % HP wieder vereinen. Pro Frame aus dem Update. */
+  public syncSplitPools(): void {
+    for (const a of this.enemies) {
+      if (a.splitGroup === undefined || a.splitRole !== 0) continue;
+      const group = this.enemies.filter((o) => o.splitGroup === a.splitGroup);
+      const pool = Math.min(...group.map((o) => o.hp));
+      for (const o of group) o.hp = pool;
+      if (group.length === 2) {
+        // Hälften nicht übereinander stehen lassen
+        const [h0, h1] = group;
+        const ddx = h1.x - h0.x || 1;
+        const ddy = h1.y - h0.y;
+        const dd = Math.hypot(ddx, ddy);
+        if (dd < 30) {
+          const push = (30 - dd) * 0.08;
+          h0.x -= (ddx / dd) * push;
+          h0.y -= (ddy / dd) * push;
+          h1.x += (ddx / dd) * push;
+          h1.y += (ddy / dd) * push;
+        }
+      }
+      if (group.length > 1 && pool <= a.maxHp * 0.15) {
+        for (const o of group) if (o !== a) this.enemies.splice(this.enemies.indexOf(o), 1);
+        a.splitGroup = undefined;
+        a.splitRole = undefined;
+        a.radius = Math.round(a.radius / 0.85);
+        this.spawnBurst(a.x, a.y, '#fde047', 24);
+        this.callbacks.onToast('Die Hälften verschmelzen wieder!', 'warn');
+      }
+    }
+  }
+
+  private readonly killedSplitGroups = new Set<number>();
+
   public onEnemyKilled(e: Enemy): void {
+    if (e.splitGroup !== undefined) {
+      // M11 Teilen: Sieg/Belohnung nur einmal — die andere Hälfte verschwindet still
+      if (this.killedSplitGroups.has(e.splitGroup)) return;
+      this.killedSplitGroups.add(e.splitGroup);
+      for (let j = this.enemies.length - 1; j >= 0; j--) if (this.enemies[j] !== e && this.enemies[j].splitGroup === e.splitGroup) this.enemies.splice(j, 1);
+    }
     const idx = this.enemies.indexOf(e);
     if (idx !== -1) this.enemies.splice(idx, 1);
     if (this.isBossKind(e.kind)) this.bossFx.clear(); // M10-C: Boss-Zonen/Strahlen enden mit dem Boss

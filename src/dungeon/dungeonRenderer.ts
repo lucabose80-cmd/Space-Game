@@ -522,7 +522,8 @@ export class DungeonRenderer {
             : e.y;
       drawables.push({
         y: sortY,
-        draw: () => {
+        draw: () =>
+          this.withSplitScale(ctx, e, () => {
           if (!wantsMotion(e)) {
             this.renderEnemy(ctx, e);
             return;
@@ -536,7 +537,7 @@ export class DungeonRenderer {
           ctx.translate(-e.x, -(e.y + e.radius));
           this.renderEnemy(ctx, e);
           ctx.restore();
-        },
+          }),
       });
     }
     // Milestone 10-A: solide Kristall-Prismen (S2) y-sortiert zwischen Gegnern & Held
@@ -2002,7 +2003,7 @@ export class DungeonRenderer {
           : '#fbbf24';
     const coreR = state === 'laser_windup' || state === 'laser_sweep' ? 28 + corePulse * 8 : 18 + corePulse * 5;
     // M11: Rig hat einen eigenen leuchtenden Kern im Bild — Überlagerung dezenter, damit der Rumpf lesbar bleibt
-    drawGlow(ctx, bodyX, bodyY - 6, rigUsed ? coreR * 0.7 : coreR, coreColor, (0.45 + corePulse * 0.25) * (rigUsed ? 0.45 : 1));
+    drawGlow(ctx, bodyX, bodyY + (rigUsed ? 5 : -6), rigUsed ? coreR * 0.7 : coreR, coreColor, (0.45 + corePulse * 0.25) * (rigUsed ? 0.45 : 1));
 
     // Hot glowing center core dot right on the chest reactor
     if (state === 'laser_windup' || state === 'laser_sweep' || enraged) {
@@ -2161,6 +2162,21 @@ export class DungeonRenderer {
       }
       ctx.restore();
     }
+  }
+
+  /** M11 Teilen: Boss-Hälften etwas kleiner zeichnen (um den Fußpunkt). */
+  private withSplitScale(ctx: CanvasRenderingContext2D, e: Enemy, draw: () => void): void {
+    if (e.splitGroup === undefined) {
+      draw();
+      return;
+    }
+    const fy = e.y + e.radius;
+    ctx.save();
+    ctx.translate(e.x, fy);
+    ctx.scale(0.85, 0.85);
+    ctx.translate(-e.x, -fy);
+    draw();
+    ctx.restore();
   }
 
   /** M11: Boss/Gegner mit Rig zeichnen (Ursprung = Fußpunkt bei (ox, oy)). false → bisherige Darstellung. */

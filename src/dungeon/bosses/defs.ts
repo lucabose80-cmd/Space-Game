@@ -15,7 +15,10 @@ function approach(e: Enemy, c: BossCtx, want: number, speed: number): void {
 
 function floatTop(e: Enemy, c: BossCtx, ax: number, ay: number, speed: number): void {
   const t = c.scene.time;
-  glideTo(e, ROOM.CX + Math.sin(t * speed) * ax, ROOM.T + 58 + Math.sin(t * speed * 2) * ay, 2.2);
+  // M11 Teilen: die beiden Hälften schweben getrennt links/rechts
+  const side = e.splitRole === undefined ? 0 : e.splitRole === 0 ? -85 : 85;
+  const amp = e.splitRole === undefined ? ax : ax * 0.35;
+  glideTo(e, ROOM.CX + side + Math.sin(t * speed + (e.splitRole ?? 0) * Math.PI) * amp, ROOM.T + 58 + Math.sin(t * speed * 2) * ay, 2.2);
 }
 
 // ---------------- S1 Ebene I: SCHROTT-SAMMLER „KRALL“ (kind boss_breacher) ----------------
@@ -385,7 +388,8 @@ const monolith: BossDef = {
 // ---------------- S4 Ebene III: ★ STERNEN-ARCHON (boss_star_archon) ----------------
 const star: BossDef = {
   title: 'STERNEN-ARCHON',
-  phase2Toast: '🚨 STERNEN-ARCHON PHASE II — DOPPELTE STERNBILDER!',
+  phase2Toast: '🚨 STERNEN-ARCHON PHASE II — DER ARCHON TEILT SICH!',
+  onPhase2: (e, c) => void c.scene.splitBoss(e),
   idleSec: [0.85, 0.6],
   idleMove: (e, c) => floatTop(e, c, 80, 18, 0.9),
   moves: [
@@ -437,6 +441,8 @@ const star: BossDef = {
   ],
   movesP1: [0, 1, 2],
   movesP2: [0, 2, 1, 2, 0],
+  // M11 Teilen: Hälfte A zeichnet Sternbilder & Brunnen, Hälfte B wirft Supernovae
+  splitMoves: [[0, 1], [2]],
 };
 
 export const BOSS_DEFS: Partial<Record<Enemy['kind'], BossDef>> = {

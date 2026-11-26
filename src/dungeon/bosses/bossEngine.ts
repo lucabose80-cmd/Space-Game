@@ -42,6 +42,8 @@ export interface BossDef {
   movesP2?: number[];
   /** Zugfolge in Phase 1 (Indizes); Standard = alle der Reihe nach */
   movesP1?: number[];
+  /** M11 Teilen: Zugfolgen der beiden Hälften [A, B] (Indizes in `moves`), solange der Boss geteilt ist */
+  splitMoves?: [number[], number[]];
 }
 
 export function bossBolt(
@@ -101,11 +103,12 @@ export function runBoss(e: Enemy, c: BossCtx, def: BossDef): void {
     scene.callbacks.onToast(def.phase2Toast, 'warn');
     def.onPhase2?.(e, { ...c, p2: true });
   }
-  const ctx: BossCtx = { ...c, p2: e.bossPhase2 === true };
+  const split = e.splitGroup !== undefined && def.splitMoves !== undefined;
+  const ctx: BossCtx = { ...c, p2: e.bossPhase2 === true && !split }; // geteilt statt verdoppelt
   e.aimAngle = Math.atan2(c.dy, c.dx);
   const sub = e.bossSub ?? 'idle';
   e.bossStateTimer = (e.bossStateTimer ?? 0) - dt;
-  const seq = ctx.p2 ? def.movesP2 ?? def.movesP1 : def.movesP1;
+  const seq = split ? def.splitMoves![e.splitRole ?? 0] : ctx.p2 ? def.movesP2 ?? def.movesP1 : def.movesP1;
   const order = seq ?? def.moves.map((_, i) => i);
   const move = def.moves[order[(e.bossMoveIdx ?? 0) % order.length]];
 

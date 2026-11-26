@@ -1222,6 +1222,7 @@ export class DungeonEnemyAi {
       this.scene.shockwaves.push({ x: e.x, y: e.y, maxRadius: 82, color: '#c084fc', life: 0.36, maxLife: 0.36 });
       this.scene.spawnBurst(e.x, e.y, '#e879f9', 22);
       this.scene.callbacks.onToast('⚠ Quarz-Koloss MK-I geht in Kristall-Resonanz!', 'warn');
+      this.scene.splitBoss(e); // M11: Koloss spaltet sich — Hälfte A Beben (Nahkampf), Hälfte B Salve (Fernkampf)
     }
 
     const state: BossState = e.bossState ?? 's2_idle';
@@ -1234,7 +1235,7 @@ export class DungeonEnemyAi {
       e.vy = ny * spd;
       if (e.bossStateTimer <= 0) {
         e.phase = (e.phase + 1) % 3;
-        if (e.phase === 0 || e.phase === 2) {
+        if (e.splitRole === undefined ? e.phase === 0 || e.phase === 2 : e.splitRole === 0) {
           e.bossState = 's2_slam_windup';
           e.bossStateTimer = enraged ? 0.48 : 0.62;
           e.bossStateMax = e.bossStateTimer;
