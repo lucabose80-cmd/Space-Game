@@ -36,6 +36,7 @@ npm run verify                           # Build + Invarianten + Sprite-Check + 
     - `art_source/rigs/core_warden_arms_L.png` (linker Arm `x=0.07`, 6 Posen, `min_margin ≥ 34 px`; **S1 erledigt**: Zellen 2 & 4 eigenständig mit Licht links-oben neu schattiert und re-importiert)
     - `art_source/rigs/core_warden_heads.png` (6 Helm+Halo-Varianten, Halsgelenk im Fadenkreuz, `min_margin ≥ 32 px`)
     - `art_source/rigs/core_warden_torsos.png` (6 Rumpf-Varianten inkl. Phase-2-Kern offen & überhitzt, Reaktorkern im Fadenkreuz, `min_margin ≥ 43 px`)
+    - `art_source/rigs/core_warden_torsos2.png` (**S3**: Brustklappen offen/halb offen für Laser, Sprung gestreckt, Landung gestaucht, Phase 2 Laser, Phase 2 beschädigt; Kern im Fadenkreuz, `min_margin ≥ 40 px`)
   - **§4.1 Krall (1/6 fertig):**
     - `art_source/rigs/krall_arms_R.png` (rechter Greifzangen-Arm `x=0.96`, 6 Posen, Schulterring im Fadenkreuz, `min_margin ≥ 31 px`)
 - **Noch offen (§4.1 Krall, 5 Sheets):**
