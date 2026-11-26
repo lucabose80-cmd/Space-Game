@@ -97,6 +97,8 @@ Krall bekommt **zwei verschiedene Arme** (Persönlichkeit!): **rechts die Greifz
 | `krall_legs_R.png` | L | **rechte Beine** (vorderes Bein, 1–3 · hinteres Bein, 4–6) — alternativ 6 Posen eines Beins, wenn das Raster sonst zu voll wird: Schritt vor · Schritt zurück · Standbein · angehoben · geduckt · Absprung |
 | `krall_legs_L.png` | L | **linke Beine**, gleiche Posen, nicht gespiegelt |
 | `krall_torsos.png` | S | Rumpf mit Furnace-Kern: normal · geduckt · aufgerichtet (Kern leuchtet hell, für Magnet-Zug) · nach vorn gebeugt (Stoß) · **Phase 2: Rückenpanzer abgeworfen, Rahmen und Kern offen** · beschädigt (Funken, Dellen) |
+| *(Zusatz K-A, optional)* `krall_torsos2.png` | S | **Phase-2-Rümpfe** (Skelettrahmen, Rückenpanzer ab, Kern offen — wie Zelle 5 von `krall_torsos.png`): geduckt · aufgerichtet (Kern hell, Magnet-Zug) · nach vorn gebeugt (Stoß) · Stampfer-Landung gestaucht · seitlich gedreht (Schrott-Wurf) · überhitzt (Funken). Furnace-Kern im Fadenkreuz. Prompt: „6 pose variants of the same exposed-frame scrap robot torso, pixel art, white background, 3×2 grid, core glowing at cell centre, same style as reference“ |
+| *(Zusatz K-B, optional)* `krall_legs_R2.png` / `krall_legs_L2.png` | L | **Beine für Angriffe**: Ausfall gestreckt (Stoß) · Bremsen/Rückstoß · Stampfer-Landung gespreizt · Phase 2 beschädigt/humpelnd · Magnet-Stemmen (Krallen im Boden) · Ruhe-Zittern. Hüftring im Fadenkreuz, L nicht gespiegelt, Licht links-oben |
 | `krall_effects.png` | E | 1 Schrottklumpen A · 2 Schrottklumpen B · 3 Schrottklumpen C (Wurfgeschosse) · 4 Magnet **aktiv** (Funkenbögen) · 5 Magnet inaktiv · 6 Funken-/Rost-Splitter |
 
 ### 4.2 Auftrag B — **Kern-Wächter** (Referenz: `public/art/sprites/boss.png` + `core_warden_parts.png`)

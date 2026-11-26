@@ -115,7 +115,7 @@ Arme `clawR` (Greifzange) / `clawL` (Schrott-Haken + Säge), Indizes je Seite: 0
 
 | Zug / Abschnitt | Arme R · L | Rumpf | Zusatz (`fx`) |
 | :--- | :--- | :--- | :--- |
-| Ruhe / Gehen | 0 · 0 | 0 | Armschwung gegenläufig, Lehnen, Beine/Magnet wie bisher |
+| Ruhe / Gehen | 0 · 0 | 0 | Armschwung gegenläufig, Lehnen; Beine: Schritt vor · anheben · zurück (aus Strecke), im Stand Standbein, < 25 % HP im Stand geduckt |
 | GREIFARM-STOSS Vorwarnung | 1 · 1 | 1 geduckt | Rumpf `dy +1.5p`, Arme zurück |
 | GREIFARM-STOSS Ausführung (Erholung 0–0,55 s) | 2 · 3 | 3 gebeugt | Rückprall, Zange federt nach; danach hängend |
 | MAGNET-ZUG Vorwarnung | 1 · 1 | 2 aufgerichtet | Rumpf/Magnet heben sich |
@@ -123,6 +123,8 @@ Arme `clawR` (Greifzange) / `clawL` (Schrott-Haken + Säge), Indizes je Seite: 0
 | SCHROTT-WURF Vorwarnung / Wurf | 1 · 1 / 3 · 0 | 1 / 3 | Wurfarm federt nach |
 | SCHROTT-HAGEL Vorwarnung / Stampfer (P2) | 1 · 1 / 5 · 5 | 4 (Skelett) | Haltung über `dy`/`sy`/`rot` (in Phase 2 gibt es nur den Rahmen) |
 | Phase 2 / < 25 % HP | wie oben | 4 / 5 | — |
+
+**Krall — Beinposen je Zug (`KLEG`, in `krallSet().leg`; Phase 2 identisch):** 0 Schritt vor · 1 zurück · 2 Standbein · 3 angehoben · 4 geduckt · 5 Absprung. Stoß: Vorwarnung geduckt → Ausfall (0–0,3 s Absprung, dann Schritt vor) → Stand · Magnet: Vorwarnung Standbein → Sog geduckt (stemmt sich) · Wurf: geduckt → Schritt vor · Hagel: anheben (erste Hälfte) → Absprung → Stampfer geduckt (0,5 s) → Stand. Fehlende Sprites für feinere Posen: `SPRITE_QUEUE.md` P2-20…22.
 | Treffer (`flashTimer`) | Arme federn nach außen | Zittern `dx` | nicht in Angriffsposen |
 
 Die Engine setzt `bossStateMax` nur in der Vorwarnung; die Erholungsdauer je Zug steht deshalb in `KRALL_RECOVER` (muss zu `defs.ts` passen). **Krall — Feinschliff „weniger Puppe“ (umgesetzt, Commit `4c1eb4d`):** Schrittphase aus Strecke (`stridePhase`, Beine stehen im Stand), Renderer wippt nur beim Laufen (`renderBreacherBoss`, halbe Amplitude) und nutzt `smoothBossBody`, `KRALL_TAU` 0,1 s, `VARIANT_LAG` (Arm L folgt R nach 0,07 s), `CLAW_BETWEEN` (Zwischen-Posen Anlauf/Ausschwingen).

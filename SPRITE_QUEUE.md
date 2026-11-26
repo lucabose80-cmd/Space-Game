@@ -97,6 +97,16 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 | `P2-18` | [ ] | `art_source/rigs/void_wraith_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_void_wraith.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S4) | Leere-Phantom |
 | `P2-19` | [ ] | `art_source/rigs/monolith_guard_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_monolith_guard.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S4) | Monolith-Wächter |
 
+### P2e — Krall-Feinschliff (optional, erst nach Abnahme von Krall im echten Kampf)
+
+> Krall ist komplett eingebunden. Diese 3 Sheets heben nur die Phase 2 und die Angriffsposen auf Kern-Wächter-Niveau; ohne sie läuft alles mit den vorhandenen Bildern (Phase-2-Haltung nur über Verschiebung/Stauchung, Beine nutzen die 6 Standard-Posen).
+
+| ID | Status | Zieldatei | Typ & Format | Referenz (`ImagePaths`) | Brief / Prompt | Notiz |
+| :--- | :---: | :--- | :--- | :--- | :--- | :--- |
+| `P2-20` | [ ] | `art_source/rigs/krall_torsos2.png` | Typ S · 3×2 · `1536×1024` | `art_source/rigs/krall_torsos.png` *(Zelle 5 = Phase-2-Skelettrahmen)* | `ART_BRIEF_M11.md` §4.1 (Zusatz K-A) | 6 Phase-2-Rümpfe: geduckt · aufgerichtet/Kern hell (Magnet) · vorgebeugt (Stoß) · Stampfer-Landung gestaucht · Schrott-Wurf-Drehung · Funken-Überhitzung. **Wichtigster Punkt** — Phase 2 hat bisher nur 2 Rümpfe |
+| `P2-21` | [ ] | `art_source/rigs/krall_legs_R2.png` | Typ L · 3×2 · `1536×1024` | `art_source/rigs/krall_legs_R.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-B) | Rechtes Bein: Ausfall gestreckt (Stoß) · Bremsen/Rückstoß · Stampfer-Landung gespreizt · Phase 2 beschädigt/humpelnd · Magnet-Stemmen (Krallen im Boden) · Ruhe-Zittern |
+| `P2-22` | [ ] | `art_source/rigs/krall_legs_L2.png` | Typ L · 3×2 · `1536×1024` | `art_source/rigs/krall_legs_L.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-B) | Linkes Bein, gleiche 6 Posen, Licht links-oben, nicht gespiegelt |
+
 ---
 
 ## P3 — Optionale M10 & M10-C Einzel-Sprites (Fallbacks ersetzen)
