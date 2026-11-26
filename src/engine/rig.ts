@@ -18,6 +18,8 @@ export interface RigPartDef {
   rot?: number;
   /** M11 v2: Pose-Set — Bildnamen, zwischen denen `PartPose.variant` umschaltet (alle gleich groß, Gelenk in der Bildmitte). `image` = Variante 0. */
   variants?: string[];
+  /** löst sich bei der Phase-2-Verwandlung vom Boss (fliegt weg, siehe dungeon/anim/detached.ts) und ist danach unsichtbar */
+  detach?: 'phase2';
 }
 
 export interface RigDef {

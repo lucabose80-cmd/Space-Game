@@ -1,9 +1,8 @@
 // M11 (Phase 1): Ruhe-/Lauf-Posen für Boss-Rigs. Die zugspezifischen Posen (Ausholen, Schlag, Verwandlung)
 // kommen in den Boss-Phasen 3–6; die Spiellogik bleibt in bosses/defs.ts.
-import type { PartPose, Pose } from '../../engine/rig';
+import { RIGS } from '../../data/rigs';
+import type { Pose } from '../../engine/rig';
 import type { Enemy } from '../dungeonTypes';
-
-const clamp01 = (v: number): number => Math.max(0, Math.min(1, v));
 
 /** Pose-Set-Indizes (ART_BRIEF_M11 §3.2/§3.3) — Arme: 0 hängend · 1 Ausholen · 2 Schlag zur Kamera · 3 seitlich (Laser) · 4 Block · 5 Boden-Stampfer. */
 const ARM = { hang: 0, windup: 1, punch: 2, side: 3, block: 4, stomp: 5 } as const;
@@ -22,13 +21,12 @@ export const SHOULDER_ADJUST: Array<[number, number, number, number]> = [
   [0, 0, 0, 0], // 5 überhitzt
 ];
 
-/** Kern-Wächter: Pose-Set je Boss-Zustand (Zustände aus enemyAi.ts). `roar` ≥ 0 = Fortschritt der Phase-2-Verwandlung (Brustplatten fliegen weg). */
-function coreWardenSet(e: Enemy): { arms: number; head: number; torso: number; roar: number } {
+/** Kern-Wächter: Pose-Set je Boss-Zustand (Zustände aus enemyAi.ts). */
+function coreWardenSet(e: Enemy): { arms: number; head: number; torso: number } {
   const p2 = e.bossPhase2 === true;
   let arms: number = ARM.hang;
   let head: number = p2 ? HEAD.p2 : HEAD.neutral;
   let torso: number = p2 ? TORSO.p2 : TORSO.normal;
-  let roar = -1;
   switch (e.bossState) {
     case 'charge_windup':
       arms = ARM.windup; torso = TORSO.duck; head = HEAD.aim;
@@ -54,7 +52,6 @@ function coreWardenSet(e: Enemy): { arms: number; head: number; torso: number; r
       break;
     case 'phase2_roar':
       arms = ARM.windup; torso = TORSO.p2; head = HEAD.roar;
-      roar = clamp01(1 - Math.max(0, e.bossStateTimer ?? 0) / Math.max(0.01, e.bossStateMax ?? 1.1));
       break;
     case 'stunned':
       torso = TORSO.hot; head = HEAD.damaged;
@@ -62,7 +59,7 @@ function coreWardenSet(e: Enemy): { arms: number; head: number; torso: number; r
     default:
       if (e.flashTimer > 0) head = HEAD.hit; // Treffer: Kopf zuckt zurück
   }
-  return { arms, head, torso, roar };
+  return { arms, head, torso };
 }
 
 /** Krall: Greifzangen-Pose aus Zug-Name und Phase des Zugs (bossSub). */
@@ -84,7 +81,16 @@ function krallClaw(e: Enemy): number {
   }
 }
 
+/** Pose des Boss-Rigs. Teile mit `detach: 'phase2'` sind ab Phase 2 unsichtbar (sie fliegen als abgelöste Teile). */
 export function getBossPose(rigId: string, e: Enemy, time: number): Pose {
+  const pose = rawBossPose(rigId, e, time);
+  if (e.bossPhase2) {
+    for (const p of RIGS[rigId]?.parts ?? []) if (p.detach === 'phase2') pose[p.id] = { ...pose[p.id], hidden: true };
+  }
+  return pose;
+}
+
+function rawBossPose(rigId: string, e: Enemy, time: number): Pose {
   const speed = Math.hypot(e.vx, e.vy);
   const walk = Math.min(1, speed / 60);
   switch (rigId) {
@@ -112,18 +118,13 @@ export function getBossPose(rigId: string, e: Enemy, time: number): Pose {
       const sway = 0.07 + sw * 0.05;
       const sh = SHOULDER_ADJUST[set.torso] ?? SHOULDER_ADJUST[0];
       const still = set.arms === ARM.hang; // nur im Ruhezustand pendeln, Angriffsposen stehen
-      const r = set.roar;
-      const plate = (dir: number): PartPose =>
-        r >= 0 && r < 1
-          ? { dx: dir * r * 38, dy: -r * 16 + r * r * 34, rot: dir * r * 3.4, alpha: 1 - clamp01((r - 0.55) / 0.45) }
-          : { hidden: true };
       return {
         torso: { variant: set.torso, sy: 1 + breathe * 0.012 },
         head: { variant: set.head, rot: Math.sin(time * 1.3) * 0.04, dy: Math.sin(time * 2.4 + 0.6) * 0.5 },
         armL: { variant: set.arms, rot: still ? sway : 0, dx: sh[0], dy: sh[1] },
         armR: { variant: set.arms, rot: still ? -sway : 0, dx: sh[2], dy: sh[3] },
-        plateL: plate(-1),
-        plateR: plate(1),
+        plateL: { hidden: true }, // Brustplatten: erst abgelöst (detached.ts) fliegen sie weg
+        plateR: { hidden: true },
       };
     }
     default:

@@ -29,8 +29,8 @@ module.exports = async ({ page }) => {
     out.dash = [cw({ bossState: 'charge_dash' }).armR.variant, cw({ bossState: 'charge_dash' }).torso.variant];
     out.laser = cw({ bossState: 'laser_windup' }).armL.variant;
     out.stomp = cw({ bossState: 'slam_impact' }).armL.variant;
-    out.roar = cw({ bossPhase2: true, bossState: 'phase2_roar', bossStateTimer: 0.5, bossStateMax: 1.1 }).plateL;
-    out.roarEnd = cw({ bossPhase2: true, bossState: 'phase2_roar', bossStateTimer: 0, bossStateMax: 1.1 }).plateL.hidden;
+    out.plateP2 = cw({ bossPhase2: true }).plateL.hidden;
+    out.krallPlate = [anim.getBossPose('krall', e({ kind: 'boss_breacher' }), 1).plate.hidden === true, anim.getBossPose('krall', e({ kind: 'boss_breacher', bossPhase2: true }), 1).plate.hidden === true];
     out.krall = ['idle', 'windup', 'active'].map((s) => anim.getBossPose('krall', e({ kind: 'boss_breacher', bossSub: s, bossStatusText: 'GREIFARM-STOSS', bossStateTimer: 1 }), 1).claw.variant);
     return out;
   });
@@ -42,8 +42,8 @@ module.exports = async ({ page }) => {
   assert.deepStrictEqual(r.dash, [2, 3]);
   assert.strictEqual(r.laser, 3);
   assert.strictEqual(r.stomp, 5);
-  assert.ok(r.roar.alpha > 0 && Math.abs(r.roar.dx) > 5 && !r.roar.hidden, 'Brustplatten fliegen während der Verwandlung');
-  assert.strictEqual(r.roarEnd, true);
+  assert.strictEqual(r.plateP2, true);
+  assert.deepStrictEqual(r.krallPlate, [false, true], 'Krall-Rückenpanzer sichtbar, ab Phase 2 weg');
   assert.deepStrictEqual(r.krall, [0, 1, 2]);
   console.log('M11 PHASE2 OK');
 };

@@ -2,6 +2,8 @@ import { getHDArt } from '../assets/artLoader';
 import { drawGlow, drawPixelShadow } from '../assets/pixelArt';
 import { drawBossLook } from './bosses/bossLooks';
 import { getBossPose } from './anim/bossAnims';
+import { drawDetached, spawnPhase2Parts } from './anim/detached';
+import { drawLegs } from './anim/legs';
 import { enemyMotion, wantsMotion } from './anim/motion';
 import { drawRig } from '../engine/rig';
 import { RIG_BY_KIND, RIGS } from '../data/rigs';
@@ -526,6 +528,7 @@ export class DungeonRenderer {
             this.renderEnemy(ctx, e);
             return;
           }
+          drawLegs(ctx, e, this.scene.time); // M11 Phase 2: Beine hinter dem Körper (nur Geschütz/Mörser/Scharfschütze)
           // M11: prozedurale Bewegung (Lehnen/Atmen/Ausholen/Zucken) um den Fußpunkt — nur Darstellung
           const m = enemyMotion(e, this.scene.time);
           ctx.save();
@@ -540,6 +543,7 @@ export class DungeonRenderer {
     }
     // Milestone 10-A: solide Kristall-Prismen (S2) y-sortiert zwischen Gegnern & Held
     for (const d of getMechanicsDrawables(ctx, this.scene)) drawables.push(d);
+    for (const d of this.scene.detached) drawables.push({ y: d.y + 2, draw: () => drawDetached(ctx, d) });
     drawables.push({ y: this.scene.playerY, draw: () => this.renderPlayer(ctx) });
     if (this.scene.activeCompanion) {
       drawables.push({ y: this.scene.companionY, draw: () => this.renderCompanion(ctx) });
@@ -1981,7 +1985,7 @@ export class DungeonRenderer {
     ctx.translate(bodyX, bodyY + 16);
     ctx.rotate(tilt);
     ctx.scale(scaleX, scaleY);
-    if (this.tryDrawRig(ctx, e, 0, 7)) {
+    if (this.tryDrawRig(ctx, e, 0, 7, bodyX, bodyY + 16)) {
       rigUsed = true; // M11: Rig statt Einzelbild
     } else if (art.boss) {
       ctx.drawImage(spr, -27, -45, 54, 52);
@@ -2162,12 +2166,22 @@ export class DungeonRenderer {
   }
 
   /** M11: Boss/Gegner mit Rig zeichnen (Ursprung = Fußpunkt bei (ox, oy)). false → bisherige Darstellung. */
-  private tryDrawRig(ctx: CanvasRenderingContext2D, e: Enemy, ox: number, oy: number): boolean {
+  private tryDrawRig(ctx: CanvasRenderingContext2D, e: Enemy, ox: number, oy: number, wx: number, wy: number): boolean {
     const rigId = RIG_BY_KIND[e.kind];
     if (!rigId) return false;
     const images = getHDArt().rigs[rigId];
     if (!images) return false;
-    drawRig(ctx, RIGS[rigId], images, ox, oy, getBossPose(rigId, e, this.scene.time), { flash: e.flashTimer > 0 });
+    const pose = getBossPose(rigId, e, this.scene.time);
+    // M11 Phase 2: Verwandlung — Teile mit `detach: 'phase2'` lösen sich genau einmal (Pose zeigt sie ab da nicht mehr)
+    if (e.bossPhase2 && !e.rigDetached) {
+      e.rigDetached = true;
+      const pre = getBossPose(rigId, { ...e, bossPhase2: false }, this.scene.time);
+      if (spawnPhase2Parts(this.scene.detached, RIGS[rigId], images, pre, ox, oy, wx, wy) > 0) {
+        this.scene.spawnBurst(wx + ox, wy + oy - 14, '#fbbf24', 16);
+        this.scene.triggerShake(0.25, 3.5);
+      }
+    }
+    drawRig(ctx, RIGS[rigId], images, ox, oy, pose, { flash: e.flashTimer > 0 });
     return true;
   }
 
@@ -2197,7 +2211,7 @@ export class DungeonRenderer {
       ctx.translate(e.x, e.y + 16 - stompBob);
       ctx.rotate(tilt);
       ctx.scale(scaleX, scaleY);
-      if (this.tryDrawRig(ctx, e, 0, 7)) rigUsed = true;
+      if (this.tryDrawRig(ctx, e, 0, 7, e.x, e.y + 16 - stompBob)) rigUsed = true;
       else drawBossLook(ctx, art, e, this.scene.time, spr, -27, -45, 54, 52);
       ctx.restore();
     }

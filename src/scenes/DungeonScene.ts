@@ -1,3 +1,4 @@
+import { updateDetached, type DetachedPart } from '../dungeon/anim/detached';
 import { COMPANION_DEFS } from '../data/companions';
 import { getInfusionDef, RIFT_MUTATOR_LIST, RIFT_MUTATORS } from '../data/infusions';
 import { getItemDef, rollLootItem, rollRiftLootItem } from '../data/items';
@@ -157,6 +158,8 @@ export class DungeonScene {
   public decals: FloorDecal[] = [];
   public afterimages: Afterimage[] = [];
   public particles: Particle[] = [];
+  /** M11: abgelöste Rig-Teile (Phase-2-Verwandlung), nur Darstellung */
+  public detached: DetachedPart[] = [];
   public floats: FloatingNum[] = [];
   public lightningArcs: LightningArcFx[] = [];
   public siphonOrbs: SiphonOrbFx[] = [];
@@ -543,6 +546,7 @@ export class DungeonScene {
     this.mechanics.resetForRoom();
     this.rebuildNav();
     this.bossFx.clear();
+    this.detached.length = 0;
     this.aimTargetId = null;
     this.roomFade = 0.22;
 
@@ -4314,6 +4318,7 @@ export class DungeonScene {
       }
       if (o.life <= 0) this.siphonOrbs.splice(i, 1);
     }
+    updateDetached(this.detached, dt);
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
       p.x += p.vx * dt;

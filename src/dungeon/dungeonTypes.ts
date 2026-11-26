@@ -179,6 +179,8 @@ export interface Enemy {
   bossSub?: string;
   bossMoveIdx?: number;
   bossT?: number;
+  /** M11: Phase-2-Teile (Rig `detach`) wurden bereits abgelöst — nur Darstellung, nicht gespeichert */
+  rigDetached?: boolean;
   /** M10-C Schilde: Sekunden, die der Schild unten ist (Angriff/Überhitzung); Treffer-Hitze 0…n */
   shieldDownTimer?: number;
   shieldHeat?: number;

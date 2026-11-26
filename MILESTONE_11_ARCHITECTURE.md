@@ -226,7 +226,7 @@ Jede Phase: Code → Test → `npm run verify` → Screenshots/Bildfolgen ansehe
 - Prozedurale Bewegung für **alle** Gegner (Lehnen, Atmen, Ausholen, Nachfedern, Rückstoß).
 - Test: `drawRig` mit Test-Rig (Pixelprüfung: Arm bei 90° an erwarteter Stelle), Bildfolge-Screenshot.
 
-### Phase 2 — Beine
+### Phase 2 — Beine ✅ (Geschütz, Mörser, Scharfschütze; `anim/legs.ts`, Test m11p3)
 - `dungeon/anim/legs.ts`; Geschütz, Mörser, Scharfschütze, Krabbler/Käfer.
 - Test: Füße bleiben während der Stützphase ortsfest (±1 px), Beine skalieren mit Tempo; Screenshot-Folge.
 

@@ -48,9 +48,11 @@ npm run verify                           # Build + Invarianten + Sprite-Check + 
 - **Krall:** `claw` = `krall_arms_R` (6 Posen) nach Zug-Name/`bossSub` (`krallClaw`); bleibt rechts, z = 1 (vor dem Rumpf). Maßstab des Krall-Rigs ist kleiner als beim Kern-Wächter → Zange wirkt zierlich; bei Bedarf Antigravity-Sheet größer zeichnen oder `torsoDisplayH` anpassen.
 - Test: `tests/m11p2.cjs`. Ansicht: `?bosslab` → Kern-Wächter / Krall (Pause + „Phase II“-Knopf zum Prüfen).
 
+- **Beine & abgelöste Teile (umgesetzt):** `legs.ts` (Geschütz, Mörser, Scharfschütze; Krabbler/Käfer/Skarabäus erst mit Körper-ohne-Beine-Sprites), `detached.ts` (Kern-Wächter-Brustplatten, Krall-Rückenpanzer fliegen bei Phase 2 weg). Tests `m11p3`. Details: `RIGGING_GUIDE.md`.
+
 ## Nächster Schritt
 - **Antigravity (Quota-Reset):** restliche 5 Krall-Sheets: `krall_arms_L.png` (Schrott-Haken + Mini-Säge), `krall_legs_R.png`, `krall_legs_L.png`, `krall_torsos.png`, `krall_effects.png` → `npm run art:check` → pushen. Danach Claude Code: Sets in `rigs.json` eintragen (linker Arm = neues Teil `clawL`, Beine/Rumpf-Sets) und Posen in `bossAnims.ts` verdrahten.
-- **Claude Code:** Kern-Glühen des Kern-Wächters an die neue Kernposition anpassen (Schulter-Offsets sind justiert: `SHOULDER_ADJUST`), danach Plan-Phase 3 (Angriffe der Sektor-1-Bosse mit Teil-Abwurf/Splitting, `MILESTONE_11_ARCHITECTURE.md`).
+- **Claude Code (ohne neue Sprites):** Teilen von Quarz-Koloss/Sternen-Archon (`MILESTONE_11_ARCHITECTURE.md` §4.3), prozedurale Bewegung der übrigen Bosse, Krall-Verdrahtung vorbereiten, Kern-Glühen des Kern-Wächters an die neue Kernposition anpassen (Schulter-Offsets sind justiert: `SHOULDER_ADJUST`), danach Plan-Phase 3 (Angriffe der Sektor-1-Bosse mit Teil-Abwurf/Splitting, `MILESTONE_11_ARCHITECTURE.md`).
 - Ökonomie & Boss-Kampfgefühl im echten Spiel beobachten und in `src/data/balance.ts` nachjustieren (Berichte: `tests/out/economy.json`, `tests/out/ttk.json`).
 - Optionale M10/M10-C-Einzel-Sprites bei Bedarf ebenfalls per Antigravity erzeugen.
 
