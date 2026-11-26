@@ -19,7 +19,7 @@ export function getBossPose(rigId: string, e: Enemy, time: number): Pose {
         legBR: { rot: -s * amp * 0.9 },
         legFR: { rot: c * amp },
         legBL: { rot: -c * amp * 0.9 },
-        claw: { rot: Math.sin(time * 1.7 + 1) * 0.08 + 0.05 },
+        claw: { rot: Math.sin(time * 1.7 + 1) * 0.07 - 0.18 },
         magnet: { dy: Math.sin(time * 3.1) * 0.6, rot: Math.sin(time * 2) * 0.06 },
         plate: { dy: breathe * 0.5 },
       };

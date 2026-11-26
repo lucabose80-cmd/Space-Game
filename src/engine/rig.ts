@@ -14,6 +14,8 @@ export interface RigPartDef {
   offset?: [number, number];
   z: number;
   flipX?: boolean;
+  /** statische Grunddrehung (rad) — z. B. eine seitlich gezeichnete Faust, deren Manschette nach oben zeigen soll */
+  rot?: number;
 }
 
 export interface RigDef {
@@ -127,7 +129,7 @@ export function layoutRig(def: RigDef, images: RigImages | null, pose: Pose, opt
       joint = [(p.offset?.[0] ?? 0) * (mirror ? -1 : 1), p.offset?.[1] ?? 0];
       parentWorld = mirror ? [-scale, 0, 0, scale, 0, 0] : [scale, 0, 0, scale, 0, 0];
     }
-    const local = mul(translate(joint[0] + (ps.dx ?? 0), joint[1] + (ps.dy ?? 0)), rotScale(ps.rot ?? 0, ps.sx ?? 1, ps.sy ?? 1));
+    const local = mul(translate(joint[0] + (ps.dx ?? 0), joint[1] + (ps.dy ?? 0)), rotScale((p.rot ?? 0) + (ps.rot ?? 0), ps.sx ?? 1, ps.sy ?? 1));
     const placement: PartPlacement = { def: p, world: mul(parentWorld, local), img, flash, w, h, px: pvx * w, py: pvy * h };
     cache.set(id, placement);
     return placement;
