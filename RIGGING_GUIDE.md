@@ -98,4 +98,5 @@ Automatisch: `npm test -- m11p1 m11p2 m11p3` und vor jedem Push `npm run verify`
 `npm run verify` grün → Screenshots/Kontaktbogen angesehen → `HANDOFF.md` aktualisieren → committen & pushen (Commit-Präfix `art(m11):` für Sheets, `feat(m11):` für Code).
 
 ## 8. Offene Arbeit
+**Konkrete Aufgabenliste & Fertig-Definition:** [`BOSS_ANIMATION_PLAN.md`](BOSS_ANIMATION_PLAN.md).
 Siehe `HANDOFF.md` („Nächster Schritt“): restliche Krall-Sheets (`krall_arms_L`, `krall_legs_R/L`, `krall_torsos`, `krall_effects`) einbinden (linker Arm als neues Teil `clawL`, Beine/Rumpf als Sets), danach die übrigen Bosse (`ART_BRIEF_M11.md` §4.3) und die Teil-Abwurf-/Splitting-Mechaniken (`MILESTONE_11_ARCHITECTURE.md`).
