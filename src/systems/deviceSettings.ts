@@ -7,22 +7,40 @@ import type { AimAssistMode, TextSpeed } from '../types';
 
 export type TouchScale = 0.85 | 1 | 1.15 | 1.3;
 
+export type ScreenShake = 'full' | 'low' | 'off';
+
 export interface DeviceSettings {
   touchScale: TouchScale;
   aimAssist: AimAssistMode;
   textSpeed: TextSpeed;
+  /** Kamera-Wackeln: voll · schwach (35 %) · aus */
+  screenShake: ScreenShake;
+  /** Handy-Vibration bei Treffern/Parade */
+  vibration: boolean;
 }
 
 export const DEVICE_SETTINGS_KEY = 'starlighter_device_settings_v1';
 export const TOUCH_SCALES: TouchScale[] = [0.85, 1, 1.15, 1.3];
 export const AIM_MODES: AimAssistMode[] = ['off', 'standard', 'smart'];
 export const TEXT_SPEEDS: TextSpeed[] = ['normal', 'fast', 'instant'];
+export const SCREEN_SHAKES: ScreenShake[] = ['full', 'low', 'off'];
 
 export const DEFAULT_DEVICE_SETTINGS: DeviceSettings = {
   touchScale: 1,
   aimAssist: 'standard',
   textSpeed: 'normal',
+  screenShake: 'full',
+  vibration: true,
 };
+
+/** System meldet „weniger Bewegung“ (Barrierefreiheit). */
+export function prefersReducedMotion(): boolean {
+  try {
+    return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  } catch {
+    return false;
+  }
+}
 
 /** Validiert beliebige Eingaben; unbekannte Werte fallen auf die Defaults zurück. */
 export function sanitizeDeviceSettings(raw: unknown): DeviceSettings {
@@ -32,16 +50,26 @@ export function sanitizeDeviceSettings(raw: unknown): DeviceSettings {
   if (TOUCH_SCALES.includes(r.touchScale as TouchScale)) out.touchScale = r.touchScale as TouchScale;
   if (AIM_MODES.includes(r.aimAssist as AimAssistMode)) out.aimAssist = r.aimAssist as AimAssistMode;
   if (TEXT_SPEEDS.includes(r.textSpeed as TextSpeed)) out.textSpeed = r.textSpeed as TextSpeed;
+  if (SCREEN_SHAKES.includes(r.screenShake as ScreenShake)) out.screenShake = r.screenShake as ScreenShake;
+  if (typeof r.vibration === 'boolean') out.vibration = r.vibration;
   return out;
+}
+
+/** Fehlt `screenShake` im Gespeicherten und das System will weniger Bewegung → Standard „schwach“. */
+function withMotionDefault(s: DeviceSettings, raw: unknown): DeviceSettings {
+  const has = !!raw && typeof raw === 'object' && 'screenShake' in (raw as Record<string, unknown>);
+  if (!has && prefersReducedMotion()) return { ...s, screenShake: 'low' };
+  return s;
 }
 
 export function loadDeviceSettings(): DeviceSettings {
   try {
     const raw = localStorage.getItem(DEVICE_SETTINGS_KEY);
-    if (!raw) return { ...DEFAULT_DEVICE_SETTINGS };
-    return sanitizeDeviceSettings(JSON.parse(raw));
+    if (!raw) return withMotionDefault({ ...DEFAULT_DEVICE_SETTINGS }, null);
+    const parsed: unknown = JSON.parse(raw);
+    return withMotionDefault(sanitizeDeviceSettings(parsed), parsed);
   } catch {
-    return { ...DEFAULT_DEVICE_SETTINGS };
+    return withMotionDefault({ ...DEFAULT_DEVICE_SETTINGS }, null);
   }
 }
 
@@ -69,6 +97,12 @@ export function saveDeviceSettings(next: Partial<DeviceSettings>): DeviceSetting
 export function onDeviceSettingsChange(cb: (s: DeviceSettings) => void): () => void {
   listeners.add(cb);
   return () => listeners.delete(cb);
+}
+
+/** Faktor für Kamera-Wackeln (voll 1 · schwach 0,35 · aus 0). */
+export function shakeFactor(): number {
+  const m = getDeviceSettings().screenShake;
+  return m === 'off' ? 0 : m === 'low' ? 0.35 : 1;
 }
 
 /** Im Querformat verdeckt das Touch-Deck sonst zu viel vom Spielfeld → Obergrenze 115 %. */

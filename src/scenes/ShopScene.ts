@@ -1384,7 +1384,7 @@ export class ShopScene {
     // 8. Shop Open/Close Door (bottom airlock hatch)
     if (Math.hypot(this.playerX - SHOP_DOOR_POS.x, this.playerY - SHOP_DOOR_POS.y) < 30) {
       this.activePrompt = {
-        label: this.shopOpen ? '[E] Laden schließen' : '[E] Laden öffnen',
+        label: this.shopOpen ? '[E] Laden schließen' : this.state.timeOfDay === 'night' ? '[E] Laden öffnen' : '[E] Laden (öffnet nachts)',
         x: SHOP_DOOR_POS.x,
         y: SHOP_DOOR_POS.y - 18,
       };

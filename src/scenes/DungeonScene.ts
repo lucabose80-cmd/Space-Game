@@ -23,6 +23,7 @@ import type {
   WeeklyTrialInfo,
 } from '../types';
 import { getDeviceSettings } from '../systems/deviceSettings';
+import { haptic } from '../systems/haptics';
 import { withSeededRandom } from '../systems/seededRng';
 import { formatWeekLabel, getTrialFloorSeed, TRIAL_FLOORS, trialBossHpFactor, trialHasMechanics } from '../systems/weeklyTrial';
 import {
@@ -1334,6 +1335,7 @@ export class DungeonScene {
           this.invulnTimer = 1.05;
           this.triggerShake(0.24, 3.6);
           sound.playPlayerHurt();
+          haptic(35);
           this.playerX = this.lastSafeX;
           this.playerY = this.lastSafeY;
           this.spawnBurst(this.playerX, this.playerY, '#fb7185', 12);
@@ -3560,6 +3562,7 @@ export class DungeonScene {
         this.shieldRecoil = 1.0;
         if (isPerfect) {
           sound.playPerfectParry();
+          haptic([15, 30, 15]);
           this.hitStop = 0.04;
           this.triggerShake(0.14, 2.8);
           this.state.energy = Math.min(100, this.state.energy + 16);
@@ -3611,6 +3614,7 @@ export class DungeonScene {
 
     if (finalAmount === amount) {
       sound.playPlayerHurt();
+      haptic(35);
       this.triggerShake(0.2, 3.5);
       this.spawnBurst(this.playerX, this.playerY, '#fb7185', 10);
       this.floats.push({
@@ -3763,6 +3767,7 @@ export class DungeonScene {
             if (isPerfect) {
               // Reflect the enemy projectile back in blazing gold at 1.9x speed & 2x damage!
               sound.playPerfectParry();
+              haptic([15, 30, 15]);
               this.hitStop = 0.036;
               this.triggerShake(0.12, 2.4);
               const speed = Math.max(240, Math.hypot(p.vx, p.vy) * 1.9);

@@ -7,6 +7,7 @@ import { enemyMotion, wantsMotion } from './anim/motion';
 import { drawRig } from '../engine/rig';
 import { RIG_BY_KIND, RIGS } from '../data/rigs';
 import { getAtlas } from '../assets/sprites';
+import { shakeFactor } from '../systems/deviceSettings';
 import { COMPANION_DEFS, SUIT_THEMES } from '../data/companions';
 import { getInfusionDef, RIFT_MUTATORS } from '../data/infusions';
 import { getItemDef } from '../data/items';
@@ -40,9 +41,10 @@ export class DungeonRenderer {
     const atlas = getAtlas();
 
     ctx.save();
-    if (this.scene.shakeTimer > 0) {
-      const sx = (Math.random() - 0.5) * 2 * this.scene.shakeMag;
-      const sy = (Math.random() - 0.5) * 2 * this.scene.shakeMag;
+    const shakeK = shakeFactor();
+    if (this.scene.shakeTimer > 0 && shakeK > 0) {
+      const sx = (Math.random() - 0.5) * 2 * this.scene.shakeMag * shakeK;
+      const sy = (Math.random() - 0.5) * 2 * this.scene.shakeMag * shakeK;
       ctx.translate(sx, sy);
     }
 

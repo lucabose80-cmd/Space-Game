@@ -21,7 +21,7 @@
 
 ## Teil 1 — Komfort & Gerät (Punkte 1, 2, 3, 8) · ein Commit `polish(teil-1): …`
 
-### [ ] 1.1 Tab-/App-Wechsel: Musik pausieren, sofort speichern & synchronisieren
+### [x] 1.1 Tab-/App-Wechsel: Musik pausieren, sofort speichern & synchronisieren
 **Problem:** Es gibt keinen `visibilitychange`-Handler. Die Musik läuft über `window.setInterval` (`src/engine/audio.ts`, `ensureMusicLoop`) und spielt im Hintergrund-Tab gedrosselt (stotternd) weiter. Auf dem Handy wird beim App-Wechsel nicht gespeichert; ein ausstehender Cloud-Sync (1,8 s verzögert, `firebaseService.scheduleAutoSync`) kann verloren gehen.
 
 **Umsetzen:**
@@ -67,7 +67,7 @@
 
 **Prüfen:** Neuer Test `tests/t7.cjs` (Namensschema muss `t\d…` sein, sonst nimmt `tests/run.cjs` ihn nicht auf; Vorlage: `tests/t6.cjs`): `sound.unlock()` aufrufen, `sound.suspendForBackground()` → privates Feld `sound['musicTimer'] === null`; `sound.resumeFromBackground()` → `!== null` (sofern nicht stumm). `firebaseService.flushAutoSync` ohne ausstehenden Timer darf nichts tun (kein Fehler). Keine Netzwerk-Aufrufe im Test.
 
-### [ ] 1.2 Bildschirmwackeln einstellbar (Barrierefreiheit)
+### [x] 1.2 Bildschirmwackeln einstellbar (Barrierefreiheit)
 **Ist:** `DungeonScene.triggerShake(duration, mag)`; der Renderer verschiebt in `src/dungeon/dungeonRenderer.ts` (~Z. 43, `if (this.scene.shakeTimer > 0)`) um `shakeMag`. Keine Einstellung, `prefers-reduced-motion` wird nicht beachtet.
 
 **Umsetzen:**
@@ -81,7 +81,7 @@
 3. Hilfe-Tab in `src/ui/UIManager.ts`: bei den vorhandenen Geräte-Einstellungen (Zeilen mit `data-dev-aim` / `data-dev-text`, ~Z. 625–640) eine Zeile „Bildschirmwackeln“ mit drei Knöpfen `data-dev-shake` (Beschriftung: „Voll“ · „Schwach“ · „Aus“) nach demselben Muster (`btn(...)`) ergänzen; Klick-Handler wie bei `data-dev-text` (~Z. 1048): `saveDeviceSettings({ screenShake: … })` und Modal neu rendern (so wie es die Nachbarn tun).
 4. Bestehende Tests, die `DeviceSettings` vollständig vergleichen (`grep -rn "textSpeed" tests/`), um das neue Feld ergänzen.
 
-### [ ] 1.3 Vibration auf dem Handy (abschaltbar)
+### [x] 1.3 Vibration auf dem Handy (abschaltbar)
 **Umsetzen:**
 1. `src/systems/deviceSettings.ts`: `DeviceSettings.vibration: boolean` (Default `true`), in `sanitizeDeviceSettings` nur `typeof === 'boolean'` übernehmen.
 2. Neue Datei `src/systems/haptics.ts`:
@@ -106,7 +106,7 @@
 4. Hilfe-Tab: Zeile „Vibration (Handy)“ mit zwei Knöpfen `data-dev-vibe` („An“ · „Aus“), Muster wie 1.2.
 5. Invariante: `haptics.ts` hat keinen Spiel-Zustand → Wochen-Prüfung/Seeds unberührt.
 
-### [ ] 1.4 Laden-Tür tagsüber klar beschriften (Punkt 8 — größtenteils schon vorhanden)
+### [x] 1.4 Laden-Tür tagsüber klar beschriften (Punkt 8 — größtenteils schon vorhanden)
 **Ist:** Toast „☀ Tagsüber ist der Laden zu …“ (`ShopScene.toggleShopOpen`, ~Z. 236) und Hinweiszeile im HUD (`UIManager.ts` ~Z. 302) gibt es schon. Nur das Tür-Prompt sagt tagsüber weiter „[E] Laden öffnen“.
 
 **Umsetzen:** `src/scenes/ShopScene.ts` (~Z. 1387, Kommentar „8. Shop Open/Close Door“):

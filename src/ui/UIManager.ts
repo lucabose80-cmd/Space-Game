@@ -36,6 +36,7 @@ import {
   getDeviceSettings,
   isLandscapeNow,
   LANDSCAPE_TOUCH_CAP,
+  SCREEN_SHAKES,
   saveDeviceSettings,
   TEXT_SPEEDS,
   TOUCH_SCALES,
@@ -618,6 +619,7 @@ export class UIManager {
       smart: 'Smart: bevorzugt Gegner in deiner Blickrichtung, bleibt am Ziel haften und zeigt ein Fadenkreuz.',
     };
     const speedLabel: Record<string, string> = { normal: 'Normal', fast: 'Schnell', instant: 'Sofort' };
+    const shakeLabel: Record<string, string> = { full: 'Voll', low: 'Schwach', off: 'Aus' };
     return `
       <div class="inspector-box" style="gap:4px;border-color:rgba(56,232,212,0.45)">
         <div style="font-family:var(--font-pixel);font-size:11px;color:#38e8d4">⚙ STEUERUNG (DIESES GERÄT)</div>
@@ -634,6 +636,14 @@ export class UIManager {
         <div class="m10-setting-row">
           <div style="font-size:12px"><strong>Textgeschwindigkeit</strong> <span class="m9-file-sub">(Gespräche auf Port Solaris)</span></div>
           <div class="m10-setting-btns">${TEXT_SPEEDS.map((m) => btn('data-dev-text', m, speedLabel[m], s.textSpeed === m)).join('')}</div>
+        </div>
+        <div class="m10-setting-row">
+          <div style="font-size:12px"><strong>Bildschirmwackeln</strong> <span class="m9-file-sub">(Kamera im Kampf)</span></div>
+          <div class="m10-setting-btns">${SCREEN_SHAKES.map((m) => btn('data-dev-shake', m, shakeLabel[m], s.screenShake === m)).join('')}</div>
+        </div>
+        <div class="m10-setting-row">
+          <div style="font-size:12px"><strong>Vibration</strong> <span class="m9-file-sub">(Handy: Treffer &amp; Parade)</span></div>
+          <div class="m10-setting-btns">${[true, false].map((v) => btn('data-dev-vibe', v ? 'on' : 'off', v ? 'An' : 'Aus', s.vibration === v)).join('')}</div>
         </div>
         <div class="m9-file-sub">Diese Einstellungen gelten nur für dieses Gerät und werden nicht in der Cloud gespeichert.</div>
       </div>`;
@@ -1039,6 +1049,20 @@ export class UIManager {
       btn.addEventListener('click', () => {
         sound.playUiClick();
         saveDeviceSettings({ aimAssist: btn.dataset.devAim as (typeof AIM_MODES)[number] });
+        this.renderInventoryModal();
+      });
+    });
+    this.modalEl.querySelectorAll<HTMLElement>('[data-dev-shake]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        sound.playUiClick();
+        saveDeviceSettings({ screenShake: btn.dataset.devShake as (typeof SCREEN_SHAKES)[number] });
+        this.renderInventoryModal();
+      });
+    });
+    this.modalEl.querySelectorAll<HTMLElement>('[data-dev-vibe]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        sound.playUiClick();
+        saveDeviceSettings({ vibration: btn.dataset.devVibe === 'on' });
         this.renderInventoryModal();
       });
     });

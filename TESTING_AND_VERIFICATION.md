@@ -50,6 +50,7 @@
 - **Prüfung + Wochen-Mutator:** Ist der Mutator „gepanzert“, haben Gegner ×1,3 HP. Für Kalibrier-Messungen `dng.activeRiftMutator = null` setzen.
 - **Parallele Läufe:** Nie zwei Harness-Läufe gleichzeitig starten (Port 4197) und während `npm run verify` keine Quelldateien ändern.
 
+- **Polish Teil 1 (`t7`):** Hintergrund-Pause (`sound.suspendForBackground/resumeFromBackground`, `firebaseService.flushAutoSync`), Geräte-Einstellungen `screenShake`/`vibration` (`shakeFactor()`).
 - **Firebase (`t6`):** Das SDK lädt nach dem Start per `import('./firebaseSdk')`; Tests, die Cloud-Funktionen brauchen, erst `await firebaseService['ready']`. Keine Netzwerk-Aufrufe in Tests.
 
 ### Tests & Fallstricke für Meilenstein 11 (Rigs & Boss-Animation)

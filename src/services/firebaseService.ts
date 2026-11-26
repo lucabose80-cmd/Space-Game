@@ -219,6 +219,14 @@ class FirebaseCloudService {
     }, 1800);
   }
 
+  /** Ausstehenden Auto-Sync sofort ausführen (z. B. App geht in den Hintergrund). */
+  public flushAutoSync(state: GameState): void {
+    if (this.syncTimer === null) return;
+    window.clearTimeout(this.syncTimer);
+    this.syncTimer = null;
+    void this.syncAllToCloud(state);
+  }
+
   public async syncAllToCloud(state: GameState): Promise<{ ok: boolean; error?: string }> {
     const sdk = this.sdk;
     if (!this.configured || !this.currentUser || !this.db || !sdk) {

@@ -318,6 +318,17 @@ class StarlighterGame {
       this.canvas.focus({ preventScroll: true });
     });
     window.addEventListener('pointerdown', () => sound.unlock(), { once: true });
+    // App/Tab im Hintergrund: Musik anhalten, speichern, ausstehenden Cloud-Sync sofort senden
+    const onHidden = (): void => {
+      sound.suspendForBackground();
+      if (!this.ui.titleVisible) this.state.save(); // am Titelbild nichts überschreiben
+      firebaseService.flushAutoSync(this.state);
+    };
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') onHidden();
+      else sound.resumeFromBackground();
+    });
+    window.addEventListener('pagehide', onHidden);
     window.addEventListener('keydown', () => sound.unlock(), { once: true });
 
     // Nur im Vite-Dev-Server (Headless-Tests): Spielinstanz erreichbar machen. Im Produktions-Build entfällt das.

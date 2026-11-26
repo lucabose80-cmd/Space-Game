@@ -201,6 +201,22 @@ export class SoundEngine {
     this.ensureMusicLoop();
   }
 
+  /** App/Tab verborgen: Musik-Takt anhalten, AudioContext schlafen legen. */
+  public suspendForBackground(): void {
+    if (this.musicTimer !== null && typeof window !== 'undefined') {
+      window.clearInterval(this.musicTimer);
+      this.musicTimer = null;
+    }
+    if (this.ctx && this.ctx.state === 'running') void this.ctx.suspend();
+  }
+
+  /** Wieder sichtbar: nur fortsetzen, wenn der Ton schon einmal freigeschaltet war (ctx existiert). */
+  public resumeFromBackground(): void {
+    if (!this.ctx) return;
+    if (this.ctx.state === 'suspended') void this.ctx.resume();
+    if (!this.muted && !this.musicMuted) this.ensureMusicLoop();
+  }
+
   private ensureMusicLoop(): void {
     if (this.musicTimer !== null || typeof window === 'undefined') return;
     const pat = TRACK_PATTERNS[this.getActiveMusicTrack()];
