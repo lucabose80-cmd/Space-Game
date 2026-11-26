@@ -66,12 +66,13 @@ npm run verify                           # Build + Invarianten + Sprite-Check + 
 
 ## M11 Gegner-Rigs (`ART_BRIEF_M11_ENEMIES.md`, Typ G, je `art_source/rigs/<kind>_rig.png`)
 Nach und nach erzeugen, sobald Gemini-Volumen frei ist (Reihenfolge §5 im Brief). Abhaken, wenn per `art:check` geprüft und gepusht:
-- [x] **Pilot:** `turret_rig` (`min_margin ≥ 45 px`, `art:check` ok) · `phase_stalker_rig` (`min_margin ≥ 53 px`, `art:check` ok) → **bereit für Claude-Einbindung & Abnahme im Spiel (STOP-GATE vor P2)**
-- [ ] S1: `drone_rig` · `shield_drone_rig` · `spore_spitter_rig` · `drone_arc_rig`
+- [x] **Pilot:** `turret_rig` (`min_margin ≥ 45 px`, `art:check` ok) · `phase_stalker_rig` (`min_margin ≥ 53 px`, `art:check` ok) → **P2-Gate vom Projektinhaber freigegeben**
+- [x] S1 (erledigt): `drone_rig` (`min_margin ≥ 71 px`, `art:check` ok)
+- [ ] S1 (offen): `shield_drone_rig` · `spore_spitter_rig` · `drone_arc_rig`
 - [ ] S2: `crystal_crawler_rig` · `shard_sniper_rig` · `prism_drone_rig` · `void_crawler_rig` · `resonance_warden_rig`
 - [ ] S3: `magma_mortar_rig` · `slag_beetle_rig` · `ember_stalker_rig` · `forge_golem_rig` · `solar_drone_rig`
 - [ ] S4: `chrono_eye_rig` · `astral_scarab_rig` · `star_lancer_rig` · `void_wraith_rig` · `monolith_guard_rig`
-- Code-Seite (Claude Code, Pilot ist jetzt da!): Import-Modus `parts`, Rigs in `rigs.json`, `anim/enemyAnims.ts`. *(Hinweis: `turret_rig.png` Zelle 5 ist ein hohler sechseckiger Mündungsring mit `#FFFFFF`-Innenloch — beim `parts`-Import ggf. Innen-Weiß entfernen wie bei Ringen üblich.)*
+- Code-Seite (Claude Code, bereit!): Import-Modus `parts`, Rigs in `rigs.json`, `anim/enemyAnims.ts`. *(Hinweis: `turret_rig.png` Zelle 5 ist ein hohler sechseckiger Mündungsring mit `#FFFFFF`-Innenloch — beim `parts`-Import ggf. Innen-Weiß entfernen wie bei Ringen üblich.)*
 
 ## Nächster Schritt
 - **Polish (Teile 1–3) abgenommen & erledigt:** Hintergrund-Pause, Wackeln/Vibration im Hilfe-Tab, Tür-Label · Kern-Wächter-Schritte, Hit-Stop (`heavyStop`), Telegraph-Blitz, Schadenszahlen-Merge · Dungeon-Code lädt nach (`__game.dungeonReady`, Chunk-Gruppe `dungeon` entfernt). Tests `t7`, `t7b`, `t8`.
@@ -79,8 +80,8 @@ Nach und nach erzeugen, sobald Gemini-Volumen frei ist (Reihenfolge §5 im Brief
 - **Claude Code (sofort startklar!):**
   1. **S6 (Kern-Wächter):** `core_warden_arms_R3.png` & `core_warden_arms_L3.png` in `rigs.json` (`armR_13…18`/`armL_13…18`) importieren und in `bossAnims.ts` bei Phase 2 einbinden (`NOFIST_OF`) → Kern-Wächter komplett rund.
   2. **Krall 6/6 komplett:** `krall_legs_R.png`, `krall_legs_L.png` und `krall_effects.png` in `rigs.json` eintragen, importieren und Bein-Posen + Schrott-/Magnet-/Splitter-Effekte in `bossAnims.ts`/Renderer verdrahten.
-  3. **Gegner-Rig-Pilot (P1):** `turret_rig.png` und `phase_stalker_rig.png` sind im Repo! Import-Modus `parts`, Rigs in `rigs.json` und `anim/enemyAnims.ts` umsetzen → danach Abnahme im Spiel für die Freigabe von P2.
-- **Antigravity (als Nächstes):** **⛔ STOP-GATE nach P1 erreicht!** `P0` und `P1` sind komplett erledigt. Vor **P2** (`drone_rig.png` ff.) erst Abnahme der beiden Gegner-Rig-Piloten im Spiel abwarten (oder explizit **P3** optionale M10/M10-C-Sprites vorziehen, falls gewünscht — siehe [`SPRITE_QUEUE.md`](SPRITE_QUEUE.md)).
+  3. **Gegner-Rigs (S1):** `turret_rig.png`, `phase_stalker_rig.png` und `drone_rig.png` sind im Repo! Import-Modus `parts`, Rigs in `rigs.json` und `anim/enemyAnims.ts` umsetzen.
+- **Antigravity (als Nächstes, nach Gemini-Quota-Reset):** Weiter in [`SPRITE_QUEUE.md`](SPRITE_QUEUE.md) ab **`P2-02`** (`shield_drone_rig.png`) & **`P2-03`** (`spore_spitter_rig.png`) via Skill `sprite-batch`.
 - Ökonomie & Boss-Kampfgefühl im echten Spiel beobachten und in `src/data/balance.ts` nachjustieren (Berichte: `tests/out/economy.json`, `tests/out/ttk.json`).
 - Optionale M10/M10-C-Einzel-Sprites bei Bedarf ebenfalls per Antigravity erzeugen.
 
