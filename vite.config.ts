@@ -10,10 +10,6 @@ export default defineConfig({
               name: 'firebase',
               test: /[\\/]node_modules[\\/](firebase|@firebase)[\\/]/,
             },
-            {
-              name: 'dungeon',
-              test: /[\\/]src[\\/](dungeon|scenes[\\/]DungeonScene|world[\\/]dungeonGen)/,
-            },
           ],
         },
       },

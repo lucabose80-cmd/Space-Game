@@ -52,6 +52,7 @@
 
 - **Polish Teil 1 (`t7`):** Hintergrund-Pause (`sound.suspendForBackground/resumeFromBackground`, `firebaseService.flushAutoSync`), Geräte-Einstellungen `screenShake`/`vibration` (`shakeFactor()`).
 - **Polish Teil 2 (`t7b`):** Schadenszahlen-Zusammenfassung (`FloatingNum.enemyId/sum/bornAt`), `DungeonScene.heavyStop` (Phase 2/Boss-/Elite-Kill; wird von normalen `hitStop`-Zuweisungen nicht überschrieben), Kern-Wächter-Schritte.
+- **Dungeon lädt nach (`t8`):** `window.__game.dungeonScene` ist erst nach `await window.__game.dungeonReady` gesetzt (Tests, die die Szene direkt brauchen, müssen das abwarten). Run-Start über `g.transitionTo('dungeon', 'hangar')` wartet selbst.
 - **Firebase (`t6`):** Das SDK lädt nach dem Start per `import('./firebaseSdk')`; Tests, die Cloud-Funktionen brauchen, erst `await firebaseService['ready']`. Keine Netzwerk-Aufrufe in Tests.
 
 ### Tests & Fallstricke für Meilenstein 11 (Rigs & Boss-Animation)

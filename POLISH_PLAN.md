@@ -216,7 +216,7 @@ Beams (`BossBeam`) haben nur `warn: boolean` ohne Restzeit → **nicht** anfasse
 
 **Vorher prüfen (Stand Audit):** Statische Wert-Importe aus `src/dungeon/**`, `src/scenes/DungeonScene.ts`, `src/world/dungeonGen.ts` außerhalb dieser Ordner gibt es nur in `src/main.ts` (`DungeonScene`) und `src/dev/bossLab.ts` (`ROOM_CENTER_X/Y`). Typ-Importe (`import type`) sind unkritisch. Befehl: `grep -rn "from '.*\(DungeonScene\|dungeon/\|world/dungeonGen\)" src --include=*.ts | grep -v "import type" | grep -v "^src/dungeon/\|^src/scenes/DungeonScene.ts\|^src/world/"` → darf danach **nur** noch dynamische `import(...)` zeigen.
 
-### [ ] 3.1 `main.ts` umbauen
+### [x] 3.1 `main.ts` umbauen
 1. `import { DungeonScene } from './scenes/DungeonScene';` → `import type { DungeonScene } from './scenes/DungeonScene';`; `import { BossLab } from './dev/bossLab';` → `import type { BossLab } from './dev/bossLab';`.
 2. Feld `private dungeonScene: DungeonScene;` → `private dungeonScene: DungeonScene | null = null;` und **öffentlich** `public dungeonReady: Promise<DungeonScene>;` (Tests brauchen es).
 3. Den heutigen `new DungeonScene(this.state, { … })`-Block in eine Methode verschieben:
@@ -241,7 +241,7 @@ Beams (`BossBeam`) haben nur `warn: boolean` ohne Restzeit → **nicht** anfasse
    - `loop()`: der `else`-Zweig (Dungeon-Update ~Z. 674 und -Render ~Z. 694) → `if (this.dungeonScene) …`. Solange er fehlt, nichts zeichnen (Fade-Overlay bleibt).
 5. **Boss-Labor** (`startBossLab`, `?bosslab`): asynchron machen — `void Promise.all([this.dungeonReady, import('./dev/bossLab')]).then(([d, { BossLab }]) => { this.bossLab = new BossLab(d, this.state, { … }); … })`. Auch hier `activeScene = 'dungeon'` erst im `then`.
 
-### [ ] 3.2 Tests & Prüfung
+### [x] 3.2 Tests & Prüfung
 1. Tests, die `window.__game.dungeonScene` direkt benutzen (`tests/m10p6.cjs`, `tests/m11lab.cjs` — `grep -ln "dungeonScene" tests/`): vorher `await g.dungeonReady` (bzw. `await window.__game.dungeonReady`) einfügen. Tests, die `import('/src/scenes/DungeonScene.ts')` selbst bauen, sind unberührt.
 2. Neuer Test `tests/t8.cjs`: nach dem Laden `await window.__game.dungeonReady` → Instanz vorhanden; `g.activeScene` ist nicht `'dungeon'`, solange kein Run gestartet ist.
 3. `npm run build` → in `dist/index.html` darf **kein** `modulepreload` mehr auf `assets/dungeon-…js` zeigen (`grep modulepreload dist/index.html`). Der Chunk selbst muss weiter existieren (`ls dist/assets/dungeon-*`).
@@ -252,3 +252,5 @@ Beams (`BossBeam`) haben nur `warn: boolean` ohne Restzeit → **nicht** anfasse
 - Haken 3.1–3.2, `HANDOFF.md` ergänzen („Dungeon-Code lädt nach dem Start nach; `__game.dungeonReady` in Tests“), `TESTING_AND_VERIFICATION.md` Abschnitt 1b um denselben Hinweis ergänzen, committen, pushen.
 - **Projektinhaber bitten:** nach dem Vercel-Deploy auf dem Handy einen Run starten (Dock → Sektor 1) und das Boss-Labor einmal öffnen.
 - Ist alles abgehakt und abgenommen: `POLISH_PLAN.md` löschen und den Verweis in `HANDOFF.md`/`AGENTS.md` entfernen.
+
+> **Umsetzungsnotiz Teil 3:** Zusätzlich musste die Chunk-Gruppe `dungeon` aus `vite.config.ts` entfernt werden (sie zog geteilten Code in den Dungeon-Chunk, sodass der Index ihn weiter vorlud). Jetzt trennt Vite natürlich: `index` ~510 kB (inkl. geteilter Daten), `DungeonScene` ~248 kB und `dungeonGen` ~17 kB nur nachgeladen. Der Run-Start wartet im Notfall auf `dungeonReady` (`transitionTo`). Test `t8`.

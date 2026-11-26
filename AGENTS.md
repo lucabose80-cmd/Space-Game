@@ -86,7 +86,7 @@
 
 ## 5. Key Commands
 ```bash
-npm run build      # TypeScript check + Vite production build (index, dungeon & firebase chunks)
+npm run build      # TypeScript check + Vite production build (index + lazily loaded chunks: DungeonScene, dungeonGen, bossLab, firebase SDK)
 npm run build:single # Einzeldatei-Build (iife, alles inline) nach dist-single/ (vite.single.config.ts)
 npm run verify     # Build + Invarianten + Sprite-Check + alle Headless-Tests (vor jedem Push)
 npm test -- m10p3  # einzelne Tests (tests/*.cjs, Playwright)

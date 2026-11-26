@@ -41,7 +41,7 @@ module.exports = async ({ page }) => {
     // Takt läuft weiter (musicStep wird nicht zurückgesetzt)
     sound['musicStep'] = 5; sound.setMusicIntensity(1); out.stepKept = sound['musicStep'] === 5; sound.setMusicIntensity(0);
     // --- isBossPhase2Active + echtes syncMusic im Spiel
-    const dng = g.dungeonScene; const boss = { id: 1, kind: 'boss_leviathan', hp: 100, maxHp: 100, x: 0, y: 0, radius: 10, bossPhase2: false };
+    const dng = await g.dungeonReady; const boss = { id: 1, kind: 'boss_leviathan', hp: 100, maxHp: 100, x: 0, y: 0, radius: 10, bossPhase2: false };
     const minion = { id: 2, kind: 'drone', hp: 10, maxHp: 10, x: 0, y: 0, radius: 6, bossPhase2: true };
     dng.enemies = [minion]; out.minionNot = dng.isBossPhase2Active() === false;
     dng.enemies = [boss]; out.phase1 = dng.isBossPhase2Active() === false;

@@ -7,7 +7,7 @@ import { STORY_SCENES } from './data/story/storyScenes';
 import { sound } from './engine/audio';
 import { InputManager, VIRTUAL_HEIGHT, VIRTUAL_WIDTH } from './engine/input';
 import { BackroomScene } from './scenes/BackroomScene';
-import { DungeonScene } from './scenes/DungeonScene';
+import type { DungeonScene } from './scenes/DungeonScene';
 import { HangarScene } from './scenes/HangarScene';
 import { HubScene } from './scenes/HubScene';
 import { MarketTerraceScene } from './scenes/MarketTerraceScene';
@@ -15,7 +15,7 @@ import { ShopScene } from './scenes/ShopScene';
 import { firebaseService } from './services/firebaseService';
 import { galacticNetwork } from './services/galacticNetwork';
 import { GameState } from './systems/gameState';
-import { BossLab } from './dev/bossLab';
+import type { BossLab } from './dev/bossLab';
 import type { StoryResult } from './ui/StoryModals';
 import type { MusicTrack, RunSummary, SceneId, SectorId, StoryNpcId, WeeklyTrialInfo } from './types';
 import { TouchControls } from './ui/TouchControls';
@@ -35,7 +35,10 @@ class StarlighterGame {
   private hubScene: HubScene;
   private hangarScene: HangarScene;
   private marketTerraceScene: MarketTerraceScene;
-  private dungeonScene: DungeonScene;
+  /** Perf Teil 3: Dungeon-Code (eigener Chunk) lädt nach dem Start nach; bis dahin `null`. */
+  private dungeonScene: DungeonScene | null = null;
+  /** Wird fertig, sobald die Dungeon-Szene geladen und erzeugt ist (Tests: `await __game.dungeonReady`). */
+  public dungeonReady: Promise<DungeonScene>;
   /** Behelfsmäßiges Boss-Labor (nur mit ?bosslab in der Adresse) */
   private bossLab: BossLab | null = null;
 
@@ -291,20 +294,7 @@ class StarlighterGame {
       onToast: (msg, tone) => this.ui.toast(msg, tone),
     });
 
-    this.dungeonScene = new DungeonScene(this.state, {
-      onReturnToHub: (summary) => this.handleReturnFromDungeon(summary),
-      onOpenDungeonChest: (chest) => this.ui.openDungeonChestModal(chest),
-      onToast: (msg, tone) => this.ui.toast(msg, tone),
-      onHudDirty: () => {
-        this.ui.dungeonSector = this.dungeonScene.currentSector;
-        this.ui.dungeonFloor = this.dungeonScene.currentFloor;
-        this.ui.dungeonEndlessRift = this.dungeonScene.isEndlessRift;
-        this.ui.dungeonWeeklyTrial = this.dungeonScene.isWeeklyTrial;
-        this.ui.dungeonRiftDepth = this.dungeonScene.riftDepth;
-        this.ui.renderHud();
-        this.syncTouch();
-      },
-    });
+    this.dungeonReady = this.loadDungeon();
 
     this.shopScene.onEnter('default');
     this.syncMusic();
@@ -340,24 +330,53 @@ class StarlighterGame {
     requestAnimationFrame((t) => this.loop(t));
   }
 
+  // ==================== DUNGEON-CODE NACHLADEN (Perf Teil 3) ====================
+  private get dng(): DungeonScene {
+    if (!this.dungeonScene) throw new Error('Dungeon-Szene noch nicht geladen (dungeonReady abwarten)');
+    return this.dungeonScene;
+  }
+
+  private loadDungeon(): Promise<DungeonScene> {
+    return import('./scenes/DungeonScene').then(({ DungeonScene }) => {
+      const d = new DungeonScene(this.state, {
+        onReturnToHub: (summary) => this.handleReturnFromDungeon(summary),
+        onOpenDungeonChest: (chest) => this.ui.openDungeonChestModal(chest),
+        onToast: (msg, tone) => this.ui.toast(msg, tone),
+        onHudDirty: () => {
+          this.ui.dungeonSector = this.dng.currentSector;
+          this.ui.dungeonFloor = this.dng.currentFloor;
+          this.ui.dungeonEndlessRift = this.dng.isEndlessRift;
+          this.ui.dungeonWeeklyTrial = this.dng.isWeeklyTrial;
+          this.ui.dungeonRiftDepth = this.dng.riftDepth;
+          this.ui.renderHud();
+          this.syncTouch();
+        },
+      });
+      this.dungeonScene = d;
+      return d;
+    });
+  }
+
   // ==================== BEHELF: BOSS-LABOR (?bosslab) ====================
   private startBossLab(): void {
     this.ui.hideTitle();
-    this.activeScene = 'dungeon';
     this.ui.currentScene = 'dungeon';
     this.ui.shopIsOpen = false;
-    this.bossLab = new BossLab(this.dungeonScene, this.state, {
-      onSceneChange: () => {
-        this.ui.dungeonSector = this.dungeonScene.currentSector;
-        this.ui.dungeonFloor = this.dungeonScene.currentFloor;
-        this.ui.dungeonEndlessRift = false;
-        this.ui.dungeonWeeklyTrial = false;
-        this.ui.renderHud();
-        this.syncTouch();
-        this.syncMusic();
-      },
+    void Promise.all([this.dungeonReady, import('./dev/bossLab')]).then(([d, { BossLab }]) => {
+      this.activeScene = 'dungeon';
+      this.bossLab = new BossLab(d, this.state, {
+        onSceneChange: () => {
+          this.ui.dungeonSector = d.currentSector;
+          this.ui.dungeonFloor = d.currentFloor;
+          this.ui.dungeonEndlessRift = false;
+          this.ui.dungeonWeeklyTrial = false;
+          this.ui.renderHud();
+          this.syncTouch();
+          this.syncMusic();
+        },
+      });
+      this.bossLab.enter();
     });
-    this.bossLab.enter();
   }
 
   // ==================== MEILENSTEIN 10-A: STORY ====================
@@ -418,13 +437,13 @@ class StarlighterGame {
   private syncMusic(): void {
     let desired: MusicTrack;
     if (this.activeScene === 'dungeon') {
-      desired = this.dungeonScene.isInBossFight()
+      desired = this.dng.isInBossFight()
         ? 'boss'
-        : this.dungeonScene.currentSector >= 4
+        : this.dng.currentSector >= 4
           ? 'dungeon_s4'
-          : this.dungeonScene.currentSector === 3
+          : this.dng.currentSector === 3
             ? 'dungeon_s3'
-            : this.dungeonScene.currentSector === 2
+            : this.dng.currentSector === 2
               ? 'dungeon_s2'
               : 'dungeon';
     } else if (
@@ -441,7 +460,7 @@ class StarlighterGame {
     sound.setMusicTrack(desired);
 
     // Milestone 10-A: Boss-Phase-2 → Musik-Intensität + einmaliger Sting pro Wechsel
-    const phase2 = this.activeScene === 'dungeon' && this.dungeonScene.isBossPhase2Active();
+    const phase2 = this.activeScene === 'dungeon' && this.dng.isBossPhase2Active();
     if (phase2 && !this.lastBossPhase2) sound.playPhaseShiftSting();
     this.lastBossPhase2 = phase2;
     sound.setMusicIntensity(phase2 ? 1 : 0);
@@ -492,7 +511,7 @@ class StarlighterGame {
 
   private handleSwapWeapon(): void {
     if (this.activeScene === 'dungeon') {
-      this.dungeonScene.swapWeapon();
+      this.dng.swapWeapon();
       this.syncTouch();
       return;
     }
@@ -522,6 +541,11 @@ class StarlighterGame {
     afterSwitch?: () => void,
   ): void {
     if (this.transitionDir !== 0) return;
+    // Perf Teil 3: Dungeon-Code evtl. noch nicht geladen (Normalfall: längst da) → erst abwarten, dann Übergang starten
+    if (scene === 'dungeon' && !this.dungeonScene) {
+      void this.dungeonReady.then(() => this.transitionTo(scene, from, afterSwitch));
+      return;
+    }
     this.transitionDir = 1;
     this.pendingTransition = () => {
       this.activeScene = scene;
@@ -529,18 +553,18 @@ class StarlighterGame {
       if (scene === 'dungeon') {
         this.ui.shopIsOpen = false;
         if (this.pendingWeeklyTrial) {
-          this.dungeonScene.startWeeklyTrial(this.pendingWeeklyTrial);
+          this.dng.startWeeklyTrial(this.pendingWeeklyTrial);
           this.pendingWeeklyTrial = null;
         } else if (this.pendingEndlessRift) {
-          this.dungeonScene.startEndlessRift();
+          this.dng.startEndlessRift();
         } else {
-          this.dungeonScene.startRun(this.pendingDungeonSector);
+          this.dng.startRun(this.pendingDungeonSector);
         }
-        this.ui.dungeonSector = this.dungeonScene.currentSector;
-        this.ui.dungeonFloor = this.dungeonScene.currentFloor;
-        this.ui.dungeonEndlessRift = this.dungeonScene.isEndlessRift;
-        this.ui.dungeonWeeklyTrial = this.dungeonScene.isWeeklyTrial;
-        this.ui.dungeonRiftDepth = this.dungeonScene.riftDepth;
+        this.ui.dungeonSector = this.dng.currentSector;
+        this.ui.dungeonFloor = this.dng.currentFloor;
+        this.ui.dungeonEndlessRift = this.dng.isEndlessRift;
+        this.ui.dungeonWeeklyTrial = this.dng.isWeeklyTrial;
+        this.ui.dungeonRiftDepth = this.dng.riftDepth;
       } else if (scene === 'hangar') {
         this.ui.shopIsOpen = false;
         this.hangarScene.onEnter(from === 'dungeon' ? 'dungeon' : 'hub', this.lastReturnedSector);
@@ -682,7 +706,7 @@ class StarlighterGame {
     } else if (this.activeScene === 'hangar') {
       if (!this.ui.modalOpen && !this.ui.titleVisible) this.hangarScene.update(dt, this.input);
     } else if (!this.ui.modalOpen && !this.ui.titleVisible) {
-      this.dungeonScene.update(this.bossLab ? this.bossLab.scaleDt(dt) : dt, this.input);
+      this.dng.update(this.bossLab ? this.bossLab.scaleDt(dt) : dt, this.input);
       this.bossLab?.afterUpdate(dt);
     }
 
@@ -702,7 +726,7 @@ class StarlighterGame {
     } else if (this.activeScene === 'hangar') {
       this.hangarScene.render(this.ctx);
     } else {
-      this.dungeonScene.render(this.ctx, this.input);
+      this.dng.render(this.ctx, this.input);
     }
 
     if (this.transitionAlpha > 0) {
