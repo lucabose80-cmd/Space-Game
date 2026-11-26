@@ -420,6 +420,7 @@ export class GameState {
       coreWatcherDefeated: this.coreWatcherDefeated,
       deepestFloor: this.deepestFloor,
       sector1Cleared: this.sector1Cleared,
+      sector2Cleared: this.sector2Cleared,
     };
   }
 

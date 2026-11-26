@@ -45,7 +45,7 @@ import { DungeonEnemyAi } from '../dungeon/enemyAi';
 import { RoomMechanicsSystem } from '../dungeon/roomMechanics';
 import { NavGrid } from '../dungeon/navGrid';
 import { BossFx } from '../dungeon/bosses/bossFx';
-import { BOSS_HP, ENEMY_SHIELDS } from '../data/balance';
+import { BOSS_HP, ENEMY_SHIELDS, RIFT_SCALING } from '../data/balance';
 import { findFreeSpotSpiral } from '../dungeon/mechanicsGen';
 import { DungeonRenderer } from '../dungeon/dungeonRenderer';
 import type {
@@ -573,6 +573,7 @@ export class DungeonScene {
     if (!room.cleared) {
       for (const sp of room.spawns) {
         this.spawnEnemy(sp.kind, sp.x, sp.y);
+        if (sp.elite) this.makeElite(this.enemies[this.enemies.length - 1]);
       }
       if (room.type === 'boss') {
         sound.playBossRoar();
@@ -666,6 +667,22 @@ export class DungeonScene {
     this.callbacks.onHudDirty();
   }
 
+  /** M10-C: Gefahren-Sterne (★☆☆ … ★★★) aus dem Rift-HP-Faktor. */
+  public riftDangerStars(sector: number, floor: number): string {
+    const f = RIFT_SCALING.hpFactor(sector, floor);
+    const n = f < 2.0 ? 1 : f < 2.6 ? 2 : 3;
+    return '★'.repeat(n) + '☆'.repeat(3 - n);
+  }
+
+  /** M10-C: Elite — ×2 HP, goldener Rand, immer ein Rift-Mutator (deterministisch nach Gegner-ID). */
+  public makeElite(e: Enemy | undefined): void {
+    if (!e) return;
+    e.elite = true;
+    e.maxHp = Math.round(e.maxHp * 2);
+    e.hp = e.maxHp;
+    e.mutator ??= RIFT_MUTATOR_LIST[e.id % RIFT_MUTATOR_LIST.length];
+  }
+
   /** Navigations-Raster neu aufbauen (Raumwechsel; Tests nach Hindernis-Änderung). */
   public rebuildNav(): void {
     this.nav = new NavGrid((x, y, r) => this.collidesRoomObstacle(x, y, r) || this.collidesRoomChasm(x, y, r), 7);
@@ -709,7 +726,8 @@ export class DungeonScene {
           ? 1.3
           : 1.0
         : inRiftChamber
-        ? 1.16 * (riftMutator === 'armored' ? 1.25 : 1.0)
+        ? RIFT_SCALING.hpFactor(this.currentRoom.riftSector ?? this.currentSector, this.currentRoom.riftFloor ?? this.currentFloor) *
+          (riftMutator === 'armored' ? 1.25 : 1.0)
         : 1.0;
 
     const makeBase = (hp: number, radius: number): Enemy => {
@@ -3239,8 +3257,27 @@ export class DungeonScene {
         for (const sp of this.currentRoom.riftWave2Spawns) {
           this.spawnBurst(sp.x, sp.y, '#c084fc', 16);
           this.spawnEnemy(sp.kind, sp.x, sp.y);
+          if (sp.elite) this.makeElite(this.enemies[this.enemies.length - 1]);
         }
         this.callbacks.onToast('🌀 RIFT-WELLE 2! Verstärkte Anomalie-Wächter erscheinen!', 'warn');
+        return;
+      }
+      // M10-C: dritte Welle ab Ebene II
+      if (
+        this.currentRoom.isRiftChamber &&
+        !this.currentRoom.riftWave3Triggered &&
+        this.currentRoom.riftWave3Spawns &&
+        this.currentRoom.riftWave3Spawns.length > 0
+      ) {
+        this.currentRoom.riftWave3Triggered = true;
+        this.triggerShake(0.34, 4.2);
+        sound.playDoorUnlock();
+        for (const sp of this.currentRoom.riftWave3Spawns) {
+          this.spawnBurst(sp.x, sp.y, '#e879f9', 18);
+          this.spawnEnemy(sp.kind, sp.x, sp.y);
+          if (sp.elite) this.makeElite(this.enemies[this.enemies.length - 1]);
+        }
+        this.callbacks.onToast('🌀 RIFT-WELLE 3! Die Anomalie schlägt zurück!', 'warn');
         return;
       }
 
@@ -3393,6 +3430,12 @@ export class DungeonScene {
   public damagePlayer(amount: number, kx: number, ky: number, attacker?: Enemy): void {
     if (this.invulnTimer > 0 || this.finished) return;
 
+    // M10-C: Instabile Risse (Kammer) schlagen härter — Faktor nach Sektor & Ebene (nicht in Spirale/Prüfung)
+    if (this.currentRoom.isRiftChamber && !this.isEndlessRift && !this.isWeeklyTrial) {
+      amount = Math.round(
+        amount * RIFT_SCALING.damageFactor(this.currentRoom.riftSector ?? this.currentSector, this.currentRoom.riftFloor ?? this.currentFloor),
+      );
+    }
     // Milestone 7 Rift Mutators: Overcharged deals +25% damage; Vampiric heals attacker on hit!
     if (attacker?.mutator === 'overcharged') {
       amount = Math.round(amount * 1.25);
@@ -3776,7 +3819,7 @@ export class DungeonScene {
       const rp = this.currentRoom.riftPortal;
       if (Math.hypot(this.playerX - rp.x, this.playerY - rp.y) < 26) {
         this.activePrompt = {
-          label: '[E] 🌀 Instabilen Rift betreten (Anomalie-Beute & Katalysator!)',
+          label: `[E] 🌀 Instabilen Rift betreten · Gefahr ${this.riftDangerStars(this.currentRoom.riftSector ?? this.currentSector, this.currentRoom.riftFloor ?? this.currentFloor)}`,
           x: rp.x,
           y: rp.y - 24,
         };

@@ -136,6 +136,8 @@ export interface EnemySpawn {
     | 'boss_monolith_colossus'
     | 'boss_star_archon'
     | 'boss_omega_archon';
+  /** M10-C: Elite (goldener Rand, ×2 HP, immer Mutator) */
+  elite?: boolean;
   x: number;
   y: number;
 }
@@ -182,6 +184,12 @@ export interface DungeonRoom {
   riftParentKey?: string;
   riftWave2Spawns?: EnemySpawn[];
   riftWave2Triggered?: boolean;
+  /** M10-C: dritte Welle ab Ebene II */
+  riftWave3Spawns?: EnemySpawn[];
+  riftWave3Triggered?: boolean;
+  /** M10-C: Ebene der Rift-Kammer (1–3) und Sektor für die Skalierung */
+  riftFloor?: number;
+  riftSector?: number;
 }
 
 export interface DungeonFloor {
@@ -879,7 +887,7 @@ export function generateSectorFloor(
           secret: true,
         },
         spawns: [
-          { kind: eliteWave1[0], x: ROOM_CENTER_X - 66, y: ROOM_CENTER_Y - 26 },
+          { kind: eliteWave1[0], x: ROOM_CENTER_X - 66, y: ROOM_CENTER_Y - 26, elite: floorIndex === 3 },
           { kind: eliteWave1[1], x: ROOM_CENTER_X + 66, y: ROOM_CENTER_Y - 26 },
           { kind: eliteWave1[2], x: ROOM_CENTER_X, y: ROOM_TOP + 46 },
         ],
@@ -887,8 +895,22 @@ export function generateSectorFloor(
           kind: k,
           x: ROOM_CENTER_X + (idx - (eliteWave2.length - 1) / 2) * 86,
           y: ROOM_CENTER_Y - 28,
+          elite: floorIndex === 3 && idx === 0,
         })),
         riftWave2Triggered: false,
+        // M10-C: ab Ebene II eine dritte Welle (deterministisch aus den bekannten Listen, kein Zufall)
+        riftWave3Spawns:
+          floorIndex >= 2
+            ? [eliteWave2[0], eliteWave1[1], eliteWave1[0]].map((k, idx) => ({
+                kind: k,
+                x: ROOM_CENTER_X + (idx - 1) * 78,
+                y: ROOM_CENTER_Y - 30 + (idx === 1 ? 20 : 0),
+                elite: floorIndex === 3 && idx === 1,
+              }))
+            : [],
+        riftWave3Triggered: false,
+        riftFloor: floorIndex,
+        riftSector: sector,
         tileSeed: Math.floor(Math.random() * 10000),
         isRiftChamber: true,
         riftParentKey: host.key,

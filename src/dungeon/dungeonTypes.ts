@@ -173,6 +173,8 @@ export interface Enemy {
   burnDps?: number;
   cryoTimer?: number;
   mutator?: import('../types').RiftMutatorId;
+  /** M10-C: Elite (goldener Rand) */
+  elite?: boolean;
   /** M10-C Boss-Engine: aktueller Zustand (idle/windup/active/recover), Zug-Index, Zeit im aktiven Zustand */
   bossSub?: string;
   bossMoveIdx?: number;

@@ -20,7 +20,7 @@ export const COMPANION_DEFS: Record<CompanionId, CompanionDef> = {
     shortName: 'PUCK',
     role: 'Magnet-Sammler',
     abilitySummary: '2,6× Loot-Magnet-Reichweite im Sektor & +25 % Chance auf 1 Bonus-Relikt bei Gegnern & Truhen!',
-    unlockRequirement: 'Verkaufe 15 Items im Shop ODER baue Astro-Barter auf Stufe II aus.',
+    unlockRequirement: 'Verkaufe 60 Items im Shop UND baue Astro-Barter auf Stufe II aus.',
     accentColor: '#fbbf24',
     iconUrl: '/art/sprites/bot_puck.png',
   },
@@ -30,7 +30,7 @@ export const COMPANION_DEFS: Record<CompanionId, CompanionDef> = {
     shortName: 'SPARK',
     role: 'Plasma-Schütze',
     abilitySummary: 'Feuert alle 1,35 Sek. automatisch Plasma-Bolzen auf den nächsten Gegner im Raum!',
-    unlockRequirement: 'Besiege den Schrott-Sammler „Krall“ (Ebene I Boss) & insgesamt 30 Gegner.',
+    unlockRequirement: 'Besiege den Kern-Wächter MK-IV (Sektor 1, Ebene II) & insgesamt 200 Gegner.',
     accentColor: '#fb7185',
     iconUrl: '/art/sprites/bot_spark.png',
   },
@@ -40,7 +40,7 @@ export const COMPANION_DEFS: Record<CompanionId, CompanionDef> = {
     shortName: 'LUMA',
     role: 'Bio-Unterstützung',
     abilitySummary: 'Heilt +10 HP nach jedem 2. gesäuberten Kampfraum & +15 % passive Energie-Regeneration!',
-    unlockRequirement: 'Besiege den Kern-Wächter MK-IV (Ebene II Boss).',
+    unlockRequirement: 'Schließe Sektor 1 ab (A.E.G.I.S. Leviathan) & besiege insgesamt 4 Bosse.',
     accentColor: '#34d399',
     iconUrl: '/art/sprites/bot_luma.png',
   },
@@ -50,7 +50,7 @@ export const COMPANION_DEFS: Record<CompanionId, CompanionDef> = {
     shortName: 'HALO',
     role: 'Schild-Wächter',
     abilitySummary: 'Lädt alle 12 Sek. einen goldenen Orbital-Schild auf, der 1 Treffer komplett abfängt!',
-    unlockRequirement: 'Besiege den A.E.G.I.S. Leviathan (Sektor 1 komplett abgeschlossen).',
+    unlockRequirement: 'Schließe Sektor 2 ab (★ Prisma-Archon).',
     accentColor: '#38bdf8',
     iconUrl: '/art/sprites/bot_halo.png',
   },
@@ -65,52 +65,58 @@ export interface CompanionProgressSnapshot {
   coreWatcherDefeated: boolean;
   deepestFloor: number;
   sector1Cleared: boolean;
+  sector2Cleared: boolean;
 }
 
 export function evaluateCompanionUnlock(
   id: CompanionId,
   snap: CompanionProgressSnapshot,
 ): { unlocked: boolean; progressText: string; ratio: number } {
+  // M10-C: deutlich höhere Hürden (bereits freigeschaltete Bots bleiben erhalten)
   if (id === 'puck') {
-    const unlocked = snap.totalSold >= 15 || snap.shopTier >= 1;
-    const ratio = unlocked ? 1 : Math.min(1, snap.totalSold / 15);
+    const soldOk = snap.totalSold >= 60;
+    const tierOk = snap.shopTier >= 1;
     return {
-      unlocked,
-      progressText: unlocked
-        ? 'Freigeschaltet!'
-        : `Verkäufe: ${Math.min(15, snap.totalSold)} / 15 (oder Shop Stufe II)`,
-      ratio,
+      unlocked: soldOk && tierOk,
+      progressText:
+        soldOk && tierOk
+          ? 'Freigeschaltet!'
+          : `Verkäufe: ${Math.min(60, snap.totalSold)} / 60 · Shop Stufe II: ${tierOk ? '✓' : '✗'}`,
+      ratio: (soldOk ? 0.5 : (snap.totalSold / 60) * 0.5) + (tierOk ? 0.5 : 0),
     };
   }
 
   if (id === 'spark') {
-    const bossOk = snap.breacherDefeated || snap.bossDefeatedCount >= 1;
-    const killsOk = snap.totalEnemiesDefeated >= 30;
-    const unlocked = bossOk && killsOk;
-    const ratio = (bossOk ? 0.5 : 0) + Math.min(0.5, (snap.totalEnemiesDefeated / 30) * 0.5);
+    const bossOk = snap.coreWatcherDefeated;
+    const killsOk = snap.totalEnemiesDefeated >= 200;
     return {
-      unlocked,
-      progressText: unlocked
-        ? 'Freigeschaltet!'
-        : `Krall: ${bossOk ? '✓' : '✗'} · Gegner: ${Math.min(30, snap.totalEnemiesDefeated)} / 30`,
-      ratio,
+      unlocked: bossOk && killsOk,
+      progressText:
+        bossOk && killsOk
+          ? 'Freigeschaltet!'
+          : `Kern-Wächter: ${bossOk ? '✓' : '✗'} · Gegner: ${Math.min(200, snap.totalEnemiesDefeated)} / 200`,
+      ratio: (bossOk ? 0.5 : 0) + Math.min(0.5, (snap.totalEnemiesDefeated / 200) * 0.5),
     };
   }
 
   if (id === 'luma') {
-    const unlocked = snap.coreWatcherDefeated || snap.deepestFloor >= 3 || snap.bossDefeatedCount >= 2;
+    const clearOk = snap.sector1Cleared;
+    const bossesOk = snap.bossDefeatedCount >= 4;
     return {
-      unlocked,
-      progressText: unlocked ? 'Freigeschaltet!' : 'Kern-Wächter MK-IV (Ebene II Boss): 0 / 1',
-      ratio: unlocked ? 1 : 0,
+      unlocked: clearOk && bossesOk,
+      progressText:
+        clearOk && bossesOk
+          ? 'Freigeschaltet!'
+          : `Sektor 1: ${clearOk ? '✓' : '✗'} · Bosse: ${Math.min(4, snap.bossDefeatedCount)} / 4`,
+      ratio: (clearOk ? 0.5 : 0) + Math.min(0.5, (snap.bossDefeatedCount / 4) * 0.5),
     };
   }
 
   // halo
-  const unlocked = snap.sector1Cleared;
+  const unlocked = snap.sector2Cleared;
   return {
     unlocked,
-    progressText: unlocked ? 'Freigeschaltet!' : 'A.E.G.I.S. Leviathan (Ebene III Boss): 0 / 1',
+    progressText: unlocked ? 'Freigeschaltet!' : '★ Prisma-Archon (Sektor 2, Ebene III): 0 / 1',
     ratio: unlocked ? 1 : 0,
   };
 }

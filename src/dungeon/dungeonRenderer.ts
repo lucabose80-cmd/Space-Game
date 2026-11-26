@@ -2877,6 +2877,17 @@ export class DungeonRenderer {
   }
 
   private renderEnemyMiniHp(ctx: CanvasRenderingContext2D, e: Enemy): void {
+    // M10-C: Elite — goldener Rand
+    if (e.elite) {
+      ctx.save();
+      ctx.strokeStyle = '#fde047';
+      ctx.lineWidth = 1.3;
+      ctx.globalAlpha = 0.65 + 0.3 * Math.sin(this.scene.time * 6 + e.id);
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, e.radius + 4, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
     // Milestone 7: Visual elemental & Rift mutator status auras
     if (e.mutator) {
       const mCol = RIFT_MUTATORS[e.mutator].color;
