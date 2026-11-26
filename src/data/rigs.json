@@ -15,7 +15,21 @@
       ],
       "scaleRef": "torso",
       "torsoDisplayH": 30,
-      "pixelRatio": 2
+      "pixelRatio": 2,
+      "sets": [
+        {
+          "file": "krall_arms_R",
+          "mode": "limb",
+          "ids": [
+            "clawR_1",
+            "clawR_2",
+            "clawR_3",
+            "clawR_4",
+            "clawR_5",
+            "clawR_6"
+          ]
+        }
+      ]
     },
     "parts": [
       {
@@ -104,17 +118,25 @@
       },
       {
         "id": "claw",
-        "image": "claw",
+        "image": "clawR_1",
         "parent": "torso",
         "attach": [
           0.96,
           0.36
         ],
         "pivot": [
-          0.12,
-          0.07
+          0.5,
+          0.5
         ],
-        "z": -0.5
+        "z": 1,
+        "variants": [
+          "clawR_1",
+          "clawR_2",
+          "clawR_3",
+          "clawR_4",
+          "clawR_5",
+          "clawR_6"
+        ]
       },
       {
         "id": "magnet",
@@ -148,123 +170,193 @@
       ],
       "scaleRef": "torso",
       "torsoDisplayH": 30,
-      "pixelRatio": 2
+      "pixelRatio": 2,
+      "sets": [
+        {
+          "file": "core_warden_arms_R",
+          "mode": "limb",
+          "ids": [
+            "armR_1",
+            "armR_2",
+            "armR_3",
+            "armR_4",
+            "armR_5",
+            "armR_6"
+          ]
+        },
+        {
+          "file": "core_warden_arms_L",
+          "mode": "limb",
+          "ids": [
+            "armL_1",
+            "armL_2",
+            "armL_3",
+            "armL_4",
+            "armL_5",
+            "armL_6"
+          ]
+        },
+        {
+          "file": "core_warden_heads",
+          "mode": "swap",
+          "ids": [
+            "head_1",
+            "head_2",
+            "head_3",
+            "head_4",
+            "head_5",
+            "head_6"
+          ]
+        },
+        {
+          "file": "core_warden_torsos",
+          "mode": "swap",
+          "ids": [
+            "torso_1",
+            "torso_2",
+            "torso_3",
+            "torso_4",
+            "torso_5",
+            "torso_6"
+          ]
+        }
+      ]
     },
     "parts": [
       {
         "id": "armL",
-        "image": "arm",
+        "image": "armL_1",
+        "variants": [
+          "armL_1",
+          "armL_2",
+          "armL_3",
+          "armL_4",
+          "armL_5",
+          "armL_6"
+        ],
         "parent": "torso",
         "attach": [
-          0.07,
-          0.38
-        ],
-        "pivot": [
-          0.72,
-          0.38
-        ],
-        "z": -1
-      },
-      {
-        "id": "fistL",
-        "image": "fist",
-        "parent": "armL",
-        "attach": [
-          0.47,
-          0.93
-        ],
-        "pivot": [
-          0.1,
+          0.5,
           0.5
         ],
-        "rot": 1.76,
-        "z": -0.5
+        "offset": [
+          -10,
+          -6.2
+        ],
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "z": 1
       },
       {
         "id": "armR",
-        "image": "arm",
-        "flipX": true,
+        "image": "armR_1",
+        "variants": [
+          "armR_1",
+          "armR_2",
+          "armR_3",
+          "armR_4",
+          "armR_5",
+          "armR_6"
+        ],
         "parent": "torso",
         "attach": [
-          0.93,
-          0.38
-        ],
-        "pivot": [
-          0.72,
-          0.38
-        ],
-        "z": -1
-      },
-      {
-        "id": "fistR",
-        "image": "fist",
-        "flipX": true,
-        "parent": "armR",
-        "attach": [
-          0.47,
-          0.93
-        ],
-        "pivot": [
-          0.1,
+          0.5,
           0.5
         ],
-        "rot": -1.76,
-        "z": -0.5
+        "offset": [
+          10.2,
+          -6.2
+        ],
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "z": 1
       },
       {
         "id": "torso",
-        "image": "torso",
+        "image": "torso_1",
+        "variants": [
+          "torso_1",
+          "torso_2",
+          "torso_3",
+          "torso_4",
+          "torso_5",
+          "torso_6"
+        ],
         "z": 0,
         "pivot": [
           0.5,
-          0.92
+          0.5
         ],
         "offset": [
           0,
-          -8
+          -18
         ]
       },
       {
         "id": "head",
-        "image": "head",
+        "image": "head_1",
+        "variants": [
+          "head_1",
+          "head_2",
+          "head_3",
+          "head_4",
+          "head_5",
+          "head_6"
+        ],
         "parent": "torso",
         "attach": [
           0.5,
-          0.12
+          0.5
+        ],
+        "offset": [
+          0,
+          -9.5
         ],
         "pivot": [
           0.5,
-          0.8
+          0.5
         ],
-        "z": 1
+        "z": 2
       },
       {
         "id": "plateL",
         "image": "plateL",
         "parent": "torso",
         "attach": [
-          0.1,
-          0.3
+          0.5,
+          0.5
+        ],
+        "offset": [
+          -4,
+          1
         ],
         "pivot": [
           0.6,
           0.55
         ],
-        "z": 2
+        "z": 3
       },
       {
         "id": "plateR",
         "image": "plateR",
         "parent": "torso",
         "attach": [
-          0.9,
-          0.3
+          0.5,
+          0.5
+        ],
+        "offset": [
+          4,
+          1
         ],
         "pivot": [
           0.4,
           0.55
         ],
-        "z": 2
+        "z": 3
       }
     ]
   }

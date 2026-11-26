@@ -5,7 +5,8 @@
  "torsoDisplayH": 30,
  "pixelRatio": 2,
  "sheets": {
-  "krall_parts.png": "4122728e013e67a8"
+  "krall_parts.png": "4122728e013e67a8",
+  "krall_arms_R.png": "ccb8120ab3fd6ad8"
  },
  "parts": {
   "torso": {
@@ -43,6 +44,42 @@
    "h": 46,
    "srcW": 248,
    "srcH": 243
+  },
+  "clawR_1": {
+   "w": 84,
+   "h": 74,
+   "mode": "limb",
+   "set": "krall_arms_R"
+  },
+  "clawR_2": {
+   "w": 84,
+   "h": 74,
+   "mode": "limb",
+   "set": "krall_arms_R"
+  },
+  "clawR_3": {
+   "w": 84,
+   "h": 74,
+   "mode": "limb",
+   "set": "krall_arms_R"
+  },
+  "clawR_4": {
+   "w": 84,
+   "h": 74,
+   "mode": "limb",
+   "set": "krall_arms_R"
+  },
+  "clawR_5": {
+   "w": 84,
+   "h": 74,
+   "mode": "limb",
+   "set": "krall_arms_R"
+  },
+  "clawR_6": {
+   "w": 84,
+   "h": 74,
+   "mode": "limb",
+   "set": "krall_arms_R"
   }
  }
 }

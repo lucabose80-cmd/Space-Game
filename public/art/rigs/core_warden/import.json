@@ -5,7 +5,11 @@
  "torsoDisplayH": 30,
  "pixelRatio": 2,
  "sheets": {
-  "core_warden_parts.png": "e74e65442556ea67"
+  "core_warden_parts.png": "e74e65442556ea67",
+  "core_warden_arms_R.png": "224e7d1322078d95",
+  "core_warden_arms_L.png": "08a2e155b62e95b7",
+  "core_warden_heads.png": "9843045d20671ca9",
+  "core_warden_torsos.png": "dc5d3d58f7b2af27"
  },
  "parts": {
   "torso": {
@@ -43,6 +47,150 @@
    "h": 51,
    "srcW": 299,
    "srcH": 285
+  },
+  "armR_1": {
+   "w": 80,
+   "h": 66,
+   "mode": "limb",
+   "set": "core_warden_arms_R"
+  },
+  "armR_2": {
+   "w": 80,
+   "h": 66,
+   "mode": "limb",
+   "set": "core_warden_arms_R"
+  },
+  "armR_3": {
+   "w": 80,
+   "h": 66,
+   "mode": "limb",
+   "set": "core_warden_arms_R"
+  },
+  "armR_4": {
+   "w": 80,
+   "h": 66,
+   "mode": "limb",
+   "set": "core_warden_arms_R"
+  },
+  "armR_5": {
+   "w": 80,
+   "h": 66,
+   "mode": "limb",
+   "set": "core_warden_arms_R"
+  },
+  "armR_6": {
+   "w": 80,
+   "h": 66,
+   "mode": "limb",
+   "set": "core_warden_arms_R"
+  },
+  "armL_1": {
+   "w": 80,
+   "h": 62,
+   "mode": "limb",
+   "set": "core_warden_arms_L"
+  },
+  "armL_2": {
+   "w": 80,
+   "h": 62,
+   "mode": "limb",
+   "set": "core_warden_arms_L"
+  },
+  "armL_3": {
+   "w": 80,
+   "h": 62,
+   "mode": "limb",
+   "set": "core_warden_arms_L"
+  },
+  "armL_4": {
+   "w": 80,
+   "h": 62,
+   "mode": "limb",
+   "set": "core_warden_arms_L"
+  },
+  "armL_5": {
+   "w": 80,
+   "h": 62,
+   "mode": "limb",
+   "set": "core_warden_arms_L"
+  },
+  "armL_6": {
+   "w": 80,
+   "h": 62,
+   "mode": "limb",
+   "set": "core_warden_arms_L"
+  },
+  "head_1": {
+   "w": 44,
+   "h": 80,
+   "mode": "swap",
+   "set": "core_warden_heads"
+  },
+  "head_2": {
+   "w": 44,
+   "h": 80,
+   "mode": "swap",
+   "set": "core_warden_heads"
+  },
+  "head_3": {
+   "w": 44,
+   "h": 80,
+   "mode": "swap",
+   "set": "core_warden_heads"
+  },
+  "head_4": {
+   "w": 44,
+   "h": 80,
+   "mode": "swap",
+   "set": "core_warden_heads"
+  },
+  "head_5": {
+   "w": 44,
+   "h": 80,
+   "mode": "swap",
+   "set": "core_warden_heads"
+  },
+  "head_6": {
+   "w": 44,
+   "h": 80,
+   "mode": "swap",
+   "set": "core_warden_heads"
+  },
+  "torso_1": {
+   "w": 74,
+   "h": 76,
+   "mode": "swap",
+   "set": "core_warden_torsos"
+  },
+  "torso_2": {
+   "w": 74,
+   "h": 76,
+   "mode": "swap",
+   "set": "core_warden_torsos"
+  },
+  "torso_3": {
+   "w": 74,
+   "h": 76,
+   "mode": "swap",
+   "set": "core_warden_torsos"
+  },
+  "torso_4": {
+   "w": 74,
+   "h": 76,
+   "mode": "swap",
+   "set": "core_warden_torsos"
+  },
+  "torso_5": {
+   "w": 74,
+   "h": 76,
+   "mode": "swap",
+   "set": "core_warden_torsos"
+  },
+  "torso_6": {
+   "w": 74,
+   "h": 76,
+   "mode": "swap",
+   "set": "core_warden_torsos"
   }
  }
 }

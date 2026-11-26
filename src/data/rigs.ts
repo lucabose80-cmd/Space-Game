@@ -18,5 +18,5 @@ export const RIG_BY_KIND: Partial<Record<Enemy['kind'], string>> = Object.fromEn
 
 /** Alle Bildnamen eines Rigs (aus den Teilen, ohne Doppelte). */
 export function rigImageNames(id: string): string[] {
-  return [...new Set(RIGS[id].parts.map((p) => p.image ?? p.id))];
+  return [...new Set(RIGS[id].parts.flatMap((p) => [p.image ?? p.id, ...(p.variants ?? [])]))];
 }

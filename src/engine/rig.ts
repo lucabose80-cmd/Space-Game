@@ -16,6 +16,8 @@ export interface RigPartDef {
   flipX?: boolean;
   /** statische Grunddrehung (rad) — z. B. eine seitlich gezeichnete Faust, deren Manschette nach oben zeigen soll */
   rot?: number;
+  /** M11 v2: Pose-Set — Bildnamen, zwischen denen `PartPose.variant` umschaltet (alle gleich groß, Gelenk in der Bildmitte). `image` = Variante 0. */
+  variants?: string[];
 }
 
 export interface RigDef {
@@ -38,6 +40,8 @@ export interface PartPose {
   sy?: number;
   alpha?: number;
   hidden?: boolean;
+  /** Index in `RigPartDef.variants` (Standard 0) — tauscht das Bild, z. B. Arm: hängend / Ausholen / Schlag … */
+  variant?: number;
 }
 export type Pose = Record<string, PartPose>;
 
@@ -103,7 +107,8 @@ export function layoutRig(def: RigDef, images: RigImages | null, pose: Pose, opt
     const hit = cache.get(id);
     if (hit) return hit;
     const p = byId.get(id)!;
-    const key = p.image ?? p.id;
+    const ps = pose[p.id] ?? {};
+    const key = (p.variants && ps.variant !== undefined ? p.variants[Math.max(0, Math.min(p.variants.length - 1, Math.round(ps.variant)))] : undefined) ?? p.image ?? p.id;
     const baseImg = images?.parts[key] ?? null;
     const baseFlash = images?.flash[key] ?? null;
     const img = baseImg && p.flipX ? flipped(baseImg) : baseImg;
@@ -113,7 +118,6 @@ export function layoutRig(def: RigDef, images: RigImages | null, pose: Pose, opt
     const h = (img?.height ?? 0) / ratio;
     const pvx = p.flipX ? 1 - p.pivot[0] : p.pivot[0];
     const pvy = p.pivot[1];
-    const ps = pose[p.id] ?? {};
     let joint: [number, number];
     let parentWorld: Mat;
     if (p.parent) {
@@ -194,6 +198,7 @@ export function blendPose(a: Pose, b: Pose, t: number): Pose {
       sy: lerp(pa.sy ?? 1, pb.sy ?? 1, t),
       alpha: lerp(pa.alpha ?? 1, pb.alpha ?? 1, t),
       hidden: t < 0.5 ? pa.hidden : pb.hidden,
+      variant: (t < 0.5 ? pa.variant : pb.variant) ?? pa.variant ?? pb.variant,
     };
   }
   return out;

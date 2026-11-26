@@ -5,6 +5,10 @@
 
 Teile-Sheets:  art_source/rigs/<file>_parts.png   → public/art/rigs/<id>/<teil>.png (+ import.json)
 Pose-Sheets:   art_source/poses/<id>_poses.png    → public/art/poses/<id>_<1-4>.png
+Pose-Sets (M11 v2, `sheet.sets` in rigs.json): art_source/rigs/<file>.png (3×2, Zellmitte = Gelenk) → public/art/rigs/<id>/<ids[i]>.png
+  mode "limb" (Arm/Bein) und "swap" (Kopf/Rumpf): KEIN enger Zuschnitt je Pose, sondern ein gemeinsamer, um die Zellmitte
+  zentrierter Ausschnitt (größte Ausdehnung aller Posen) → alle Posen eines Sets sind gleich groß, Gelenk exakt bei (0.5, 0.5);
+  Maßstab = Maßstab des Rigs (Teile-Sheet), also gleich wie die Pilot-Teile.
 Verfahren (Art-Guide §3): Rand-Flood-Fill (nur äußerer Hintergrund) + 1-px-Defringe + enger Zuschnitt + gemeinsamer Maßstab.
 """
 import argparse, hashlib, json, os, sys
@@ -82,6 +86,49 @@ def cells(img, cols, rows):
             yield r * cols + c, img.crop((round(c * cw), round(r * ch), round((c + 1) * cw), round((r + 1) * ch)))
 
 
+def import_set(rid, st, scale, args, outdir, meta, report):
+    """Pose-Set (limb/swap): Zellmitte = Gelenk, gemeinsamer Ausschnitt + Maßstab. Gibt Anzahl Bilder zurück."""
+    src = os.path.join(args.src, "rigs", f"{st['file']}.png")
+    if not os.path.exists(src):
+        report.append(f"  ! {rid}: Pose-Set fehlt ({src})")
+        return 0
+    sheet = Image.open(src)
+    cleaned = []
+    for i, cell in cells(sheet, st.get("cols", 3), st.get("rows", 2)):
+        if i >= len(st["ids"]):
+            break
+        cleaned.append((st["ids"][i], clean_cell(cell)))
+    hx = hy = 1
+    for pid, img in cleaned:
+        bb = img.getbbox()
+        if not bb:
+            report.append(f"  ! {rid}: Zelle von '{pid}' ist leer")
+            continue
+        cx, cy = img.width // 2, img.height // 2
+        hx = max(hx, cx - bb[0], bb[2] - cx)
+        hy = max(hy, cy - bb[1], bb[3] - cy)
+    for pid, img in cleaned:
+        if not img.getbbox():
+            continue
+        cx, cy = img.width // 2, img.height // 2
+        canvas = Image.new("RGBA", (hx * 2, hy * 2), (0, 0, 0, 0))
+        canvas.paste(img.crop((cx - hx, cy - hy, cx + hx, cy + hy)), (0, 0))
+        # gerade Zielgröße, damit die Bildmitte (= Gelenk) nach dem Skalieren exakt bei 0.5 liegt
+        nw = max(2, round(canvas.width * scale / 2) * 2)
+        nh = max(2, round(canvas.height * scale / 2) * 2)
+        res = {"box": Image.Resampling.BOX, "lanczos": Image.Resampling.LANCZOS}.get(args.resample, Image.Resampling.NEAREST)
+        out = canvas.resize((nw, nh), res)
+        if args.resample in ("box", "lanczos"):
+            px = out.load()
+            for y in range(nh):
+                for x in range(nw):
+                    r, g, b, a = px[x, y]
+                    px[x, y] = (r, g, b, 255 if a >= 128 else 0)
+        out.save(os.path.join(outdir, f"{pid}.png"))
+        meta["parts"][pid] = {"w": out.width, "h": out.height, "mode": st.get("mode", "limb"), "set": st["file"]}
+    return len(cleaned)
+
+
 def import_rig(rid, rig, args, report):
     sh = rig["sheet"]
     parts_all = []
@@ -93,7 +140,9 @@ def import_rig(rid, rig, args, report):
         return
     outdir = os.path.join(args.out, "rigs", rid)
     meta_path = os.path.join(outdir, "import.json")
-    hashes = {os.path.basename(s): sheet_hash(s) for s in srcs if os.path.exists(s)}
+    sets = sh.get("sets", [])
+    set_srcs = [os.path.join(args.src, "rigs", f"{st['file']}.png") for st in sets]
+    hashes = {os.path.basename(s): sheet_hash(s) for s in srcs + set_srcs if os.path.exists(s)}
     if not args.force and os.path.exists(meta_path):
         try:
             old = json.load(open(meta_path))
@@ -131,8 +180,9 @@ def import_rig(rid, rig, args, report):
         out = resize(img, scale, args.resample)
         out.save(os.path.join(outdir, f"{pid}.png"))
         meta["parts"][pid] = {"w": out.width, "h": out.height, "srcW": img.width, "srcH": img.height}
+    n_set = sum(import_set(rid, st, scale, args, outdir, meta, report) for st in sets)
     json.dump(meta, open(meta_path, "w"), indent=1)
-    report.append(f"✔ {rid}: {len(cleaned)} Teile · Maßstab {scale:.3f} · {args.resample}")
+    report.append(f"✔ {rid}: {len(cleaned)} Teile + {n_set} Posen · Maßstab {scale:.3f} · {args.resample}")
 
 
 def import_poses(pid, args, report):

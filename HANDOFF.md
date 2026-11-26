@@ -41,9 +41,16 @@ npm run verify                           # Build + Invarianten + Sprite-Check + 
 - **Noch offen (§4.1 Krall, 5 Sheets — pausiert wegen temporärem `gemini-3.1-flash-image`-Quota-Limit, ~3h 38m Cooldown):**
   - `krall_arms_L.png`, `krall_legs_R.png`, `krall_legs_L.png`, `krall_torsos.png`, `krall_effects.png`
 
+## M11 Pose-Sets — Code (umgesetzt)
+- **Import (`npm run art:import`, `scripts/art-import.py`):** `sheet.sets` in `src/data/rigs.json` (`file`, `mode: limb|swap`, `ids[6]`). Zellmitte = Gelenk, je Set ein gemeinsamer zentrierter Ausschnitt + Rig-Maßstab → alle Posen eines Sets gleich groß, Pivot `[0.5, 0.5]`. Neue Sheets: Datei in `art_source/rigs/` legen, Set in `rigs.json` eintragen, `npm run art:import -- <rig> --force`.
+- **Engine (`src/engine/rig.ts`):** `RigPartDef.variants` (Bildnamen) + `PartPose.variant` (Index, geklemmt; `blendPose` schaltet bei t = 0,5 um).
+- **Kern-Wächter** (`bossAnims.ts` → `coreWardenSet`): Arme/Kopf/Rumpf je `bossState` (Ruhe, Ausholen, Schlag zur Kamera, Laser-Pose, Block, Boden-Stampfer, Phase-2-Rumpf/-Kopf, überhitzt, Treffer-Kopf); Brustplatten (`plateL/R`) sind nur während `phase2_roar` sichtbar und fliegen weg.
+- **Krall:** `claw` = `krall_arms_R` (6 Posen) nach Zug-Name/`bossSub` (`krallClaw`); bleibt rechts, z = 1 (vor dem Rumpf). Maßstab des Krall-Rigs ist kleiner als beim Kern-Wächter → Zange wirkt zierlich; bei Bedarf Antigravity-Sheet größer zeichnen oder `torsoDisplayH` anpassen.
+- Test: `tests/m11p2.cjs`. Ansicht: `?bosslab` → Kern-Wächter / Krall (Pause + „Phase II“-Knopf zum Prüfen).
+
 ## Nächster Schritt
-- **Meilenstein 11 Code (Claude Code — kann sofort starten!):** Kern-Wächter (§4.2) ist komplett + `krall_arms_R.png` liegt bereit → Import-Modi `limb`/`swap` in `npm run art:import` + Pose-Wechsel (`PartPose.variant`) bauen und Kern-Wächter live im Boss-Labor testen.
-- **Restliche 5 Krall-Sheets (Antigravity, nach ~3h 38m Quota-Reset):** `krall_arms_L.png` (Schrott-Haken + Mini-Säge), `krall_legs_R.png`, `krall_legs_L.png`, `krall_torsos.png`, `krall_effects.png` erzeugen und per `npm run art:check` prüfen.
+- **Antigravity (Quota-Reset):** restliche 5 Krall-Sheets: `krall_arms_L.png` (Schrott-Haken + Mini-Säge), `krall_legs_R.png`, `krall_legs_L.png`, `krall_torsos.png`, `krall_effects.png` → `npm run art:check` → pushen. Danach Claude Code: Sets in `rigs.json` eintragen (linker Arm = neues Teil `clawL`, Beine/Rumpf-Sets) und Posen in `bossAnims.ts` verdrahten.
+- **Claude Code:** Kern-Wächter feinjustieren (Schulter-Offsets je Rumpf-Variante, Kern-Glühen an die neue Kernposition), danach Plan-Phase 3 (Angriffe der Sektor-1-Bosse mit Teil-Abwurf/Splitting, `MILESTONE_11_ARCHITECTURE.md`).
 - Ökonomie & Boss-Kampfgefühl im echten Spiel beobachten und in `src/data/balance.ts` nachjustieren (Berichte: `tests/out/economy.json`, `tests/out/ttk.json`).
 - Optionale M10/M10-C-Einzel-Sprites bei Bedarf ebenfalls per Antigravity erzeugen.
 
