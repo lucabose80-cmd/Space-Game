@@ -35,7 +35,7 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 
 ## P0 — NEU, höchste Priorität: Krall-Angriffsgrafik (vom Projektinhaber nach Test gewünscht)
 
-> **Grund:** Beim Test wirkten Kralls Angriffe „leer“ (Sog nur ein Schadenskreis, Schrott-Hagel nur Kreise, Stoß nur kleine Armbewegung). Code-Seite ist umgesetzt (Sog-Ringe/Schrott-Strom, fallende Schrottklumpen mit Aufschlag, Stoß-Streifen) und nutzt vorhandene Bilder (`scrap_a/b/c`, `spark`). Mit diesen Sheets kann es auf Kern-Wächter-Niveau gebracht werden. **Reihenfolge: P0-06 → P0-07 → P0-08 → P0-09 → P0-10.** Referenz überall: `public/art/sprites/boss_breacher.png`, `art_source/rigs/krall_parts.png`.
+> **Grund:** Beim Test wirkten Kralls Angriffe „leer“ (Sog nur ein Schadenskreis, Schrott-Hagel nur Kreise, Stoß nur kleine Armbewegung). Code-Seite ist umgesetzt (Sog-Ringe/Schrott-Strom, fallende Schrottklumpen mit Aufschlag, Stoß-Streifen) und nutzt vorhandene Bilder (`scrap_a/b/c`, `spark`). Mit diesen Sheets kann es auf Kern-Wächter-Niveau gebracht werden. **Reihenfolge: P0-06 → P0-07 → P0-08 → P0-09 → P0-10 → P0-11 → P0-12** (P0-11/12 = Beschädigungsstufen). Referenz überall: `public/art/sprites/boss_breacher.png`, `art_source/rigs/krall_parts.png`.
 
 | ID | Status | Zieldatei | Typ & Format | Referenz (`ImagePaths`) | Brief / Prompt | Notiz |
 | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
@@ -44,6 +44,8 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 | `P0-08` | [ ] | `art_source/rigs/krall_fx2.png` | Typ E · 3×2 · `1536×1024` | `art_source/rigs/krall_effects.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-D) | Effekte: Stoß-Luftwelle/Streifenkopf · Magnet-Feldring (rot/blau) · Magnet-Blitzbogen · Staub-/Druckring · Aufschlag-Krater mit Schrottsplittern · Schrott-Schatten/Rostwolke |
 | `P0-09` | [ ] | `art_source/rigs/krall_torsos2.png` | Typ S · 3×2 · `1536×1024` | `art_source/rigs/krall_torsos.png` *(Zelle 5 = Phase-2-Skelettrahmen)* | `ART_BRIEF_M11.md` §4.1 (Zusatz K-A) | 6 Phase-2-Rümpfe: geduckt · aufgerichtet/Kern hell (Magnet) · vorgebeugt (Stoß) · Stampfer-Landung gestaucht · Wurf-Drehung · überhitzt. Phase 2 hat bisher nur 2 Rümpfe |
 | `P0-10` | [ ] | `art_source/rigs/krall_legs_R2.png` + `krall_legs_L2.png` | Typ L · 2× 3×2 | `art_source/rigs/krall_legs_R.png` / `_L.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-B) | Beine: Ausfall gestreckt · Bremsen · Stampfer-Landung gespreizt · humpelnd (Phase 2) · Magnet-Stemmen · Ruhe-Zittern. L nicht gespiegelt |
+| `P0-11` | [ ] | `art_source/rigs/krall_torsos3.png` | Typ S · 3×2 · `1536×1024` | `art_source/rigs/krall_torsos.png`, `art_source/rigs/krall_torsos2.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-E) | **Beschädigungsstufen Rumpf (Standard, `BOSS_ANIMATION_PLAN.md` D12):** Phase 1 leicht (< 75 % HP: Kratzer, 1–2 Dellen) · Phase 1 mittel (< 50 %: Panzer gerissen, Funken) · Phase 1 schwer (< 25 %: Teile fehlen, Kern flackert) · Phase 2 leicht · Phase 2 schwer (< 25 %) · **kritisch (< 15 %: halb zerlegt, Rahmen verbogen, Kern instabil)**. Kern im Fadenkreuz |
+| `P0-12` | [ ] | `art_source/rigs/krall_arms_R3.png` + `krall_arms_L3.png` | Typ L · 2× 3×2 | `art_source/rigs/krall_arms_R.png` / `_L.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-E) | **Beschädigte Arme je Seite:** Zange/Haken verbogen (hängend · ausholend · Stoß) · abgebrochen mit Stumpf und Funken (hängend · ausholend · Stoß). Schulterring im Fadenkreuz, L nicht gespiegelt |
 
 ---
 
@@ -153,7 +155,7 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 
 ## P4 — Weitere Boss-Rig-Sets (`ART_BRIEF_M11.md` §4.3)
 
-> **⛔ STOP-GATE (GESPERRT):** Zellenlisten pro Boss werden erst festgelegt, wenn **Kern-Wächter** und **Krall** im echten Spiel abgenommen sind (spart Credits). Danach trägt Claude Code die konkreten Sheets je Boss hier als `P4-01 …` ein:
+> **⛔ STOP-GATE (GESPERRT):** Zellenlisten pro Boss werden erst festgelegt (jede muss den **Mindeststandard D11–D14** abdecken: Angriffsgrafik, Beschädigungsstufen, Beine/Unterkörper je Angriff), wenn **Kern-Wächter** und **Krall** im echten Spiel abgenommen sind (spart Credits). Danach trägt Claude Code die konkreten Sheets je Boss hier als `P4-01 …` ein:
 > Quarz-Koloss · Sternen-Archon · Leviathan · Prisma-Weberin · Prisma-Archon · Schlacken-Koloss · Gießerei-Meisterin · Vulkan-Titan · Chrono-Wächter · Monolith-Koloss.
 
 ---

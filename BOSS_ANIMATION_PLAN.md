@@ -8,7 +8,7 @@
 ---
 
 ## 1. Fertig-Definition für ein Boss-Rig (Checkliste für jeden Boss)
-Ein Boss gilt erst als **„Animation fertig“**, wenn alle Punkte erfüllt **und vom Projektinhaber im echten Kampf abgenommen** sind.
+**D2–D4 und D11–D14 sind der Mindeststandard für jeden Boss (Kern-Wächter und Krall sind die Referenz).** Fehlen dafür Sprites, werden sie **sofort** priorisiert in `SPRITE_QUEUE.md` eingetragen (`AGENTS.md` §3 Regel 7/11). Ein Boss gilt erst als **„Animation fertig“**, wenn alle Punkte erfüllt **und vom Projektinhaber im echten Kampf abgenommen** sind.
 
 | # | Punkt | Woran man es prüft |
 | :--- | :--- | :--- |
@@ -21,6 +21,10 @@ Ein Boss gilt erst als **„Animation fertig“**, wenn alle Punkte erfüllt **u
 | D7 | **Phase-2-Verwandlung:** einmaliger, lesbarer Wechsel (Teile fliegen ab / öffnen sich / Teilen), danach dauerhaft anderes Aussehen | Labor „Phase II“ |
 | D8 | **Lesbarkeit vor Show:** Gefahr kommt weiter aus den Telegraph-Zonen; Animation erzeugt **keinen** neuen Schaden, keine Hitbox-Änderung, keinen globalen Zufall | Code-Review: nur `bossAnims.ts`/Renderer/`detached.ts` geändert |
 | D9 | **Rückfall sicher:** fehlt ein Bild, zeigt der Boss sein altes Sprite (kein Absturz) | Labor „Rig“-Schalter aus/an |
+| D11 | **Angriffs-Grafik (Mindeststandard):** jede Attacke hat sichtbare Grafik in allen drei Abschnitten — nicht nur Telegraph-Kreis/Strich. Vorwarnung (Aufladen/Zusammenziehen/Pfeile), Ausführung (Strahl/Streifen/Fallobjekt/Sog mit Sprites oder Partikeln) und Aufschlag/Erholung (Druckring, Funken). Reine Optik (`BossZone.fx` in `bossFx.ts`, Renderer) | Labor + echter Kampf: jeder Zug einzeln, „sieht man, was passiert?“ |
+| D12 | **Beschädigungsstufen (Mindeststandard):** mindestens 3 sichtbare Stufen je Phase (leicht < 75 % · mittel < 50 % · schwer < 25 %) plus **kritisch < 15 %**, über Rumpf-/Kopf-Varianten und beschädigte Arme/Teile (verbogen, abgebrochen, Funken, zerbrochene Aufbauten) | Boss im Labor mit `hp` 70/45/20/10 % |
+| D13 | **Körper hängt zusammen:** kein Teil schwebt frei (Platten, Beine, Arme sitzen in jeder Variante/Phase an Gelenk oder Körper); Phase-2-Körper hat eigene Gelenk-Feinjustierung (wie `SHOULDER_ADJUST`) | Kontaktbogen Phase 1 + 2, Zoom 4× |
+| D14 | **Bewegung folgt dem Angriff:** auch Beine/Unterkörper reagieren je Zug und Phase (Ducken, Absprung, Stemmen, Landung), nicht nur Arme | Labor je Zug |
 | D10 | **Tests & Doku:** Pose-Zuordnung im Test (`tests/m11p2.cjs` erweitern), `RIGGING_GUIDE.md` §5 aktualisiert | `npm run verify` |
 
 ---
