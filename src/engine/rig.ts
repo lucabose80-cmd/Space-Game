@@ -19,6 +19,8 @@ export interface RigPartDef {
 export interface RigDef {
   id: string;
   parts: RigPartDef[];
+  /** Geräte-Pixel pro Spiel-Pixel der Teile-Bilder (art-import: 2 = RENDER_SCALE) → Bilder werden 1:1 auf dem Bildschirm gezeichnet */
+  ratio?: number;
 }
 
 export interface RigImages {
@@ -104,8 +106,9 @@ export function layoutRig(def: RigDef, images: RigImages | null, pose: Pose, opt
     const baseFlash = images?.flash[key] ?? null;
     const img = baseImg && p.flipX ? flipped(baseImg) : baseImg;
     const flash = baseFlash && p.flipX ? flipped(baseFlash) : baseFlash;
-    const w = img?.width ?? 0;
-    const h = img?.height ?? 0;
+    const ratio = def.ratio ?? 1;
+    const w = (img?.width ?? 0) / ratio;
+    const h = (img?.height ?? 0) / ratio;
     const pvx = p.flipX ? 1 - p.pivot[0] : p.pivot[0];
     const pvy = p.pivot[1];
     const ps = pose[p.id] ?? {};
@@ -158,7 +161,7 @@ export function drawRig(
     const m = pl.world;
     ctx.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
     ctx.globalAlpha = baseAlpha * (ps?.alpha ?? 1);
-    ctx.drawImage(img, -pl.px, -pl.py);
+    ctx.drawImage(img, -pl.px, -pl.py, pl.w, pl.h);
     ctx.restore();
   }
   ctx.restore();

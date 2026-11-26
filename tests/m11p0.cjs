@@ -48,7 +48,7 @@ print(json.dumps(r))`));
   // Echte Pilot-Sheets liegen importiert im Repo
   const rigsJson = JSON.parse(fs.readFileSync(path.join(root, 'src/data/rigs.json'), 'utf8')); // Anzeigehöhe kommt aus den Rig-Daten (nicht hartkodieren)
   for (const [id, parts] of [['krall', ['torso', 'claw', 'legF', 'legB', 'magnet', 'plate']], ['core_warden', ['torso', 'head', 'arm', 'fist', 'plateL', 'plateR']]]) {
-    const h = rigsJson[id].sheet.torsoDisplayH;
+    const h = rigsJson[id].sheet.torsoDisplayH * (rigsJson[id].sheet.pixelRatio ?? 1); // Teile liegen in Bildschirmauflösung vor
     for (const p of parts) assert.ok(fs.existsSync(path.join(root, 'public/art/rigs', id, p + '.png')), `${id}/${p}.png fehlt (npm run art:import)`);
     const m = JSON.parse(fs.readFileSync(path.join(root, 'public/art/rigs', id, 'import.json'), 'utf8')); assert.strictEqual(m.parts.torso.h, h);
   }

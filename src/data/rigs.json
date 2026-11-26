@@ -14,7 +14,8 @@
         "plate"
       ],
       "scaleRef": "torso",
-      "torsoDisplayH": 30
+      "torsoDisplayH": 30,
+      "pixelRatio": 2
     },
     "parts": [
       {
@@ -146,7 +147,8 @@
         "plateR"
       ],
       "scaleRef": "torso",
-      "torsoDisplayH": 30
+      "torsoDisplayH": 30,
+      "pixelRatio": 2
     },
     "parts": [
       {

@@ -2190,17 +2190,20 @@ export class DungeonRenderer {
     }
 
     drawPixelShadow(ctx, e.x, e.y + 17, 22, 7.2, 0.55);
+    let rigUsed = false;
     const spr = e.flashTimer > 0 ? art.bossBreacherFlash : art.bossBreacher;
     if (spr) {
       ctx.save();
       ctx.translate(e.x, e.y + 16 - stompBob);
       ctx.rotate(tilt);
       ctx.scale(scaleX, scaleY);
-      if (!this.tryDrawRig(ctx, e, 0, 7)) drawBossLook(ctx, art, e, this.scene.time, spr, -27, -45, 54, 52);
+      if (this.tryDrawRig(ctx, e, 0, 7)) rigUsed = true;
+      else drawBossLook(ctx, art, e, this.scene.time, spr, -27, -45, 54, 52);
       ctx.restore();
     }
     const corePulse = 0.5 + 0.5 * Math.sin(this.scene.time * (enraged ? 14 : 7));
-    drawGlow(ctx, e.x, e.y - 4, 20 + corePulse * 6, enraged ? '#fb7185' : '#fbbf24', 0.42 + corePulse * 0.22);
+    // M11: Rig hat seinen eigenen Glühkern im Bild — Überlagerung dezenter
+    drawGlow(ctx, e.x, e.y - 4, (20 + corePulse * 6) * (rigUsed ? 0.7 : 1), enraged ? '#fb7185' : '#fbbf24', (0.42 + corePulse * 0.22) * (rigUsed ? 0.35 : 1));
   }
 
   private renderLeviathanBoss(ctx: CanvasRenderingContext2D, e: Enemy): void {

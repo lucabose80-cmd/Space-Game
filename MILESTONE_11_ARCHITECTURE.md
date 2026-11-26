@@ -49,6 +49,7 @@
 npm run art:import            # alle neuen/geänderten Sheets in art_source/rigs & art_source/poses
 npm run art:import -- krall   # nur ein Boss/Gegner
 ```
+**Auflösung:** Das Spiel zeichnet mit `RENDER_SCALE = 2`. Teile werden deshalb in **Bildschirm-Auflösung** gespeichert (`pixelRatio: 2` in `rigs.json`, Zielhöhe = `torsoDisplayH × 2`) und von `drawRig` mit halber Größe gezeichnet — 1:1 auf dem Bildschirm, wie die alten Boss-Sprites. Verkleinert wird mit Lanczos + hartem Alpha-Rand (`--resample`), nicht mit Nearest (weiße Fransen, Rauschen).
 Ergebnis: `public/art/rigs/<id>/<teil>.png` bzw. `public/art/poses/<id>_<1-4>.png` (freigestellt mit Rand-Flood-Fill + 1-px-Defringe + NEAREST, wie Art-Guide §3) und `public/art/rigs/<id>/import.json` (Teilgrößen + automatisch geschätzte Gelenkpunkte). Danach `npm run check:sprites` → zeigt, was noch fehlt.
 
 ---

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """M11 Phase 0 — Sprite-Import: zerschneidet Teile-Sheets (3×2) / Pose-Sheets (2×2) aus Gemini/Antigravity.
 
-  python3 scripts/art-import.py [ids …] [--force] [--resample nearest|box] [--keep-cell N] [--src art_source] [--out public/art] [--rigs src/data/rigs.json]
+  python3 scripts/art-import.py [ids …] [--force] [--resample lanczos|nearest|box] [--keep-cell N] [--src art_source] [--out public/art] [--rigs src/data/rigs.json]
 
 Teile-Sheets:  art_source/rigs/<file>_parts.png   → public/art/rigs/<id>/<teil>.png (+ import.json)
 Pose-Sheets:   art_source/poses/<id>_poses.png    → public/art/poses/<id>_<1-4>.png
@@ -62,9 +62,9 @@ def sheet_hash(path):
 
 def resize(img, scale, mode):
     nw, nh = max(1, round(img.width * scale)), max(1, round(img.height * scale))
-    res = Image.Resampling.BOX if mode == "box" else Image.Resampling.NEAREST
+    res = {"box": Image.Resampling.BOX, "lanczos": Image.Resampling.LANCZOS}.get(mode, Image.Resampling.NEAREST)
     out = img.resize((nw, nh), res)
-    if mode == "box":
+    if mode in ("box", "lanczos"):
         # Halbtransparente Ränder wieder hart machen (Pixel-Art-Look)
         px = out.load()
         for y in range(nh):
@@ -97,7 +97,7 @@ def import_rig(rid, rig, args, report):
     if not args.force and os.path.exists(meta_path):
         try:
             old = json.load(open(meta_path))
-            if old.get("sheets") == hashes and old.get("resample") == args.resample and old.get("torsoDisplayH") == sh["torsoDisplayH"]:
+            if old.get("sheets") == hashes and old.get("resample") == args.resample and old.get("torsoDisplayH") == sh["torsoDisplayH"] and old.get("pixelRatio") == sh.get("pixelRatio", 1):
                 report.append(f"= {rid}: unverändert")
                 return
         except Exception:
@@ -123,9 +123,10 @@ def import_rig(rid, rig, args, report):
     if ref not in cleaned:
         report.append(f"! {rid}: Referenzteil '{ref}' fehlt — Abbruch")
         return
-    scale = sh["torsoDisplayH"] / cleaned[ref].height
+    ratio = sh.get("pixelRatio", 1)  # Geräte-Pixel pro Spiel-Pixel (RENDER_SCALE) — Teile liegen 1:1 in Bildschirmauflösung vor
+    scale = sh["torsoDisplayH"] * ratio / cleaned[ref].height
     os.makedirs(outdir, exist_ok=True)
-    meta = {"rig": rid, "scale": round(scale, 5), "resample": args.resample, "torsoDisplayH": sh["torsoDisplayH"], "sheets": hashes, "parts": {}}
+    meta = {"rig": rid, "scale": round(scale, 5), "resample": args.resample, "torsoDisplayH": sh["torsoDisplayH"], "pixelRatio": ratio, "sheets": hashes, "parts": {}}
     for pid, img in cleaned.items():
         out = resize(img, scale, args.resample)
         out.save(os.path.join(outdir, f"{pid}.png"))
@@ -164,7 +165,7 @@ def main():
     ap.add_argument("--out", default="public/art")
     ap.add_argument("--rigs", default="src/data/rigs.json")
     ap.add_argument("--force", action="store_true")
-    ap.add_argument("--resample", default="nearest", choices=["nearest", "box"])
+    ap.add_argument("--resample", default="lanczos", choices=["lanczos", "nearest", "box"])
     ap.add_argument("--keep-cell", type=int, default=None)
     args = ap.parse_args()
     rigs = json.load(open(args.rigs))

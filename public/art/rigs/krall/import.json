@@ -1,45 +1,46 @@
 {
  "rig": "krall",
- "scale": 0.09434,
- "resample": "nearest",
+ "scale": 0.18868,
+ "resample": "lanczos",
  "torsoDisplayH": 30,
+ "pixelRatio": 2,
  "sheets": {
   "krall_parts.png": "4122728e013e67a8"
  },
  "parts": {
   "torso": {
-   "w": 30,
-   "h": 30,
+   "w": 61,
+   "h": 60,
    "srcW": 323,
    "srcH": 318
   },
   "claw": {
-   "w": 27,
-   "h": 41,
+   "w": 54,
+   "h": 82,
    "srcW": 286,
    "srcH": 434
   },
   "legF": {
-   "w": 22,
-   "h": 33,
+   "w": 43,
+   "h": 66,
    "srcW": 230,
    "srcH": 349
   },
   "legB": {
-   "w": 20,
-   "h": 34,
+   "w": 40,
+   "h": 68,
    "srcW": 213,
    "srcH": 360
   },
   "magnet": {
-   "w": 20,
-   "h": 21,
+   "w": 39,
+   "h": 42,
    "srcW": 208,
    "srcH": 225
   },
   "plate": {
-   "w": 23,
-   "h": 23,
+   "w": 47,
+   "h": 46,
    "srcW": 248,
    "srcH": 243
   }

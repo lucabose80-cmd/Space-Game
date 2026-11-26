@@ -5,13 +5,13 @@ import rigData from './rigs.json';
 
 interface RigJson {
   kind: Enemy['kind'];
-  sheet: { file: string; order: string[] };
+  sheet: { file: string; order: string[]; pixelRatio?: number };
   parts: RigPartDef[];
 }
 
 const raw = rigData as unknown as Record<string, RigJson>;
 
-export const RIGS: Record<string, RigDef> = Object.fromEntries(Object.entries(raw).map(([id, r]) => [id, { id, parts: r.parts }]));
+export const RIGS: Record<string, RigDef> = Object.fromEntries(Object.entries(raw).map(([id, r]) => [id, { id, parts: r.parts, ratio: r.sheet.pixelRatio ?? 1 }]));
 
 /** Welcher Gegner/Boss (kind) nutzt welches Rig. */
 export const RIG_BY_KIND: Partial<Record<Enemy['kind'], string>> = Object.fromEntries(Object.entries(raw).map(([id, r]) => [r.kind, id]));
