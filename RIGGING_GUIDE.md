@@ -65,16 +65,28 @@ Wenn ein Rig fehlt oder ein Bild nicht lädt, wird automatisch das alte Einzelbi
 
 ## 5. Posen verdrahten (`bossAnims.ts`)
 `getBossPose(rigId, enemy, time)` liefert pro Frame `{ teilId: { variant, rot, dx, dy, sx, sy, alpha, hidden } }`.
-- **Kern-Wächter** — Indizes: Arme `0 hängend · 1 Ausholen · 2 Schlag zur Kamera · 3 seitlich/Laser · 4 Block · 5 Boden-Stampfer`; Köpfe `0 neutral · 1 brüllend · 2 zielend · 3 getroffen · 4 Phase 2 · 5 beschädigt`; Rümpfe `0 normal · 1 geduckt · 2 zurück · 3 vor · 4 Phase 2 offen · 5 überhitzt`. Zuordnung in `coreWardenSet()` nach `enemy.bossState` (`stalk`, `charge_windup`, `charge_dash`, `slam_air/jump/impact`, `laser_windup/sweep`, `pylon_barrage`, `phase2_roar`, `stunned`) und `bossPhase2`/`flashTimer`.
-- **Brustplatten** (`plateL/R`, Typ P): `hidden`, außer während `phase2_roar` — Fortschritt `r = 1 − bossStateTimer/bossStateMax` steuert Flug (`dx`, `dy` Bogen, `rot`) und Ausblenden (`alpha`).
+- **Kern-Wächter** — vollständige Varianten-Karte (Arme je Seite 0–12, Köpfe 0–11, Rümpfe 0–11, Fäuste als Bilder) und alle Zustands→Pose-Zuordnungen: `BOSS_ANIMATION_PLAN.md` §2.1 und `coreWardenSet()` in `bossAnims.ts`. Der Index entspricht der Reihenfolge in `variants` (`rigs.json`); neue Varianten **hinten anhängen**, nie einfügen.
+- **Brustplatten** (`plateL/R`, Typ P): immer `hidden`; erst beim Phase-2-Wechsel löst `detached.ts` sie ab und lässt sie wegfliegen (siehe unten). Die Laser-Brust öffnet sich über die Rumpf-Varianten 6/7/10 (kein Platten-Aufklappen — verdeckte den Kern).
 - **Krall** — `krallClaw()`: Zange nach `bossSub` (`idle/windup/active/recover`) und `bossStatusText` (= Zugname aus `bosses/defs.ts`: GREIFARM-STOSS, MAGNET-ZUG, SCHROTT-WURF, SCHROTT-HAGEL).
 - **Neuer Boss:** Rig in `rigs.json` anlegen (`kind` = Enemy-kind), `case '<rig-id>'` in `getBossPose` ergänzen. Die **Spiellogik** (Zustände, Schaden, Telegraph) bleibt in `enemyAi.ts` bzw. `bosses/defs.ts` — `bossAnims.ts` liest sie nur.
 
 ### Glättung, Impuls, Zusatzbewegung (`bossAnims.ts`)
 `getBossPose` liefert **geglättete** Posen: `rawBossPose` berechnet das Ziel, `smoothPose` nähert Drehung/Lage/Skalierung exponentiell an (`SMOOTH_TAU`), `variant`-Wechsel bleiben hart, bekommen aber einen kurzen Stauch-Impuls (`PULSE_TIME`). Zustand je Boss in einer `WeakMap` (nur `time`, kein `Date.now`). Zustandsabhängige Zusatzbewegung (Anlauf, Nachfedern, Gehen, Treffer) steht im `fx`-Block von `coreWardenSet`. `smoothBossBody` (Renderer) führt das Ganzkörper-Stauchen/Neigen weich nach. Bilder ohne eigenes Teil (z. B. kreisende Fäuste) über `extraImages` in `rigs.json` laden. Mehrere Sets aus **einem** Sheet (unterschiedlich große Teile) per `"cells": [..]` im Set-Eintrag trennen (z. B. `core_warden_fists`: Zellen 0–1 Arme ohne Faust, 2–5 Fäuste). Zwischen-Posen/Blinzeln/Blick: `ARM_BETWEEN`, `NO_PULSE`, `coreWardenSet(…, lookDx)` — `getBossPose` nimmt optional die Spieler-Blickrichtung (`playerX − e.x`).
 
+### Mehrere Sets pro Teil, `cells`, `extraImages`
+Ein Teil darf Varianten aus **mehreren Sheets** mischen (`variants` = Liste von Bildnamen; jedes Set hat nach dem Import seine eigene Größe, das Gelenk liegt immer in der Bildmitte → passt trotzdem). Unterschiedlich große Teile eines Sheets mit `"cells": [..]` in getrennte Sets teilen (z. B. `core_warden_fists`: Zellen 0–1 → `armR_nf`/`armL_nf`, 2–5 → Fäuste). **Zellen-Reihenfolge prüfen:** Antigravity hatte bei den Armen ohne Faust links/rechts vertauscht — Abgleich per Alpha-Maske mit `armR_1`/`armL_1` (IoU) im Import-Ergebnis. Bilder ohne eigenes Teil (Fäuste, Schweif) über `extraImages` laden.
+
+### Zwischen-Posen, Blick, Blinzeln
+`ARM_BETWEEN` (hängend↔ausholen↔Schlag, 0,08 s), `NO_PULSE` (Kopf-Wechsel ohne Stauch-Impuls), Blick links/rechts über den optionalen Parameter `lookDx` von `getBossPose` (Renderer übergibt `playerX − e.x`), Blinzeln deterministisch aus `time + e.id`.
+
+### Optik mit Spielbezug (Kern-Wächter Phase 2 „Faust-Salve“)
+In `pylon_barrage` der Phase 2 (`enemyAi.updateBossAI`) fliegen die 4 Orbit-Fäuste **einmal** als `Projectile` mit `sprite: 'fist'`, `homing: 2.0`, `homingUntilLife: 0.5` (Lenkung in `DungeonScene.updateProjectiles`), Schaden 16, Radius 6, `life` 1,9 s; danach Funkenregen. Der Renderer (`drawBossPylon`, `fistReturnScale`) leert den Orbit, solange Fäuste fliegen, und lässt sie in 0,5 s nachwachsen. Phase 1 schießt unverändert Energie-Schüsse. Balance-Werte stehen direkt in der KI-Zeile (nicht in `balance.ts`).
+
+### Teilen (Quarz-Koloss, Sternen-Archon) — Logik ohne Sprites
+`DungeonScene.splitBoss(e)` (Aufruf aus `updateQuartzGolemAI` bzw. `BossDef.onPhase2` des Archons) klont den Boss in zwei Hälften (`Enemy.splitGroup`/`splitRole`), `syncSplitPools()` gleicht HP an, schiebt die Hälften auseinander und vereint sie bei ≤ 15 % HP; `onEnemyKilled` belohnt nur einmal. Rollen: Quarz A Beben / B Salve; Archon `BossDef.splitMoves` (A Sternbild+Brunnen, B Supernova). Renderer zeichnet Hälften mit 85 % (`withSplitScale`). Test `m11p4`.
+
 ### Schulter-Feinjustierung
-Der Rumpf neigt sich je Pose; die Arme hängen aber an einem festen Punkt (`offset` im Teil `armL/armR`). Ausgleich: `SHOULDER_ADJUST[rumpfVariante] = [L dx, L dy, R dx, R dy]` (Spielpixel) in `bossAnims.ts`. Aktuell: geduckt `[0.5,0.5,-3,1]`, zurückgelehnt `[0,1,-3,0.5]`, übrige `0`. **Vorgehen:** Kontaktbogen rendern (§6), schauen, ob die Schulterkappe am Rumpf klebt oder schwebt → Wert ändern, neu rendern. Grundposition der Schultern: `offset` der Teile `armL`/`armR` in `rigs.json` (aus Rumpf-Variante 1 gemessen: ±10 px seitlich, −6,2 px über dem Kern); Kopf: `offset [0,-9.5]` (Halsgelenk im Kragen).
+Der Rumpf neigt sich je Pose; die Arme hängen aber an einem festen Punkt (`offset` im Teil `armL/armR`). Ausgleich: `SHOULDER_ADJUST[rumpfVariante] = [L dx, L dy, R dx, R dy]` (Spielpixel) in `bossAnims.ts`. Aktuell: geduckt `[0.5,0.5,-3,1]`, zurückgelehnt `[0,1,-3,0.5]`, übrige (inkl. der neuen Rümpfe 6–11) `0` — bei Auffälligkeiten im Labor dort nachziehen. **Vorgehen:** Kontaktbogen rendern (§6), schauen, ob die Schulterkappe am Rumpf klebt oder schwebt → Wert ändern, neu rendern. Grundposition der Schultern: `offset` der Teile `armL`/`armR` in `rigs.json` (aus Rumpf-Variante 1 gemessen: ±10 px seitlich, −6,2 px über dem Kern); Kopf: `offset [0,-9.5]` (Halsgelenk im Kragen).
 
 ### Normale Gegner
 Prozedurale Code-Beine wurden **verworfen** (passten nicht zum Pixel-Art-Stil, doppelten vorhandene Beine). Normale Gegner bekommen stattdessen eigene Rigs aus **Teile-Sheets (Typ G)** — Aufträge, Zellen und Gelenke: [`ART_BRIEF_M11_ENEMIES.md`](ART_BRIEF_M11_ENEMIES.md). Bis dahin: Einzel-Sprite + dezentes Atmen/Lehnen/Zucken (`anim/motion.ts`).
@@ -89,7 +101,7 @@ npm run dev -- --host 127.0.0.1 --port 5199 --strictPort   # Terminal 1
 node scripts/rig-sheet.cjs core_warden 5199          # Terminal 2 → tests/out/rig_core_warden.png (auch: krall)
 ```
 Bild mit `view_file` ansehen: sitzen die Gelenke, stimmt die Pose zum Zustand, fliegen die Platten? Danach im echten Spiel: `…/?bosslab` → Boss wählen, **⏸ Pause**, „Phase II“, „Rig“ an/aus (Boss-Labor ändert den Spielstand nicht).
-Automatisch: `npm test -- m11p1 m11p2 m11p3` und vor jedem Push `npm run verify`.
+Automatisch: `npm test -- m11p1 m11p2 m11p3 m11p4` (Rig-Engine · Pose-Sets/Übergänge · abgelöste Teile · Teilen) und vor jedem Push `npm run verify`. `tests/m11lab.cjs` (Boss-Labor) wird von `npm test` nicht automatisch erfasst. Der Kontaktbogen `scripts/rig-sheet.cjs` hat Fälle für Kern-Wächter (25 Zustände) und Krall; neue Zustände dort in `CASES` ergänzen.
 
 **Typische Stolpersteine**
 - *Rig erscheint nicht* → ein Bild fehlt/Tippfehler im Namen (`rigImageNames` muss alle laden) → Konsole/`public/art/rigs/<rig>/` prüfen.
@@ -101,5 +113,5 @@ Automatisch: `npm test -- m11p1 m11p2 m11p3` und vor jedem Push `npm run verify`
 `npm run verify` grün → Screenshots/Kontaktbogen angesehen → `HANDOFF.md` aktualisieren → committen & pushen (Commit-Präfix `art(m11):` für Sheets, `feat(m11):` für Code).
 
 ## 8. Offene Arbeit
-**Konkrete Aufgabenliste & Fertig-Definition:** [`BOSS_ANIMATION_PLAN.md`](BOSS_ANIMATION_PLAN.md).
-Siehe `HANDOFF.md` („Nächster Schritt“): restliche Krall-Sheets (`krall_arms_L`, `krall_legs_R/L`, `krall_torsos`, `krall_effects`) einbinden (linker Arm als neues Teil `clawL`, Beine/Rumpf als Sets), danach die übrigen Bosse (`ART_BRIEF_M11.md` §4.3) und die Teil-Abwurf-/Splitting-Mechaniken (`MILESTONE_11_ARCHITECTURE.md`).
+**Konkrete Aufgabenliste & Fertig-Definition:** [`BOSS_ANIMATION_PLAN.md`](BOSS_ANIMATION_PLAN.md). Stand: Kern-Wächter K1–K8 + S1–S5 eingebunden, offen S6 (Arme ohne Faust in Angriffsposen) und Abnahme im echten Kampf.
+Weiter laut `HANDOFF.md` („Nächster Schritt“): Krall-Sheets einbinden (`krall_arms_L` → neues Teil `clawL`, `krall_torsos` → Rumpf-Set, Beine/Effekte sobald vorhanden), danach die übrigen Bosse (`ART_BRIEF_M11.md` §4.3) und Gegner-Rigs (`ART_BRIEF_M11_ENEMIES.md`).

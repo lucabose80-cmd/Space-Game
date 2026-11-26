@@ -3,7 +3,7 @@
 > **Zweck:** Jedes Werkzeug (und jede neue Sitzung) soll hier in 1 Minute wissen, wo das Projekt steht. **Am Ende jeder Arbeitssitzung aktualisieren** (kurz halten, veraltete Punkte löschen).
 
 ## Stand
-- Meilensteine 1–10-C sind umgesetzt, `SAVE_VERSION = 11` (Vercel deployt bei Push auf `main`). Letzter Stand: M10-C (Bugs, HUD, Tag/Nacht, Bosse, Balancing).
+- Meilensteine 1–10-C sind umgesetzt, `SAVE_VERSION = 11` (Vercel deployt bei Push auf `main`). **M11 (lebendige Gegner & Bosse) läuft:** Kern-Wächter komplett animiert, Krall teilweise, Teilen von Quarz-Koloss/Sternen-Archon fertig; Rest wartet auf Sprites. Übersicht: `MILESTONE_11_ARCHITECTURE.md` §11, `BOSS_ANIMATION_PLAN.md` (Statustabelle §3).
 - Doku: `GAME_DESIGN_DOCUMENT.md` (Status), `MILESTONE_10_ARCHITECTURE.md` §11 und `MILESTONE_10C_ARCHITECTURE.md` §9 (Umsetzungsnotizen, gemessene Werte, Abweichungen).
 
 ## Arbeitsablauf & Werkzeug-Sync (Antigravity ↔ Claude Code)
@@ -16,6 +16,7 @@ npm run verify                           # Build + Invarianten + Sprite-Check + 
 - **Reine Doku-/Roh-Asset-Commits (`*.md`, `art_source/**`):** `npm run check:invariants` + `npm run check:sprites` + visuelle Prüfung per `view_file` reichen.
 - **Antigravity (`AGENTS.md` §6):** erzeugt Sprites/Sheets per `generate_image` (mit `ImagePaths` als Referenz), bereinigt ggf. Rasterlinien und legt verlustfreie PNGs direkt im Repo unter `art_source/rigs/`, `art_source/poses/` oder `public/art/sprites/` ab → Commit & Push auf `main`.
 - **Claude Code (`CLAUDE.md`):** setzt Code-Phasen, `npm run art:import` und Tests um.
+- M11-Prüfwerkzeuge: `npm run art:check -- <sheet>`, `npm run art:import -- <rig> --force`, `node scripts/rig-sheet.cjs core_warden|krall` (Dev-Server nötig), `?bosslab` · Handbuch `RIGGING_GUIDE.md`.
 - Einzelne Tests: `npm test -- m10p3 t5` · Screenshots der Tests landen in `tests/out/` (nicht committet).
 - Dev-Test-Hook `window.__game` gibt es nur im Vite-Dev-Server.
 
@@ -49,11 +50,11 @@ npm run verify                           # Build + Invarianten + Sprite-Check + 
   - `krall_legs_R.png`, `krall_legs_L.png`, `krall_effects.png`
 
 ## M11 Pose-Sets — Code (umgesetzt) · Handbuch: [`RIGGING_GUIDE.md`](RIGGING_GUIDE.md)
-- **Import (`npm run art:import`, `scripts/art-import.py`):** `sheet.sets` in `src/data/rigs.json` (`file`, `mode: limb|swap`, `ids[6]`). Zellmitte = Gelenk, je Set ein gemeinsamer zentrierter Ausschnitt + Rig-Maßstab → alle Posen eines Sets gleich groß, Pivot `[0.5, 0.5]`. Neue Sheets: Datei in `art_source/rigs/` legen, Set in `rigs.json` eintragen, `npm run art:import -- <rig> --force`.
+- **Import (`npm run art:import`, `scripts/art-import.py`):** `sheet.sets` in `src/data/rigs.json` (`file`, `mode: limb|swap`, `ids[]`, optional `cells` zum Teilen eines Sheets in mehrere Sets). Zellmitte = Gelenk, je Set ein gemeinsamer zentrierter Ausschnitt + Rig-Maßstab → alle Posen eines Sets gleich groß, Pivot `[0.5, 0.5]`. Neue Sheets: Datei in `art_source/rigs/` legen, Set in `rigs.json` eintragen (Varianten **hinten anhängen**), `npm run art:import -- <rig> --force`. Bilder ohne Teil: `extraImages`.
 - **Engine (`src/engine/rig.ts`):** `RigPartDef.variants` (Bildnamen) + `PartPose.variant` (Index, geklemmt; `blendPose` schaltet bei t = 0,5 um).
-- **Kern-Wächter** (`bossAnims.ts` → `coreWardenSet`): Arme/Kopf/Rumpf je `bossState` (Ruhe, Ausholen, Schlag zur Kamera, Laser-Pose, Block, Boden-Stampfer, Phase-2-Rumpf/-Kopf, überhitzt, Treffer-Kopf); Brustplatten (`plateL/R`) sind nur während `phase2_roar` sichtbar und fliegen weg.
-- **Krall:** `claw` = `krall_arms_R` (6 Posen) nach Zug-Name/`bossSub` (`krallClaw`); bleibt rechts, z = 1 (vor dem Rumpf). Maßstab des Krall-Rigs ist kleiner als beim Kern-Wächter → Zange wirkt zierlich; bei Bedarf Antigravity-Sheet größer zeichnen oder `torsoDisplayH` anpassen.
-- Test: `tests/m11p2.cjs`. Ansicht: `?bosslab` → Kern-Wächter / Krall (Pause + „Phase II“-Knopf zum Prüfen).
+- **Kern-Wächter** (`bossAnims.ts` → `coreWardenSet`): Arme (13 Varianten je Seite), Köpfe (12), Rümpfe (12) je `bossState`; Glättung + Stauch-Impuls + Zwischen-Posen; Anlauf/Nachfedern/Gehen/Treffer; Laser-Brust offen; Blick/Blinzeln; Phase 2: Platten fliegen weg (`detached.ts`), Fäuste kreisen und werden als „Faust-Salve“ abgefeuert (verfolgen den Spieler, lösen sich auf, wachsen nach), hängende Arme ohne Faust. Varianten-Karte: `BOSS_ANIMATION_PLAN.md` §2.1. **Offen:** S6 (Arme ohne Faust in Angriffsposen) und Abnahme im echten Kampf.
+- **Krall:** `claw` = `krall_arms_R` (6 Posen) nach Zug-Name/`bossSub` (`krallClaw`); Panzer fällt in Phase 2 ab. Maßstab des Krall-Rigs ist kleiner als beim Kern-Wächter → Zange wirkt zierlich (`torsoDisplayH` oder größere Zeichnung). **`krall_arms_L.png` und `krall_torsos.png` liegen vor, sind aber noch nicht in `rigs.json`/`bossAnims.ts` eingebunden** (neues Teil `clawL`, Rumpf-Set).
+- Tests: `m11p1` (Rig-Engine), `m11p2` (Pose-Sets/Übergänge/Zuordnung), `m11p3` (abgelöste Teile), `m11p4` (Teilen). Ansicht: `?bosslab` → Kern-Wächter / Krall (Pause + „Phase II“-Knopf zum Prüfen).
 
 - **Abgelöste Teile (umgesetzt):** `detached.ts` (Kern-Wächter-Brustplatten, Krall-Rückenpanzer fliegen bei Phase 2 weg), Test `m11p3`.
 - **Prozedurale Code-Beine: verworfen** (passten nicht zum Pixel-Art-Stil, doppelten Sprite-Beine) → wieder entfernt. Ersatz: Gegner-Rigs aus Teile-Sheets.
@@ -72,7 +73,7 @@ Nach und nach erzeugen, sobald Gemini-Volumen frei ist (Reihenfolge §5 im Brief
 ## Nächster Schritt
 - **Boss-Animation (Stand):** Kern-Wächter komplett eingebunden — `BOSS_ANIMATION_PLAN.md` K1–K8 **und** S1–S5 (Zwischen-Posen, Laser-Rumpf, Faust-Pylonen, Blick/Blinzeln, beschädigte Phase-2-Posen). Phase 2: Fäuste kreisen **und werden in der Orbit-Salve abgefeuert**, hängende Arme ohne Faust. Es fehlt die **Abnahme im echten Kampf** (§2.4) und **S6** (Angriffsposen ohne Faust, siehe unten).
 - **Antigravity (als Nächstes):** **S6** aus `BOSS_ANIMATION_PLAN.md` §2.3 (`core_warden_arms_R3.png` / `core_warden_arms_L3.png`: Arme ohne Faust in Ausholen/Schlag/Seite/Block/Stampfer für Phase 2); danach (nach Quota-Reset) letzte 3 Krall-Sheets (`krall_legs_R.png`, `krall_legs_L.png`, `krall_effects.png`) und Gegner-Rig-Piloten (`turret_rig`, `phase_stalker_rig`).
-- **Claude Code (ohne neue Sprites):** Teilen von Quarz-Koloss/Sternen-Archon (`MILESTONE_11_ARCHITECTURE.md` §4.3), prozedurale Bewegung der übrigen Bosse, Krall-Verdrahtung vorbereiten, Kern-Glühen des Kern-Wächters an die neue Kernposition anpassen (Schulter-Offsets sind justiert: `SHOULDER_ADJUST`), danach Plan-Phase 3 (Angriffe der Sektor-1-Bosse mit Teil-Abwurf/Splitting, `MILESTONE_11_ARCHITECTURE.md`).
+- **Claude Code (ohne neue Sprites):** (1) Krall: `krall_arms_L` als `clawL` + `krall_torsos` als Rumpf-Set einbinden und Posen nach Zug/Phase verdrahten; (2) Boss-Rigs der übrigen Bosse brauchen Sprites (`ART_BRIEF_M11.md` §4.3); (3) nach der Abnahme des Kern-Wächters die Übergangs-/Impuls-Logik für weitere Bosse nutzen (`BOSS_ANIMATION_PLAN.md` §3); (4) Gegner-Rig-Import (`parts`-Modus) sobald die Pilot-Sheets da sind.
 - Ökonomie & Boss-Kampfgefühl im echten Spiel beobachten und in `src/data/balance.ts` nachjustieren (Berichte: `tests/out/economy.json`, `tests/out/ttk.json`).
 - Optionale M10/M10-C-Einzel-Sprites bei Bedarf ebenfalls per Antigravity erzeugen.
 

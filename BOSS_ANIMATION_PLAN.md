@@ -40,7 +40,7 @@ Ein Boss gilt erst als **„Animation fertig“**, wenn alle Punkte erfüllt **u
 - [x] Phase 2: Brustplatten fliegen weg (`detach: 'phase2'`, `src/dungeon/anim/detached.ts`), Rumpf/Kopf Phase-2-Varianten
 - [x] Kern-Glühen am neuen Reaktorkern (`renderBoss…`, `bodyY + 5` bei Rig)
 
-Zustände des Kern-Wächters (aus `src/dungeon/enemyAi.ts`, `updateBossAI`) — Grundlage aller Aufgaben:
+Zustände des Kern-Wächters (aus `src/dungeon/enemyAi.ts`, `updateBossAI`) — Grundlage aller Aufgaben. *Die Spalte „aktuelle Pose“ zeigt den Ausgangsstand vor S2–S5; die gültige Zuordnung steht in `coreWardenSet()` (`bossAnims.ts`) und in der Varianten-Karte oben.*
 
 | `bossState` | Dauer | Bedeutung | aktuelle Pose (Arme · Kopf · Rumpf) |
 | :--- | :--- | :--- | :--- |
@@ -113,9 +113,9 @@ Für jeden weiteren Boss einen Abschnitt nach diesem Muster anlegen:
 **Aktueller Stand je Boss**
 | Boss | Rig | Pose-Sets | Phase 2 | Teilen | Nächster Schritt |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| Kern-Wächter | ✅ | ✅ (alle S1–S5 fertig!) | ✅ Platten fliegen | — | S2–S5 in `rigs.json`/`bossAnims.ts` einbinden & Abnahme §2.4 |
-| Krall | ✅ (alt) | 3/6 (`krall_arms_R`, `krall_arms_L`, `krall_torsos`) | ✅ Panzer fällt ab | — | letzte 3 Sheets (`legs_R/L`, `effects`), dann §3 |
-| Quarz-Koloss | – | – | – | ✅ Logik | Teile-Sheets (`ART_BRIEF_M11.md` §4.3) |
+| Kern-Wächter | ✅ | ✅ (S1–S5 eingebunden, K1–K8) | ✅ Platten fliegen, Faust-Salve | — | **S6** (Arme ohne Faust in Angriffsposen) + Abnahme im echten Kampf §2.4 |
+| Krall | ✅ (alt, nur `claw` mit Pose-Set `krall_arms_R`) | Sheets 3/6 vorhanden (`krall_arms_R`, `krall_arms_L`, `krall_torsos`) — **`arms_L` und `torsos` noch NICHT in `rigs.json`/`bossAnims.ts` eingebunden** | ✅ Panzer fällt ab | — | `clawL` + Rumpf-Set einbinden (Claude Code), letzte 3 Sheets (`legs_R/L`, `effects`) (Antigravity), dann §3 |
+| Quarz-Koloss | – | – | – | ✅ Logik (Hälften gleich aussehend, 85 %) | Teile-Sheets (`ART_BRIEF_M11.md` §4.3) |
 | Sternen-Archon | – | – | – | ✅ Logik | Teile-Sheets |
 | übrige Bosse | – | – | – | – | Teile-Sheets |
 | normale Gegner | – | – | – | – | `ART_BRIEF_M11_ENEMIES.md` (Pilot: Geschütz, Phasen-Jäger) |

@@ -4,7 +4,7 @@
 
 ---
 
-## 1. Project Snapshot (v1.4 — Milestone 10-C implemented)
+## 1. Project Snapshot (v1.4 — Milestone 10-C implemented, M11 in progress)
 - **Game:** **STARLIGHTER** — Cozy Retro-Sci-Fi Action-RPG & Space-Shop browser game inspired by *Moonlighter 1*.
 - **Stack:** `TypeScript` (strict) + `Vite 8` + custom HTML5 Canvas 2D engine (`960×540` HD pixel-art buffer at `RENDER_SCALE = 2` over `480×270` logical coordinates) + Web Audio procedural synth + Firebase Auth & Cloud Firestore (`starlighter-15b1f`).
 - **Deployment:** Pushing to `main` triggers automatic Vercel deployment. **Never** tell the user to open a `localhost` URL.
@@ -18,7 +18,7 @@
 | [MILESTONE_9_ARCHITECTURE.md](MILESTONE_9_ARCHITECTURE.md) | Architecture & implementation record for M9 (Captain Files, Global Market Trend, Ghost Captains, Weekly Seeded Trial, Save v10). |
 | [MILESTONE_10_ARCHITECTURE.md](MILESTONE_10_ARCHITECTURE.md) | Architecture & implementation record for M10-A (branching NPC story with trust & flags, living Port Solaris incl. optional sprite pack, sector room mechanics S2–S4, boss phase-2 music, touch size, aim assist & text speed, Save v11). §11 lists deviations & open items. |
 | [MILESTONE_10C_ARCHITECTURE.md](MILESTONE_10C_ARCHITECTURE.md) | Architecture & implementation record for M10-C (enemy navigation, rift-portal placement, mobile HUD, weapon locker, day/night loop, teleporter-only extraction, unique bosses, shield counterplay, economy/boss/bot/rift balancing in `src/data/balance.ts`). §9 lists measured values & deviations. |
-| [MILESTONE_11_ARCHITECTURE.md](MILESTONE_11_ARCHITECTURE.md) | **Next up:** plan for M11 — living enemies & bosses: cut-out rigs (`src/engine/rig.ts`), procedural motion & legs, detachable parts, phase-2 transformations, boss splitting; sprite delivery format (parts/pose sheets) + `npm run art:import` pipeline and the full Gemini prompt catalogue. |
+| [MILESTONE_11_ARCHITECTURE.md](MILESTONE_11_ARCHITECTURE.md) | **In progress:** M11 — living enemies & bosses: cut-out rigs (`src/engine/rig.ts`), pose sets, procedural boss motion, detachable parts, phase-2 transformations, boss splitting (done for Quarz-Koloss/Sternen-Archon); procedural code-legs were rejected. §11 = implementation notes & deviations; sprite delivery format + `npm run art:import` pipeline. |
 | [RIGGING_GUIDE.md](RIGGING_GUIDE.md) | **Rigging-Handbuch (M11):** Pose-Sets, `rigs.json`, `npm run art:import`, Posen je Boss-Zustand (`bossAnims.ts`), Schulter-Feinjustierung, Kontaktbogen/Boss-Labor-Prüfung — alles, um ohne Claude Code (z. B. in Antigravity) weiterzuarbeiten. |
 | [BOSS_ANIMATION_PLAN.md](BOSS_ANIMATION_PLAN.md) | **„Fertig“-Definition für Boss-Rigs (D1–D10) + offene Aufgaben:** Kern-Wächter-Pilot mit Code-Aufgaben K1–K8 (Übergänge, Anlauf, Laufen, Treffer, Laser-Brust, Fäuste als Pylonen, Feinjustierung, Tests) und Sprite-Aufgaben S1–S5; Vorlage + Statustabelle für alle anderen Bosse. Read before polishing any boss animation. |
 | [ART_BRIEF_M11.md](ART_BRIEF_M11.md) | **Sprite briefing for Antigravity/Gemini (M11 v2):** pose sets instead of rotating single parts — limb pose sheets (joint at cell centre, left/right drawn separately), head/torso swap sets, effect sheets, per-boss order of work, `npm run art:check` workflow. Read before generating any M11 sprite. |
@@ -56,6 +56,7 @@
 - **Add a new Enemy or Boss:**
   1. Add sprite `public/art/sprites/<name>.png` (`96×96` or `128×128`), register in `src/assets/artLoader.ts` (including flash silhouette).
   2. Add kind to `EnemySpawn['kind']` in `src/world/dungeonGen.ts`, spawn stats in `DungeonScene.spawnEnemy()`, AI in `src/dungeon/enemyAi.ts`, and rendering in `src/dungeon/dungeonRenderer.ts`.
+- **Change boss/enemy animation (M11):** poses per boss state live in `src/dungeon/anim/bossAnims.ts` (`getBossPose` → smoothing/impulse; `coreWardenSet`, `krallClaw`), rig definitions in `src/data/rigs.json` (parts tree, `variants`, `detach`, `sets`, `extraImages`), sprites in `art_source/rigs/*.png` → `npm run art:import -- <rig> --force`. Pure visuals: no hitbox/damage changes in `bossAnims.ts`/renderer (exception: the Kern-Wächter phase-2 fist volley in `enemyAi.updateBossAI`). Check with `node scripts/rig-sheet.cjs core_warden|krall` + `?bosslab`; tests `m11p1–m11p4`. Full guide: `RIGGING_GUIDE.md`; open tasks: `BOSS_ANIMATION_PLAN.md`.
 - **Add a new Hub Station / In-Game Modal:**
   1. Place prop + prompt in `src/scenes/HubScene.ts` (or `ShopScene.ts` / `BackroomScene.ts` / `HangarScene.ts`) with `drawPixelShadow` + `drawGlow` + Y-sorting.
   2. Wire callback in `src/main.ts` → add modal renderer in `src/ui/UIManager.ts` (keep headers single-line with `white-space: nowrap`).
@@ -87,6 +88,9 @@ npm run build      # TypeScript check + Vite production build (index, dungeon & 
 npm run verify     # Build + Invarianten + Sprite-Check + alle Headless-Tests (vor jedem Push)
 npm test -- m10p3  # einzelne Tests (tests/*.cjs, Playwright)
 npm run check:sprites  # listet fehlende optionale Sprites (Fallbacks aktiv)
+npm run art:check -- art_source/rigs/<sheet>.png   # Prüfbild Gelenk/Zellrand (M11)
+npm run art:import -- <rig-id> --force            # Sheets → public/art/rigs/<rig-id>/ (M11)
+node scripts/rig-sheet.cjs core_warden            # Kontaktbogen aller Boss-Zustände (Dev-Server nötig)
 npm run dev        # Local Vite dev server (use --host 127.0.0.1 --strictPort in Headless Chrome tests)
 ```
 

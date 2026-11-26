@@ -1,6 +1,6 @@
 # Architektur- & Vorgehensplan: Meilenstein 11 — Lebendige Gegner & Bosse (Animation + Sprite-Pipeline)
 
-> **Status:** 🔜 Geplant — Umsetzungsvorlage für Claude Sonnet (mittlere Denktiefe) **und** Arbeitsliste für die Sprite-Erstellung in Gemini
+> **Status:** 🚧 In Arbeit (Stand siehe §11 „Umsetzungsnotizen“ und `HANDOFF.md`) — Umsetzungsvorlage für Claude Sonnet (mittlere Denktiefe) **und** Arbeitsliste für die Sprite-Erstellung in Gemini
 > **Basis:** Stand nach M10-C (`SAVE_VERSION = 11`, Boss-Engine in `src/dungeon/bosses/`)
 > **Save-Version:** bleibt `11` (reine Darstellung, keine neuen Spielstand-Felder)
 
@@ -261,3 +261,16 @@ Jede Phase: Code → Test → `npm run verify` → Screenshots/Bildfolgen ansehe
 
 ## 10. Verknüpfte Dokumente
 [AGENTS.md](AGENTS.md) · [HANDOFF.md](HANDOFF.md) · [ART_AND_DESIGN_GUIDE.md](ART_AND_DESIGN_GUIDE.md) · [MILESTONE_10C_ARCHITECTURE.md](MILESTONE_10C_ARCHITECTURE.md) (Boss-Engine)
+
+---
+
+## 11. Umsetzungsnotizen & Abweichungen (Stand der Umsetzung)
+- **Phase 0 ✅** Import-Pipeline `scripts/art-import.py` (+ `art:check`). Erweitert um Pose-Sets (`sheet.sets`, `limb`/`swap`, `cells`), `extraImages`.
+- **Phase 1 ✅** Rig-Engine (`rig.ts`: Teile, `variants`/`PartPose.variant`, `detach`), `motion.ts` (Lehnen/Atmen/Zucken für Gegner), `bossAnims.ts` (Posen je Zustand, Glättung, Impuls, Zwischen-Posen), `?bosslab`.
+- **Phase 2 (Beine) ❌ verworfen.** Prozedurale Code-Beine passten nicht zum Pixel-Art-Stil und doppelten Sprite-Beine → wieder entfernt. Normale Gegner bekommen stattdessen Rigs aus Teile-Sheets (`ART_BRIEF_M11_ENEMIES.md`); die 2×2-Pose-Sheet-Idee (§2.2/§5/§6.4) ist überholt.
+- **Phase 3 (Sektor 1) teilweise:** Kern-Wächter vollständig (K1–K8, S1–S5; offen S6 + Abnahme), Krall Rig mit `claw`-Pose-Set + Panzer-Abwurf (weitere Krall-Sheets vorhanden, nicht eingebunden), Leviathan ohne Rig.
+- **Abgelöste Teile ✅** (`anim/detached.ts`): Phase-2-Verwandlung für Kern-Wächter (Brustplatten) und Krall (Panzer) — rein visuell.
+- **Teilen ✅ (Logik)** Quarz-Koloss + Sternen-Archon (Phase 4/6 ohne Sprites): gemeinsamer HP-Pool, Rollen, Wiedervereinigung bei ≤ 15 % HP; Abweichung: keine „10 s allein“-Regel (eine Hälfte kann nie allein sterben).
+- **Kern-Wächter Phase 2 „Faust-Salve“:** Fäuste kreisen als Pylonen, fliegen einmal los, verfolgen den Spieler, lösen sich auf, wachsen nach (Optik **mit** Spielbezug: eigene Projektil-Werte, siehe `RIGGING_GUIDE.md` §5).
+- **Phasen 4–7 offen** (Rigs der übrigen Bosse, Gegner-Rigs) — warten auf Sprites; Plan/Checkliste: `BOSS_ANIMATION_PLAN.md`, `ART_BRIEF_M11.md`, `ART_BRIEF_M11_ENEMIES.md`.
+- **Tests:** `m11p0` (Import), `m11p1` (Rig-Engine), `m11p2` (Pose-Sets, Übergänge, Zuordnungen), `m11p3` (abgelöste Teile), `m11p4` (Teilen), `m11lab` (Labor, nicht in `npm test`).

@@ -185,3 +185,10 @@ Wenn neue Items, Props, Gegner oder Schiffe per Bildgenerierung erstellt werden:
 - **Test-Daten nie ersetzen, nur befüllen:** `Object.assign(st.pedestals[0], …)` statt `st.pedestals[0] = {…}` (sonst fehlen `x/y` → `NaN` im Renderer → Spielschleife stirbt).
 - **Prüfung + Wochen-Mutator:** Ist der Mutator „gepanzert“, haben Gegner ×1,3 HP. Für Kalibrier-Messungen `dng.activeRiftMutator = null` setzen.
 - **Parallele Läufe:** Nie zwei Harness-Läufe gleichzeitig starten (Port 4197) und während `npm run verify` keine Quelldateien ändern.
+
+### Tests & Fallstricke für Meilenstein 11 (Rigs & Boss-Animation)
+- **Tests:** `m11p0` (Import-Pipeline), `m11p1` (Rig-Engine), `m11p2` (Pose-Sets, Übergangs-Glätte < 0,2 rad/Frame, Zwischen-Posen, Zuordnung Zustand→Variante), `m11p3` (abgelöste Teile), `m11p4` (Teilen: gemeinsamer HP-Pool, Sieg nur einmal). `m11lab` (Boss-Labor) läuft nicht über `npm test`.
+- **Test-Enemies brauchen `hp`/`maxHp`:** `getBossPose` liest die HP-Quote (stark beschädigter Kopf < 15 %); fehlt `maxHp`, gilt 100 %.
+- **Frische Enemy-Objekte = ungeglättet:** `getBossPose` glättet pro Enemy-Objekt (WeakMap). Für Zustands-Prüfungen immer ein **neues** Objekt benutzen; für Übergangs-Tests dasselbe Objekt mit steigender `time`.
+- **Dev-Server nach `rigs.json`-Änderung neu starten**, sonst liefert `import('/src/…')` im Browser eine zweite Modul-Instanz (leere Rigs).
+- **Sichtprüfung:** `node scripts/rig-sheet.cjs core_warden` (Kontaktbogen in `tests/out/`), im Spiel `?bosslab` (Pause, 0,25×, „Phase II“).

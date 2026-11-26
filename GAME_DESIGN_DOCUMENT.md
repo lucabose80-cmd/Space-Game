@@ -95,6 +95,8 @@ flowchart LR
   - **Eigene Bosse:** Krall (S1 E1), Schlacken-Koloss, Gießerei-Meisterin, Vulkan-Titan, Chrono-Wächter, Monolith-Koloss, Sternen-Archon — je 3–5 telegrafierte Angriffe + Phase 2; **Gegner-Schilde** mit Counterplay (Angriffs-Fenster, Überhitzung).
   - **Balancing:** Verkaufspreise ×0,65, Kopfgelder ×0,75, flachere frühe Waffenstufen + Fortschritts-Sperren, Boss-HP über Kampfdauer kalibriert (`src/data/balance.ts`), Bots deutlich später, Rift-Kammern härter (HP-/Schadensfaktor, 3. Welle, Elite).
 
+- **🚧 Meilenstein 11 — Lebendige Gegner & Bosse (in Arbeit):** Cut-out-Rigs (`src/engine/rig.ts`, `src/data/rigs.json`), Sprite-Pipeline (`npm run art:import`/`art:check`), **Kern-Wächter** komplett animiert (Pose-Sets für Arme/Kopf/Rumpf, weiche Übergänge, Laser-Brust, Phase-2-Verwandlung mit wegfliegenden Platten und kreisenden, abgefeuerten Fäusten), **Krall** teilweise (Greifzange, Panzer-Abwurf), **Teilen** von Quarz-Koloss und Sternen-Archon (gemeinsamer HP-Pool). Prozedurale Code-Beine wurden verworfen. Offen: weitere Boss-/Gegner-Rigs (warten auf Sprites). Details: `MILESTONE_11_ARCHITECTURE.md` §11, `RIGGING_GUIDE.md`, `BOSS_ANIMATION_PLAN.md`, `HANDOFF.md`.
+
 ---
 
 ## 4b. Story & Figuren (Kurzfassung)
@@ -159,7 +161,11 @@ src/
 │   ├── roomMechanics.ts        # M10: RoomMechanicsSystem (Prismen, Düsen, Magnetplatten, Teleporter)
 │   ├── roomMechanicsRenderer.ts # M10: Boden-Layer & y-sortierte Mechanik-Objekte
 │   ├── enemyAi.ts              # DungeonEnemyAi (inkl. Burn-DoT, Kryo-Slow, Hasted & alle Bosse)
+│   ├── bosses/                 # M10-C: BossDef/Engine/Telegraph-FX/Looks (defs.ts, bossEngine.ts, bossFx.ts, bossLooks.ts)
+│   ├── anim/                   # M11: bossAnims.ts (Posen je Zustand, Glättung), detached.ts (abgelöste Teile), motion.ts (Gegner-Bewegung)
 │   └── dungeonRenderer.ts      # DungeonRenderer (S1–S4, Rift-Risse, Blitze, Orbs, Minimap, Timer)
+├── engine/
+│   └── rig.ts                  # M11: Cut-out-Rig (Teile, Gelenke, Pose-Varianten) — Daten in data/rigs.json
 ├── scenes/
 │   ├── DungeonScene.ts         # Kampf, Waffen-Combos, Prägungen, Rift-Kammern, ∞ Spirale
 │   ├── ShopScene.ts            # Astro-Barter Verkauf, Feilschen, Stammkunden, Deko, [F] Refill
@@ -191,6 +197,7 @@ src/
 ```
 
 - **Build & Deploy:** `npm run build` (`tsc && vite build`), Push auf `main` triggert automatisches Vercel-Deployment.
+- **Meilenstein-11 (Rigs & Boss-Animation):** [MILESTONE_11_ARCHITECTURE.md](MILESTONE_11_ARCHITECTURE.md) (Plan + §11 Umsetzungsnotizen), [RIGGING_GUIDE.md](RIGGING_GUIDE.md) (Handbuch), [BOSS_ANIMATION_PLAN.md](BOSS_ANIMATION_PLAN.md) (Fertig-Definition & Aufgaben), [ART_BRIEF_M11.md](ART_BRIEF_M11.md) / [ART_BRIEF_M11_ENEMIES.md](ART_BRIEF_M11_ENEMIES.md) (Sprite-Briefings).
 - **Meilenstein-10-Architektur:** [MILESTONE_10_ARCHITECTURE.md](MILESTONE_10_ARCHITECTURE.md) (Story mit Entscheidungen, lebendige Station, Sektor-Mechaniken, Musik, Steuerung & Save v11 — inkl. Umsetzungsnotizen §11).
 - **Meilenstein-9-Architektur:** [MILESTONE_9_ARCHITECTURE.md](MILESTONE_9_ARCHITECTURE.md) (Akten, Konjunktur, Geister-Kapitäne, Wöchentliche Prüfung & Save v10).
 - **Meilenstein-8-Architektur:** [MILESTONE_8_ARCHITECTURE.md](MILESTONE_8_ARCHITECTURE.md) (Detail-Spezifikation zu Feilschen, Stammkunden-Ruf, Marktplatz-Terrasse, Alchemie-Bar, Handelsbank & Save v9).
