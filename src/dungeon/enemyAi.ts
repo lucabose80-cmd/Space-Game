@@ -2199,11 +2199,23 @@ export class DungeonEnemyAi {
       if (e.subBurst > 0 && e.burstDelay <= 0) {
         // Fire projectiles straight out of EACH orbiting plasma pylon!
         const pylons = this.getBossPylonPositions(e);
-        for (const py of pylons) {
-          const toPlayer = Math.atan2(this.scene.playerY - py.y, this.scene.playerX - py.x);
-          const aim = e.subBurst % 2 === 0 ? toPlayer : py.angle;
-          this.fireEnemyBolt(py.x, py.y, aim, enraged ? 148 : 122, 14, enraged ? '#fb7185' : '#38e8d4', enraged ? 'fist' : undefined); // Phase 2: die kreisenden Fäuste fliegen los
-          this.scene.spawnBurst(py.x, py.y, enraged ? '#fb7185' : '#38e8d4', 4);
+        if (enraged) {
+          // M11 Phase 2 „Faust-Salve“: Es gibt nur diese 4 Fäuste — sie fliegen EINMAL gezielt los (erste Salve) und kehren danach zurück;
+          // in den übrigen Salven sind die Plätze leer, es wird nichts nachgeschossen.
+          if (e.subBurst === 4) {
+            pylons.forEach((py, i) => {
+              const aim = Math.atan2(this.scene.playerY - py.y, this.scene.playerX - py.x) + (i - (pylons.length - 1) / 2) * 0.16;
+              this.scene.projectiles.push({ x: py.x, y: py.y, vx: Math.cos(aim) * 140, vy: Math.sin(aim) * 140, fromPlayer: false, damage: 16, color: '#fb7185', radius: 6, life: 1.15, sprite: 'fist' });
+              this.scene.spawnBurst(py.x, py.y, '#fb7185', 6);
+            });
+          }
+        } else {
+          for (const py of pylons) {
+            const toPlayer = Math.atan2(this.scene.playerY - py.y, this.scene.playerX - py.x);
+            const aim = e.subBurst % 2 === 0 ? toPlayer : py.angle;
+            this.fireEnemyBolt(py.x, py.y, aim, 122, 14, '#38e8d4');
+            this.scene.spawnBurst(py.x, py.y, '#38e8d4', 4);
+          }
         }
         sound.playBlaster();
         e.subBurst -= 1;
@@ -2272,10 +2284,8 @@ export class DungeonEnemyAi {
     speed: number,
     damage: number,
     color: string,
-    sprite?: 'fist',
   ): void {
     this.scene.projectiles.push({
-      sprite,
       x,
       y,
       vx: Math.cos(angle) * speed,

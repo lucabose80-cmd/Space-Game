@@ -100,7 +100,7 @@ function coreWardenSet(e: Enemy, time: number, lookDx: number): { arms: number; 
     case 'pylon_barrage':
       arms = p2 ? ARM.noFist : hit ? ARM.blockHit : ARM.block; // S4: Phase 2 — die Fäuste kreisen
       head = p2 ? HEAD.roarP2 : HEAD.roar;
-      if (p2 && e.subBurst > 0) fx.torso = { dy: -1.5 * clamp01(e.burstDelay / 0.24) }; // Abschuss-Ruck nach jeder Faust-Salve
+      if (p2 && e.subBurst === 3) fx.torso = { dy: -1.5 * clamp01(e.burstDelay / 0.24) }; // Abschuss-Ruck nach dem Faust-Wurf
       if (hit) fx.torso = { ...fx.torso, dx: Math.sin(time * 90) };
       break;
     case 'phase2_roar':

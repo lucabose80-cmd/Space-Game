@@ -744,7 +744,7 @@ export class DungeonRenderer {
     const fistParts = getHDArt().rigs.core_warden?.parts;
     for (const p of this.scene.projectiles) {
       if (p.sprite === 'fist' && fistParts?.fist_angled) {
-        // M11: abgefeuerte Faust (Kern-Wächter Phase 2) — Schweif hinter, Faust um die Flugrichtung gedreht, ~60 % Größe (Hitbox bleibt klein)
+        // M11: abgefeuerte Faust (Kern-Wächter Phase 2) — dieselbe Faust wie im Orbit (gleiche Größe), Schweif hinter, in Flugrichtung gedreht
         const ang = Math.atan2(p.vy, p.vx);
         drawGlow(ctx, p.x, p.y, 13, p.color, 0.6);
         const tr = fistParts.fist_trail;
@@ -755,12 +755,12 @@ export class DungeonRenderer {
         if (tr) {
           ctx.globalCompositeOperation = 'lighter';
           ctx.globalAlpha = 0.85;
-          ctx.drawImage(tr, -tr.width * 0.3 - 5, -tr.height * 0.15, tr.width * 0.3, tr.height * 0.3);
+          ctx.drawImage(tr, -tr.width * 0.5 - 4, -tr.height * 0.25, tr.width * 0.5, tr.height * 0.5);
           ctx.globalCompositeOperation = 'source-over';
           ctx.globalAlpha = 1;
         }
         ctx.rotate(0.4); // Manschette hinten, Knöchel in Flugrichtung
-        ctx.drawImage(f, -f.width * 0.15, -f.height * 0.15, f.width * 0.3, f.height * 0.3);
+        ctx.drawImage(f, -f.width * 0.25, -f.height * 0.25, f.width * 0.5, f.height * 0.5);
         ctx.restore();
         continue;
       }
@@ -1841,6 +1841,7 @@ export class DungeonRenderer {
     charging: boolean,
     fistScale = 1,
   ): void {
+    if (enraged && fistScale <= 0.02 && getHDArt().rigs.core_warden?.parts.fist_angled) return; // Faust ist unterwegs: Platz leer (kein Schweif, keine Leine)
     const coreColor = enraged ? '#fb7185' : charging ? '#fde047' : '#38e8d4';
     // Thin glowing energy tether linking pylon to boss reactor
     ctx.save();
@@ -1860,7 +1861,7 @@ export class DungeonRenderer {
     if (rigParts && fistImg) {
       drawGlow(ctx, px, py, charging ? 16 : 11, coreColor, charging ? 0.6 : 0.3);
       const ang = Math.atan2(py - bossY, px - bossX); // Richtung Boss → Pylon
-      const trail = charging ? rigParts.fist_trail : null;
+      const trail = charging && fistScale > 0.9 ? rigParts.fist_trail : null;
       if (trail) {
         // Energie-Schweif hinter der Faust (entgegen der Umlaufrichtung)
         ctx.save();
@@ -1978,8 +1979,8 @@ export class DungeonRenderer {
     const bodyY = e.y - z + hover + jitterY;
     const pylons = this.scene.enemyAi.getBossPylonPositions(e);
     const pylonCharging = state === 'pylon_barrage' || state === 'phase2_roar';
-    // M11: nach jeder Salve fliegt die Faust los und wächst im Orbit nach (nur Phase 2, nur Optik)
-    const fistScale = state === 'pylon_barrage' && e.subBurst > 0 ? Math.max(0, Math.min(1, 1 - Math.max(0, e.burstDelay) / 0.24)) : 1;
+    // M11: solange Fäuste unterwegs sind, ist der Orbit leer; danach kehren sie zurück (wachsen in 0,5 s nach) — nur Optik
+    const fistScale = this.fistReturnScale(e);
 
     // 1. Back-orbiting 3D plasma pylons (drawn behind boss chassis)
     for (const py of pylons) {
@@ -2224,6 +2225,18 @@ export class DungeonRenderer {
       }
       ctx.restore();
     }
+  }
+
+  private readonly fistSeen = new WeakMap<Enemy, number>();
+  /** Orbit-Fäuste: 0 solange abgefeuerte Fäuste fliegen, danach in 0,5 s zurück auf 1. */
+  private fistReturnScale(e: Enemy): number {
+    const t = this.scene.time;
+    if (this.scene.projectiles.some((p) => p.sprite === 'fist')) {
+      this.fistSeen.set(e, t);
+      return 0;
+    }
+    const seen = this.fistSeen.get(e);
+    return seen === undefined ? 1 : Math.max(0, Math.min(1, (t - seen) / 0.5));
   }
 
   /** M11 Teilen: Boss-Hälften etwas kleiner zeichnen (um den Fußpunkt). */
