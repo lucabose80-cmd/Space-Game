@@ -26,7 +26,7 @@
 | [ART_AND_DESIGN_GUIDE.md](ART_AND_DESIGN_GUIDE.md) | Generating new pixel-art sprites/backgrounds (prompt templates, color palettes, Python flood-fill extraction script, `artLoader.ts` & UI rules). |
 | [TESTING_AND_VERIFICATION.md](TESTING_AND_VERIFICATION.md) | Running `npm run build`, checking invariants, Headless Chrome CDP verification harness, visual screenshot QA, and known pitfalls. |
 | [CLEANUP_PLAN.md](CLEANUP_PLAN.md) | **Offene Aufräum-Liste (Audit 2026-11-26):** veraltete Doku-Stellen, Namens-Vereinheitlichung, Repo-Hygiene, toter Code — Schritt für Schritt mit Prüfung. Vor größeren Doku-Änderungen lesen. |
-| [firestore.rules](firestore.rules) | Production Firestore security rules (`saves/{uid}`, `leaderboard/{uid}`, `activities`). |
+| [firestore.rules](firestore.rules) | Production Firestore security rules (`saves/{uid}`, `leaderboard/{uid}`, `activities`, `weeklyTrials/{weekId}/entries/{uid}`). |
 
 ---
 

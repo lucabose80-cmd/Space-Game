@@ -46,7 +46,7 @@ npm run verify                           # Build + Invarianten + Sprite-Check + 
     - `art_source/rigs/krall_arms_R.png` (rechter Greifzangen-Arm `x=0.96`, 6 Posen, Schulterring im Fadenkreuz, `min_margin ≥ 31 px`)
     - `art_source/rigs/krall_arms_L.png` (linker Schrott-Haken + Mini-Kreissägen-Arm `x=0.04`, 6 Posen inkl. Schild-Block & Kamera-Stoß, Schulterring im Fadenkreuz, `min_margin ≥ 34 px`)
     - `art_source/rigs/krall_torsos.png` (6 Rumpf-Varianten inkl. Phase-2-Skelettrahmen/Kern offen & Funken/Dellen, Furnace-Kern im Fadenkreuz, `min_margin ≥ 34 px`)
-- **Noch offen (§4.1 Krall, 3 Sheets — pausiert wegen `gemini-3.1-flash-image`-Quota, Cooldown ~3h 32m):**
+- **Noch offen (§4.1 Krall, 3 Sheets — pausiert wegen `gemini-3.1-flash-image`-Quota):**
   - `krall_legs_R.png`, `krall_legs_L.png`, `krall_effects.png`
 
 ## M11 Pose-Sets — Code (umgesetzt) · Handbuch: [`RIGGING_GUIDE.md`](RIGGING_GUIDE.md)

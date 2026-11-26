@@ -31,6 +31,9 @@
 ## 2. Sprite-Lieferformat (für Gemini)
 
 ### 2.1 Teile-Sheet (Bosse) — `art_source/rigs/<id>_parts.png`
+
+> **Teilweise überholt:** Als Format gilt das Teile-Sheet (Typ P) nur noch für lose Einzelteile (Platten, Schrott). „Gelenkseite oben in der Zelle“ ist ersetzt durch **Gelenk = Zellmitte**, Pose-Sets und Gegner-Rigs: [`ART_BRIEF_M11.md`](ART_BRIEF_M11.md) v2 bzw. [`ART_BRIEF_M11_ENEMIES.md`](ART_BRIEF_M11_ENEMIES.md) (Typ G).
+
 - **Raster 3 × 2** (6 Zellen), Seitenverhältnis **3:2** (z. B. 1536 × 1024). Größere Bosse: zweites Sheet `<id>_parts2.png` (weitere 6 Zellen).
 - **Feste Zellen-Reihenfolge** je Boss (Zeile für Zeile, links → rechts), steht im Prompt (§6) und in `src/data/rigs.ts`. Leere Zellen bleiben **rein weiß**.
 - Jedes Teil **einzeln, vollständig, mit dunkler Outline**, weißer Rand rundherum, **gleiche Größenordnung** wie am fertigen Körper (Arme nicht größer zeichnen als den Rumpf).
@@ -38,6 +41,9 @@
 - Perspektive: dieselbe 3/4-Draufsicht wie die bisherigen Gegner.
 
 ### 2.2 Pose-Sheet (normale Gegner) — `art_source/poses/<id>_poses.png`
+
+> **Überholt:** siehe [`ART_BRIEF_M11.md`](ART_BRIEF_M11.md) v2 (Gelenk in Zellmitte, Pose-Sets) bzw. [`ART_BRIEF_M11_ENEMIES.md`](ART_BRIEF_M11_ENEMIES.md) (Typ G). Nicht mehr danach arbeiten.
+
 - **Raster 2 × 2**, Seitenverhältnis **1:1**: ① Ruhe A · ② Ruhe B (Laufschritt/Schweben) · ③ Ausholen (Vorwarnung) · ④ Angriff.
 - **Exakt gleiche Figur und Größe** in allen 4 Zellen, nur die Pose ändert sich.
 
@@ -53,7 +59,7 @@ npm run art:import            # alle neuen/geänderten Sheets in art_source/rigs
 npm run art:import -- krall   # nur ein Boss/Gegner
 ```
 **Auflösung:** Das Spiel zeichnet mit `RENDER_SCALE = 2`. Teile werden deshalb in **Bildschirm-Auflösung** gespeichert (`pixelRatio: 2` in `rigs.json`, Zielhöhe = `torsoDisplayH × 2`) und von `drawRig` mit halber Größe gezeichnet — 1:1 auf dem Bildschirm, wie die alten Boss-Sprites. Verkleinert wird mit Lanczos + hartem Alpha-Rand (`--resample`), nicht mit Nearest (weiße Fransen, Rauschen).
-Ergebnis: `public/art/rigs/<id>/<teil>.png` bzw. `public/art/poses/<id>_<1-4>.png` (freigestellt mit Rand-Flood-Fill + 1-px-Defringe + NEAREST, wie Art-Guide §3) und `public/art/rigs/<id>/import.json` (Teilgrößen + automatisch geschätzte Gelenkpunkte). Danach `npm run check:sprites` → zeigt, was noch fehlt.
+Ergebnis: `public/art/rigs/<id>/<teil>.png` bzw. `public/art/poses/<id>_<1-4>.png` (freigestellt mit Rand-Flood-Fill + 1-px-Defringe, verkleinert mit Lanczos — Standard von `--resample`; Art-Guide §3 beschreibt den älteren NEAREST-Weg für Einzel-Sprites) und `public/art/rigs/<id>/import.json` (Teilgrößen + automatisch geschätzte Gelenkpunkte). Danach `npm run check:sprites` → zeigt, was noch fehlt.
 
 ---
 
@@ -81,17 +87,23 @@ export function partWorldPos(def, pose, partId, x, y): { x: number; y: number; r
 - Treffer-Blitz: jedes Teil hat eine Flash-Silhouette (wie heute `makeFlashSilhouette`).
 
 ### 3.2 Animations-Schicht — `src/dungeon/anim/` (neu)
+
+> **Stand der Umsetzung:** `legs.ts` ❌ verworfen (Phase 2); `transform.ts` ⏹ nicht als eigene Datei umgesetzt — die Phase-2-Verwandlung läuft über `detach` (`anim/detached.ts`) + Rumpf-Varianten. Umgesetzt: `motion.ts`, `bossAnims.ts`, `detached.ts`.
+
 - `motion.ts`: **prozedurale Bewegung für alle** — Atmen/Schweben (Sinus), **Lehnen** in Laufrichtung (Winkel aus `vx`), **Ausholen** (Stauchen vor Sprung/Schlag), **Strecken** im Flug, **Nachfedern** bei Landung, **Rückstoß** bei starken Treffern. Eingabe: Enemy-Zustand (`vx/vy`, `telegraphTimer`, `bossSub`, `bossStatusText`, `flashTimer`); Ausgabe: Transform (`dx, dy, sx, sy, rot`).
 - `bossAnims.ts`: pro Boss eine Funktion `pose(e, t): Pose` — liest den Zustand der Boss-Engine (`bossSub` = idle/windup/active/recover, aktueller Zug-Name) und liefert die Teile-Pose. **Die Spiellogik (Treffer, Zonen) bleibt in `bosses/defs.ts`** — Animation zeigt nur, was ohnehin passiert.
 - `legs.ts`: **prozedurale Beine** (2–3 Segmente, einfache IK, Schrittzyklus abhängig von Geschwindigkeit, Füße „kleben“ kurz am Boden) für Geschütze, Mörser, Scharfschützen, Krabbler. Pixel-Look: 2-px-Linien, dunkle Outline, Gelenkpunkte.
 - `detached.ts`: **abgelöste Teile** als eigene Objekte (Position, Geschwindigkeit, Rotation, Rückkehr-Ziel). Schaden machen sie über die vorhandenen Systeme (Projektil oder `bossFx`-Zone); dieses Modul zeichnet nur das Teil statt eines Kreises.
 - `transform.ts`: **Phase-2-Effekte** — *Aufbrechen* (Rumpf in zwei Hälften per Clip-Rechteck, gleiten auseinander, Leuchtkern dazwischen), *Panzer abwerfen* (Teile fliegen als Splitter weg und verschwinden), *Teilen* (Boss zeichnet sich 2–3× kleiner an verschiedenen Positionen; Logik siehe §4.3).
 
-### 3.3 Fallback ohne neue Sprites — `src/data/rigs.ts`
+### 3.3 Fallback ohne neue Sprites — `src/data/rigs.json`
+
+> **Nicht umgesetzt:** Ausschnitte aus dem Einzelbild (`source.rects`). Fehlt ein Rig-Bild, zeigt der Boss sein altes Einzel-Sprite. Rig-Daten stehen in `src/data/rigs.json` (nicht `rigs.ts`).
+
 - Jeder Rig kann statt eines Teile-Sheets **Ausschnitte aus dem vorhandenen Einzelbild** verwenden: `source: { sprite: 'boss', rects: { armL: [x, y, w, h], … } }` (Pixel im Original-PNG). So bewegen sich Arme schon heute; an Schnittkanten können kleine Lücken entstehen — die schließt das Teile-Sheet später.
 - Reihenfolge beim Laden: `public/art/rigs/<id>/` vorhanden → nutzen · sonst Ausschnitte aus dem Einzelbild · sonst bisherige Darstellung.
 - Bosse **ohne** Einzelbild (Leviathan, Quarz-Koloss sind heute prozedural gezeichnet; Prisma-Weberin nutzt ein vergrößertes Gegner-Sprite): bis zum Teile-Sheet bleibt die bisherige Darstellung, ergänzt um die prozedurale Bewegung aus Phase 1.
-- `npm run check:sprites` listet zusätzlich **fehlende Teile-Sheets und Pose-Sheets** (eigener Abschnitt „Animation“).
+- `npm run check:sprites` listet zusätzlich **fehlende Teile-Sheets** (eigener Abschnitt „Animation“).
 
 ### 3.4 Einbindung
 - `dungeonRenderer.ts`: Gegner/Boss mit Rig → `drawRigged(e)`; sonst wie bisher. Größe/Hitbox unverändert (Darstellung ≠ Kollision).
@@ -160,6 +172,9 @@ Spalte „Teile“ = Zellen des Teile-Sheets (Reihenfolge für den Prompt). „V
 1. **Krall** und **Kern-Wächter** (Sektor 1, sieht jeder) → 2. `turret`, `magma_mortar`, `shard_sniper` (Pose-Sheets) → 3. Schlacken-Koloss, Gießerei-Meisterin, Chrono-Wächter, Monolith-Koloss → 4. Quarz-Koloss, Prisma-Weberin → 5. restliche Pose-Sheets → 6. Archons/Leviathan (haben schon gute Einzelbilder; Teile-Sheets sind Kür).
 
 ### 6.1 Formel E — Teile-Sheet (Bosse)
+
+> **Überholt:** siehe [`ART_BRIEF_M11.md`](ART_BRIEF_M11.md) v2 (Gelenk in Zellmitte, Pose-Sets) bzw. [`ART_BRIEF_M11_ENEMIES.md`](ART_BRIEF_M11_ENEMIES.md) (Typ G). Nicht mehr danach arbeiten.
+
 ```text
 Crisp 16-bit/32-bit indie RPG pixel art CHARACTER PARTS SHEET for cut-out animation, arranged in a clean 3x2 grid
 on a pure solid flat white #FFFFFF background, every part fully separated with generous white margin, nothing touching cell borders,
@@ -172,6 +187,9 @@ Cells (row by row, left to right): 1) <Teil>, 2) <Teil>, 3) <Teil>, 4) <Teil>, 5
 *(Tipp: das bisherige Sprite als Referenzbild anhängen und „keep this exact design“ ergänzen.)*
 
 ### 6.2 Formel F — Pose-Sheet (Gegner)
+
+> **Überholt:** siehe [`ART_BRIEF_M11.md`](ART_BRIEF_M11.md) v2 (Gelenk in Zellmitte, Pose-Sets) bzw. [`ART_BRIEF_M11_ENEMIES.md`](ART_BRIEF_M11_ENEMIES.md) (Typ G). Nicht mehr danach arbeiten.
+
 ```text
 Crisp 16-bit/32-bit indie RPG pixel art enemy POSE SHEET, the SAME character drawn 4 times in a clean 2x2 grid
 on a pure solid flat white #FFFFFF background with generous white margin, identical size, colors and design in every cell,
@@ -199,6 +217,9 @@ Cells: 1) idle, 2) idle alternate / walking step, 3) wind-up before attacking (a
 
 ### 6.4 Gegner-Einträge (Pose-Sheets)
 
+> **Überholt:** siehe [`ART_BRIEF_M11.md`](ART_BRIEF_M11.md) v2 (Gelenk in Zellmitte, Pose-Sets) bzw. [`ART_BRIEF_M11_ENEMIES.md`](ART_BRIEF_M11_ENEMIES.md) (Typ G). Nicht mehr danach arbeiten.
+
+
 | Datei | Beschreibung (für „Character:“) |
 | :--- | :--- |
 | `turret_poses.png` | small mobile gun turret dome with a single barrel, NO legs (legs are added in code) |
@@ -220,7 +241,7 @@ Jede Phase: Code → Test → `npm run verify` → Screenshots/Bildfolgen ansehe
 
 ### Phase 0 — Pipeline
 - `scripts/art-import.py` (Python + Pillow; Aufruf über `npm run art:import`): Raster erkennen (3×2 / 2×2), Zellen schneiden, Rand-Flood-Fill, Defringe, eng zuschneiden, auf Zielgröße mit NEAREST skalieren (Rig: Rumpfhöhe = bisherige Anzeigehöhe), `import.json` mit Teilgrößen + geschätzten Gelenkpunkten (oberste Mitte des Teils). Option `--keep-cell N`.
-- `check-sprites.mjs`: Abschnitt „Animation“ (fehlende Sheets laut `src/data/rigs.ts`).
+- `check-sprites.mjs`: Abschnitt „Animation“ (fehlende Sheets laut `src/data/rigs.json`).
 - Test: Beispiel-Sheet (in `tests/fixtures/` künstlich erzeugt) → richtige Anzahl Teile, transparenter Hintergrund, keine weißen Fransen.
 
 ### Phase 1 — Rig-Engine & prozedurale Bewegung
@@ -233,7 +254,7 @@ Jede Phase: Code → Test → `npm run verify` → Screenshots/Bildfolgen ansehe
 - Test: Füße bleiben während der Stützphase ortsfest (±1 px), Beine skalieren mit Tempo; Screenshot-Folge.
 
 ### Phase 3 — Bosse Sektor 1 (Krall, Kern-Wächter, Leviathan)
-- Rigs in `data/rigs.ts` (inkl. Fallback-Ausschnitte aus den Einzelbildern), Posen in `anim/bossAnims.ts`, abgelöste Teile (`detached.ts`), Verwandlung (`transform.ts`).
+- Rigs in `data/rigs.json` (inkl. Fallback-Ausschnitte aus den Einzelbildern), Posen in `anim/bossAnims.ts`, abgelöste Teile (`detached.ts`), Verwandlung (`transform.ts`).
 - Test: je Zug eine Pose ≠ Ruhe-Pose; Phase-2-Verwandlung startet genau einmal; Screenshots pro Zug.
 
 ### Phase 4 — Bosse Sektor 2 (inkl. **Teilen** des Quarz-Koloss, §4.3) — Teilen ✅ (Quarz-Koloss + Sternen-Archon, Test m11p4); Rigs warten auf Sprites

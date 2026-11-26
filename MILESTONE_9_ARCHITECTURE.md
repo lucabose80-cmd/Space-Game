@@ -1,6 +1,6 @@
 # Architektur- & Vorgehensplan: Meilenstein 9 — Galaktisches Netzwerk & Lebendige Community
 
-> **Status:** ✅ Umgesetzt auf Branch `claude/architektur-vorgehensplan-lgme5i` (Phasen 0–5) — siehe Abschnitt 10 „Umsetzungsnotizen“
+> **Status:** ✅ Umgesetzt & live auf `main` (Phasen 0–5) — siehe Abschnitt 10 „Umsetzungsnotizen“
 > **Basis:** `main` nach Meilenstein 8 (`SaveData v9`, Firebase `starlighter-15b1f`, Architektur-Split)
 > **Ziel-Save-Version:** `SAVE_VERSION = 10`
 > **Quelle der Anforderungen:** [GAME_DESIGN_DOCUMENT.md §5](GAME_DESIGN_DOCUMENT.md) (Roadmap M9, Punkte 1–4)

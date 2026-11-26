@@ -29,7 +29,7 @@ Wenn ein Rig fehlt oder ein Bild nicht lädt, wird automatisch das alte Einzelbi
 | `src/assets/artLoader.ts` | lädt alle Teile-Bilder (+ Flash-Silhouetten); fehlt eins → Rig = `null` |
 | `src/dev/bossLab.ts` | Boss-Labor `?bosslab` (Zustände ansehen, Pause, „Phase II“, Rig an/aus) |
 | `src/dungeon/anim/detached.ts` | abgelöste Teile (Phase-2-Verwandlung) |
-| `tests/m11p1.cjs`, `m11p2.cjs`, `m11p3.cjs` | Tests Rig-Engine / Pose-Sets / abgelöste Teile |
+| `tests/m11p0.cjs` … `m11p4.cjs` | Tests Import-Pipeline / Rig-Engine / Pose-Sets / abgelöste Teile / Teilen |
 
 ## 3. `rigs.json` verstehen
 ```jsonc

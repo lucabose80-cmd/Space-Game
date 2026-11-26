@@ -6,92 +6,56 @@
 
 ## 1. Standard-Verifikations-Pipeline (Vor jedem Commit/Push)
 
-Jede Änderung durchläuft immer diese **5 Schritte**:
-
-1. **TypeScript & Production Build:**
+1. **Alles auf einmal:**
    ```bash
-   npm run build
+   npm run verify   # build (tsc + vite) → check:invariants → check:sprites → alle Playwright-Tests
    ```
-   Prüft `tsc` (strikte Regeln: `verbatimModuleSyntax`, `erasableSyntaxOnly`, `noUnusedLocals`, `noUnusedParameters`) sowie den `vite build` inkl. Chunk-Splitting (`index`, `dungeon`, `firebase` in `vite.config.ts`).
+   - `npm run build`: `tsc` (strikt: `verbatimModuleSyntax`, `erasableSyntaxOnly`, `noUnusedLocals`, `noUnusedParameters`) + `vite build` inkl. Chunk-Splitting (`index`, `dungeon`, `firebase`).
+   - `npm run check:invariants`: Zero-Dungeon-Credits (`state.credits +=` in `src/scenes/DungeonScene.ts` und ganz `src/dungeon/`) und kein `Math.random` in `mechanicsGen.ts`. Gleichwertig von Hand: `rg -n "state\.credits\s*\+=" src/scenes/DungeonScene.ts src/dungeon/` → 0 Treffer.
+   - `npm run check:sprites`: listet fehlende optionale Sprites/Rigs (nur Hinweis).
+   - `npm test` (`tests/run.cjs` → `tests/harness.cjs`: Vite-Dev-Server auf Port 4197 + Playwright-Chromium; einmalig `npx playwright install chromium`). Einzelne Tests: `npm test -- m10p3 t5`.
+2. **Savegame-Kompatibilität:** Neue Felder in `SaveData` (`src/types.ts`) müssen optional (`?`) sein und in `GameState.load()` (`src/systems/gameState.ts`) mit Defaults geladen werden.
+3. **Screenshots ansehen:** Tests legen PNGs in `tests/out/` ab (gitignored). **Pflicht:** jeden relevanten Screenshot visuell prüfen (Text-Umbrüche, Überlappungen, Prompt-Positionen, Sprite-Ränder, Kontrast).
+4. **Push:** Erst wenn `npm run verify` grün ist und die Screenshots sauber aussehen (siehe `AGENTS.md` §3 Regel 6/8; zuletzt `HANDOFF.md` aktualisieren).
 
-2. **Statische Design-Invarianten prüfen:**
-   - **Zero-Dungeon-Credits-Regel:** Es darf **kein** direktes `state.credits +=` in Dungeon-Code geben:
-     ```bash
-     rg -n "state\.credits\s*\+=" src/scenes/DungeonScene.ts src/dungeon/enemyAi.ts src/dungeon/dungeonRenderer.ts
-     ```
-     *(Muss 0 Treffer liefern — Credits kommen ausschließlich aus Shop-Verkäufen, Bounties & Handel.)*
-   - **Savegame-Kompatibilität:** Neue Felder in `SaveData` (`src/types.ts`) müssen optional (`?`) sein und in `GameState.load()` (`src/systems/gameState.ts`) rückwärtskompatibel mit Defaults geladen werden.
-
-3. **Automatisierte Logik- & Runtime-Verifikation in Headless Chrome (CDP):**
-   - Startet `npx vite --port <PORT> --host 127.0.0.1 --strictPort` und `/usr/bin/google-chrome --headless=new --disable-gpu --no-sandbox --remote-debugging-port=<CDP_PORT> --window-size=1280,720 about:blank`.
-   - Importiert die echten TypeScript-Module direkt im Browser via `await import('/src/...')` (Vite serviert sie live) und testet:
-     - Alle neuen HD-Sprites geladen (`art.<key>.width > 0` bzw. `art.items[id].width > 0`).
-     - Prozedurale Generatoren (`generateSectorFloor`, `generateEndlessRiftFloor`, Geheimkammern, Rift-Risse).
-     - Spielmechaniken (`GameState`-Methoden, Kampf-Effekte, `damageEnemy`, `onEnemyKilled`, `firebaseService.buildLeaderboardEntry`, `isCloudSaveAhead`).
-     - Save/Load-Roundtrip (`exportSaveJson()` → neue `GameState`-Instanz → `importSaveJson()`).
-   - Sammelt alle `Runtime.exceptionThrown` und `Log.entryAdded (level === 'error')` Events — der Test bricht mit Fehler ab, sobald ein echter App-Fehler auftritt.
-
-4. **Live-Screenshots rendern & visuell prüfen:**
-   - Stellt 2–4 gezielte In-Game-Zustände (z. B. Hub-Promenade, Dungeon-Kampf mit FX, neue Modals) auf dem echten `#game-canvas` (`960×540`) + DOM-HUD/Modal-Layer nach und speichert PNG-Screenshots (`Page.captureScreenshot`).
-   - **Pflicht:** Jeden erzeugten Screenshot anschließend visuell ansehen (Text-Umbrüche, Überlappungen, Prompt-Positionen, Sprite-Ränder, Kontrast, Lesbarkeit prüfen) und entdeckte Layout-Fehler sofort nachbessern.
-
-5. **Commit & Push auf `main`:**
-   - Erst wenn `npm run build` grün ist, alle Logik-Assertions bestanden sind, `0` Runtime-Fehler auftreten und alle Screenshots sauber aussehen, wird committet und auf `origin main` gepusht (Vercel deployt automatisch).
+**Neue Tests** als `tests/<name>.cjs` nach dem Muster bestehender Tests schreiben (Namensschema `t\d…`, `m\d+[a-z]?p…`, sonst nimmt `tests/run.cjs` sie nicht auf) und mit `npm test -- <name>` ausführen. Test-Hooks & Stolperfallen: §3 und die Abschnitte je Meilenstein unten.
 
 ---
 
-## 2. Bewährtes Headless-Chrome-CDP-Harness (Vorlage)
+## 1b. Automatisierte Tests im Repo (seit M10-A)
 
-Temporäre Testskripte werden im Scratch-Ordner (nicht im Repo) ausgeführt. Wichtigste Bausteine:
+- `tests/*.cjs` (Playwright, Vite-Dev-Server auf Port 4197) laufen über `npm test` (alle) bzw. `npm test -- m10p3 t5` (einzelne). `tests/harness.cjs` startet Vite + Chromium; Screenshots landen in `tests/out/` (gitignored). Einmalig `npx playwright install chromium`.
+- `npm run check:invariants` prüft die harten Regeln aus AGENTS.md (ohne `rg`), `npm run check:sprites` listet fehlende optionale Sprites, `npm run verify` führt alles zusammen aus.
 
-```js
-import { spawn } from 'node:child_process';
-import fs from 'node:fs';
-import path from 'node:path';
 
-// 1. Vite & Headless Chrome auf festen lokalen Ports starten (immer 127.0.0.1!)
-const vite = spawn('npx', ['vite', '--port', '4197', '--host', '127.0.0.1', '--strictPort'], {
-  cwd: '/home/antigravity/lucabose80-cmd/Space-Game',
-  stdio: 'pipe',
-});
-const chrome = spawn('/usr/bin/google-chrome', [
-  '--headless=new', '--disable-gpu', '--no-sandbox',
-  '--remote-debugging-port=9247', '--window-size=1280,720', 'about:blank',
-], { stdio: 'pipe' });
+### Tests & Fallstricke für Meilenstein 10-C
 
-// 2. Per WebSocket mit CDP verbinden (Page.enable, Runtime.enable, Log.enable)
-//    Emulation.setDeviceMetricsOverride: { width: 1280, height: 720, deviceScaleFactor: 1, mobile: false }
-//    Für Mobile-Tests: { width: 390, height: 844, deviceScaleFactor: 2, mobile: true }
+| Test | Prüft |
+| :--- | :--- |
+| `m10cp0` | `balance.ts`, `check:sprites` über alle `*_OPTIONAL_SPRITES`-Blöcke |
+| `m10cp1` | Navigation (Wand-Umgehung), freie Bahn unverändert |
+| `m10cp2` | Portal nur auf freiem Platz, Seed-Treue der Prüfungs-Layouts |
+| `m10cp3` | HUD je Szene/Auflösung (Minimap frei), Ton-Zyklus |
+| `m10cp4` | Waffenschrank/Loadout-Panel |
+| `m10cp5` | Tag/Nacht-Zustandsfolge (Laden, Koje, Tag-/Nacht-Run, Prüfung) |
+| `m10cp6` / `m10cp6b` | Notfall-Bake & fehlender R-Teleport · Gegner-Schilde |
+| `m10cp7` | alle Boss-Züge + Phase 2 (Simulation), Zonen-Geometrie |
+| `m10cp8` | Preise, Waffenstufen, Sperren, Boss-Kampfdauer, Preis-Migration, schreibt `tests/out/ttk.json` & `economy.json` |
+| `m10cp9` | Bot-Hürden, Rift-Faktoren/Wellen/Elite |
+| `m10cp10` | Wochen-Prüfung: Boss-Kampfdauer, Par-Zeiten |
 
-// 3. Nach Page.navigate auf Origin + CSS + HD-Art warten:
-await cdp.evalJs(`(async () => {
-  for (let i = 0; i < 60; i++) {
-    if (window.location.origin === 'http://127.0.0.1:4197' && document.styleSheets.length > 0) break;
-    await new Promise(r => setTimeout(r, 80));
-  }
-  const { preloadHDArt } = await import('/src/assets/artLoader.ts');
-  await preloadHDArt();
-})()`);
+- **Referenz-Hash der Prüfung (`m10p4`):** `trialHash` enthält absichtlich **keine** Portale/Rift-Kammern/Notfall-Bake/Mechanik-Felder (die Prüfung löscht oder erzeugt sie nicht). Ändert sich der Wert, haben sich die Prüfungs-Layouts geändert.
+- **Offene Modals blockieren Übergänge:** Ist ein Modal offen (z. B. Schicht-Zusammenfassung), läuft das Szenen-Fade nicht weiter. In Tests `ui.closeModal()` aufrufen, bevor auf einen Szenenwechsel gewartet wird.
+- **Test-Daten nie ersetzen, nur befüllen:** `Object.assign(st.pedestals[0], …)` statt `st.pedestals[0] = {…}` (sonst fehlen `x/y` → `NaN` im Renderer → Spielschleife stirbt).
+- **Prüfung + Wochen-Mutator:** Ist der Mutator „gepanzert“, haben Gegner ×1,3 HP. Für Kalibrier-Messungen `dng.activeRiftMutator = null` setzen.
+- **Parallele Läufe:** Nie zwei Harness-Läufe gleichzeitig starten (Port 4197) und während `npm run verify` keine Quelldateien ändern.
 
-// 4. Laufende requestAnimationFrame-Loops pausieren & Titelbild ausblenden,
-//    damit gestagte Szenen für Screenshots deterministisch stehen bleiben:
-await cdp.evalJs(`(() => {
-  const highest = window.requestAnimationFrame(() => {});
-  for (let i = 1; i <= highest + 20; i++) window.cancelAnimationFrame(i);
-  document.getElementById('title-overlay')?.classList.add('hidden');
-})()`);
-
-// 5. Szene deterministisch auf #game-canvas rendern (RENDER_SCALE = 2!):
-await cdp.evalJs(`(async () => {
-  const canvas = document.getElementById('game-canvas');
-  const ctx = canvas.getContext('2d');
-  ctx.setTransform(2, 0, 0, 2, 0, 0);
-  ctx.imageSmoothingEnabled = false;
-  // scene.render(ctx) bzw. dng.render(ctx, inp)
-})()`);
-
-// 6. Teardown: Erst WebSocket schließen, 100 ms warten, dann Chrome & Vite beenden!
-```
+### Tests & Fallstricke für Meilenstein 11 (Rigs & Boss-Animation)
+- **Tests:** `m11p0` (Import-Pipeline), `m11p1` (Rig-Engine), `m11p2` (Pose-Sets, Übergangs-Glätte < 0,2 rad/Frame, Zwischen-Posen, Zuordnung Zustand→Variante), `m11p3` (abgelöste Teile), `m11p4` (Teilen: gemeinsamer HP-Pool, Sieg nur einmal). `m11lab` (Boss-Labor) läuft nicht über `npm test`.
+- **Test-Enemies brauchen `hp`/`maxHp`:** `getBossPose` liest die HP-Quote (stark beschädigter Kopf < 15 %); fehlt `maxHp`, gilt 100 %.
+- **Frische Enemy-Objekte = ungeglättet:** `getBossPose` glättet pro Enemy-Objekt (WeakMap). Für Zustands-Prüfungen immer ein **neues** Objekt benutzen; für Übergangs-Tests dasselbe Objekt mit steigender `time`.
+- **Dev-Server nach `rigs.json`-Änderung neu starten**, sonst liefert `import('/src/…')` im Browser eine zweite Modul-Instanz (leere Rigs).
+- **Sichtprüfung:** `node scripts/rig-sheet.cjs core_warden` (Kontaktbogen in `tests/out/`), im Spiel `?bosslab` (Pause, 0,25×, „Phase II“).
 
 ---
 
@@ -152,43 +116,65 @@ Wenn neue Items, Props, Gegner oder Schiffe per Bildgenerierung erstellt werden:
 
 ## 5. Verknüpfte Dokumente
 
-- [GAME_DESIGN_DOCUMENT.md](GAME_DESIGN_DOCUMENT.md) — Aktueller Stand (v1.1), Design-Invariants, Codebase-Karte & offene Phase-2-Roadmap.
+- [GAME_DESIGN_DOCUMENT.md](GAME_DESIGN_DOCUMENT.md) — Aktueller Stand (v1.4), Design-Invariants, Codebase-Karte & offene Ideen.
+- [HANDOFF.md](HANDOFF.md) — aktueller Arbeitsstand · [RIGGING_GUIDE.md](RIGGING_GUIDE.md) — M11-Prüfwerkzeuge.
 - [firestore.rules](firestore.rules) — Sicherheitsregeln für Firebase Cloud-Save, Rangliste & Aktivitäts-Feed.
-
 
 ---
 
-## Automatisierte Tests im Repo (seit M10-A)
+## 6. Historisch: manuelles Headless-Chrome-CDP-Harness (vor M10-A)
 
-- `tests/*.cjs` (Playwright, Vite-Dev-Server auf Port 4197) laufen über `npm test` (alle) bzw. `npm test -- m10p3 t5` (einzelne). `tests/harness.cjs` startet Vite + Chromium; Screenshots landen in `tests/out/` (gitignored). Einmalig `npx playwright install chromium`.
-- `npm run check:invariants` prüft die harten Regeln aus AGENTS.md (ohne `rg`), `npm run check:sprites` listet fehlende optionale Sprites, `npm run verify` führt alles zusammen aus.
+> **Überholt.** Seit M10-A laufen alle Prüfungen über `tests/harness.cjs` (Playwright). Das folgende Muster (eigenes Skript mit `/usr/bin/google-chrome` und CDP) wird nur noch gebraucht, wenn man Playwright bewusst umgehen will; die Pfade sind Beispiele.
 
+Temporäre Testskripte werden im Scratch-Ordner (nicht im Repo) ausgeführt. Wichtigste Bausteine:
 
-### Tests & Fallstricke für Meilenstein 10-C
+```js
+import { spawn } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
 
-| Test | Prüft |
-| :--- | :--- |
-| `m10cp0` | `balance.ts`, `check:sprites` über alle `*_OPTIONAL_SPRITES`-Blöcke |
-| `m10cp1` | Navigation (Wand-Umgehung), freie Bahn unverändert |
-| `m10cp2` | Portal nur auf freiem Platz, Seed-Treue der Prüfungs-Layouts |
-| `m10cp3` | HUD je Szene/Auflösung (Minimap frei), Ton-Zyklus |
-| `m10cp4` | Waffenschrank/Loadout-Panel |
-| `m10cp5` | Tag/Nacht-Zustandsfolge (Laden, Koje, Tag-/Nacht-Run, Prüfung) |
-| `m10cp6` / `m10cp6b` | Notfall-Bake & fehlender R-Teleport · Gegner-Schilde |
-| `m10cp7` | alle Boss-Züge + Phase 2 (Simulation), Zonen-Geometrie |
-| `m10cp8` | Preise, Waffenstufen, Sperren, Boss-Kampfdauer, Preis-Migration, schreibt `tests/out/ttk.json` & `economy.json` |
-| `m10cp9` | Bot-Hürden, Rift-Faktoren/Wellen/Elite |
-| `m10cp10` | Wochen-Prüfung: Boss-Kampfdauer, Par-Zeiten |
+// 1. Vite & Headless Chrome auf festen lokalen Ports starten (immer 127.0.0.1!)
+const vite = spawn('npx', ['vite', '--port', '4197', '--host', '127.0.0.1', '--strictPort'], {
+  cwd: '<Projektordner>',
+  stdio: 'pipe',
+});
+const chrome = spawn('/usr/bin/google-chrome', [
+  '--headless=new', '--disable-gpu', '--no-sandbox',
+  '--remote-debugging-port=9247', '--window-size=1280,720', 'about:blank',
+], { stdio: 'pipe' });
 
-- **Referenz-Hash der Prüfung (`m10p4`):** `trialHash` enthält absichtlich **keine** Portale/Rift-Kammern/Notfall-Bake/Mechanik-Felder (die Prüfung löscht oder erzeugt sie nicht). Ändert sich der Wert, haben sich die Prüfungs-Layouts geändert.
-- **Offene Modals blockieren Übergänge:** Ist ein Modal offen (z. B. Schicht-Zusammenfassung), läuft das Szenen-Fade nicht weiter. In Tests `ui.closeModal()` aufrufen, bevor auf einen Szenenwechsel gewartet wird.
-- **Test-Daten nie ersetzen, nur befüllen:** `Object.assign(st.pedestals[0], …)` statt `st.pedestals[0] = {…}` (sonst fehlen `x/y` → `NaN` im Renderer → Spielschleife stirbt).
-- **Prüfung + Wochen-Mutator:** Ist der Mutator „gepanzert“, haben Gegner ×1,3 HP. Für Kalibrier-Messungen `dng.activeRiftMutator = null` setzen.
-- **Parallele Läufe:** Nie zwei Harness-Läufe gleichzeitig starten (Port 4197) und während `npm run verify` keine Quelldateien ändern.
+// 2. Per WebSocket mit CDP verbinden (Page.enable, Runtime.enable, Log.enable)
+//    Emulation.setDeviceMetricsOverride: { width: 1280, height: 720, deviceScaleFactor: 1, mobile: false }
+//    Für Mobile-Tests: { width: 390, height: 844, deviceScaleFactor: 2, mobile: true }
 
-### Tests & Fallstricke für Meilenstein 11 (Rigs & Boss-Animation)
-- **Tests:** `m11p0` (Import-Pipeline), `m11p1` (Rig-Engine), `m11p2` (Pose-Sets, Übergangs-Glätte < 0,2 rad/Frame, Zwischen-Posen, Zuordnung Zustand→Variante), `m11p3` (abgelöste Teile), `m11p4` (Teilen: gemeinsamer HP-Pool, Sieg nur einmal). `m11lab` (Boss-Labor) läuft nicht über `npm test`.
-- **Test-Enemies brauchen `hp`/`maxHp`:** `getBossPose` liest die HP-Quote (stark beschädigter Kopf < 15 %); fehlt `maxHp`, gilt 100 %.
-- **Frische Enemy-Objekte = ungeglättet:** `getBossPose` glättet pro Enemy-Objekt (WeakMap). Für Zustands-Prüfungen immer ein **neues** Objekt benutzen; für Übergangs-Tests dasselbe Objekt mit steigender `time`.
-- **Dev-Server nach `rigs.json`-Änderung neu starten**, sonst liefert `import('/src/…')` im Browser eine zweite Modul-Instanz (leere Rigs).
-- **Sichtprüfung:** `node scripts/rig-sheet.cjs core_warden` (Kontaktbogen in `tests/out/`), im Spiel `?bosslab` (Pause, 0,25×, „Phase II“).
+// 3. Nach Page.navigate auf Origin + CSS + HD-Art warten:
+await cdp.evalJs(`(async () => {
+  for (let i = 0; i < 60; i++) {
+    if (window.location.origin === 'http://127.0.0.1:4197' && document.styleSheets.length > 0) break;
+    await new Promise(r => setTimeout(r, 80));
+  }
+  const { preloadHDArt } = await import('/src/assets/artLoader.ts');
+  await preloadHDArt();
+})()`);
+
+// 4. Laufende requestAnimationFrame-Loops pausieren & Titelbild ausblenden,
+//    damit gestagte Szenen für Screenshots deterministisch stehen bleiben:
+await cdp.evalJs(`(() => {
+  const highest = window.requestAnimationFrame(() => {});
+  for (let i = 1; i <= highest + 20; i++) window.cancelAnimationFrame(i);
+  document.getElementById('title-overlay')?.classList.add('hidden');
+})()`);
+
+// 5. Szene deterministisch auf #game-canvas rendern (RENDER_SCALE = 2!):
+await cdp.evalJs(`(async () => {
+  const canvas = document.getElementById('game-canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(2, 0, 0, 2, 0, 0);
+  ctx.imageSmoothingEnabled = false;
+  // scene.render(ctx) bzw. dng.render(ctx, inp)
+})()`);
+
+// 6. Teardown: Erst WebSocket schließen, 100 ms warten, dann Chrome & Vite beenden!
+```
+
+---

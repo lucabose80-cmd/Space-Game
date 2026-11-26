@@ -38,28 +38,28 @@
 
 ## C2 · Veraltete Abschnitte in Fach-Dokumenten (Doku, ein Commit)
 
-- [ ] **C2.1 `TESTING_AND_VERIFICATION.md`**
+- [x] **C2.1 `TESTING_AND_VERIFICATION.md`**
   - §1 „Standard-Verifikations-Pipeline“ neu fassen: Schritt 1 = `npm run verify` (Build → `check:invariants` → `check:sprites` → Playwright-Tests aus `tests/*.cjs` über `tests/harness.cjs`), Schritt 2 = Screenshots in `tests/out/` ansehen, Schritt 3 = Push. Den `rg`-Befehl durch `rg -n "state\.credits\s*\+=" src/scenes/DungeonScene.ts src/dungeon/` ersetzen (prüft ganz `src/dungeon/`, wie AGENTS.md §3 Regel 1).
   - §2 „Bewährtes Headless-Chrome-CDP-Harness (Vorlage)“ (manuelles `google-chrome`, Pfad `/home/antigravity/...`) → in einen Anhang „Historisch (vor M10-A)“ verschieben **oder** löschen; Hinweis: „Neue Tests als `tests/<name>.cjs` nach dem Muster bestehender Tests schreiben, `npm test -- <name>`.“
   - Den Abschnitt „Automatisierte Tests im Repo (seit M10-A)“ nach oben (direkt unter §1) ziehen.
   - §5: „Aktueller Stand (v1.1)“ → „(v1.4)“; Links auf `HANDOFF.md`, `RIGGING_GUIDE.md` ergänzen.
-- [ ] **C2.2 `MILESTONE_11_ARCHITECTURE.md`** — überholte Teile klar markieren (nicht löschen, Plan-Historie bleibt):
+- [x] **C2.2 `MILESTONE_11_ARCHITECTURE.md`** — überholte Teile klar markieren (nicht löschen, Plan-Historie bleibt):
   - Am Anfang von §2.1, §2.2, §3.2 (Punkte `legs.ts`, `transform.ts`), §3.3, §6.1, §6.2, §6.4 einen Kasten einfügen: „> **Überholt:** siehe `ART_BRIEF_M11.md` v2 (Gelenk in Zellmitte, Pose-Sets) bzw. `ART_BRIEF_M11_ENEMIES.md` (Typ G). Nicht mehr danach arbeiten.“
   - §2.1 „steht in `src/data/rigs.ts`“ → „steht in `src/data/rigs.json` (`sheet.order`)“; ebenso §3.3/§7 Phase 0/3 „`data/rigs.ts`“ → „`data/rigs.json`“.
   - §2.4 Widerspruch auflösen: Satz „(freigestellt mit Rand-Flood-Fill + 1-px-Defringe + NEAREST, wie Art-Guide §3)“ → „(freigestellt mit Rand-Flood-Fill + 1-px-Defringe, verkleinert mit Lanczos — Standard von `--resample`)“.
   - §3.3: Satz ergänzen „**Nicht umgesetzt:** Ausschnitte aus dem Einzelbild (`source.rects`). Fehlt ein Rig-Bild, zeigt der Boss sein altes Einzel-Sprite.“
   - §3.2 `transform.ts` → „nicht als eigene Datei umgesetzt; Phase-2-Verwandlung läuft über `detach` (`anim/detached.ts`) + Rumpf-Varianten“.
-- [ ] **C2.3 `BOSS_ANIMATION_PLAN.md`**
+- [x] **C2.3 `BOSS_ANIMATION_PLAN.md`**
   - §2.1 Update-Kasten: „Offen: nur noch die Abnahme …“ → „Offen: **S6** (Arme ohne Faust in Angriffsposen) und die Abnahme im echten Kampf (§2.4).“
   - §2.3 letzte Zeile „Reihenfolge für Credits: … *(alle Sprite-Aufgaben für Kern-Wächter erledigt!)*“ → „Offen: **S6**. Erledigt: S1 → S3 → S4 → S2 → S5.“
   - K5 und K6: die eingerückten Unterpunkte (beschreiben verworfene Wege) entweder löschen oder mit „*(verworfener Ansatz, nur Historie)*“ einleiten.
-- [ ] **C2.4 `ART_BRIEF_M11.md`**
+- [x] **C2.4 `ART_BRIEF_M11.md`**
   - §7 „Was Claude Code danach baut (zur Info)“ → Überschrift „§7 Bereits umgesetzt“ und Inhalt auf 2 Zeilen kürzen (Import-Modi `limb`/`swap`, `PartPose.variant` — siehe `RIGGING_GUIDE.md`).
   - §6 Punkt 1: „Pose-Sheets 2×2: `-- --cols 2 --rows 2`“ streichen (2×2 ist überholt).
   - §5: „Prüfbilder (nicht committen nötig)“ → „Prüfbilder (**nicht committen**, stehen in `.gitignore`)“ — passt nach C4.1.
   - Kopf „Stand: nach den Pilot-Sheets“ → „Stand: Kern-Wächter komplett, Krall Arme/Rumpf fertig (siehe `HANDOFF.md`)“.
-- [ ] **C2.5 `art_source/poses/README.md`** ersetzen durch: „Überholt — 2×2-Pose-Sheets werden nicht mehr verwendet. Normale Gegner: `art_source/rigs/<kind>_rig.png` (3×2, Typ G), siehe `ART_BRIEF_M11_ENEMIES.md`.“ `art_source/rigs/README.md` ebenso aktualisieren: Typ P `<id>_parts.png`, Typ L/S `<id>_arms_L/R.png`, `_heads`, `_torsos`, `_legs_L/R`, `_effects` (`ART_BRIEF_M11.md`), Typ G `<kind>_rig.png` (`ART_BRIEF_M11_ENEMIES.md`).
-- [ ] **C2.6 Kleinkram**
+- [x] **C2.5 `art_source/poses/README.md`** ersetzen durch: „Überholt — 2×2-Pose-Sheets werden nicht mehr verwendet. Normale Gegner: `art_source/rigs/<kind>_rig.png` (3×2, Typ G), siehe `ART_BRIEF_M11_ENEMIES.md`.“ `art_source/rigs/README.md` ebenso aktualisieren: Typ P `<id>_parts.png`, Typ L/S `<id>_arms_L/R.png`, `_heads`, `_torsos`, `_legs_L/R`, `_effects` (`ART_BRIEF_M11.md`), Typ G `<kind>_rig.png` (`ART_BRIEF_M11_ENEMIES.md`).
+- [x] **C2.6 Kleinkram**
   - `MILESTONE_9_ARCHITECTURE.md` Kopf: „Umgesetzt auf Branch `claude/architektur-vorgehensplan-lgme5i`“ → „Umgesetzt & live auf `main`“.
   - `RIGGING_GUIDE.md` §2 Tabelle letzte Zeile: Tests `m11p0` (Import), `m11p1`, `m11p2`, `m11p3`, `m11p4` (Teilen) nennen.
   - `AGENTS.md` §2 Zeile `firestore.rules`: `weeklyTrials/{weekId}/entries/{uid}` ergänzen.

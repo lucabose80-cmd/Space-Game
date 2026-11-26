@@ -1,6 +1,6 @@
 # Sprite-Briefing M11 (v2) — Posen statt nur Drehen
 
-> **Für:** Antigravity / Gemini (`generate_image`) · **Von:** Claude Code · **Stand:** nach den Pilot-Sheets Krall & Kern-Wächter
+> **Für:** Antigravity / Gemini (`generate_image`) · **Von:** Claude Code · **Stand:** Kern-Wächter komplett, Krall Arme/Rumpf fertig (siehe `HANDOFF.md`)
 > **Kurz:** Die ersten Teile-Sheets (`*_parts.png`) reichen für Ruhe/Gehen, aber nicht für Angriffe. Hände, Arme und Köpfe brauchen **echte Posen aus dem richtigen Blickwinkel**, **links und rechts getrennt gezeichnet** (nicht gespiegelt). Mehr Sprites sind ausdrücklich erwünscht.
 
 **So benutzt du dieses Dokument:**
@@ -138,7 +138,7 @@ Für jeden Boss: **Arme L+R (Typ L)**, **Kopf/Rumpf (Typ S)**, ggf. Beine, Effek
 | Was | Pfad |
 | :--- | :--- |
 | Roh-Sheets (verlustfreie PNG, 512×512 pro Zelle) | `art_source/rigs/<boss>_arms_L.png`, `…_arms_R.png`, `…_legs_L.png`, `…_legs_R.png`, `…_heads.png`, `…_torsos.png`, `…_effects.png`, `…_parts.png` |
-| Prüfbilder (nicht committen nötig) | `art_source/_check/…_check.png` (erzeugt `npm run art:check`) |
+| Prüfbilder (**nicht committen**, stehen in `.gitignore`) | `art_source/_check/…_check.png` (erzeugt `npm run art:check`) |
 | Fertige, importierte Teile | `public/art/rigs/<boss>/…` (macht der Code, später `npm run art:import`) |
 
 Commit-Nachricht: `art(m11): <boss> <sheet>` · danach `HANDOFF.md` („M11 Art-Sheets“) aktualisieren.
@@ -146,7 +146,7 @@ Commit-Nachricht: `art(m11): <boss> <sheet>` · danach `HANDOFF.md` („M11 Art-
 ---
 
 ## 6. Prüf-Workflow vor jedem Commit
-1. `npm run art:check -- art_source/rigs/<datei>.png` (Typ L/S: Standard 3×2; Pose-Sheets 2×2: `-- --cols 2 --rows 2`).
+1. `npm run art:check -- art_source/rigs/<datei>.png` (Typ L/S: Standard 3×2).
 2. Prüfbild öffnen (`view_file`): **Das Gelenk (runder Ring) liegt im roten Fadenkreuz** jeder Zelle? Nichts berührt den magentafarbenen Zellrand? (⚠-Warnung im Terminal.)
 3. Liegt das Gelenk daneben → die Pose per PIL so verschieben, dass es **zentriert** ist (Teil als Ganzes verschieben, nicht skalieren), und neu speichern.
 4. Gleiche Größe in allen Zellen? Hand/Kopf richtig herum? Links/Rechts wirklich unterschiedlich gezeichnet?
@@ -154,7 +154,5 @@ Commit-Nachricht: `art(m11): <boss> <sheet>` · danach `HANDOFF.md` („M11 Art-
 
 ---
 
-## 7. Was Claude Code danach baut (zur Info)
-- Neue Import-Modi in `npm run art:import`: **`limb`/`swap`** (kein Zuschneiden auf das Teil, sondern Zellmitte = Gelenk; gemeinsamer Maßstab).
-- Engine: `PartPose.variant` (welche Pose/Bildvariante gerade gezeigt wird) + Überblendung; Boss-Zugfolgen wählen Posen (Ausholen → Schlag zur Kamera → Rückschwung).
-- Danach: Phase 3 des Plans (Angriffe der Sektor-1-Bosse) mit den neuen Sheets.
+## 7. Bereits umgesetzt (Code-Seite)
+Import-Modi `limb`/`swap` (`npm run art:import`) und `PartPose.variant` sind fertig — Details und Einbinden neuer Sheets: [`RIGGING_GUIDE.md`](RIGGING_GUIDE.md) §3–§5.
