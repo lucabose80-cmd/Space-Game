@@ -11,7 +11,8 @@
     "check:invariants": "node scripts/check-invariants.mjs",
     "check:sprites": "node scripts/check-sprites.mjs",
     "verify": "npm run build && npm run check:invariants && npm run check:sprites && npm test",
-    "art:import": "python3 scripts/art-import.py"
+    "art:import": "python3 scripts/art-import.py",
+    "art:check": "python3 scripts/art-check.py"
   },
   "devDependencies": {
     "typescript": "~7.0.2",

@@ -4,6 +4,9 @@
 > **Basis:** Stand nach M10-C (`SAVE_VERSION = 11`, Boss-Engine in `src/dungeon/bosses/`)
 > **Save-Version:** bleibt `11` (reine Darstellung, keine neuen Spielstand-Felder)
 
+
+> **⚠ Update nach den Pilot-Bossen (Krall, Kern-Wächter):** Reine Teile + Drehen reichen für Angriffe nicht (Fäuste wirkten verkrampft, Krall hatte nur einen Arm, kein Blickwinkelwechsel). **Maßgeblich für alle neuen Sprites ist jetzt [ART_BRIEF_M11.md](ART_BRIEF_M11.md)** (Gliedmaßen-Posen mit Gelenk in Zellmitte, Links/Rechts getrennt, Kopf-/Rumpf-Tauschsets, Effekt-Sheets). §2/§6 dieses Dokuments bleiben für Pose-Sheets normaler Gegner und die Einzelteile (Typ P) gültig. Engine-Erweiterung dazu: `PartPose.variant` (Bildvariante je Frame) + Import-Modi `limb`/`swap`.
+
 **Ziel in einem Satz:** Gegner und Bosse sind heute starre Einzelbilder, die verschoben werden. Künftig bewegen sie sich wie Figuren: Arme holen aus, Teile fliegen weg und kommen zurück, Bosse brechen in Phase 2 auf oder teilen sich, Geschütze laufen auf kleinen Beinen.
 
 **So benutzt du dieses Dokument:**

@@ -33,6 +33,7 @@ npm run verify                           # Build + Invarianten + Sprite-Check + 
 - **Noch offen (erst nach Qualitäts-Freigabe der Pilot-Sheets erzeugen, um Credits zu sparen):** restliche Boss-Teile-Sheets (`MILESTONE_11_ARCHITECTURE.md` §6.3) und Gegner-Pose-Sheets (§6.4).
 
 ## Nächster Schritt
+- **Sprites v2 (Antigravity):** Neues Briefing **`ART_BRIEF_M11.md`** — Krall & Kern-Wächter bekommen Arm-Posen (L+R getrennt), Kopf-/Rumpf-Tauschsets, Effekte (§4.1/§4.2). Prüfen mit `npm run art:check -- <datei>` (§6). Danach Code: Import-Modi `limb`/`swap` + Pose-Wechsel (`PartPose.variant`), dann Phase 3.
 - **Qualitätsprüfung der 2 Pilot-Sheets** (`krall_parts.png`, `core_warden_parts.png`) durch den Projektinhaber → nach Freigabe erzeugt Antigravity die nächsten Sheets nach Reihenfolge §6.0 (`turret`, `magma_mortar`, `shard_sniper` usw.).
 - **Meilenstein 11 Code (Claude Code):** `MILESTONE_11_ARCHITECTURE.md` Phasen 0–8 (Phase 0 baut `npm run art:import` und importiert direkt die vorhandenen `art_source/rigs/*.png`).
 - Ökonomie & Boss-Kampfgefühl im echten Spiel beobachten und in `src/data/balance.ts` nachjustieren (Berichte: `tests/out/economy.json`, `tests/out/ttk.json`).
