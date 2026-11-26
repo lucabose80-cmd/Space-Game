@@ -111,7 +111,7 @@ Für jeden weiteren Boss einen Abschnitt nach diesem Muster anlegen:
 | Boss | Rig | Pose-Sets | Phase 2 | Teilen | Nächster Schritt |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | Kern-Wächter | ✅ | ✅ (alle S1–S5 fertig!) | ✅ Platten fliegen | — | S2–S5 in `rigs.json`/`bossAnims.ts` einbinden & Abnahme §2.4 |
-| Krall | ✅ (alt) | 1/6 (`krall_arms_R`) | ✅ Panzer fällt ab | — | restliche 5 Sheets (`HANDOFF.md`), dann §3 |
+| Krall | ✅ (alt) | 3/6 (`krall_arms_R`, `krall_arms_L`, `krall_torsos`) | ✅ Panzer fällt ab | — | letzte 3 Sheets (`legs_R/L`, `effects`), dann §3 |
 | Quarz-Koloss | – | – | – | ✅ Logik | Teile-Sheets (`ART_BRIEF_M11.md` §4.3) |
 | Sternen-Archon | – | – | – | ✅ Logik | Teile-Sheets |
 | übrige Bosse | – | – | – | – | Teile-Sheets |

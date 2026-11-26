@@ -41,11 +41,12 @@ npm run verify                           # Build + Invarianten + Sprite-Check + 
     - `art_source/rigs/core_warden_arms_R2.png` (**S2 rechts**: 6 Zwischen-/Schadens-Posen, Schulterring im Fadenkreuz, `min_margin ≥ 34 px`)
     - `art_source/rigs/core_warden_arms_L2.png` (**S2 links**: 6 Zwischen-/Schadens-Posen mit Licht links-oben, Schulterring im Fadenkreuz, `min_margin ≥ 46 px`)
     - `art_source/rigs/core_warden_heads2.png` (**S5**: Visier-Laser, Blick links/rechts, brüllend Phase 2, stark beschädigt < 15 % HP mit zerbrochenem Halo, Blinzeln/Visier zu; Halsgelenk im Fadenkreuz, `min_margin ≥ 36 px`)
-  - **§4.1 Krall (2/6 fertig):**
+  - **§4.1 Krall (3/6 fertig):**
     - `art_source/rigs/krall_arms_R.png` (rechter Greifzangen-Arm `x=0.96`, 6 Posen, Schulterring im Fadenkreuz, `min_margin ≥ 31 px`)
     - `art_source/rigs/krall_arms_L.png` (linker Schrott-Haken + Mini-Kreissägen-Arm `x=0.04`, 6 Posen inkl. Schild-Block & Kamera-Stoß, Schulterring im Fadenkreuz, `min_margin ≥ 34 px`)
-- **Noch offen (§4.1 Krall, 4 Sheets):**
-  - `krall_legs_R.png`, `krall_legs_L.png`, `krall_torsos.png`, `krall_effects.png`
+    - `art_source/rigs/krall_torsos.png` (6 Rumpf-Varianten inkl. Phase-2-Skelettrahmen/Kern offen & Funken/Dellen, Furnace-Kern im Fadenkreuz, `min_margin ≥ 34 px`)
+- **Noch offen (§4.1 Krall, 3 Sheets — pausiert wegen `gemini-3.1-flash-image`-Quota, Cooldown ~3h 32m):**
+  - `krall_legs_R.png`, `krall_legs_L.png`, `krall_effects.png`
 
 ## M11 Pose-Sets — Code (umgesetzt) · Handbuch: [`RIGGING_GUIDE.md`](RIGGING_GUIDE.md)
 - **Import (`npm run art:import`, `scripts/art-import.py`):** `sheet.sets` in `src/data/rigs.json` (`file`, `mode: limb|swap`, `ids[6]`). Zellmitte = Gelenk, je Set ein gemeinsamer zentrierter Ausschnitt + Rig-Maßstab → alle Posen eines Sets gleich groß, Pivot `[0.5, 0.5]`. Neue Sheets: Datei in `art_source/rigs/` legen, Set in `rigs.json` eintragen, `npm run art:import -- <rig> --force`.
@@ -69,8 +70,8 @@ Nach und nach erzeugen, sobald Gemini-Volumen frei ist (Reihenfolge §5 im Brief
 - Code-Seite (Claude Code, sobald der Pilot da ist): Import-Modus `parts`, Rigs in `rigs.json`, `anim/enemyAnims.ts`.
 
 ## Nächster Schritt
-- **Boss-Animation (Stand):** Kern-Wächter komplett eingebunden — `BOSS_ANIMATION_PLAN.md` K1–K8 **und** S1–S5 (Zwischen-Posen, Laser-Rumpf, Faust-Pylonen, Blick/Blinzeln, beschädigte Phase-2-Posen). Es fehlt nur die **Abnahme im echten Kampf** (§2.4). Danach: Übertragung auf die anderen Bosse (§3).
-- **Antigravity (als Nächstes, Kern-Wächter ist durch):** restliche 5 Krall-Sheets (`krall_arms_L`, `krall_legs_R/L`, `krall_torsos`, `krall_effects`) und/oder Gegner-Rig-Piloten (`turret_rig`, `phase_stalker_rig`).
+- **Boss-Animation (Stand):** Kern-Wächter komplett eingebunden — `BOSS_ANIMATION_PLAN.md` K1–K8 **und** S1–S5 (Zwischen-Posen, Laser-Rumpf, Faust-Pylonen, Blick/Blinzeln, beschädigte Phase-2-Posen). Es fehlt nur die **Abnahme im echten Kampf** (§2.4). Für **Krall** liegen jetzt auch `krall_arms_L.png` und `krall_torsos.png` bereit (3/6) → Claude Code kann sie bereits in `rigs.json` eintragen, importieren und verdrahten.
+- **Antigravity (nach ~3h 32m Quota-Reset):** letzte 3 Krall-Sheets (`krall_legs_R.png`, `krall_legs_L.png`, `krall_effects.png`) und danach Gegner-Rig-Piloten (`turret_rig`, `phase_stalker_rig`).
 - **Claude Code (ohne neue Sprites):** Teilen von Quarz-Koloss/Sternen-Archon (`MILESTONE_11_ARCHITECTURE.md` §4.3), prozedurale Bewegung der übrigen Bosse, Krall-Verdrahtung vorbereiten, Kern-Glühen des Kern-Wächters an die neue Kernposition anpassen (Schulter-Offsets sind justiert: `SHOULDER_ADJUST`), danach Plan-Phase 3 (Angriffe der Sektor-1-Bosse mit Teil-Abwurf/Splitting, `MILESTONE_11_ARCHITECTURE.md`).
 - Ökonomie & Boss-Kampfgefühl im echten Spiel beobachten und in `src/data/balance.ts` nachjustieren (Berichte: `tests/out/economy.json`, `tests/out/ttk.json`).
 - Optionale M10/M10-C-Einzel-Sprites bei Bedarf ebenfalls per Antigravity erzeugen.
