@@ -2,12 +2,12 @@
 
 Ein **Cozy Retro-Sci-Fi Action-RPG & Space-Shop-Spiel** im Browser, inspiriert von *Moonlighter 1*.
 
-Bei Tag betreibst du deinen Relikt- und Bergungsladen **Astro-Barter** auf der Frontier-Raumstation **Port Solaris** – bei Nacht (oder auf Expedition) plünderst du prozedurale Raumschiff-Wracks, Kristall-Nebel, Solar-Gießereien, Ältesten-Monolithen und instabile Dimensions-Rifts nach wertvoller Alien-Technologie.
+Tagsüber plünderst du prozedurale Raumschiff-Wracks, Kristall-Nebel, Solar-Gießereien, Ältesten-Monolithen und instabile Dimensions-Rifts nach wertvoller Alien-Technologie (Nacht-Runs sind möglich: +35 % Beute, dafür fällt die Ladenschicht aus) – nachts öffnest du deinen Relikt- und Bergungsladen **Astro-Barter** auf der Frontier-Raumstation **Port Solaris** und verkaufst die Beute.
 
 ## Features (Version 1.4)
 
 - **Vollständige Galaxie (4 Sektoren + 5. Tiefenraum-Tor + Endlos-Rift):**
-  - **Sektor 1 (*Verlassene Korvette*):** 3 Ebenen & 3 Bosse (*Schott-Brecher MK-II* → *Core-Wächter MK-IV* → **A.E.G.I.S. LEVIATHAN**).
+  - **Sektor 1 (*Verlassene Korvette*):** 3 Ebenen & 3 Bosse (*Schrott-Sammler „Krall“* → *Kern-Wächter MK-IV* → **A.E.G.I.S. LEVIATHAN**).
   - **Sektor 2 (*Kristall-Nebel*):** 3 Ebenen & 3 Bosse (Endboss **★ PRISMA-ARCHON**).
   - **Sektor 3 (*Solar-Gießerei*):** 3 Ebenen & 3 Bosse (Endboss **★ VULKAN-TITAN**).
   - **Sektor 4 (*Ältesten-Monolith*):** 3 Ebenen & 3 Bosse (Endboss **★ DER STERNEN-ARCHON**).
@@ -18,7 +18,7 @@ Bei Tag betreibst du deinen Relikt- und Bergungsladen **Astro-Barter** auf der F
   - **🔥 Elementar-Prägungen:** *Solar-Brand* (DoT + Kill-Nova), *Kryo-Stasis* (-42 % Verlangsamung), *Ionen-Kette* (Kettenblitze) & *Leeren-Siphon* (zielsuchende HP/EN-Orbs).
 - **Lebendiger Space-Shop (*Astro-Barter*) & Kapitäns-Quartier:**
   - 3 Shop-Stufen (4 → 6 → 8 Holo-Podeste, 28 → 36 → 48 Truhen-Slots), Sale-Box, Handels-Droide, VIP-Sammler, Tages-Events, Weltraum-Diebe, Auftrags-Pinnwand, Scan-Codex & Material-Merkliste (`📌`).
-  - Privates Hinterzimmer mit Chrono-Ruhekapsel (Tag ↔ Nacht), **4 Begleiter-Drohnen** (*Puck*, *Spark*, *Luma*, *Halo*), **Sternen-Jukebox**, **5 Anzug-Farbschemata** & Trophäen-Sockel.
+  - Privates Hinterzimmer mit Koje (nur nachts: Schicht überspringen), **4 Begleiter-Drohnen** (*Puck*, *Spark*, *Luma*, *Halo*), **Sternen-Jukebox**, **5 Anzug-Farbschemata** & Trophäen-Sockel.
 - **Firebase Cloud-Save & In-Game Kapitäns-Tafel (`Port Solaris`):**
   - Direkt begehbares **★ Kapitäns-Tafel**-Terminal auf der Promenade mit **Google- & E-Mail-Login**, automatischem **Handy ↔ PC Cloud-Sync**, **Live-Expeditionstimer (`⏱ mm:ss`)**, **Tag/Nacht-Rekorden**, **Live-Aktivitäts-Feed** & Ranglisten (*Fortschritt*, *🌀 Tiefster Rift*, *Sektor-Zeit*, *Tage*, *Händler*).
 - **Galaktisches Netzwerk (Meilenstein 9):**
@@ -40,15 +40,17 @@ Bei Tag betreibst du deinen Relikt- und Bergungsladen **Astro-Barter** auf der F
 | Aktion | Tasten / Touch / Controller |
 | :--- | :--- |
 | Bewegen | `W A S D` / Pfeiltasten / Virtueller Stick / Linker Stick |
-| Jetpack-Dash (Ausweichen) | `Leertaste` / `Shift` / `DASH` / `B` |
-| Aktive Waffe (Angriff) | `Linksklick` / `J` / Waffen-Button / `A` |
-| Spezial-Fähigkeit | `Rechtsklick` / `K` / Spezial-Button / `X` |
-| Waffe wechseln (2. Slot) | `C` / `WECHSELN` / `LB` |
+| Jetpack-Dash (Ausweichen) | `Leertaste` / `Shift` / `DASH` / `X` |
+| Aktive Waffe (Angriff) | `Linksklick` / `J` / Waffen-Button / `A` oder `RT` |
+| Spezial-Fähigkeit | `Rechtsklick` / `K` / Spezial-Button / `B` |
+| Waffe wechseln (2. Slot) | `C` / `WECHSELN` / `RB` |
 | Interagieren / Shops / Kasse | `E` / `Enter` / `AKTION` / `Y` |
 | Laden öffnen / schließen | `O` (im Shop) |
-| Stimpack (Heilen) | `Q` / `HEIL` / `RB` |
-| Fracht, Truhe, Codex & Logbuch | `I` oder `Tab` / `Start` |
-| Warp-Beacon (Extraktion) | `R` gedrückt halten / `WARP` |
+| Stimpack (Heilen) | `Q` / `HEIL` / `LB` |
+| Fracht, Truhe, Codex & Logbuch | `I` oder `Tab` / `Select` |
+| Menü schließen | `Esc` / `Start` |
+| Extraktion | Teleporter im Start-/Boss-Raum oder Notfall-Bake (ab Ebene II, einmalig) — `E` |
+| Schnell-Nachfüllen am Holo-Podest | `F` (im Laden) |
 | Musik an / aus | `M` |
 
 ## Projekt-Dokumentation (für Entwickler & KI-Agents)

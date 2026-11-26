@@ -1,7 +1,7 @@
 # Game Design Document (GDD): *STARLIGHTER*
 
-> **Stand:** Version 1.4 (nach Meilenstein 10-C — Bugfixes, HUD, Tag/Nacht-Schleife, Teleporter, eigene Bosse, Balancing; Save v11)  
-> **Kurzpitch:** Ein **Cozy Retro-Sci-Fi Action-RPG & Shop-Management-Spiel** im Browser, inspiriert von *Moonlighter 1*. Bei Tag führst du deinen eigenen Bergungs- und Relikt-Shop (*Astro-Barter*) auf der Frontier-Raumstation *Port Solaris* — bei Nacht (oder auf Expedition) plünderst du prozedurale Raumschiff-Wracks, Kristall-Nebel, Solar-Gießereien, Ältesten-Monolithen und instabile Dimensions-Rifts nach wertvoller Technologie.
+> **Stand:** Version 1.4 (nach Meilenstein 10-C — Bugfixes, HUD, Tag/Nacht-Schleife, Teleporter, eigene Bosse, Balancing; Save v11; Meilenstein 11 in Arbeit)  
+> **Kurzpitch:** Ein **Cozy Retro-Sci-Fi Action-RPG & Shop-Management-Spiel** im Browser, inspiriert von *Moonlighter 1*. Tagsüber plünderst du prozedurale Raumschiff-Wracks, Kristall-Nebel, Solar-Gießereien, Ältesten-Monolithen und instabile Dimensions-Rifts nach wertvoller Technologie (Nacht-Runs möglich: +35 % Beute, dafür keine Ladenschicht) — nachts führst du deinen eigenen Bergungs- und Relikt-Shop (*Astro-Barter*) auf der Frontier-Raumstation *Port Solaris*.
 
 ---
 
@@ -39,12 +39,12 @@ flowchart LR
 
 | Bereich / Sektor | Thema & Zugang | Ebenen & Endboss | Status |
 | :--- | :--- | :--- | :--- |
-| **Astro-Barter & Kapitäns-Quartier** | Dein Laden (Stufe I–III, 4→6→8 Podeste, Sale-Box, Handels-Droide) + privates Hinterzimmer (Ruhekapsel, Truhen, Jukebox, Drohnen-Dock, Anzug-Stile, Trophäen) | Shop-Management, VIP-Events, Diebe fangen, Bounties | ✅ **Live** |
+| **Astro-Barter & Kapitäns-Quartier** | Dein Laden (Stufe I–III, 4→6→8 Podeste, Sale-Box, Handels-Droide) + privates Hinterzimmer (Koje – nur nachts, Truhen, Jukebox, Drohnen-Dock, Anzug-Stile, Trophäen) | Shop-Management, VIP-Events, Diebe fangen, Bounties | ✅ **Live** |
 | **Port Solaris Promenade** | Zentraler Hub: *Kael's Exo-Schmiede* (MK-VIII & 🔥 Prägungen), *Dr. Lyra's Med-Bay*, *Vex' Tech-Labor*, *Nyx' Schwarzmarkt* & **★ Galaktische Kapitäns-Tafel** (Firebase Scoreboard & Cloud-Save) | NPC-Upgrades, Cloud-Sync, Ranglisten | ✅ **Live** |
 | **Port Solaris Raumhafen** | 4 angedockte Schiffe (Docks I–IV) + zentrales **5. Tiefenraum-Tor** mit 4 leuchtenden Sektor-Siegeln | Sektor-Wahl & 5.-Tor-Auswahl | ✅ **Live** |
-| **Sektor 1: Verlassene Korvette** | Dock I · Überwucherte Metalldecks → Reaktor-Glut | 3 Ebenen: *Schott-Brecher MK-II* → *Core-Wächter MK-IV* → **A.E.G.I.S. LEVIATHAN** | ✅ **Live** |
+| **Sektor 1: Verlassene Korvette** | Dock I · Überwucherte Metalldecks → Reaktor-Glut | 3 Ebenen: *Schrott-Sammler „Krall“* → *Kern-Wächter MK-IV* → **A.E.G.I.S. LEVIATHAN** | ✅ **Live** |
 | **Sektor 2: Kristall-Nebel** | Dock II · Violett-Cyan Kristallkavernen | 3 Ebenen: *Quarz-Koloss* → *Prisma-Weberin* → **★ PRISMA-ARCHON** | ✅ **Live** |
-| **Sektor 3: Solar-Gießerei** | Dock III · Lava-Schluchten & Schmelzöfen | 3 Ebenen: *Schlacken-Koloss* → *Gießerei-Meister* → **★ VULKAN-TITAN** | ✅ **Live** |
+| **Sektor 3: Solar-Gießerei** | Dock III · Lava-Schluchten & Schmelzöfen | 3 Ebenen: *Schlacken-Koloss* → *Gießerei-Meisterin* → **★ VULKAN-TITAN** | ✅ **Live** |
 | **Sektor 4: Ältesten-Monolith** | Dock IV · Obsidian-Astral-Kammern | 3 Ebenen: *Chrono-Wächter* → *Monolith-Koloss* → **★ DER STERNEN-ARCHON** | ✅ **Live** |
 | **5. Tor: Omega-Anomalie** | Zentrales 5. Tor (ab 4/4 Schlüsseln) | Elite-Prüfung → **★ OMEGA STERNEN-ARCHON** → Story-Finale & **New Game+** | ✅ **Live** |
 | **5. Tor: ∞ Unendliche Spirale** | Zentrales 5. Tor (ab Omega-Sieg) | Endlos-Ebenen (`E1 → ∞`), wechselnde Sektor-Echos, 4 Rift-Mutatoren, Bosse alle 3 Ebenen, Singularitäts-Relikte | ✅ **Live** |
@@ -126,7 +126,7 @@ Boni wirken **nicht** in der Galaktischen Prüfung (Lyra, Vex) und geben **nie C
 
 ## 5. Offene Punkte & Ideen (nach Meilenstein 10-C)
 
-1. **Sprites (optional, Fallbacks vorhanden):** 12 Promenaden-Sprites (Art-Guide §7) und 5 Boss-Sprites (Art-Guide §8). `npm run check:sprites` listet den Stand.
+1. **Sprites (optional, Fallbacks vorhanden):** 12 Promenaden-Sprites (Art-Guide §7) und 5 Boss-Sprites (Art-Guide §8; `boss_scrap_collector` = Krall hat inzwischen ein Rig und ist nur noch Rückfall → niedrige Priorität). `npm run check:sprites` listet den Stand.
 2. **Ökonomie laufend beobachten:** `tests/out/economy.json` (Preise, Upgrade-Kosten, Kopfgelder) und `tests/out/ttk.json` (Boss-Kampfdauer) nach Spielgefühl nachjustieren — alle Werte in `src/data/balance.ts`.
 3. **Balancing nach echten Spieldaten:** Par-Zeiten der Wochen-Prüfung (M10-C neu: +180 s), Mechanik-Häufigkeiten, Vertrauens-Schwellen, Boss-Angriffe.
 4. **Story-Erweiterung:** weitere Szenen pro Kapitel, vertonte Jingles.
@@ -144,6 +144,8 @@ src/
 │   ├── artLoader.ts            # HD-Pixel-Art Preloader (public/art/**)
 │   └── pixelArt.ts / sprites.ts
 ├── data/
+│   ├── balance.ts              # M10-C: zentrales Balancing (Preise, Boss-HP, Rift-Faktoren, Waffen-Sperren, Schilde)
+│   ├── rigs.ts / rigs.json     # M11: Rig-Definitionen (Teile-Baum, Pose-Sets) + Zuordnung kind → Rig
 │   ├── items.ts                # 46 Relikte (S1–S4 + 4 Rift-Relikte) & Loot-Tables
 │   ├── upgrades.ts             # 6 Waffenklassen bis MK-VIII, Suit, Med-Bay, Shop, Tech-Labor
 │   ├── infusions.ts            # 4 Elementar-Prägungen & 4 Rift-Mutatoren
@@ -155,8 +157,11 @@ src/
 │       ├── storyChapters.ts    # M10: 7 Kapitel, NPC-Meta, Vertrauens-Boni, Passanten-Plan & -Sprüche
 │       ├── storyTypes.ts       # M10: Dialog-Graph-Typen (StoryScene, StoryNode, StoryChoice)
 │       └── storyScenes.ts      # M10: 28 NPC-Szenen + Omega-Fest als Dialog-Graphen
+├── dev/
+│   └── bossLab.ts              # M11: Boss-Labor (`?bosslab`, nur Dev/Ansicht)
 ├── dungeon/
 │   ├── dungeonTypes.ts         # Enemy, BossState, Projectile (+splitGen), LightningArcFx, SiphonOrbFx …
+│   ├── navGrid.ts              # M10-C: Fluss-Feld-Navigation für Bodenläufer
 │   ├── mechanicsGen.ts         # M10: Platzierung der Sektor-Mechaniken (lokaler PRNG, Freihalte-Zonen)
 │   ├── roomMechanics.ts        # M10: RoomMechanicsSystem (Prismen, Düsen, Magnetplatten, Teleporter)
 │   ├── roomMechanicsRenderer.ts # M10: Boden-Layer & y-sortierte Mechanik-Objekte
@@ -165,6 +170,8 @@ src/
 │   ├── anim/                   # M11: bossAnims.ts (Posen je Zustand, Glättung), detached.ts (abgelöste Teile), motion.ts (Gegner-Bewegung)
 │   └── dungeonRenderer.ts      # DungeonRenderer (S1–S4, Rift-Risse, Blitze, Orbs, Minimap, Timer)
 ├── engine/
+│   ├── input.ts                # Tastatur, Maus, Touch & Gamepad (btnMap)
+│   ├── audio.ts                # Web-Audio-Synth (SFX, Musik, Boss-Phase-2-Musik)
 │   └── rig.ts                  # M11: Cut-out-Rig (Teile, Gelenke, Pose-Varianten) — Daten in data/rigs.json
 ├── scenes/
 │   ├── DungeonScene.ts         # Kampf, Waffen-Combos, Prägungen, Rift-Kammern, ∞ Spirale
@@ -191,6 +198,8 @@ src/
 │   ├── UIManager.ts            # HUD & In-Game-Modals (Inventar, Schmiede/Prägungen, Tafel …)
 │   ├── MarketModals.ts         # M8-Modals (Feilschen, Schichtbilanz, Stammkunden, Alchemie, Bank)
 │   ├── NetworkModals.ts        # M9: Kapitäns-Akte, Konjunktur-Banner, Prüfungs-Karte/-Ergebnis/-Rangliste
+│   ├── TouchControls.ts        # Virtueller Stick & Buttons (Touch-Größe)
+│   ├── LoadoutPanel.ts         # M10-C: Waffenschrank (Slots ①/②)
 │   └── StoryModals.ts          # M10: Dialog-Controller (Schreibmaschine, Antworten, Später) & Chronik
 └── world/
     └── dungeonGen.ts           # Prozedurale Sektor-Ebenen, Schluchten, Geheimkammern, Rifts & ∞ Spirale

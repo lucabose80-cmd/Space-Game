@@ -14,10 +14,10 @@
 
 ## C1 · README & GDD — was der Spieler/Leser sieht (Doku, ein Commit)
 
-- [ ] **C1.1 Tag/Nacht vertauscht.** Seit M10-C gilt: Laden **nur nachts**, Runs am Tag (Nacht-Runs möglich, +35 % Beute, dann fällt die Ladenschicht aus) — siehe AGENTS.md §3 Regel 9.
+- [x] **C1.1 Tag/Nacht vertauscht.** Seit M10-C gilt: Laden **nur nachts**, Runs am Tag (Nacht-Runs möglich, +35 % Beute, dann fällt die Ladenschicht aus) — siehe AGENTS.md §3 Regel 9.
   - `README.md` Zeile 5 („Bei Tag betreibst du … bei Nacht (oder auf Expedition) plünderst du …“) und `GAME_DESIGN_DOCUMENT.md` Zeile 4 (Kurzpitch, gleiche Formulierung) umschreiben, z. B.: „Tagsüber plünderst du prozedurale Raumschiff-Wracks, Kristall-Nebel, … — nachts öffnest du deinen Relikt- und Bergungsladen **Astro-Barter** auf **Port Solaris** und verkaufst die Beute.“
   - `GAME_DESIGN_DOCUMENT.md` §4 M2-Zeile („Tag/Nacht-Zyklus (+35 % Nacht-Loot)“) darf bleiben (historisch), aber README-Feature „Chrono-Ruhekapsel (Tag ↔ Nacht)“ → „Koje (nur nachts: Schicht überspringen)“.
-- [ ] **C1.2 Steuerungstabelle `README.md` (Abschnitt „Steuerung“) an `src/engine/input.ts` (`btnMap`, ca. Zeile 63–74) angleichen:**
+- [x] **C1.2 Steuerungstabelle `README.md` (Abschnitt „Steuerung“) an `src/engine/input.ts` (`btnMap`, ca. Zeile 63–74) angleichen:**
   | Aktion | richtig |
   | :--- | :--- |
   | Jetpack-Dash | `Leertaste` / `Shift` / `DASH` / **`X`** |
@@ -30,11 +30,11 @@
   - Zeile **„Warp-Beacon (Extraktion) `R` gedrückt halten / `WARP`“ löschen** (Heim-Teleport seit M10-C entfernt). Stattdessen eine Zeile „Extraktion: Teleporter im Start-/Boss-Raum oder Notfall-Bake (ab Ebene II, einmalig) — `E`“.
   - Neue Zeile: „Schnell-Nachfüllen am Holo-Podest | `F` (im Laden)“.
   - Vorher kurz prüfen, ob die Touch-Labels (`DASH`, `WECHSELN`, `HEIL`, `AKTION`) in `src/ui/TouchControls.ts` noch so heißen; sonst anpassen.
-- [ ] **C1.3 Bossnamen Sektor 1/3.**
+- [x] **C1.3 Bossnamen Sektor 1/3.**
   - `README.md` Zeile 10 und `GAME_DESIGN_DOCUMENT.md` §3 (Zeile „Sektor 1“): „*Schott-Brecher MK-II* → *Core-Wächter MK-IV*“ → „*Schrott-Sammler „Krall“* → *Kern-Wächter MK-IV*“.
   - `GAME_DESIGN_DOCUMENT.md` §3 Zeile „Sektor 3“: „*Gießerei-Meister*“ → „*Gießerei-Meisterin*“.
-- [ ] **C1.4 GDD-Dateikarte (§6) ergänzen:** `data/balance.ts` (M10-C Balancing), `data/rigs.ts` + `data/rigs.json` (M11 Rigs), `dev/bossLab.ts` (`?bosslab`), `dungeon/navGrid.ts` (Fluss-Feld-Navigation), `engine/input.ts` (Tastatur/Touch/Gamepad), `engine/audio.ts` (Web-Audio-Synth), `ui/TouchControls.ts`, `ui/LoadoutPanel.ts` (Waffenschrank). Außerdem Kopf-Zeile „Stand: Version 1.4 (nach Meilenstein 10-C …)“ um „, M11 in Arbeit“ ergänzen.
-- [ ] **C1.5 GDD §5 Punkt 1:** `boss_scrap_collector` (Krall) aus der Wunschliste herausnehmen bzw. als „nur Rückfall, niedrige Priorität — Krall hat ein Rig“ markieren. Gleiches in `HANDOFF.md` „Fehlende Sprites“.
+- [x] **C1.4 GDD-Dateikarte (§6) ergänzen:** `data/balance.ts` (M10-C Balancing), `data/rigs.ts` + `data/rigs.json` (M11 Rigs), `dev/bossLab.ts` (`?bosslab`), `dungeon/navGrid.ts` (Fluss-Feld-Navigation), `engine/input.ts` (Tastatur/Touch/Gamepad), `engine/audio.ts` (Web-Audio-Synth), `ui/TouchControls.ts`, `ui/LoadoutPanel.ts` (Waffenschrank). Außerdem Kopf-Zeile „Stand: Version 1.4 (nach Meilenstein 10-C …)“ um „, M11 in Arbeit“ ergänzen.
+- [x] **C1.5 GDD §5 Punkt 1:** `boss_scrap_collector` (Krall) aus der Wunschliste herausnehmen bzw. als „nur Rückfall, niedrige Priorität — Krall hat ein Rig“ markieren. Gleiches in `HANDOFF.md` „Fehlende Sprites“.
 
 ## C2 · Veraltete Abschnitte in Fach-Dokumenten (Doku, ein Commit)
 
