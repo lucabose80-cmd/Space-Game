@@ -12,6 +12,16 @@ const HEAD = { neutral: 0, roar: 1, aim: 2, hit: 3, p2: 4, damaged: 5 } as const
 /** Rümpfe: 0 normal · 1 geduckt · 2 zurückgelehnt · 3 vorgebeugt · 4 Phase 2 offen · 5 überhitzt. */
 const TORSO = { normal: 0, duck: 1, back: 2, fwd: 3, p2: 4, hot: 5 } as const;
 
+/** Schulter-Feinjustierung je Rumpf-Variante (Spielpixel): [linker Arm dx, dy, rechter Arm dx, dy] — der Rumpf neigt sich je Pose, die Arm-Gelenke wandern mit. */
+export const SHOULDER_ADJUST: Array<[number, number, number, number]> = [
+  [0, 0, 0, 0], // 0 normal
+  [0.5, 0.5, -3, 1], // 1 geduckt (Rumpf kippt nach links)
+  [0, 1, -3, 0.5], // 2 zurückgelehnt
+  [0, 0, 0, 0], // 3 vorgebeugt
+  [0, 0, 0, 0], // 4 Phase 2
+  [0, 0, 0, 0], // 5 überhitzt
+];
+
 /** Kern-Wächter: Pose-Set je Boss-Zustand (Zustände aus enemyAi.ts). `roar` ≥ 0 = Fortschritt der Phase-2-Verwandlung (Brustplatten fliegen weg). */
 function coreWardenSet(e: Enemy): { arms: number; head: number; torso: number; roar: number } {
   const p2 = e.bossPhase2 === true;
@@ -100,6 +110,7 @@ export function getBossPose(rigId: string, e: Enemy, time: number): Pose {
       const breathe = Math.sin(time * 2.4 + e.id);
       const set = coreWardenSet(e);
       const sway = 0.07 + sw * 0.05;
+      const sh = SHOULDER_ADJUST[set.torso] ?? SHOULDER_ADJUST[0];
       const still = set.arms === ARM.hang; // nur im Ruhezustand pendeln, Angriffsposen stehen
       const r = set.roar;
       const plate = (dir: number): PartPose =>
@@ -109,8 +120,8 @@ export function getBossPose(rigId: string, e: Enemy, time: number): Pose {
       return {
         torso: { variant: set.torso, sy: 1 + breathe * 0.012 },
         head: { variant: set.head, rot: Math.sin(time * 1.3) * 0.04, dy: Math.sin(time * 2.4 + 0.6) * 0.5 },
-        armL: { variant: set.arms, rot: still ? sway : 0 },
-        armR: { variant: set.arms, rot: still ? -sway : 0 },
+        armL: { variant: set.arms, rot: still ? sway : 0, dx: sh[0], dy: sh[1] },
+        armR: { variant: set.arms, rot: still ? -sway : 0, dx: sh[2], dy: sh[3] },
         plateL: plate(-1),
         plateR: plate(1),
       };
