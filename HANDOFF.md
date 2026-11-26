@@ -30,13 +30,20 @@ npm run verify                           # Build + Invarianten + Sprite-Check + 
 - **Typ P (Teile-Sheets, vorhanden & importiert):**
   - `art_source/rigs/krall_parts.png` (S1 E1 Krall)
   - `art_source/rigs/core_warden_parts.png` (S1 E2 Kern-Wächter, bleibt u. a. für wegfliegende Brustplatten)
-- **Typ L/S v2 (`ART_BRIEF_M11.md`, `1536×1024`, `512×512`/Zelle, Gelenk exakt in Zellmitte, geprüft per `npm run art:check`):**
-  - `art_source/rigs/core_warden_arms_R.png` (**Prüfmuster §4.2**, rechter Arm auf Bildschirmseite `x=0.93`: 1 hängend · 2 Faust hoch · 3 Schlag zur Kamera · 4 seitlich ausgestreckt · 5 Block vor der Brust · 6 Boden-Stampfer; Schulterring in allen 6 Zellen exakt im Fadenkreuz, `min_margin ≥ 31 px`)
-- **Noch offen (§4.1 / §4.2, nach Abnahme des Prüfmusters):** `core_warden_arms_L.png`, `core_warden_heads.png`, `core_warden_torsos.png` sowie alle Krall-Sheets (`krall_arms_R/L`, `krall_legs_R/L`, `krall_torsos`, `krall_effects`).
+- **Typ L/S v2 (`ART_BRIEF_M11.md`, `1536×1024`, `512×512`/Zelle, Gelenk/Kern exakt im Fadenkreuz, alle per `npm run art:check` ohne Rand-Warnungen geprüft):**
+  - **§4.2 Kern-Wächter — komplett (4/4 neue Sheets fertig):**
+    - `art_source/rigs/core_warden_arms_R.png` (rechter Arm `x=0.93`, 6 Posen, `min_margin ≥ 31 px`)
+    - `art_source/rigs/core_warden_arms_L.png` (linker Arm `x=0.07`, 6 Posen, `min_margin ≥ 34 px`; Hinweis: Zellen 1, 3, 5, 6 neu mit Licht links-oben gezeichnet, Zellen 2 & 4 aus dem Sheet gespiegelt, da Bild-Quota erreicht — bei Bedarf nach Cooldown neu zeichbar)
+    - `art_source/rigs/core_warden_heads.png` (6 Helm+Halo-Varianten, Halsgelenk im Fadenkreuz, `min_margin ≥ 32 px`)
+    - `art_source/rigs/core_warden_torsos.png` (6 Rumpf-Varianten inkl. Phase-2-Kern offen & überhitzt, Reaktorkern im Fadenkreuz, `min_margin ≥ 43 px`)
+  - **§4.1 Krall (1/6 fertig):**
+    - `art_source/rigs/krall_arms_R.png` (rechter Greifzangen-Arm `x=0.96`, 6 Posen, Schulterring im Fadenkreuz, `min_margin ≥ 31 px`)
+- **Noch offen (§4.1 Krall, 5 Sheets — pausiert wegen temporärem `gemini-3.1-flash-image`-Quota-Limit, ~3h 38m Cooldown):**
+  - `krall_arms_L.png`, `krall_legs_R.png`, `krall_legs_L.png`, `krall_torsos.png`, `krall_effects.png`
 
 ## Nächster Schritt
-- **Abnahme Prüfmuster `core_warden_arms_R.png`:** nach Freigabe erzeugt Antigravity die übrigen Sheets aus `ART_BRIEF_M11.md` §4.2 (`core_warden_arms_L`, `heads`, `torsos`) und §4.1 (`krall_*`), jeweils mit `npm run art:check` geprüft.
-- **Meilenstein 11 Code (Claude Code):** Import-Modi `limb`/`swap` + Pose-Wechsel (`PartPose.variant`), danach Phase 3 (Angriffe Sektor 1).
+- **Meilenstein 11 Code (Claude Code — kann sofort starten!):** Kern-Wächter (§4.2) ist komplett + `krall_arms_R.png` liegt bereit → Import-Modi `limb`/`swap` in `npm run art:import` + Pose-Wechsel (`PartPose.variant`) bauen und Kern-Wächter live im Boss-Labor testen.
+- **Restliche 5 Krall-Sheets (Antigravity, nach ~3h 38m Quota-Reset):** `krall_arms_L.png` (Schrott-Haken + Mini-Säge), `krall_legs_R.png`, `krall_legs_L.png`, `krall_torsos.png`, `krall_effects.png` erzeugen und per `npm run art:check` prüfen.
 - Ökonomie & Boss-Kampfgefühl im echten Spiel beobachten und in `src/data/balance.ts` nachjustieren (Berichte: `tests/out/economy.json`, `tests/out/ttk.json`).
 - Optionale M10/M10-C-Einzel-Sprites bei Bedarf ebenfalls per Antigravity erzeugen.
 
