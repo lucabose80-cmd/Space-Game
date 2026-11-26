@@ -18,6 +18,7 @@
 | [MILESTONE_9_ARCHITECTURE.md](MILESTONE_9_ARCHITECTURE.md) | Architecture & implementation record for M9 (Captain Files, Global Market Trend, Ghost Captains, Weekly Seeded Trial, Save v10). |
 | [MILESTONE_10_ARCHITECTURE.md](MILESTONE_10_ARCHITECTURE.md) | Architecture & implementation record for M10-A (branching NPC story with trust & flags, living Port Solaris incl. optional sprite pack, sector room mechanics S2–S4, boss phase-2 music, touch size, aim assist & text speed, Save v11). §11 lists deviations & open items. |
 | [MILESTONE_10C_ARCHITECTURE.md](MILESTONE_10C_ARCHITECTURE.md) | Architecture & implementation record for M10-C (enemy navigation, rift-portal placement, mobile HUD, weapon locker, day/night loop, teleporter-only extraction, unique bosses, shield counterplay, economy/boss/bot/rift balancing in `src/data/balance.ts`). §9 lists measured values & deviations. |
+| [MILESTONE_11_ARCHITECTURE.md](MILESTONE_11_ARCHITECTURE.md) | **Next up:** plan for M11 — living enemies & bosses: cut-out rigs (`src/engine/rig.ts`), procedural motion & legs, detachable parts, phase-2 transformations, boss splitting; sprite delivery format (parts/pose sheets) + `npm run art:import` pipeline and the full Gemini prompt catalogue. |
 | [ART_AND_DESIGN_GUIDE.md](ART_AND_DESIGN_GUIDE.md) | Generating new pixel-art sprites/backgrounds (prompt templates, color palettes, Python flood-fill extraction script, `artLoader.ts` & UI rules). |
 | [TESTING_AND_VERIFICATION.md](TESTING_AND_VERIFICATION.md) | Running `npm run build`, checking invariants, Headless Chrome CDP verification harness, visual screenshot QA, and known pitfalls. |
 | [firestore.rules](firestore.rules) | Production Firestore security rules (`saves/{uid}`, `leaderboard/{uid}`, `activities`). |
@@ -35,9 +36,9 @@
    - Verify Zero-Dungeon-Credits invariant.
    - Run Headless Chrome CDP logic + live screenshot check and **visually inspect** screenshots before committing and pushing to `origin main`.
 7. **Fehlende Sprites melden:** Legst du einen prozeduralen Fallback / Platzhalter anstelle eines Sprites an (z. B. weil kein Bildgenerator verfügbar ist), dann **musst** du (a) den Sprite-Key in `M10_OPTIONAL_SPRITES` (bzw. dem passenden optionalen Block in `artLoader.ts`) registrieren, damit `npm run check:sprites` ihn listet, (b) den Prompt in `ART_AND_DESIGN_GUIDE.md` §7 ergänzen und (c) im Abschnitt „Fehlende Sprites“ von `HANDOFF.md` eintragen. In deiner Abschlussmeldung weist du den Projektinhaber ausdrücklich darauf hin, dass neue Sprites benötigt werden.
+8. **Übergabe:** Aktualisiere am Ende jeder Sitzung `HANDOFF.md`. Prüfe mit `npm run verify`, bevor du pushst (gilt für jedes Werkzeug; Claude Code liest `CLAUDE.md`, das auf diese Datei verweist).
 9. **Tag/Nacht-Schleife (M10-C):** Laden nur nachts; Run am Tag → danach Nacht; Nacht-Run → danach Tag (Ladenschicht fällt aus); Koje nur nachts. Zeitwechsel laufen **nur** über `GameState.startNight()` / `startDay()` — nie `timeOfDay` direkt setzen. Die Wochen-Prüfung ändert die Zeit nie.
 10. **Balancing zentral (M10-C):** Preise, Boss-HP, Rift-Faktoren, Waffen-Sperren, Schild-Werte stehen in `src/data/balance.ts`. Nach Änderungen `npm test -- m10cp8 m10cp10` (Boss-Kampfdauer, Prüfung) laufen lassen und `tests/out/economy.json` ansehen.
-8. **Übergabe:** Aktualisiere am Ende jeder Sitzung `HANDOFF.md`. Prüfe mit `npm run verify`, bevor du pushst (gilt für jedes Werkzeug; Claude Code liest `CLAUDE.md`, das auf diese Datei verweist).
 
 ---
 

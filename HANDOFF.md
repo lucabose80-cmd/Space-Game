@@ -23,6 +23,7 @@ npm run verify                    # Build + Invarianten + Sprite-Check + Tests
 - **Wer einen Fallback/Platzhalter neu anlegt, trägt ihn hier ein** (Datei, Key, Prompt-Abschnitt im Art-Guide).
 
 ## Nächster Schritt
+- **Meilenstein 11 (Animation & Sprite-Pipeline):** `MILESTONE_11_ARCHITECTURE.md`. Sprites: Teile-/Pose-Sheets nach §6 in Gemini erzeugen und nach `art_source/rigs/` bzw. `art_source/poses/` legen (Import-Befehl entsteht in Phase 0). Code: Phasen 0–8.
 - Ökonomie & Boss-Kampfgefühl im echten Spiel beobachten und in `src/data/balance.ts` nachjustieren (Berichte: `tests/out/economy.json`, `tests/out/ttk.json`).
 - Sprites erzeugen (siehe unten), sobald Bildgenerierung verfügbar ist.
 
