@@ -1,85 +1,159 @@
 {
  "rig": "krall",
- "scale": 0.18868,
+ "scale": 0.22642,
  "resample": "lanczos",
- "torsoDisplayH": 30,
+ "torsoDisplayH": 36,
  "pixelRatio": 2,
  "sheets": {
   "krall_parts.png": "4122728e013e67a8",
-  "krall_arms_R.png": "ccb8120ab3fd6ad8"
+  "krall_arms_R.png": "ccb8120ab3fd6ad8",
+  "krall_arms_L.png": "353ab089bebbfb53",
+  "krall_torsos.png": "d0f4ea536f5cae1c"
  },
  "parts": {
   "torso": {
-   "w": 61,
-   "h": 60,
+   "w": 73,
+   "h": 72,
    "srcW": 323,
    "srcH": 318
   },
   "claw": {
-   "w": 54,
-   "h": 82,
+   "w": 65,
+   "h": 98,
    "srcW": 286,
    "srcH": 434
   },
   "legF": {
-   "w": 43,
-   "h": 66,
+   "w": 52,
+   "h": 79,
    "srcW": 230,
    "srcH": 349
   },
   "legB": {
-   "w": 40,
-   "h": 68,
+   "w": 48,
+   "h": 82,
    "srcW": 213,
    "srcH": 360
   },
   "magnet": {
-   "w": 39,
-   "h": 42,
+   "w": 47,
+   "h": 51,
    "srcW": 208,
    "srcH": 225
   },
   "plate": {
-   "w": 47,
-   "h": 46,
+   "w": 56,
+   "h": 55,
    "srcW": 248,
    "srcH": 243
   },
   "clawR_1": {
-   "w": 84,
-   "h": 74,
+   "w": 102,
+   "h": 90,
    "mode": "limb",
    "set": "krall_arms_R"
   },
   "clawR_2": {
-   "w": 84,
-   "h": 74,
+   "w": 102,
+   "h": 90,
    "mode": "limb",
    "set": "krall_arms_R"
   },
   "clawR_3": {
-   "w": 84,
-   "h": 74,
+   "w": 102,
+   "h": 90,
    "mode": "limb",
    "set": "krall_arms_R"
   },
   "clawR_4": {
-   "w": 84,
-   "h": 74,
+   "w": 102,
+   "h": 90,
    "mode": "limb",
    "set": "krall_arms_R"
   },
   "clawR_5": {
-   "w": 84,
-   "h": 74,
+   "w": 102,
+   "h": 90,
    "mode": "limb",
    "set": "krall_arms_R"
   },
   "clawR_6": {
-   "w": 84,
-   "h": 74,
+   "w": 102,
+   "h": 90,
    "mode": "limb",
    "set": "krall_arms_R"
+  },
+  "clawL_1": {
+   "w": 100,
+   "h": 88,
+   "mode": "limb",
+   "set": "krall_arms_L"
+  },
+  "clawL_2": {
+   "w": 100,
+   "h": 88,
+   "mode": "limb",
+   "set": "krall_arms_L"
+  },
+  "clawL_3": {
+   "w": 100,
+   "h": 88,
+   "mode": "limb",
+   "set": "krall_arms_L"
+  },
+  "clawL_4": {
+   "w": 100,
+   "h": 88,
+   "mode": "limb",
+   "set": "krall_arms_L"
+  },
+  "clawL_5": {
+   "w": 100,
+   "h": 88,
+   "mode": "limb",
+   "set": "krall_arms_L"
+  },
+  "clawL_6": {
+   "w": 100,
+   "h": 88,
+   "mode": "limb",
+   "set": "krall_arms_L"
+  },
+  "torso_1": {
+   "w": 84,
+   "h": 100,
+   "mode": "swap",
+   "set": "krall_torsos"
+  },
+  "torso_2": {
+   "w": 84,
+   "h": 100,
+   "mode": "swap",
+   "set": "krall_torsos"
+  },
+  "torso_3": {
+   "w": 84,
+   "h": 100,
+   "mode": "swap",
+   "set": "krall_torsos"
+  },
+  "torso_4": {
+   "w": 84,
+   "h": 100,
+   "mode": "swap",
+   "set": "krall_torsos"
+  },
+  "torso_5": {
+   "w": 84,
+   "h": 100,
+   "mode": "swap",
+   "set": "krall_torsos"
+  },
+  "torso_6": {
+   "w": 84,
+   "h": 100,
+   "mode": "swap",
+   "set": "krall_torsos"
   }
  }
 }

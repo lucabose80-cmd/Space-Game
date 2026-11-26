@@ -14,7 +14,7 @@
         "plate"
       ],
       "scaleRef": "torso",
-      "torsoDisplayH": 30,
+      "torsoDisplayH": 36,
       "pixelRatio": 2,
       "sets": [
         {
@@ -27,6 +27,30 @@
             "clawR_4",
             "clawR_5",
             "clawR_6"
+          ]
+        },
+        {
+          "file": "krall_arms_L",
+          "mode": "limb",
+          "ids": [
+            "clawL_1",
+            "clawL_2",
+            "clawL_3",
+            "clawL_4",
+            "clawL_5",
+            "clawL_6"
+          ]
+        },
+        {
+          "file": "krall_torsos",
+          "mode": "swap",
+          "ids": [
+            "torso_1",
+            "torso_2",
+            "torso_3",
+            "torso_4",
+            "torso_5",
+            "torso_6"
           ]
         }
       ]
@@ -41,8 +65,8 @@
           0.5
         ],
         "offset": [
-          0,
-          -2
+          0.0,
+          -2.4
         ],
         "detach": "phase2"
       },
@@ -52,28 +76,36 @@
         "flipX": true,
         "parent": "torso",
         "attach": [
-          0.1,
-          0.78
+          0.5,
+          0.5
         ],
         "pivot": [
           0.12,
           0.1
         ],
-        "z": -3
+        "z": -3,
+        "offset": [
+          -14.6,
+          5.8
+        ]
       },
       {
         "id": "legBR",
         "image": "legB",
         "parent": "torso",
         "attach": [
-          0.9,
-          0.78
+          0.5,
+          0.5
         ],
         "pivot": [
           0.12,
           0.1
         ],
-        "z": -3
+        "z": -3,
+        "offset": [
+          14.6,
+          5.8
+        ]
       },
       {
         "id": "legFL",
@@ -81,49 +113,65 @@
         "flipX": true,
         "parent": "torso",
         "attach": [
-          0.06,
-          0.64
+          0.5,
+          0.5
         ],
         "pivot": [
           0.12,
           0.1
         ],
-        "z": -1
+        "z": -1,
+        "offset": [
+          -16.1,
+          0.7
+        ]
       },
       {
         "id": "legFR",
         "image": "legF",
         "parent": "torso",
         "attach": [
-          0.94,
-          0.64
+          0.5,
+          0.5
         ],
         "pivot": [
           0.12,
           0.1
         ],
-        "z": -1
-      },
-      {
-        "id": "torso",
-        "image": "torso",
-        "z": 0,
-        "pivot": [
-          0.5,
-          0.92
-        ],
+        "z": -1,
         "offset": [
-          0,
-          -10
+          16.1,
+          0.7
         ]
       },
       {
-        "id": "claw",
+        "id": "torso",
+        "image": "torso_1",
+        "z": 0,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "offset": [
+          0.0,
+          -25.7
+        ],
+        "variants": [
+          "torso_1",
+          "torso_2",
+          "torso_3",
+          "torso_4",
+          "torso_5",
+          "torso_6"
+        ]
+      },
+      {
+        "id": "clawR",
         "image": "clawR_1",
         "parent": "torso",
         "attach": [
-          0.96,
-          0.36
+          0.5,
+          0.5
         ],
         "pivot": [
           0.5,
@@ -137,6 +185,10 @@
           "clawR_4",
           "clawR_5",
           "clawR_6"
+        ],
+        "offset": [
+          11.4,
+          -7.4
         ]
       },
       {
@@ -145,13 +197,43 @@
         "parent": "torso",
         "attach": [
           0.5,
-          0.17
+          0.5
         ],
         "pivot": [
           0.5,
           0.88
         ],
-        "z": 3
+        "z": 3,
+        "offset": [
+          0.0,
+          -14.4
+        ]
+      },
+      {
+        "id": "clawL",
+        "image": "clawL_1",
+        "parent": "torso",
+        "attach": [
+          0.5,
+          0.5
+        ],
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "z": 1,
+        "variants": [
+          "clawL_1",
+          "clawL_2",
+          "clawL_3",
+          "clawL_4",
+          "clawL_5",
+          "clawL_6"
+        ],
+        "offset": [
+          -14.4,
+          -7.4
+        ]
       }
     ]
   },

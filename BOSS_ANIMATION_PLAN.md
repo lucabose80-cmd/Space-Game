@@ -110,11 +110,28 @@ Für jeden weiteren Boss einen Abschnitt nach diesem Muster anlegen:
 3. **Sprite-Aufgaben** aus `ART_BRIEF_M11.md` §4 + Zwischen-Posen wie S2.
 4. Besonderheiten aus `MILESTONE_11_ARCHITECTURE.md` §4.1 (z. B. Teilen beim Quarz-Koloss/Sternen-Archon — Logik fertig, Aussehen der Hälften erst mit Rig).
 
+**Krall — Zuordnung (`krallSet()` in `bossAnims.ts`, Zugnamen aus `bosses/defs.ts`)**
+Arme `clawR` (Greifzange) / `clawL` (Schrott-Haken + Säge), Indizes je Seite: 0 hängend · 1 ausholend · 2 Stoß zur Kamera · 3 seitlich · 4 Block · 5 Boden-Stampfer. Rumpf: 0 normal · 1 geduckt · 2 aufgerichtet (Kern hell) · 3 nach vorn gebeugt · 4 Phase 2 (Skelettrahmen) · 5 beschädigt (< 25 % HP).
+
+| Zug / Abschnitt | Arme R · L | Rumpf | Zusatz (`fx`) |
+| :--- | :--- | :--- | :--- |
+| Ruhe / Gehen | 0 · 0 | 0 | Armschwung gegenläufig, Lehnen, Beine/Magnet wie bisher |
+| GREIFARM-STOSS Vorwarnung | 1 · 1 | 1 geduckt | Rumpf `dy +1.5p`, Arme zurück |
+| GREIFARM-STOSS Ausführung (Erholung 0–0,55 s) | 2 · 3 | 3 gebeugt | Rückprall, Zange federt nach; danach hängend |
+| MAGNET-ZUG Vorwarnung | 1 · 1 | 2 aufgerichtet | Rumpf/Magnet heben sich |
+| MAGNET-ZUG Sog (bis 1,1 s nach Zündung) | 3 · 3 | 2 | Zittern, Magnet wackelt |
+| SCHROTT-WURF Vorwarnung / Wurf | 1 · 1 / 3 · 0 | 1 / 3 | Wurfarm federt nach |
+| SCHROTT-HAGEL Vorwarnung / Stampfer (P2) | 1 · 1 / 5 · 5 | 4 (Skelett) | Haltung über `dy`/`sy`/`rot` (in Phase 2 gibt es nur den Rahmen) |
+| Phase 2 / < 25 % HP | wie oben | 4 / 5 | — |
+| Treffer (`flashTimer`) | Arme federn nach außen | Zittern `dx` | nicht in Angriffsposen |
+
+Die Engine setzt `bossStateMax` nur in der Vorwarnung; die Erholungsdauer je Zug steht deshalb in `KRALL_RECOVER` (muss zu `defs.ts` passen). Offen für Krall: Beine/Effekte-Sheets, Maßstab bleibt `torsoDisplayH: 36` (alle Krall-Teile).
+
 **Aktueller Stand je Boss**
 | Boss | Rig | Pose-Sets | Phase 2 | Teilen | Nächster Schritt |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | Kern-Wächter | ✅ | ✅ (S1–S5 eingebunden, K1–K8) | ✅ Platten fliegen, Faust-Salve | — | **S6** (Arme ohne Faust in Angriffsposen) + Abnahme im echten Kampf §2.4 |
-| Krall | ✅ (alt, nur `claw` mit Pose-Set `krall_arms_R`) | Sheets 3/6 vorhanden (`krall_arms_R`, `krall_arms_L`, `krall_torsos`) — **`arms_L` und `torsos` noch NICHT in `rigs.json`/`bossAnims.ts` eingebunden** | ✅ Panzer fällt ab | — | `clawL` + Rumpf-Set einbinden (Claude Code), letzte 3 Sheets (`legs_R/L`, `effects`) (Antigravity), dann §3 |
+| Krall | ✅ Rumpf-Set (6), `clawR`/`clawL` (je 6 Posen), Phase-2-Skelettrahmen, `krallSet()` | ✅ Arme L/R + Rümpfe eingebunden; Beine (`legs_R/L`) + Effekte (`effects`) fehlen | ✅ Panzer fällt ab, Skelett-Rumpf | — | letzte 3 Sheets (`krall_legs_R/L`, `krall_effects`) (Antigravity); Abnahme im echten Kampf |
 | Quarz-Koloss | – | – | – | ✅ Logik (Hälften gleich aussehend, 85 %) | Teile-Sheets (`ART_BRIEF_M11.md` §4.3) |
 | Sternen-Archon | – | – | – | ✅ Logik | Teile-Sheets |
 | übrige Bosse | – | – | – | – | Teile-Sheets |

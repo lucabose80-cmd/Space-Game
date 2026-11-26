@@ -24,7 +24,7 @@ Wenn ein Rig fehlt oder ein Bild nicht lädt, wird automatisch das alte Einzelbi
 | `src/data/rigs.json` | **die Rig-Definition**: Sheet-Layout, Sets, Teile-Baum (Daten, kein Code) |
 | `src/data/rigs.ts` | lädt `rigs.json`, `RIG_BY_KIND` (Gegnerart → Rig), `rigImageNames` |
 | `src/engine/rig.ts` | `layoutRig`/`drawRig`/`blendPose`, Typen `RigPartDef`, `PartPose` |
-| `src/dungeon/anim/bossAnims.ts` | **Posen je Boss-Zustand** (`getBossPose`, `coreWardenSet`, `krallClaw`, `SHOULDER_ADJUST`) |
+| `src/dungeon/anim/bossAnims.ts` | **Posen je Boss-Zustand** (`getBossPose`, `coreWardenSet`, `krallSet`, `SHOULDER_ADJUST`) |
 | `src/dungeon/dungeonRenderer.ts` (`tryDrawRig`) | zeichnet das Rig statt des Einzelbilds |
 | `src/assets/artLoader.ts` | lädt alle Teile-Bilder (+ Flash-Silhouetten); fehlt eins → Rig = `null` |
 | `src/dev/bossLab.ts` | Boss-Labor `?bosslab` (Zustände ansehen, Pause, „Phase II“, Rig an/aus) |
@@ -67,7 +67,7 @@ Wenn ein Rig fehlt oder ein Bild nicht lädt, wird automatisch das alte Einzelbi
 `getBossPose(rigId, enemy, time)` liefert pro Frame `{ teilId: { variant, rot, dx, dy, sx, sy, alpha, hidden } }`.
 - **Kern-Wächter** — vollständige Varianten-Karte (Arme je Seite 0–12, Köpfe 0–11, Rümpfe 0–11, Fäuste als Bilder) und alle Zustands→Pose-Zuordnungen: `BOSS_ANIMATION_PLAN.md` §2.1 und `coreWardenSet()` in `bossAnims.ts`. Der Index entspricht der Reihenfolge in `variants` (`rigs.json`); neue Varianten **hinten anhängen**, nie einfügen.
 - **Brustplatten** (`plateL/R`, Typ P): immer `hidden`; erst beim Phase-2-Wechsel löst `detached.ts` sie ab und lässt sie wegfliegen (siehe unten). Die Laser-Brust öffnet sich über die Rumpf-Varianten 6/7/10 (kein Platten-Aufklappen — verdeckte den Kern).
-- **Krall** — `krallClaw()`: Zange nach `bossSub` (`idle/windup/active/recover`) und `bossStatusText` (= Zugname aus `bosses/defs.ts`: GREIFARM-STOSS, MAGNET-ZUG, SCHROTT-WURF, SCHROTT-HAGEL).
+- **Krall** — `krallSet()`: Arme `clawR`/`clawL` und Rumpf-Variante nach `bossSub` (`idle/windup/active/recover`) und `bossStatusText` (= Zugname aus `bosses/defs.ts`: GREIFARM-STOSS, MAGNET-ZUG, SCHROTT-WURF, SCHROTT-HAGEL), Phase 2 = Skelett-Rumpf (Haltung dort über `fx`), < 25 % HP beschädigt; Anlauf/Nachfedern/Gehen/Treffer im `fx`-Block. Tabelle: `BOSS_ANIMATION_PLAN.md` §3. Vorsicht: die Boss-Engine setzt `bossStateMax` nur für die Vorwarnung — Erholungsdauer je Zug in `KRALL_RECOVER` pflegen.
 - **Neuer Boss:** Rig in `rigs.json` anlegen (`kind` = Enemy-kind), `case '<rig-id>'` in `getBossPose` ergänzen. Die **Spiellogik** (Zustände, Schaden, Telegraph) bleibt in `enemyAi.ts` bzw. `bosses/defs.ts` — `bossAnims.ts` liest sie nur.
 
 ### Glättung, Impuls, Zusatzbewegung (`bossAnims.ts`)
@@ -107,11 +107,12 @@ Automatisch: `npm test -- m11p1 m11p2 m11p3 m11p4` (Rig-Engine · Pose-Sets/Übe
 - *Rig erscheint nicht* → ein Bild fehlt/Tippfehler im Namen (`rigImageNames` muss alle laden) → Konsole/`public/art/rigs/<rig>/` prüfen.
 - *Pose „springt“ in der Größe* → Set-Bilder nicht gleich groß → neu importieren (`--force`).
 - *Gelenk wandert zwischen Posen* → in der Quell-Zelle liegt das Gelenk nicht in der Mitte → Sheet korrigieren (§4 Schritt 2).
-- *Dev-Server zeigt altes Rig nach JSON-Änderung* → Vite neu starten.
+- *Dev-Server zeigt altes Rig nach JSON-Änderung* → Vite neu starten. Das gilt auch für `scripts/rig-sheet.cjs`: nach HMR-Reload (Änderung an `rigs.json`/`bossAnims.ts`) liefert der Kontaktbogen u. U. **leere Zellen** (zweite Modulinstanz ohne Bilder) — Dev-Server neu starten, dann erneut rendern.
+- *Torso-Wechsel verschiebt Beine/Arme* → bei einem Rumpf-Set (Pivot = Kern, `[0.5,0.5]`) hängen Kinder mit `attach [0.5,0.5]` + `offset` in Spielpixeln **relativ zum Kern**, nicht mehr als Bruchteil des Rumpfbilds (Krall).
 
 ## 7. Abschluss (Pflicht, siehe `AGENTS.md` §3 Regel 6/8)
 `npm run verify` grün → Screenshots/Kontaktbogen angesehen → `HANDOFF.md` aktualisieren → committen & pushen (Commit-Präfix `art(m11):` für Sheets, `feat(m11):` für Code).
 
 ## 8. Offene Arbeit
-**Konkrete Aufgabenliste & Fertig-Definition:** [`BOSS_ANIMATION_PLAN.md`](BOSS_ANIMATION_PLAN.md). Stand: Kern-Wächter K1–K8 + S1–S5 eingebunden, offen S6 (Arme ohne Faust in Angriffsposen) und Abnahme im echten Kampf.
-Weiter laut `HANDOFF.md` („Nächster Schritt“): Krall-Sheets einbinden (`krall_arms_L` → neues Teil `clawL`, `krall_torsos` → Rumpf-Set, Beine/Effekte sobald vorhanden), danach die übrigen Bosse (`ART_BRIEF_M11.md` §4.3) und Gegner-Rigs (`ART_BRIEF_M11_ENEMIES.md`).
+**Konkrete Aufgabenliste & Fertig-Definition:** [`BOSS_ANIMATION_PLAN.md`](BOSS_ANIMATION_PLAN.md). Stand: Kern-Wächter K1–K8 + S1–S5 eingebunden, offen S6 (Arme ohne Faust in Angriffsposen) und Abnahme im echten Kampf. Krall: Arme L/R + Rumpf-Set (6) eingebunden, Zuordnung nach Zug/Phase fertig; offen `krall_legs_R/L.png` + `krall_effects.png` (Antigravity) und Abnahme.
+Weiter laut `HANDOFF.md` („Nächster Schritt“): übrige Bosse (`ART_BRIEF_M11.md` §4.3) und Gegner-Rigs (`ART_BRIEF_M11_ENEMIES.md`).

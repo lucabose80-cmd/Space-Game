@@ -140,23 +140,90 @@ function coreWardenSet(e: Enemy, time: number, lookDx: number): { arms: number; 
   return { arms, head, torso, fx };
 }
 
-/** Krall: Greifzangen-Pose aus Zug-Name und Phase des Zugs (bossSub). */
-function krallClaw(e: Enemy): number {
+/**
+ * Krall-Pose-Sets (ART_BRIEF_M11 §4.1) — Reihenfolge = `variants` in rigs.json.
+ * Arme (clawR Greifzange / clawL Schrott-Haken, je Seite gleiche Posen): 0 hängend · 1 ausholend · 2 Stoß zur Kamera · 3 seitlich · 4 Block · 5 Boden-Stampfer.
+ * Rumpf: 0 normal · 1 geduckt · 2 aufgerichtet (Kern hell, Magnet-Zug) · 3 nach vorn gebeugt (Stoß) · 4 Phase 2 (Rückenpanzer ab, Rahmen/Kern offen) · 5 beschädigt (Funken, Dellen).
+ */
+const KARM = { hang: 0, windup: 1, punch: 2, side: 3, block: 4, stomp: 5 } as const;
+const KTORSO = { normal: 0, duck: 1, upright: 2, fwd: 3, p2: 4, damaged: 5 } as const;
+/** Erholungszeit je Zug (defs.ts) — die Engine setzt `bossStateMax` nur für die Vorwarnung, `bossStateTimer` läuft in der Erholung von diesem Wert ab. */
+const KRALL_RECOVER: Record<string, number> = { 'MAGNET-ZUG': 1.3, 'SCHROTT-WURF': 0.9, 'GREIFARM-STOSS': 0.9, 'SCHROTT-HAGEL': 1.1 };
+/** Rumpf-Haltung (Variante in Phase 1, `fx` in Phase 2 — dort gibt es nur den Skelett-Rahmen). */
+type KPosture = 'normal' | 'duck' | 'upright' | 'fwd';
+
+interface KrallSet {
+  clawR: number;
+  clawL: number;
+  torso: number;
+  fx: { torso: PartPose; clawR: PartPose; clawL: PartPose; magnet: PartPose };
+}
+
+/** Krall: Pose je Zug (bossStatusText aus defs.ts) und Abschnitt (bossSub), Anlauf/Nachfedern, Rumpf-Variante, Treffer. */
+function krallSet(e: Enemy, time: number): KrallSet {
   const sub = e.bossSub ?? 'idle';
-  if (sub === 'idle') return ARM.hang;
-  const windup = sub === 'windup';
-  switch (e.bossStatusText) {
-    case 'GREIFARM-STOSS':
-      return windup ? ARM.windup : sub === 'recover' && (e.bossStateTimer ?? 0) < 0.35 ? ARM.hang : ARM.punch;
-    case 'MAGNET-ZUG':
-      return windup ? ARM.block : ARM.hang;
-    case 'SCHROTT-WURF':
-      return windup ? ARM.windup : ARM.side;
-    case 'SCHROTT-HAGEL':
-      return ARM.stomp;
-    default:
-      return ARM.hang;
+  const move = e.bossStatusText ?? '';
+  const p2 = e.bossPhase2 === true;
+  const hpPct = e.maxHp > 0 ? e.hp / e.maxHp : 1;
+  const fx: KrallSet['fx'] = { torso: {}, clawR: {}, clawL: {}, magnet: {} };
+  let r: number = KARM.hang;
+  let l: number = KARM.hang;
+  let posture: KPosture = 'normal';
+  // Fortschritt: Vorwarnung 0…1; Erholung = vergangene Sekunden (`active` zählt als Beginn der Erholung)
+  const wp = sub === 'windup' ? (e.bossStateMax && e.bossStateMax > 0 ? clamp01(1 - Math.max(0, e.bossStateTimer ?? 0) / e.bossStateMax) : 0) : 0;
+  const rec = KRALL_RECOVER[move] ?? 1;
+  const el = sub === 'recover' ? Math.max(0, rec - (e.bossStateTimer ?? rec)) : 0;
+  const act = sub === 'active' || sub === 'recover';
+  const k = Math.exp(-el / 0.08);
+  if (sub === 'windup' || act) {
+    switch (move) {
+      case 'GREIFARM-STOSS':
+        if (sub === 'windup') { r = KARM.windup; l = KARM.windup; posture = 'duck'; fx.torso = { dy: 1.5 * wp, sy: 1 - 0.05 * wp }; fx.clawR = { rot: -0.2 * wp }; fx.clawL = { rot: 0.2 * wp }; }
+        else if (el < 0.55) { r = KARM.punch; l = KARM.side; posture = 'fwd'; fx.torso = { sx: 1 + 0.03 * k, dx: 1.2 * k }; fx.clawR = { rot: 0.12 * damped(el) }; }
+        else { r = KARM.hang; l = KARM.hang; fx.clawR = { rot: 0.1 * damped(el - 0.55) }; }
+        break;
+      case 'MAGNET-ZUG': // Rumpf richtet sich auf, beide Arme öffnen seitlich — solange der Sog läuft
+        if (sub === 'windup') { r = KARM.windup; l = KARM.windup; posture = 'upright'; fx.torso = { dy: -1.4 * wp }; fx.magnet = { dy: -1.2 * wp }; }
+        else if (el < 1.1) { r = KARM.side; l = KARM.side; posture = 'upright'; fx.torso = { dy: -1.4, dx: Math.sin(time * 40) * 0.5 }; fx.magnet = { dy: -1.2 + Math.sin(time * 30) * 0.6, rot: Math.sin(time * 26) * 0.12 }; }
+        else { fx.torso = { dy: -1.4 * Math.exp(-(el - 1.1) / 0.1) }; }
+        break;
+      case 'SCHROTT-WURF':
+        if (sub === 'windup') { r = KARM.windup; l = KARM.windup; posture = 'duck'; fx.torso = { dy: 1.2 * wp, rot: -0.04 * wp }; fx.clawR = { rot: -0.2 * wp }; fx.clawL = { rot: 0.15 * wp }; }
+        else if (el < 0.4) { r = KARM.side; l = KARM.hang; posture = 'fwd'; fx.torso = { dx: 1 * k }; fx.clawR = { rot: 0.15 * damped(el) }; }
+        else { fx.clawR = { rot: 0.1 * damped(el - 0.4) }; }
+        break;
+      case 'SCHROTT-HAGEL': // Phase 2: hebt beide Arme, stampft sie in den Boden
+        if (sub === 'windup') { r = KARM.windup; l = KARM.windup; posture = 'upright'; fx.torso = { dy: -1.5 * wp }; fx.clawR = { rot: -0.25 * wp }; fx.clawL = { rot: 0.25 * wp }; fx.magnet = { dy: -1.2 * wp }; }
+        else { r = KARM.stomp; l = KARM.stomp; posture = el < 0.5 ? 'fwd' : 'normal'; fx.torso = { dy: 1.5 * k, sy: 1 - 0.06 * k }; fx.clawR = { rot: -0.15 * damped(el) }; fx.clawL = { rot: 0.15 * damped(el) }; }
+        break;
+    }
   }
+  let torso: number = KTORSO[posture];
+  if (p2) {
+    // Phase 2: nur ein Skelett-Rahmen (beschädigt < 25 % HP) — Haltung über Verschiebung/Stauchung statt Bildwechsel
+    torso = hpPct < 0.25 ? KTORSO.damaged : KTORSO.p2;
+    const tf = fx.torso;
+    if (posture === 'duck') fx.torso = { ...tf, dy: (tf.dy ?? 0) + 0.8, sy: (tf.sy ?? 1) * 0.96 };
+    else if (posture === 'fwd') fx.torso = { ...tf, rot: (tf.rot ?? 0) + 0.04, sx: (tf.sx ?? 1) * 1.03 };
+  } else if (hpPct < 0.25) torso = KTORSO.damaged;
+  if (!act && sub !== 'windup') {
+    // Ruhe/Gehen: Armschwung gegenläufig zu den Beinen, leichtes Lehnen
+    const speed = Math.hypot(e.vx, e.vy);
+    const w = clamp01(speed / 60);
+    const s = Math.sin(time * (5 + w * 4) + e.id);
+    fx.clawR = { rot: s * 0.14 * w };
+    fx.clawL = { rot: s * 0.14 * w };
+    fx.torso = { rot: Math.max(-0.05, Math.min(0.05, e.vx * 0.0008)) };
+  }
+  if (e.flashTimer > 0) {
+    // Treffer-Reaktion: Rumpf zittert, Arme federn nach außen (nur in Ruhe/Vorwarnung, Angriffsposen bleiben)
+    fx.torso = { ...fx.torso, dx: (fx.torso.dx ?? 0) + Math.sin(time * 90) };
+    if (!act) {
+      fx.clawR = { rot: (fx.clawR.rot ?? 0) - 0.08 };
+      fx.clawL = { rot: (fx.clawL.rot ?? 0) + 0.08 };
+    }
+  }
+  return { clawR: r, clawL: l, torso, fx };
 }
 
 // ---------- K1: weiche Übergänge ----------
@@ -269,14 +336,17 @@ function rawBossPose(rigId: string, e: Enemy, time: number, lookDx: number): Pos
       const s = Math.sin(ph);
       const c = Math.sin(ph + Math.PI);
       const breathe = Math.sin(time * 2.4 + e.id);
+      const ks = krallSet(e, time);
+      const kf = ks.fx;
       return {
-        torso: { dy: -Math.abs(s) * walk * 1.2 + breathe * 0.4 },
+        torso: { variant: ks.torso, dx: kf.torso.dx, rot: kf.torso.rot, sx: kf.torso.sx, dy: (kf.torso.dy ?? 0) - Math.abs(s) * walk * 1.2 + breathe * 0.4, sy: kf.torso.sy },
         legFL: { rot: s * amp },
         legBR: { rot: -s * amp * 0.9 },
         legFR: { rot: c * amp },
         legBL: { rot: -c * amp * 0.9 },
-        claw: { variant: krallClaw(e), rot: Math.sin(time * 1.7 + 1) * 0.04 },
-        magnet: { dy: Math.sin(time * 3.1) * 0.6, rot: Math.sin(time * 2) * 0.06 },
+        clawR: { variant: ks.clawR, rot: Math.sin(time * 1.7 + 1) * 0.04 + (kf.clawR.rot ?? 0) },
+        clawL: { variant: ks.clawL, rot: Math.sin(time * 1.7 + 2) * 0.04 + (kf.clawL.rot ?? 0) },
+        magnet: { dy: Math.sin(time * 3.1) * 0.6 + (kf.magnet.dy ?? 0), rot: Math.sin(time * 2) * 0.06 + (kf.magnet.rot ?? 0) },
         plate: { dy: breathe * 0.5 },
       };
     }
