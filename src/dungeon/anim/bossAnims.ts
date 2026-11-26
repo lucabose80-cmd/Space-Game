@@ -198,7 +198,7 @@ function krallSet(e: Enemy, time: number): KrallSet {
     switch (move) {
       case 'GREIFARM-STOSS':
         if (sub === 'windup') { leg = KLEG.crouch; r = KARM.windup; l = KARM.windup; posture = 'duck'; fx.torso = { dy: 1.5 * wp, sy: 1 - 0.05 * wp }; fx.clawR = { rot: -0.2 * wp }; fx.clawL = { rot: 0.2 * wp }; }
-        else if (el < 0.55) { leg = el < 0.3 ? KLEG.jump : KLEG.fwd; r = KARM.punch; l = KARM.side; posture = 'fwd'; fx.torso = { sx: 1 + 0.03 * k, dx: 1.2 * k }; fx.clawR = { rot: 0.12 * damped(el) }; }
+        else if (el < 0.55) { leg = el < 0.3 ? KLEG.jump : KLEG.fwd; r = KARM.punch; l = KARM.side; posture = 'fwd'; fx.torso = { sx: 1 + 0.03 * k, dx: 1.2 * k }; const reach = clamp01(1 - el / 0.35); const rdx = (e.chargeDirX ?? 0) * 7 * reach; const rdy = (e.chargeDirY ?? 0) * 5 * reach; fx.clawR = { rot: 0.12 * damped(el), dx: rdx, dy: rdy }; fx.clawL = { dx: rdx * 0.7, dy: rdy * 0.7 }; }
         else { r = KARM.hang; l = KARM.hang; fx.clawR = { rot: 0.1 * damped(el - 0.55) }; }
         break;
       case 'MAGNET-ZUG': // Rumpf richtet sich auf, beide Arme öffnen seitlich — solange der Sog läuft
@@ -380,14 +380,16 @@ function rawBossPose(rigId: string, e: Enemy, time: number, lookDx: number): Pos
       const breathe = Math.sin(time * 2.4 + e.id);
       const ks = krallSet(e, time);
       const kf = ks.fx;
+      const legIn = ks.torso === KTORSO.p2 ? 1 : 0;
       return {
         torso: { variant: ks.torso, dx: kf.torso.dx, rot: kf.torso.rot, sx: kf.torso.sx, dy: (kf.torso.dy ?? 0) - Math.abs(s) * walk * 1.2 + breathe * 0.4, sy: kf.torso.sy },
-        legFL: { variant: legPose(ks, walk, s), rot: s * amp * 0.25 },
-        legBR: { variant: legPose(ks, walk, -s), rot: -s * amp * 0.2 },
-        legFR: { variant: legPose(ks, walk, c), rot: c * amp * 0.25 },
-        legBL: { variant: legPose(ks, walk, -c), rot: -c * amp * 0.2 },
-        clawR: { variant: ks.clawR, rot: Math.sin(time * 1.7 + 1) * 0.04 + (kf.clawR.rot ?? 0) },
-        clawL: { variant: ks.clawL, rot: Math.sin(time * 1.7 + 2) * 0.04 + (kf.clawL.rot ?? 0) },
+        // Phase-2-Rahmen ist schmaler als der Panzer-Rumpf: Hüften nach innen, damit die Beine am Körper sitzen
+        legFL: { variant: legPose(ks, walk, s), rot: s * amp * 0.25, dx: legIn * 6.5 },
+        legBR: { variant: legPose(ks, walk, -s), rot: -s * amp * 0.2, dx: -legIn * 7 },
+        legFR: { variant: legPose(ks, walk, c), rot: c * amp * 0.25, dx: -legIn * 6.5 },
+        legBL: { variant: legPose(ks, walk, -c), rot: -c * amp * 0.2, dx: legIn * 7 },
+        clawR: { variant: ks.clawR, rot: Math.sin(time * 1.7 + 1) * 0.04 + (kf.clawR.rot ?? 0), dx: kf.clawR.dx, dy: kf.clawR.dy },
+        clawL: { variant: ks.clawL, rot: Math.sin(time * 1.7 + 2) * 0.04 + (kf.clawL.rot ?? 0), dx: kf.clawL.dx, dy: kf.clawL.dy },
         magnet: { variant: ks.magnetOn ? 1 : 0, dy: Math.sin(time * 3.1) * 0.6 + (kf.magnet.dy ?? 0), rot: Math.sin(time * 2) * 0.06 + (kf.magnet.rot ?? 0) },
         plate: { dy: breathe * 0.5 },
       };

@@ -2321,6 +2321,10 @@ export class DungeonRenderer {
       ctx.restore();
     }
     const corePulse = 0.5 + 0.5 * Math.sin(this.scene.time * (enraged ? 14 : 7));
+    if (e.bossStatusText === 'MAGNET-ZUG' && (e.bossSub === 'windup' || e.bossSub === 'active' || e.bossSub === 'recover')) {
+      // M11: Magnet lädt/zieht — kaltes Leuchten um den Magneten (Sog selbst: BossFx 'pull')
+      drawGlow(ctx, e.x, e.y - 30, 22 + corePulse * 6, '#67e8f9', e.bossSub === 'windup' ? 0.3 : 0.55);
+    }
     // M11: Rig hat seinen eigenen Glühkern im Bild — Überlagerung dezenter
     drawGlow(ctx, e.x, e.y - 4, (20 + corePulse * 6) * (rigUsed ? 0.7 : 1), enraged ? '#fb7185' : '#fbbf24', (0.42 + corePulse * 0.22) * (rigUsed ? 0.35 : 1));
   }

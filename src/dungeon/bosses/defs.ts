@@ -31,8 +31,8 @@ const krall: BossDef = {
     {
       name: 'MAGNET-ZUG',
       windup: 0.6,
-      start: (e, c) => fx(c).add({ shape: 'circle', x: e.x, y: e.y, r: 125, delay: 0.6, life: 1.1, pull: 85, color: '#94a3b8' }),
-      fire: (e, c) => fx(c).add({ shape: 'circle', x: e.x, y: e.y, r: 32, delay: 1.0, life: 0.3, burst: 22, color: '#f87171' }),
+      start: (e, c) => fx(c).add({ shape: 'circle', x: e.x, y: e.y, r: 125, delay: 0.6, life: 1.1, pull: 85, color: '#94a3b8', fx: 'pull' }),
+      fire: (e, c) => fx(c).add({ shape: 'circle', x: e.x, y: e.y, r: 32, delay: 1.0, life: 0.3, burst: 22, color: '#f87171', fx: 'blast' }),
       recover: 1.3,
     },
     {
@@ -50,7 +50,7 @@ const krall: BossDef = {
       start: (e, c) => {
         e.chargeDirX = c.nx;
         e.chargeDirY = c.ny;
-        fx(c).add({ shape: 'line', x: e.x, y: e.y, x2: e.x + c.nx * 150, y2: e.y + c.ny * 150, width: 14, delay: 0.65, life: 0.25, burst: 24, color: '#f87171' });
+        fx(c).add({ shape: 'line', x: e.x, y: e.y, x2: e.x + c.nx * 150, y2: e.y + c.ny * 150, width: 14, delay: 0.65, life: 0.25, burst: 24, color: '#f87171', fx: 'dash' });
       },
       fire: (e) => {
         sound.playBossSlam();
@@ -65,7 +65,7 @@ const krall: BossDef = {
       start: (_e, c) => {
         for (let i = 0; i < 6; i++) {
           const p = around(c, i, 6, 48, 0.4);
-          fx(c).add({ shape: 'circle', x: p.x, y: p.y, r: 22, delay: 0.9 + i * 0.12, life: 0.25, burst: 18, color: '#fb923c' });
+          fx(c).add({ shape: 'circle', x: p.x, y: p.y, r: 22, delay: 0.9 + i * 0.12, life: 0.25, burst: 18, color: '#fb923c', fx: 'drop', variant: i });
         }
       },
       recover: 1.1,

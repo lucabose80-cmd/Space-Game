@@ -33,6 +33,20 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 
 ---
 
+## P0 — NEU, höchste Priorität: Krall-Angriffsgrafik (vom Projektinhaber nach Test gewünscht)
+
+> **Grund:** Beim Test wirkten Kralls Angriffe „leer“ (Sog nur ein Schadenskreis, Schrott-Hagel nur Kreise, Stoß nur kleine Armbewegung). Code-Seite ist umgesetzt (Sog-Ringe/Schrott-Strom, fallende Schrottklumpen mit Aufschlag, Stoß-Streifen) und nutzt vorhandene Bilder (`scrap_a/b/c`, `spark`). Mit diesen Sheets kann es auf Kern-Wächter-Niveau gebracht werden. **Reihenfolge: P0-06 → P0-07 → P0-08 → P0-09 → P0-10.** Referenz überall: `public/art/sprites/boss_breacher.png`, `art_source/rigs/krall_parts.png`.
+
+| ID | Status | Zieldatei | Typ & Format | Referenz (`ImagePaths`) | Brief / Prompt | Notiz |
+| :--- | :---: | :--- | :--- | :--- | :--- | :--- |
+| `P0-06` | [ ] | `art_source/rigs/krall_arms_R2.png` | Typ L · 3×2 · `1536×1024` | `art_source/rigs/krall_arms_R.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-C) | Rechte Greifzange, Angriffsposen: **Stoß teleskopiert kurz · mittel · voll ausgefahren (lang gestreckt, Zange weit offen)** · Zange schnappt zu · Sog-Haltung (Zange offen, Funken) · Hagel: Arm hoch mit Schrottbrocken gepackt. Schulterring im Fadenkreuz |
+| `P0-07` | [ ] | `art_source/rigs/krall_arms_L2.png` | Typ L · 3×2 · `1536×1024` | `art_source/rigs/krall_arms_L.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-C) | Linker Haken/Säge, gleiche 6 Posen, Licht links-oben, nicht gespiegelt |
+| `P0-08` | [ ] | `art_source/rigs/krall_fx2.png` | Typ E · 3×2 · `1536×1024` | `art_source/rigs/krall_effects.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-D) | Effekte: Stoß-Luftwelle/Streifenkopf · Magnet-Feldring (rot/blau) · Magnet-Blitzbogen · Staub-/Druckring · Aufschlag-Krater mit Schrottsplittern · Schrott-Schatten/Rostwolke |
+| `P0-09` | [ ] | `art_source/rigs/krall_torsos2.png` | Typ S · 3×2 · `1536×1024` | `art_source/rigs/krall_torsos.png` *(Zelle 5 = Phase-2-Skelettrahmen)* | `ART_BRIEF_M11.md` §4.1 (Zusatz K-A) | 6 Phase-2-Rümpfe: geduckt · aufgerichtet/Kern hell (Magnet) · vorgebeugt (Stoß) · Stampfer-Landung gestaucht · Wurf-Drehung · überhitzt. Phase 2 hat bisher nur 2 Rümpfe |
+| `P0-10` | [ ] | `art_source/rigs/krall_legs_R2.png` + `krall_legs_L2.png` | Typ L · 2× 3×2 | `art_source/rigs/krall_legs_R.png` / `_L.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-B) | Beine: Ausfall gestreckt · Bremsen · Stampfer-Landung gespreizt · humpelnd (Phase 2) · Magnet-Stemmen · Ruhe-Zittern. L nicht gespiegelt |
+
+---
+
 ## P0 — Aktive Boss-Rigs abschließen (höchste Priorität — erledigt ✅)
 
 | ID | Status | Zieldatei | Typ & Format | Referenz (`ImagePaths`) | Brief / Prompt | Notiz |
@@ -96,16 +110,6 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 | `P2-17` | [ ] | `art_source/rigs/star_lancer_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_star_lancer.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S4) | Sternen-Lanzer |
 | `P2-18` | [ ] | `art_source/rigs/void_wraith_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_void_wraith.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S4) | Leere-Phantom |
 | `P2-19` | [ ] | `art_source/rigs/monolith_guard_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_monolith_guard.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S4) | Monolith-Wächter |
-
-### P2e — Krall-Feinschliff (optional, erst nach Abnahme von Krall im echten Kampf)
-
-> Krall ist komplett eingebunden. Diese 3 Sheets heben nur die Phase 2 und die Angriffsposen auf Kern-Wächter-Niveau; ohne sie läuft alles mit den vorhandenen Bildern (Phase-2-Haltung nur über Verschiebung/Stauchung, Beine nutzen die 6 Standard-Posen).
-
-| ID | Status | Zieldatei | Typ & Format | Referenz (`ImagePaths`) | Brief / Prompt | Notiz |
-| :--- | :---: | :--- | :--- | :--- | :--- | :--- |
-| `P2-20` | [ ] | `art_source/rigs/krall_torsos2.png` | Typ S · 3×2 · `1536×1024` | `art_source/rigs/krall_torsos.png` *(Zelle 5 = Phase-2-Skelettrahmen)* | `ART_BRIEF_M11.md` §4.1 (Zusatz K-A) | 6 Phase-2-Rümpfe: geduckt · aufgerichtet/Kern hell (Magnet) · vorgebeugt (Stoß) · Stampfer-Landung gestaucht · Schrott-Wurf-Drehung · Funken-Überhitzung. **Wichtigster Punkt** — Phase 2 hat bisher nur 2 Rümpfe |
-| `P2-21` | [ ] | `art_source/rigs/krall_legs_R2.png` | Typ L · 3×2 · `1536×1024` | `art_source/rigs/krall_legs_R.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-B) | Rechtes Bein: Ausfall gestreckt (Stoß) · Bremsen/Rückstoß · Stampfer-Landung gespreizt · Phase 2 beschädigt/humpelnd · Magnet-Stemmen (Krallen im Boden) · Ruhe-Zittern |
-| `P2-22` | [ ] | `art_source/rigs/krall_legs_L2.png` | Typ L · 3×2 · `1536×1024` | `art_source/rigs/krall_legs_L.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-B) | Linkes Bein, gleiche 6 Posen, Licht links-oben, nicht gespiegelt |
 
 ---
 

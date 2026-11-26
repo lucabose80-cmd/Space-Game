@@ -2,6 +2,7 @@
 // Eigene Klasse, damit DungeonScene schlank bleibt. Kein globaler Zufall.
 import { ROOM_BOTTOM, ROOM_LEFT, ROOM_RIGHT, ROOM_TOP } from '../../world/dungeonGen';
 import type { DungeonScene } from '../../scenes/DungeonScene';
+import { getHDArt } from '../../assets/artLoader';
 
 export interface BossZone {
   shape: 'circle' | 'rect' | 'line' | 'ring';
@@ -24,10 +25,15 @@ export interface BossZone {
   slow?: number; // Tempo-Faktor des Spielers im aktiven Feld
   color: string;
   onFire?: (scene: DungeonScene) => void;
+  /** M11-Optik (kein Einfluss auf Schaden): 'pull' Sog-Ringe + Schrott strömt nach innen · 'dash' Stoß-Streifen mit Pfeilen · 'blast' Druckwelle · 'drop' fallender Schrottklumpen mit Aufschlag */
+  fx?: 'pull' | 'dash' | 'blast' | 'drop';
+  /** fx 'drop': Schrottklumpen-Bild 0–2 (scrap_a/b/c) */
+  variant?: number;
   // Laufzeit
   active?: boolean;
   tick?: number;
   maxDelay?: number;
+  maxLife?: number;
 }
 
 export interface BossBeam {
@@ -105,6 +111,7 @@ export class BossFx {
 
   public add(z: BossZone): void {
     z.maxDelay = z.delay;
+    z.maxLife = z.life;
     z.active = false;
     z.tick = 0;
     this.zones.push(z);
@@ -193,6 +200,7 @@ export class BossFx {
       ctx.globalAlpha = warn ? 0.4 + 0.4 * pulse : 0.85;
       this.path(ctx, z);
       ctx.stroke();
+      if (z.fx) this.renderFx(ctx, z, time, warn, prog);
       // Polish Teil 2: letzte 0,15 s vor dem Auslösen weiß aufblitzen → man sieht, WANN es knallt (nur Optik)
       if (warn && z.delay > 0 && z.delay <= 0.15) {
         const k = 1 - z.delay / 0.15;
@@ -230,6 +238,177 @@ export class BossFx {
       ctx.lineWidth = 1.2;
       ctx.fillRect(pl.x - pl.r * 0.8, pl.y - pl.r, pl.r * 1.6, pl.r * 2);
       ctx.strokeRect(pl.x - pl.r * 0.8, pl.y - pl.r, pl.r * 1.6, pl.r * 2);
+    }
+    ctx.restore();
+  }
+
+  /** M11: Sprite-/Partikel-Optik je Zone (rein darstellend, deterministisch aus `time`, kein Zufall). */
+  private renderFx(ctx: CanvasRenderingContext2D, z: BossZone, time: number, warn: boolean, prog: number): void {
+    const parts = getHDArt().rigs.krall?.parts;
+    const spark = parts?.spark;
+    const kAct = warn ? 0 : 1 - Math.max(0, z.life) / Math.max(0.01, z.maxLife ?? 1); // 0 → 1 über die aktive Zeit
+    const hash = (n: number): number => {
+      const s = Math.sin(n * 12.9898) * 43758.5453;
+      return s - Math.floor(s);
+    };
+    const impact = (r: number): void => {
+      // Aufschlag: Funkenstern wächst, Druckring weitet sich, beides blendet aus
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = Math.max(0, 1 - kAct);
+      if (spark) {
+        const sz = r * (1.2 + 1.1 * kAct);
+        ctx.drawImage(spark, z.x - sz / 2, z.y - sz / 2, sz, sz);
+      }
+      ctx.strokeStyle = '#fde68a';
+      ctx.lineWidth = 1.6 * (1 - kAct) + 0.4;
+      ctx.beginPath();
+      ctx.arc(z.x, z.y, r * (0.5 + 0.9 * kAct), 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    };
+    ctx.save();
+    if (z.fx === 'pull') {
+      const R = z.r ?? 100;
+      ctx.lineWidth = 1.2;
+      for (let i = 0; i < 3; i++) {
+        const t = (time * 0.85 + i / 3) % 1; // Ringe wandern nach innen
+        ctx.globalAlpha = (warn ? 0.18 + 0.3 * prog : 0.55) * Math.sin(t * Math.PI);
+        ctx.strokeStyle = i % 2 ? '#60a5fa' : '#f87171'; // Magnet: blau/rot
+        ctx.beginPath();
+        ctx.arc(z.x, z.y, R * (1 - t * 0.9), 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      const chunks = [parts?.scrap_a, parts?.scrap_b, parts?.scrap_c];
+      for (let i = 0; i < 14; i++) {
+        const t = (time * (0.6 + 0.35 * hash(i)) + hash(i + 40)) % 1;
+        const ang = hash(i + 7) * Math.PI * 2 + t * 2.2; // Spirale zum Magneten
+        const rad = R * (1 - t) + 4;
+        const px = z.x + Math.cos(ang) * rad;
+        const py = z.y - 14 + Math.sin(ang) * rad * 0.8;
+        ctx.globalAlpha = (warn ? 0.4 * prog : 0.9) * Math.min(1, (1 - t) * 3) * Math.min(1, t * 6);
+        const img = chunks[i % 3];
+        if (img && i % 2 === 0) {
+          const s = 6 + 3 * hash(i + 3);
+          ctx.save();
+          ctx.translate(px, py);
+          ctx.rotate(time * 6 + i);
+          ctx.drawImage(img, -s / 2, -s / 2, s, s * (img.height / img.width));
+          ctx.restore();
+        } else {
+          ctx.fillStyle = i % 3 === 0 ? '#cbd5e1' : '#94a3b8';
+          ctx.fillRect(px - 1, py - 1, 2, 2);
+        }
+      }
+      if (!warn) {
+        // Blitzbögen zwischen Magnet und Rand (alle 0,05 s neu gewürfelt, deterministisch)
+        const step = Math.floor(time * 20);
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = '#67e8f9';
+        ctx.lineWidth = 1;
+        for (let b = 0; b < 3; b++) {
+          const ang = hash(step * 3 + b) * Math.PI * 2;
+          ctx.globalAlpha = 0.5 + 0.4 * hash(step + b);
+          ctx.beginPath();
+          let x = z.x;
+          let y = z.y - 28;
+          ctx.moveTo(x, y);
+          for (let s = 1; s <= 5; s++) {
+            x = z.x + Math.cos(ang) * R * 0.18 * s + (hash(step + s + b * 9) - 0.5) * 8;
+            y = z.y - 28 + Math.sin(ang) * R * 0.14 * s + (hash(step + s * 2 + b * 5) - 0.5) * 8;
+            ctx.lineTo(x, y);
+          }
+          ctx.stroke();
+        }
+      }
+    } else if (z.fx === 'blast') {
+      const r = z.r ?? 30;
+      if (warn) {
+        ctx.globalAlpha = 0.3 + 0.5 * prog;
+        ctx.strokeStyle = '#fca5a5';
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.arc(z.x, z.y, r * (1 + 1.6 * (1 - prog)), 0, Math.PI * 2); // zieht sich zusammen
+        ctx.stroke();
+      } else impact(r * 1.6);
+    } else if (z.fx === 'drop') {
+      const r = z.r ?? 22;
+      if (warn) {
+        const total = z.maxDelay ?? 1;
+        const fallT = 0.6;
+        const fk = Math.max(0, Math.min(1, (prog * total - (total - fallT)) / fallT));
+        // Schatten wächst, Klumpen fällt beschleunigt von oben
+        ctx.globalAlpha = 0.15 + 0.35 * fk;
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.ellipse(z.x, z.y, r * (0.25 + 0.55 * fk), r * (0.12 + 0.28 * fk), 0, 0, Math.PI * 2);
+        ctx.fill();
+        const img = [parts?.scrap_a, parts?.scrap_b, parts?.scrap_c][(z.variant ?? 0) % 3];
+        if (img && fk > 0 && fk < 1) {
+          const h = 120 * (1 - fk) * (1 - fk);
+          const s = 15;
+          ctx.globalAlpha = 1;
+          ctx.save();
+          ctx.translate(z.x, z.y - h);
+          ctx.rotate(time * 10 + (z.variant ?? 0));
+          ctx.drawImage(img, -s / 2, -s / 2, s, s * (img.height / img.width));
+          ctx.restore();
+        }
+      } else impact(r * 1.5);
+    } else if (z.fx === 'dash') {
+      const x2 = z.x2 ?? z.x;
+      const y2 = z.y2 ?? z.y;
+      const len = Math.hypot(x2 - z.x, y2 - z.y) || 1;
+      const ux = (x2 - z.x) / len;
+      const uy = (y2 - z.y) / len;
+      const w = (z.width ?? 12) / 2;
+      if (warn) {
+        // Pfeile laufen in Stoßrichtung — je näher der Zündung, desto dichter/heller
+        const n = Math.max(3, Math.floor(len / 20));
+        ctx.strokeStyle = '#fecaca';
+        ctx.lineWidth = 1.4;
+        for (let i = 0; i < n; i++) {
+          const t = ((i + ((time * (2 + 3 * prog)) % 1)) / n) % 1;
+          const cx = z.x + ux * len * t;
+          const cy = z.y + uy * len * t;
+          ctx.globalAlpha = (0.2 + 0.6 * prog) * Math.sin(t * Math.PI);
+          ctx.beginPath();
+          ctx.moveTo(cx - ux * 4 - uy * w * 0.7, cy - uy * 4 + ux * w * 0.7);
+          ctx.lineTo(cx + ux * 3, cy + uy * 3);
+          ctx.lineTo(cx - ux * 4 + uy * w * 0.7, cy - uy * 4 - ux * w * 0.7);
+          ctx.stroke();
+        }
+      } else {
+        // Stoß: heißer Streifen mit Tempolinien, Funkenstern am Ende
+        const a = Math.max(0, 1 - kAct);
+        ctx.globalCompositeOperation = 'lighter';
+        const g = ctx.createLinearGradient(z.x, z.y, x2, y2);
+        g.addColorStop(0, 'rgba(254,202,202,0)');
+        g.addColorStop(0.6, `rgba(252,165,165,${0.55 * a})`);
+        g.addColorStop(1, `rgba(255,255,255,${0.9 * a})`);
+        ctx.strokeStyle = g;
+        ctx.lineWidth = w * 1.5;
+        ctx.beginPath();
+        ctx.moveTo(z.x, z.y);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        ctx.lineWidth = 1;
+        for (let i = -1; i <= 1; i++) {
+          const off = i * w * 0.7;
+          const s0 = 0.15 + 0.5 * hash(i + 3 + Math.floor(time * 30));
+          ctx.globalAlpha = 0.7 * a;
+          ctx.strokeStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.moveTo(z.x - uy * off + ux * len * s0, z.y + ux * off + uy * len * s0);
+          ctx.lineTo(z.x - uy * off + ux * len, z.y + ux * off + uy * len);
+          ctx.stroke();
+        }
+        if (spark) {
+          ctx.globalAlpha = a;
+          const sz = 20 + 14 * kAct;
+          ctx.drawImage(spark, x2 - sz / 2, y2 - sz / 2, sz, sz);
+        }
+      }
     }
     ctx.restore();
   }
