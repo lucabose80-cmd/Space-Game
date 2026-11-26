@@ -1,0 +1,188 @@
+#!/usr/bin/env python3
+"""M11 Phase 0 — Sprite-Import: zerschneidet Teile-Sheets (3×2) / Pose-Sheets (2×2) aus Gemini/Antigravity.
+
+  python3 scripts/art-import.py [ids …] [--force] [--resample nearest|box] [--keep-cell N] [--src art_source] [--out public/art] [--rigs src/data/rigs.json]
+
+Teile-Sheets:  art_source/rigs/<file>_parts.png   → public/art/rigs/<id>/<teil>.png (+ import.json)
+Pose-Sheets:   art_source/poses/<id>_poses.png    → public/art/poses/<id>_<1-4>.png
+Verfahren (Art-Guide §3): Rand-Flood-Fill (nur äußerer Hintergrund) + 1-px-Defringe + enger Zuschnitt + gemeinsamer Maßstab.
+"""
+import argparse, hashlib, json, os, sys
+from collections import deque
+from PIL import Image
+
+WHITE = 232
+FRINGE = 205
+
+
+def is_bg(p):
+    return p[0] >= WHITE and p[1] >= WHITE and p[2] >= WHITE
+
+
+def clean_cell(img):
+    """Äußeren weißen Hintergrund entfernen (Flood-Fill vom Rand), 1-px-Defringe. Gibt RGBA zurück."""
+    q = img.convert("RGBA")
+    w, h = q.size
+    px = q.load()
+    seen = [[False] * w for _ in range(h)]
+    dq = deque()
+    for x in range(w):
+        dq.append((x, 0)); dq.append((x, h - 1))
+    for y in range(h):
+        dq.append((0, y)); dq.append((w - 1, y))
+    while dq:
+        x, y = dq.popleft()
+        if x < 0 or y < 0 or x >= w or y >= h or seen[y][x]:
+            continue
+        if is_bg(px[x, y]):
+            seen[y][x] = True
+            px[x, y] = (0, 0, 0, 0)
+            dq.extend(((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)))
+    clear = []
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if a and r >= FRINGE and g >= FRINGE and b >= FRINGE:
+                if any(0 <= nx < w and 0 <= ny < h and px[nx, ny][3] == 0 for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1))):
+                    clear.append((x, y))
+    for x, y in clear:
+        px[x, y] = (0, 0, 0, 0)
+    return q
+
+
+def trim(img):
+    bbox = img.getbbox()
+    return img.crop(bbox) if bbox else None
+
+
+def sheet_hash(path):
+    with open(path, "rb") as f:
+        return hashlib.sha1(f.read()).hexdigest()[:16]
+
+
+def resize(img, scale, mode):
+    nw, nh = max(1, round(img.width * scale)), max(1, round(img.height * scale))
+    res = Image.Resampling.BOX if mode == "box" else Image.Resampling.NEAREST
+    out = img.resize((nw, nh), res)
+    if mode == "box":
+        # Halbtransparente Ränder wieder hart machen (Pixel-Art-Look)
+        px = out.load()
+        for y in range(nh):
+            for x in range(nw):
+                r, g, b, a = px[x, y]
+                px[x, y] = (r, g, b, 255 if a >= 128 else 0)
+    return out
+
+
+def cells(img, cols, rows):
+    W, H = img.size
+    cw, ch = W / cols, H / rows
+    for r in range(rows):
+        for c in range(cols):
+            yield r * cols + c, img.crop((round(c * cw), round(r * ch), round((c + 1) * cw), round((r + 1) * ch)))
+
+
+def import_rig(rid, rig, args, report):
+    sh = rig["sheet"]
+    parts_all = []
+    # bis zu zwei Sheets: <file>_parts.png, <file>_parts2.png
+    srcs = [os.path.join(args.src, "rigs", f"{sh['file']}_parts.png"), os.path.join(args.src, "rigs", f"{sh['file']}_parts2.png")]
+    order = list(sh["order"])
+    if not os.path.exists(srcs[0]):
+        report.append(f"– {rid}: Sheet fehlt ({srcs[0]})")
+        return
+    outdir = os.path.join(args.out, "rigs", rid)
+    meta_path = os.path.join(outdir, "import.json")
+    hashes = {os.path.basename(s): sheet_hash(s) for s in srcs if os.path.exists(s)}
+    if not args.force and os.path.exists(meta_path):
+        try:
+            old = json.load(open(meta_path))
+            if old.get("sheets") == hashes and old.get("resample") == args.resample:
+                report.append(f"= {rid}: unverändert")
+                return
+        except Exception:
+            pass
+    cleaned = {}
+    n_per = sh["cols"] * sh["rows"]
+    for si, src in enumerate(srcs):
+        if not os.path.exists(src):
+            continue
+        sheet = Image.open(src)
+        for i, cell in cells(sheet, sh["cols"], sh["rows"]):
+            idx = si * n_per + i
+            if idx >= len(order) or not order[idx]:
+                continue
+            if args.keep_cell is not None and idx + 1 == args.keep_cell:
+                continue
+            t = trim(clean_cell(cell))
+            if t is None:
+                report.append(f"  ! {rid}: Zelle {idx + 1} ({order[idx]}) ist leer")
+                continue
+            cleaned[order[idx]] = t
+    ref = sh.get("scaleRef", order[0])
+    if ref not in cleaned:
+        report.append(f"! {rid}: Referenzteil '{ref}' fehlt — Abbruch")
+        return
+    scale = sh["torsoDisplayH"] / cleaned[ref].height
+    os.makedirs(outdir, exist_ok=True)
+    meta = {"rig": rid, "scale": round(scale, 5), "resample": args.resample, "sheets": hashes, "parts": {}}
+    for pid, img in cleaned.items():
+        out = resize(img, scale, args.resample)
+        out.save(os.path.join(outdir, f"{pid}.png"))
+        meta["parts"][pid] = {"w": out.width, "h": out.height, "srcW": img.width, "srcH": img.height}
+    json.dump(meta, open(meta_path, "w"), indent=1)
+    report.append(f"✔ {rid}: {len(cleaned)} Teile · Maßstab {scale:.3f} · {args.resample}")
+
+
+def import_poses(pid, args, report):
+    src = os.path.join(args.src, "poses", f"{pid}_poses.png")
+    if not os.path.exists(src):
+        return False
+    outdir = os.path.join(args.out, "poses")
+    os.makedirs(outdir, exist_ok=True)
+    sheet = Image.open(src)
+    imgs = []
+    for i, cell in cells(sheet, 2, 2):
+        t = trim(clean_cell(cell))
+        if t is None:
+            report.append(f"  ! {pid}: Pose {i + 1} leer")
+            return True
+        imgs.append((i, t))
+    # gemeinsamer Maßstab: größte Pose bestimmt die Zielhöhe (Anzeige 28 px)
+    target = 28
+    scale = target / max(t.height for _, t in imgs)
+    for i, t in imgs:
+        resize(t, scale, args.resample).save(os.path.join(outdir, f"{pid}_{i + 1}.png"))
+    report.append(f"✔ {pid}: 4 Posen · Maßstab {scale:.3f}")
+    return True
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("ids", nargs="*")
+    ap.add_argument("--src", default="art_source")
+    ap.add_argument("--out", default="public/art")
+    ap.add_argument("--rigs", default="src/data/rigs.json")
+    ap.add_argument("--force", action="store_true")
+    ap.add_argument("--resample", default="nearest", choices=["nearest", "box"])
+    ap.add_argument("--keep-cell", type=int, default=None)
+    args = ap.parse_args()
+    rigs = json.load(open(args.rigs))
+    report = []
+    ids = args.ids or list(rigs.keys())
+    for rid in ids:
+        if rid in rigs:
+            import_rig(rid, rigs[rid], args, report)
+        elif not import_poses(rid, args, report):
+            report.append(f"? {rid}: weder Rig noch Pose-Sheet gefunden")
+    if not args.ids:
+        pdir = os.path.join(args.src, "poses")
+        if os.path.isdir(pdir):
+            for f in sorted(os.listdir(pdir)):
+                if f.endswith("_poses.png"):
+                    import_poses(f[:-len("_poses.png")], args, report)
+    print("\n".join(report) if report else "Nichts zu tun.")
+
+
+if __name__ == "__main__":
+    sys.exit(main())

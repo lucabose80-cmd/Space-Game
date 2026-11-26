@@ -9,6 +9,18 @@ for (const block of src.matchAll(/export const \w*OPTIONAL_SPRITES = \{([\s\S]*?
     if (!existsSync(new URL(`../public/art/sprites/${m[2]}.png`, import.meta.url))) missing.push({ key: m[1], file: `${m[2]}.png` });
   }
 }
+// M11: Animation — Teile-Sheets/Rigs laut src/data/rigs.json (Quelle in art_source/rigs, Ergebnis in public/art/rigs/<id>/)
+const rigs = JSON.parse(readFileSync(new URL('../src/data/rigs.json', import.meta.url), 'utf8'));
+const rigMissing = [];
+for (const [id, rig] of Object.entries(rigs)) {
+  const src = existsSync(new URL(`../art_source/rigs/${rig.sheet.file}_parts.png`, import.meta.url));
+  const out = existsSync(new URL(`../public/art/rigs/${id}/import.json`, import.meta.url));
+  if (!src) rigMissing.push(`  - art_source/rigs/${rig.sheet.file}_parts.png  (Teile-Sheet für ${id} fehlt → Prompt: MILESTONE_11_ARCHITECTURE.md §6.3)`);
+  else if (!out) rigMissing.push(`  - ${id}: Sheet vorhanden, aber noch nicht importiert → npm run art:import`);
+}
+if (rigMissing.length) console.log(`ℹ Animation: ${rigMissing.length} Rig(s) ohne fertiges Teile-Sheet (bisherige Darstellung bleibt aktiv):\n${rigMissing.join('\n')}`);
+else console.log('✔ Alle Rigs importiert.');
+
 if (!missing.length) {
   console.log('✔ Alle optionalen Sprites vorhanden.');
 } else {
