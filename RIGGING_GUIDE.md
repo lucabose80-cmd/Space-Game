@@ -17,7 +17,7 @@ Wenn ein Rig fehlt oder ein Bild nicht lädt, wird automatisch das alte Einzelbi
 | :--- | :--- |
 | `art_source/rigs/<boss>_parts.png` | Typ P: Einzelteile (Rumpf, Platten …), 3×2, 1536×1024 |
 | `art_source/rigs/<boss>_arms_L/R.png`, `_heads.png`, `_torsos.png`, (`_legs_*`, `_effects`) | Pose-Set-Sheets (Typ L/S), 3×2, **512×512 pro Zelle, Gelenk = Zellmitte** |
-| `art_source/_check/*_check.png` | Prüfbilder von `npm run art:check` |
+| `art_source/_check/*_check.png` | Prüfbilder von `npm run art:check` (nicht im Repo, `.gitignore`) |
 | `scripts/art-import.py` | zerschneidet Sheets → `public/art/rigs/<rig>/*.png` (+ `import.json`) |
 | `scripts/art-check.py` | Prüfbild mit Fadenkreuz in der Zellmitte, Randwarnung |
 | `scripts/rig-sheet.cjs` | Kontaktbogen: Rig in vielen Boss-Zuständen → `tests/out/rig_<id>.png` |
@@ -30,6 +30,25 @@ Wenn ein Rig fehlt oder ein Bild nicht lädt, wird automatisch das alte Einzelbi
 | `src/dev/bossLab.ts` | Boss-Labor `?bosslab` (Zustände ansehen, Pause, „Phase II“, Rig an/aus) |
 | `src/dungeon/anim/detached.ts` | abgelöste Teile (Phase-2-Verwandlung) |
 | `tests/m11p0.cjs` … `m11p4.cjs` | Tests Import-Pipeline / Rig-Engine / Pose-Sets / abgelöste Teile / Teilen |
+
+### 2.1 Namen je Boss (Spielname ↔ Code)
+Die `kind`-Namen im Code **nicht umbenennen** (Tests, Balancing, Rigs, Seeds hängen daran). Geplante Rig-Ids stehen in Klammern.
+
+| Boss (Spielname) | Enemy-`kind` | optionales Einzel-Sprite (`BOSS_OPTIONAL_SPRITES`) | Rig-Id (`rigs.json`) |
+| :--- | :--- | :--- | :--- |
+| Schrott-Sammler „Krall“ | `boss_breacher` | `boss_scrap_collector` | `krall` |
+| Kern-Wächter MK-IV | `boss` | — (`boss.png`) | `core_warden` |
+| A.E.G.I.S. Leviathan | `boss_leviathan` | — | (`leviathan`) |
+| Quarz-Koloss | `boss_quartz_golem` | — | (`quartz_golem`) |
+| Prisma-Weberin | `boss_prism_weaver` | — | (`prism_weaver`) |
+| ★ Prisma-Archon | `boss_prisma_archon` | — | (`prisma_archon`) |
+| Schlacken-Koloss | `boss_slag_overlord` | `boss_slag_colossus` | (`slag_colossus`) |
+| Gießerei-Meisterin | `boss_forge_warden` | `boss_forge_mistress` | (`forge_mistress`) |
+| ★ Vulkan-Titan | `boss_vulkan_titan` | — | (`vulkan_titan`) |
+| Chrono-Wächter | `boss_chrono_sentinel` | `boss_chrono_warden` | (`chrono_warden`) |
+| Monolith-Koloss | `boss_monolith_colossus` | `boss_monolith_colossus` | (`monolith_colossus`) |
+| ★ Der Sternen-Archon | `boss_star_archon` | — | (`star_archon`) |
+| 🌌 Omega-Sternen-Archon | `boss_omega_archon` | — | (`omega_archon`) |
 
 ## 3. `rigs.json` verstehen
 ```jsonc

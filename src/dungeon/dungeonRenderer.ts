@@ -582,7 +582,7 @@ export class DungeonRenderer {
       ctx.restore();
     }
 
-    // Active Boss Sweeping Reactor & Prism Laser Beams (Core-Wächter, Leviathan & ★ Prisma-Archon!)
+    // Active Boss Sweeping Reactor & Prism Laser Beams (Kern-Wächter, Leviathan & ★ Prisma-Archon!)
     for (const e of this.scene.enemies) {
       if (e.kind === 'boss' && e.bossState === 'laser_sweep') {
         this.renderBossLaserBeam(ctx, e);
@@ -3585,7 +3585,7 @@ export class DungeonRenderer {
 
     const baseNameMap: Partial<Record<Enemy['kind'], string>> = {
       boss_breacher: 'SCHROTT-SAMMLER „KRALL“',
-      boss: 'CORE-WÄCHTER MK-IV',
+      boss: 'KERN-WÄCHTER MK-IV',
       boss_leviathan: '★ A.E.G.I.S. LEVIATHAN',
       boss_quartz_golem: 'QUARZ-KOLOSS MK-I',
       boss_prism_weaver: 'PRISMA-WEBERIN',

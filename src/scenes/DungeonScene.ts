@@ -599,7 +599,7 @@ export class DungeonScene {
         } else if (this.currentFloor === 1) {
           this.callbacks.onToast('⚠ EBENEN-BOSS I: Schrott-Sammler „Krall“ rückt an!', 'warn');
         } else if (this.currentFloor === 2) {
-          this.callbacks.onToast('⚠ EBENEN-BOSS II: Core-Wächter MK-IV erwacht!', 'warn');
+          this.callbacks.onToast('⚠ EBENEN-BOSS II: Kern-Wächter MK-IV erwacht!', 'warn');
         } else {
           this.callbacks.onToast('🚨 SEKTOR-1-ENDBOSS: A.E.G.I.S. LEVIATHAN AKTIVIERT!', 'warn');
         }
@@ -3015,7 +3015,7 @@ export class DungeonScene {
         this.spawnLootDrop(e.x, e.y, rollLootItem(3, k === 0, nightBoost, luckBonus, 1));
       }
       this.callbacks.onToast(
-        'SIEG! Core-Wächter MK-IV besiegt! Links: Extraktion · Rechts: Tiefen-Aufzug → Ebene III (Endboss)!',
+        'SIEG! Kern-Wächter MK-IV besiegt! Links: Extraktion · Rechts: Tiefen-Aufzug → Ebene III (Endboss)!',
         'good',
       );
       this.state.save();

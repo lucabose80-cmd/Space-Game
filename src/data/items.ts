@@ -236,7 +236,7 @@ export const ITEMS: ItemDef[] = [
     baseValue: 960,
     maxStack: 5,
     modifier: 'none',
-    description: 'Das pulsierende Herz des Core-Wächters MK-IV von Ebene II.',
+    description: 'Das pulsierende Herz des Kern-Wächters MK-IV von Ebene II.',
     glowColor: '#fb923c',
     dropWeight: 0,
     minDepth: 3,

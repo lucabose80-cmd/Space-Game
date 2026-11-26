@@ -67,14 +67,14 @@
 
 ## C3 · Namen vereinheitlichen (Spieltexte + Doku, ein Commit, `npm run verify`)
 
-- [ ] **C3.1** „Core-Wächter“ → „Kern-Wächter“ in allen Spieltexten (kein Test hängt daran, geprüft):
+- [x] **C3.1** „Core-Wächter“ → „Kern-Wächter“ in allen Spieltexten (kein Test hängt daran, geprüft):
   - `src/scenes/DungeonScene.ts` (~Z. 602 Toast „EBENEN-BOSS II“, ~Z. 3018 Sieges-Toast)
   - `src/dungeon/enemyAi.ts` (~Z. 1872 Phase-II-Toast)
   - `src/dungeon/dungeonRenderer.ts` (~Z. 3588 Namensschild `'CORE-WÄCHTER MK-IV'` → `'KERN-WÄCHTER MK-IV'`; Kommentar ~Z. 585)
   - `src/data/items.ts` (~Z. 239 Item-Beschreibung „Core-Wächters MK-IV“ → „Kern-Wächters MK-IV“)
   - `src/assets/sprites.ts` (~Z. 811 Kommentar)
   - Kontrolle: `grep -rn "Core-Wächter\|CORE-WÄCHTER" src *.md` → 0 Treffer (außer in diesem Plan).
-- [ ] **C3.2** Zuordnungstabelle in `RIGGING_GUIDE.md` (neuer Abschnitt §2.1 „Namen je Boss“) **und** kurzer Verweis in `AGENTS.md` §4 („Add a new Enemy or Boss“):
+- [x] **C3.2** Zuordnungstabelle in `RIGGING_GUIDE.md` (neuer Abschnitt §2.1 „Namen je Boss“) **und** kurzer Verweis in `AGENTS.md` §4 („Add a new Enemy or Boss“):
   | Boss (Spielname) | Enemy-`kind` | optionales Einzel-Sprite (`BOSS_OPTIONAL_SPRITES`) | Rig-Id (`rigs.json`) |
   | :--- | :--- | :--- | :--- |
   | Schrott-Sammler „Krall“ | `boss_breacher` | `boss_scrap_collector` | `krall` |
@@ -94,7 +94,7 @@
 
 ## C4 · Repo-Hygiene & Prüf-Werkzeuge (ein Commit, `npm run verify`)
 
-- [ ] **C4.1 Generierte Dateien aus dem Repo nehmen.** In `.gitignore` ergänzen:
+- [x] **C4.1 Generierte Dateien aus dem Repo nehmen.** In `.gitignore` ergänzen:
   ```
   # Python-Cache & Prüfbilder (npm run art:check)
   __pycache__/
@@ -102,7 +102,7 @@
   art_source/_check/
   ```
   Danach `git rm -r --cached scripts/__pycache__ art_source/_check` (Dateien lokal behalten). `RIGGING_GUIDE.md` §2 Zeile `art_source/_check/*_check.png` um „(nicht im Repo)“ ergänzen.
-- [ ] **C4.2 `scripts/check-sprites.mjs` erweitern:**
+- [x] **C4.2 `scripts/check-sprites.mjs` erweitern:**
   - Zusätzlich zu `<file>_parts.png` jedes Sheet aus `rig.sheet.sets[].file` prüfen: fehlt `art_source/rigs/<file>.png` → Hinweis „Pose-Set-Sheet fehlt“. (Achtung: die Sets in `rigs.json` enthalten nur **vorhandene** Sheets; geplante wie `krall_legs_R` stehen dort noch nicht. Deshalb zusätzlich eine kleine Liste `PLANNED_SHEETS` oben im Skript: `krall_legs_R`, `krall_legs_L`, `krall_effects`, `core_warden_arms_R3`, `core_warden_arms_L3` — mit Verweis auf `ART_BRIEF_M11.md` §4.1 bzw. `BOSS_ANIMATION_PLAN.md` §2.3 S6.)
   - „Veraltet“-Erkennung: `public/art/rigs/<id>/import.json` enthält `sheets` (Hashes). Wenn sich der SHA eines Quell-Sheets geändert hat → „Sheet geändert, neu importieren: `npm run art:import -- <id> --force`“. Hash-Format vorher in `scripts/art-import.py` nachsehen (`hashlib`), identisch berechnen (`node:crypto`).
   - Hinweiszeile am Ende: „→ Prompts: ART_AND_DESIGN_GUIDE.md §7 (Promenade) · §8 (Boss-Sprites)“ statt nur „§7“.

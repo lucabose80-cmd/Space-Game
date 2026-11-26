@@ -808,7 +808,7 @@ function createEnemySprites() {
     BASE_PAL,
   );
 
-  // BOSS: Core-Wächter MK-IV (28x28 compiled crisp)
+  // BOSS: Kern-Wächter MK-IV (28x28 compiled crisp)
   const bossRows0 = [
     '..........oooooooo..........',
     '........ooaaaaaaaaao........',

@@ -1869,7 +1869,7 @@ export class DungeonEnemyAi {
       this.scene.spawnBurst(e.x, e.y, '#fb7185', 26);
       this.scene.spawnEnemy('slime', ROOM_CENTER_X - 80, ROOM_CENTER_Y);
       this.scene.spawnEnemy('drone', ROOM_CENTER_X + 80, ROOM_CENTER_Y);
-      this.scene.callbacks.onToast('⚠ PHASE II: Core-Wächter MK-IV im Überlastungs-Modus!', 'warn');
+      this.scene.callbacks.onToast('⚠ PHASE II: Kern-Wächter MK-IV im Überlastungs-Modus!', 'warn');
       return;
     }
 

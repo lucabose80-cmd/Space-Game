@@ -26,3 +26,8 @@ dist-single
 
 # Test-Ausgaben (Screenshots)
 tests/out
+
+# Python-Cache & Prüfbilder (npm run art:check)
+__pycache__/
+*.pyc
+art_source/_check/
