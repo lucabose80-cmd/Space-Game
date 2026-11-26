@@ -1,44 +1,45 @@
 {
  "rig": "core_warden",
- "scale": 0.10778,
+ "scale": 0.08982,
  "resample": "nearest",
+ "torsoDisplayH": 30,
  "sheets": {
   "core_warden_parts.png": "e74e65442556ea67"
  },
  "parts": {
   "torso": {
-   "w": 36,
-   "h": 36,
+   "w": 30,
+   "h": 30,
    "srcW": 330,
    "srcH": 334
   },
   "head": {
-   "w": 31,
-   "h": 27,
+   "w": 26,
+   "h": 22,
    "srcW": 292,
    "srcH": 248
   },
   "arm": {
-   "w": 20,
-   "h": 40,
+   "w": 17,
+   "h": 33,
    "srcW": 188,
    "srcH": 371
   },
   "fist": {
-   "w": 18,
-   "h": 15,
+   "w": 15,
+   "h": 13,
    "srcW": 167,
    "srcH": 140
   },
   "plateL": {
-   "w": 32,
-   "h": 31,
+   "w": 27,
+   "h": 26,
    "srcW": 299,
    "srcH": 286
   },
   "plateR": {
-   "w": 32,
-   "h": 31,
+   "w": 27,
+   "h": 26,
    "srcW": 299,
    "srcH": 285
   }

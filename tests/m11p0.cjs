@@ -46,7 +46,9 @@ print(json.dumps(r))`));
   const mtime = fs.statSync(path.join(tmp, 'out/rigs/dummy/arm.png')).mtimeMs;
   run('dummy', '--force', '--keep-cell', '2'); assert.strictEqual(fs.statSync(path.join(tmp, 'out/rigs/dummy/arm.png')).mtimeMs, mtime, '--keep-cell lässt Zelle 2 unangetastet');
   // Echte Pilot-Sheets liegen importiert im Repo
-  for (const [id, parts, h] of [['krall', ['torso', 'claw', 'legF', 'legB', 'magnet', 'plate'], 28], ['core_warden', ['torso', 'head', 'arm', 'fist', 'plateL', 'plateR'], 36]]) {
+  const rigsJson = JSON.parse(fs.readFileSync(path.join(root, 'src/data/rigs.json'), 'utf8')); // Anzeigehöhe kommt aus den Rig-Daten (nicht hartkodieren)
+  for (const [id, parts] of [['krall', ['torso', 'claw', 'legF', 'legB', 'magnet', 'plate']], ['core_warden', ['torso', 'head', 'arm', 'fist', 'plateL', 'plateR']]]) {
+    const h = rigsJson[id].sheet.torsoDisplayH;
     for (const p of parts) assert.ok(fs.existsSync(path.join(root, 'public/art/rigs', id, p + '.png')), `${id}/${p}.png fehlt (npm run art:import)`);
     const m = JSON.parse(fs.readFileSync(path.join(root, 'public/art/rigs', id, 'import.json'), 'utf8')); assert.strictEqual(m.parts.torso.h, h);
   }

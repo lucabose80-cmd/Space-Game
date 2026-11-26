@@ -1,3 +1,5 @@
+import { RIGS, rigImageNames } from '../data/rigs';
+import type { RigImages } from '../engine/rig';
 import { ITEMS } from '../data/items';
 import type { CompanionId, WeaponId } from '../types';
 import { flipCanvasHorizontal, makeFlashSilhouette } from './pixelArt';
@@ -51,6 +53,8 @@ export interface HDArtAssets {
   propTrophyS1: HTMLCanvasElement | null;
   propScoreboard: HTMLCanvasElement | null;
   // Milestone 10-A: OPTIONALE Promenaden-Sprites (fehlen sie, zeichnet hubEvolution.ts einen Fallback)
+  /** M11: geladene Rigs (id → Teile-Bilder), null wenn nicht (vollständig) vorhanden → bisherige Darstellung */
+  rigs: Record<string, RigImages | null>;
   propHubCrystalLantern: HTMLCanvasElement | null;
   bossScrapCollector: HTMLCanvasElement | null;
   bossScrapCollectorFlash: HTMLCanvasElement | null;
@@ -211,6 +215,7 @@ const art: HDArtAssets = {
   propBotDock: null,
   propTrophyS1: null,
   propScoreboard: null,
+  rigs: {},
   propHubCrystalLantern: null,
   bossScrapCollector: null,
   bossScrapCollectorFlash: null,
@@ -659,6 +664,20 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
     art[k] = c;
     art[`${k}Flash`] = c ? makeFlashSilhouette(c, '#ffffff') : null;
   });
+
+  // Meilenstein 11: Rigs (Teile-Bilder aus art-import) — unvollständig/fehlend → null (alte Darstellung)
+  for (const rigId of Object.keys(RIGS)) {
+    const names = rigImageNames(rigId);
+    const imgs = await Promise.all(names.map((n) => loadImage(`/art/rigs/${rigId}/${n}.png`)));
+    const parts: Record<string, HTMLCanvasElement | null> = {};
+    const flash: Record<string, HTMLCanvasElement | null> = {};
+    names.forEach((n, i) => {
+      const c = imgToCanvas(imgs[i]);
+      parts[n] = c;
+      flash[n] = c ? makeFlashSilhouette(c, '#ffffff') : null;
+    });
+    art.rigs[rigId] = names.every((n) => parts[n]) ? { parts, flash } : null;
+  }
 
   art.loaded = true;
   return art;

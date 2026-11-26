@@ -97,7 +97,7 @@ def import_rig(rid, rig, args, report):
     if not args.force and os.path.exists(meta_path):
         try:
             old = json.load(open(meta_path))
-            if old.get("sheets") == hashes and old.get("resample") == args.resample:
+            if old.get("sheets") == hashes and old.get("resample") == args.resample and old.get("torsoDisplayH") == sh["torsoDisplayH"]:
                 report.append(f"= {rid}: unverändert")
                 return
         except Exception:
@@ -125,7 +125,7 @@ def import_rig(rid, rig, args, report):
         return
     scale = sh["torsoDisplayH"] / cleaned[ref].height
     os.makedirs(outdir, exist_ok=True)
-    meta = {"rig": rid, "scale": round(scale, 5), "resample": args.resample, "sheets": hashes, "parts": {}}
+    meta = {"rig": rid, "scale": round(scale, 5), "resample": args.resample, "torsoDisplayH": sh["torsoDisplayH"], "sheets": hashes, "parts": {}}
     for pid, img in cleaned.items():
         out = resize(img, scale, args.resample)
         out.save(os.path.join(outdir, f"{pid}.png"))

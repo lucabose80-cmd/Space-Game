@@ -1,6 +1,10 @@
 import { getHDArt } from '../assets/artLoader';
 import { drawGlow, drawPixelShadow } from '../assets/pixelArt';
 import { drawBossLook } from './bosses/bossLooks';
+import { getBossPose } from './anim/bossAnims';
+import { enemyMotion, wantsMotion } from './anim/motion';
+import { drawRig } from '../engine/rig';
+import { RIG_BY_KIND, RIGS } from '../data/rigs';
 import { getAtlas } from '../assets/sprites';
 import { COMPANION_DEFS, SUIT_THEMES } from '../data/companions';
 import { getInfusionDef, RIFT_MUTATORS } from '../data/infusions';
@@ -515,7 +519,24 @@ export class DungeonRenderer {
           : e.kind === 'boss' && (e.bossHeight ?? 0) > 12
             ? 999
             : e.y;
-      drawables.push({ y: sortY, draw: () => this.renderEnemy(ctx, e) });
+      drawables.push({
+        y: sortY,
+        draw: () => {
+          if (!wantsMotion(e)) {
+            this.renderEnemy(ctx, e);
+            return;
+          }
+          // M11: prozedurale Bewegung (Lehnen/Atmen/Ausholen/Zucken) um den Fußpunkt — nur Darstellung
+          const m = enemyMotion(e, this.scene.time);
+          ctx.save();
+          ctx.translate(e.x + m.dx, e.y + e.radius + m.dy);
+          ctx.rotate(m.rot);
+          ctx.scale(m.sx, m.sy);
+          ctx.translate(-e.x, -(e.y + e.radius));
+          this.renderEnemy(ctx, e);
+          ctx.restore();
+        },
+      });
     }
     // Milestone 10-A: solide Kristall-Prismen (S2) y-sortiert zwischen Gegnern & Held
     for (const d of getMechanicsDrawables(ctx, this.scene)) drawables.push(d);
@@ -1954,12 +1975,15 @@ export class DungeonRenderer {
     ctx.restore();
 
     // 3. Main Boss Chassis Sprite with Mechanical Squash/Stretch & Tilt!
+    let rigUsed = false;
     const spr = e.flashTimer > 0 ? art.bossFlash ?? atlas.bossFlash : art.boss ?? atlas.boss[frame];
     ctx.save();
     ctx.translate(bodyX, bodyY + 16);
     ctx.rotate(tilt);
     ctx.scale(scaleX, scaleY);
-    if (art.boss) {
+    if (this.tryDrawRig(ctx, e, 0, 7)) {
+      rigUsed = true; // M11: Rig statt Einzelbild
+    } else if (art.boss) {
       ctx.drawImage(spr, -27, -45, 54, 52);
     } else {
       ctx.drawImage(spr, -14, -29);
@@ -1975,7 +1999,8 @@ export class DungeonRenderer {
           ? '#fb923c'
           : '#fbbf24';
     const coreR = state === 'laser_windup' || state === 'laser_sweep' ? 28 + corePulse * 8 : 18 + corePulse * 5;
-    drawGlow(ctx, bodyX, bodyY - 6, coreR, coreColor, 0.45 + corePulse * 0.25);
+    // M11: Rig hat einen eigenen leuchtenden Kern im Bild — Überlagerung dezenter, damit der Rumpf lesbar bleibt
+    drawGlow(ctx, bodyX, bodyY - 6, rigUsed ? coreR * 0.7 : coreR, coreColor, (0.45 + corePulse * 0.25) * (rigUsed ? 0.45 : 1));
 
     // Hot glowing center core dot right on the chest reactor
     if (state === 'laser_windup' || state === 'laser_sweep' || enraged) {
@@ -2136,6 +2161,16 @@ export class DungeonRenderer {
     }
   }
 
+  /** M11: Boss/Gegner mit Rig zeichnen (Ursprung = Fußpunkt bei (ox, oy)). false → bisherige Darstellung. */
+  private tryDrawRig(ctx: CanvasRenderingContext2D, e: Enemy, ox: number, oy: number): boolean {
+    const rigId = RIG_BY_KIND[e.kind];
+    if (!rigId) return false;
+    const images = getHDArt().rigs[rigId];
+    if (!images) return false;
+    drawRig(ctx, RIGS[rigId], images, ox, oy, getBossPose(rigId, e, this.scene.time), { flash: e.flashTimer > 0 });
+    return true;
+  }
+
   private renderBreacherBoss(ctx: CanvasRenderingContext2D, e: Enemy): void {
     const art = getHDArt();
     const state = e.bossState ?? 'stalk';
@@ -2161,7 +2196,7 @@ export class DungeonRenderer {
       ctx.translate(e.x, e.y + 16 - stompBob);
       ctx.rotate(tilt);
       ctx.scale(scaleX, scaleY);
-      drawBossLook(ctx, art, e, this.scene.time, spr, -27, -45, 54, 52);
+      if (!this.tryDrawRig(ctx, e, 0, 7)) drawBossLook(ctx, art, e, this.scene.time, spr, -27, -45, 54, 52);
       ctx.restore();
     }
     const corePulse = 0.5 + 0.5 * Math.sin(this.scene.time * (enraged ? 14 : 7));
