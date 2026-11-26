@@ -41,10 +41,11 @@ npm run verify                           # Build + Invarianten + Sprite-Check + 
     - `art_source/rigs/core_warden_arms_R2.png` (**S2 rechts**: 6 Zwischen-/Schadens-Posen, Schulterring im Fadenkreuz, `min_margin ≥ 34 px`)
     - `art_source/rigs/core_warden_arms_L2.png` (**S2 links**: 6 Zwischen-/Schadens-Posen mit Licht links-oben, Schulterring im Fadenkreuz, `min_margin ≥ 46 px`)
     - `art_source/rigs/core_warden_heads2.png` (**S5**: Visier-Laser, Blick links/rechts, brüllend Phase 2, stark beschädigt < 15 % HP mit zerbrochenem Halo, Blinzeln/Visier zu; Halsgelenk im Fadenkreuz, `min_margin ≥ 36 px`)
-  - **§4.1 Krall (1/6 fertig):**
+  - **§4.1 Krall (2/6 fertig):**
     - `art_source/rigs/krall_arms_R.png` (rechter Greifzangen-Arm `x=0.96`, 6 Posen, Schulterring im Fadenkreuz, `min_margin ≥ 31 px`)
-- **Noch offen (§4.1 Krall, 5 Sheets):**
-  - `krall_arms_L.png`, `krall_legs_R.png`, `krall_legs_L.png`, `krall_torsos.png`, `krall_effects.png`
+    - `art_source/rigs/krall_arms_L.png` (linker Schrott-Haken + Mini-Kreissägen-Arm `x=0.04`, 6 Posen inkl. Schild-Block & Kamera-Stoß, Schulterring im Fadenkreuz, `min_margin ≥ 34 px`)
+- **Noch offen (§4.1 Krall, 4 Sheets):**
+  - `krall_legs_R.png`, `krall_legs_L.png`, `krall_torsos.png`, `krall_effects.png`
 
 ## M11 Pose-Sets — Code (umgesetzt) · Handbuch: [`RIGGING_GUIDE.md`](RIGGING_GUIDE.md)
 - **Import (`npm run art:import`, `scripts/art-import.py`):** `sheet.sets` in `src/data/rigs.json` (`file`, `mode: limb|swap`, `ids[6]`). Zellmitte = Gelenk, je Set ein gemeinsamer zentrierter Ausschnitt + Rig-Maßstab → alle Posen eines Sets gleich groß, Pivot `[0.5, 0.5]`. Neue Sheets: Datei in `art_source/rigs/` legen, Set in `rigs.json` eintragen, `npm run art:import -- <rig> --force`.
