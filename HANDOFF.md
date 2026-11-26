@@ -27,15 +27,16 @@ npm run verify                           # Build + Invarianten + Sprite-Check + 
 - **Wer einen Fallback/Platzhalter neu anlegt, trägt ihn hier ein** (Datei, Key, Prompt-Abschnitt im Art-Guide).
 
 ## M11 Art-Sheets (`art_source/`)
-- **Vorhanden (Pilot-Sheets zur Qualitätsprüfung bereit, `1536×1024`, reines `#FFFFFF`, 512×512/Zelle, keine Rasterlinien):**
-  - `art_source/rigs/krall_parts.png` (S1 E1 Krall: Rumpf, Greifarm, Bein vorn, Bein hinten, Magnet, Schrottplatte)
-  - `art_source/rigs/core_warden_parts.png` (S1 E2 Kern-Wächter, Referenz `boss.png`: Rumpf, Kopf+Halo, linker Arm, Faust, Brustplatte links, Brustplatte rechts)
-- **Noch offen (erst nach Qualitäts-Freigabe der Pilot-Sheets erzeugen, um Credits zu sparen):** restliche Boss-Teile-Sheets (`MILESTONE_11_ARCHITECTURE.md` §6.3) und Gegner-Pose-Sheets (§6.4).
+- **Typ P (Teile-Sheets, vorhanden & importiert):**
+  - `art_source/rigs/krall_parts.png` (S1 E1 Krall)
+  - `art_source/rigs/core_warden_parts.png` (S1 E2 Kern-Wächter, bleibt u. a. für wegfliegende Brustplatten)
+- **Typ L/S v2 (`ART_BRIEF_M11.md`, `1536×1024`, `512×512`/Zelle, Gelenk exakt in Zellmitte, geprüft per `npm run art:check`):**
+  - `art_source/rigs/core_warden_arms_R.png` (**Prüfmuster §4.2**, rechter Arm auf Bildschirmseite `x=0.93`: 1 hängend · 2 Faust hoch · 3 Schlag zur Kamera · 4 seitlich ausgestreckt · 5 Block vor der Brust · 6 Boden-Stampfer; Schulterring in allen 6 Zellen exakt im Fadenkreuz, `min_margin ≥ 31 px`)
+- **Noch offen (§4.1 / §4.2, nach Abnahme des Prüfmusters):** `core_warden_arms_L.png`, `core_warden_heads.png`, `core_warden_torsos.png` sowie alle Krall-Sheets (`krall_arms_R/L`, `krall_legs_R/L`, `krall_torsos`, `krall_effects`).
 
 ## Nächster Schritt
-- **Sprites v2 (Antigravity):** Neues Briefing **`ART_BRIEF_M11.md`** — Krall & Kern-Wächter bekommen Arm-Posen (L+R getrennt), Kopf-/Rumpf-Tauschsets, Effekte (§4.1/§4.2). Prüfen mit `npm run art:check -- <datei>` (§6). Danach Code: Import-Modi `limb`/`swap` + Pose-Wechsel (`PartPose.variant`), dann Phase 3.
-- **Qualitätsprüfung der 2 Pilot-Sheets** (`krall_parts.png`, `core_warden_parts.png`) durch den Projektinhaber → nach Freigabe erzeugt Antigravity die nächsten Sheets nach Reihenfolge §6.0 (`turret`, `magma_mortar`, `shard_sniper` usw.).
-- **Meilenstein 11 Code (Claude Code):** `MILESTONE_11_ARCHITECTURE.md` Phasen 0–8 (Phase 0 baut `npm run art:import` und importiert direkt die vorhandenen `art_source/rigs/*.png`).
+- **Abnahme Prüfmuster `core_warden_arms_R.png`:** nach Freigabe erzeugt Antigravity die übrigen Sheets aus `ART_BRIEF_M11.md` §4.2 (`core_warden_arms_L`, `heads`, `torsos`) und §4.1 (`krall_*`), jeweils mit `npm run art:check` geprüft.
+- **Meilenstein 11 Code (Claude Code):** Import-Modi `limb`/`swap` + Pose-Wechsel (`PartPose.variant`), danach Phase 3 (Angriffe Sektor 1).
 - Ökonomie & Boss-Kampfgefühl im echten Spiel beobachten und in `src/data/balance.ts` nachjustieren (Berichte: `tests/out/economy.json`, `tests/out/ttk.json`).
 - Optionale M10/M10-C-Einzel-Sprites bei Bedarf ebenfalls per Antigravity erzeugen.
 
