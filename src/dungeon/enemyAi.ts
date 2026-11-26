@@ -2200,12 +2200,12 @@ export class DungeonEnemyAi {
         // Fire projectiles straight out of EACH orbiting plasma pylon!
         const pylons = this.getBossPylonPositions(e);
         if (enraged) {
-          // M11 Phase 2 „Faust-Salve“: Es gibt nur diese 4 Fäuste — sie fliegen EINMAL gezielt los (erste Salve) und kehren danach zurück;
+          // M11 Phase 2 „Faust-Salve“: Es gibt nur diese 4 Fäuste — sie fliegen EINMAL los (erste Salve), verfolgen den Spieler ~1,4 s lang (Lenkrate 2 rad/s, dann geradeaus), lösen sich auf und wachsen im Orbit nach;
           // in den übrigen Salven sind die Plätze leer, es wird nichts nachgeschossen.
           if (e.subBurst === 4) {
             pylons.forEach((py, i) => {
               const aim = Math.atan2(this.scene.playerY - py.y, this.scene.playerX - py.x) + (i - (pylons.length - 1) / 2) * 0.16;
-              this.scene.projectiles.push({ x: py.x, y: py.y, vx: Math.cos(aim) * 140, vy: Math.sin(aim) * 140, fromPlayer: false, damage: 16, color: '#fb7185', radius: 6, life: 1.15, sprite: 'fist' });
+              this.scene.projectiles.push({ x: py.x, y: py.y, vx: Math.cos(aim) * 120, vy: Math.sin(aim) * 120, fromPlayer: false, damage: 16, color: '#fb7185', radius: 6, life: 1.9, sprite: 'fist', homing: 2.0, homingUntilLife: 0.5 });
               this.scene.spawnBurst(py.x, py.y, '#fb7185', 6);
             });
           }

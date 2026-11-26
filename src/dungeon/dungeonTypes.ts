@@ -230,6 +230,9 @@ export interface Projectile {
   splitGen?: number;
   /** M11: Darstellung als Faust (Kern-Wächter Phase 2: die kreisenden Fäuste werden abgefeuert) — nur Optik, Hitbox = radius */
   sprite?: 'fist';
+  /** M11: Lenkung zum Spieler (rad/s) solange `life` > `homingUntilLife` — nur für abgefeuerte Fäuste */
+  homing?: number;
+  homingUntilLife?: number;
 }
 
 export interface LootDrop {

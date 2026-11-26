@@ -3671,9 +3671,20 @@ export class DungeonScene {
   public updateProjectiles(dt: number): void {
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const p = this.projectiles[i];
+      if (p.homing && !p.fromPlayer && p.life > (p.homingUntilLife ?? 0)) {
+        // Faust verfolgt den Spieler: Flugrichtung dreht mit begrenzter Rate zum Ziel, Tempo bleibt gleich
+        const sp = Math.hypot(p.vx, p.vy);
+        const cur = Math.atan2(p.vy, p.vx);
+        const want = Math.atan2(this.playerY - p.y, this.playerX - p.x);
+        const diff = Math.atan2(Math.sin(want - cur), Math.cos(want - cur));
+        const turn = Math.max(-p.homing * dt, Math.min(p.homing * dt, diff));
+        p.vx = Math.cos(cur + turn) * sp;
+        p.vy = Math.sin(cur + turn) * sp;
+      }
       p.x += p.vx * dt;
       p.y += p.vy * dt;
       p.life -= dt;
+      if (p.sprite === 'fist' && p.life <= 0) this.spawnBurst(p.x, p.y, '#fb7185', 8); // Faust löst sich auf
 
       // Milestone 10-A: Kristall-Prismen spiegeln/teilen Projektile, BEVOR die Wand-Prüfung greift
       const mechRes = this.mechanics.handleProjectile(p);
