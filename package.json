@@ -1,11 +1,12 @@
 {
   "name": "space-game",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.4.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:single": "tsc && vite build -c vite.single.config.ts",
     "preview": "vite preview",
     "test": "node tests/run.cjs",
     "check:invariants": "node scripts/check-invariants.mjs",

@@ -1,34 +1,13 @@
-import { initializeApp, type FirebaseApp } from 'firebase/app';
-import {
-  createUserWithEmailAndPassword,
-  getAuth,
-  GoogleAuthProvider,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  signInWithRedirect,
-  signOut,
-  updateProfile,
-  type Auth,
-  type User,
-} from 'firebase/auth';
-import {
-  addDoc,
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  getFirestore,
-  limit,
-  orderBy,
-  query,
-  setDoc,
-  type Firestore,
-} from 'firebase/firestore';
+import type { FirebaseApp } from 'firebase/app';
+import type { Auth, User } from 'firebase/auth';
+import type { Firestore } from 'firebase/firestore';
 import type { GameState } from '../systems/gameState';
 import type { ActivityFeedEntry, LeaderboardEntry, SaveData, WeeklyTrialEntry } from '../types';
 import { sanitizeGreeting } from '../data/ghostGreetings';
 import { DEFAULT_FIREBASE_CONFIG } from './firebaseConfig';
+
+/** Firebase-SDK-Funktionen (werden nach dem Spielstart per `import()` nachgeladen). */
+type FirebaseSdk = typeof import('./firebaseSdk');
 
 export interface CloudUserInfo {
   uid: string;
@@ -92,33 +71,41 @@ class FirebaseCloudService {
   private authListeners = new Set<(user: CloudUserInfo | null) => void>();
   private syncTimer: number | null = null;
 
+  private sdk: FirebaseSdk | null = null;
+  /** Wird fertig, sobald das SDK geladen und initialisiert ist (oder fehlgeschlagen/nicht konfiguriert). */
+  private ready: Promise<void>;
+
   constructor() {
     const cfg = readFirebaseConfig();
     if (!cfg) {
       this.configured = false;
       this.syncStatus = 'offline';
+      this.ready = Promise.resolve();
       return;
     }
+    // Spielstart nicht blockieren: SDK im Hintergrund laden, Anmeldung danach wiederherstellen.
+    this.ready = import('./firebaseSdk')
+      .then((sdk) => {
+        this.sdk = sdk;
+        this.app = sdk.initializeApp(cfg);
+        this.auth = sdk.getAuth(this.app);
+        this.db = sdk.getFirestore(this.app);
+        this.configured = true;
+        this.syncStatus = 'idle';
 
-    try {
-      this.app = initializeApp(cfg);
-      this.auth = getAuth(this.app);
-      this.db = getFirestore(this.app);
-      this.configured = true;
-      this.syncStatus = 'idle';
-
-      onAuthStateChanged(this.auth, (user: User | null) => {
-        this.currentUser = user ? this.mapUser(user) : null;
-        this.syncStatus = user ? 'idle' : 'offline';
-        for (const cb of this.authListeners) {
-          cb(this.currentUser);
-        }
+        sdk.onAuthStateChanged(this.auth, (user: User | null) => {
+          this.currentUser = user ? this.mapUser(user) : null;
+          this.syncStatus = user ? 'idle' : 'offline';
+          for (const cb of this.authListeners) {
+            cb(this.currentUser);
+          }
+        });
+      })
+      .catch((err: unknown) => {
+        this.configured = false;
+        this.syncStatus = 'error';
+        this.lastError = err instanceof Error ? err.message : 'Firebase-Initialisierung fehlgeschlagen';
       });
-    } catch (err) {
-      this.configured = false;
-      this.syncStatus = 'error';
-      this.lastError = err instanceof Error ? err.message : 'Firebase-Initialisierung fehlgeschlagen';
-    }
   }
 
   private mapUser(u: User): CloudUserInfo {
@@ -143,18 +130,20 @@ class FirebaseCloudService {
   }
 
   public async signInWithGoogle(): Promise<{ ok: boolean; error?: string }> {
-    if (!this.auth) return { ok: false, error: 'Firebase ist noch nicht konfiguriert.' };
+    await this.ready;
+    const sdk = this.sdk;
+    if (!this.auth || !sdk) return { ok: false, error: 'Firebase ist noch nicht konfiguriert.' };
     try {
-      const provider = new GoogleAuthProvider();
+      const provider = new sdk.GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
-      await signInWithPopup(this.auth, provider);
+      await sdk.signInWithPopup(this.auth, provider);
       return { ok: true };
     } catch (err: unknown) {
       const code = (err as { code?: string })?.code ?? '';
       if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {
         try {
-          const provider = new GoogleAuthProvider();
-          await signInWithRedirect(this.auth, provider);
+          const provider = new sdk.GoogleAuthProvider();
+          await sdk.signInWithRedirect(this.auth, provider);
           return { ok: true };
         } catch (rErr) {
           return { ok: false, error: this.friendlyAuthError(rErr) };
@@ -165,9 +154,11 @@ class FirebaseCloudService {
   }
 
   public async signInWithEmail(email: string, password: string): Promise<{ ok: boolean; error?: string }> {
-    if (!this.auth) return { ok: false, error: 'Firebase ist noch nicht konfiguriert.' };
+    await this.ready;
+    const sdk = this.sdk;
+    if (!this.auth || !sdk) return { ok: false, error: 'Firebase ist noch nicht konfiguriert.' };
     try {
-      await signInWithEmailAndPassword(this.auth, email.trim(), password);
+      await sdk.signInWithEmailAndPassword(this.auth, email.trim(), password);
       return { ok: true };
     } catch (err) {
       return { ok: false, error: this.friendlyAuthError(err) };
@@ -179,11 +170,13 @@ class FirebaseCloudService {
     password: string,
     captainName: string,
   ): Promise<{ ok: boolean; error?: string }> {
-    if (!this.auth) return { ok: false, error: 'Firebase ist noch nicht konfiguriert.' };
+    await this.ready;
+    const sdk = this.sdk;
+    if (!this.auth || !sdk) return { ok: false, error: 'Firebase ist noch nicht konfiguriert.' };
     try {
-      const cred = await createUserWithEmailAndPassword(this.auth, email.trim(), password);
+      const cred = await sdk.createUserWithEmailAndPassword(this.auth, email.trim(), password);
       const cleanName = captainName.trim().slice(0, 22) || email.split('@')[0] || 'Sternen-Kapitän';
-      await updateProfile(cred.user, { displayName: cleanName });
+      await sdk.updateProfile(cred.user, { displayName: cleanName });
       this.currentUser = this.mapUser(cred.user);
       this.currentUser.displayName = cleanName;
       for (const cb of this.authListeners) cb(this.currentUser);
@@ -196,9 +189,9 @@ class FirebaseCloudService {
   public async updateCaptainName(name: string): Promise<{ ok: boolean; error?: string }> {
     const clean = name.trim().slice(0, 22);
     if (!clean) return { ok: false, error: 'Bitte einen Kapitäns-Namen eingeben.' };
-    if (!this.auth?.currentUser) return { ok: true };
+    if (!this.sdk || !this.auth?.currentUser) return { ok: true };
     try {
-      await updateProfile(this.auth.currentUser, { displayName: clean });
+      await this.sdk.updateProfile(this.auth.currentUser, { displayName: clean });
       if (this.currentUser) this.currentUser.displayName = clean;
       for (const cb of this.authListeners) cb(this.currentUser);
       return { ok: true };
@@ -208,15 +201,15 @@ class FirebaseCloudService {
   }
 
   public async signOutUser(): Promise<void> {
-    if (!this.auth) return;
-    await signOut(this.auth);
+    if (!this.auth || !this.sdk) return;
+    await this.sdk.signOut(this.auth);
     this.lastSyncAt = null;
     this.syncStatus = 'offline';
   }
 
   /** Debounced cloud save + leaderboard update whenever a logged-in player saves locally */
   public scheduleAutoSync(state: GameState): void {
-    if (!this.configured || !this.currentUser || !this.db) return;
+    if (!this.configured || !this.currentUser || !this.db || !this.sdk) return;
     if (this.syncTimer !== null) {
       window.clearTimeout(this.syncTimer);
     }
@@ -227,15 +220,16 @@ class FirebaseCloudService {
   }
 
   public async syncAllToCloud(state: GameState): Promise<{ ok: boolean; error?: string }> {
-    if (!this.configured || !this.currentUser || !this.db) {
+    const sdk = this.sdk;
+    if (!this.configured || !this.currentUser || !this.db || !sdk) {
       return { ok: false, error: 'Nicht angemeldet.' };
     }
     this.syncStatus = 'syncing';
     try {
       const now = Date.now();
       const saveJson = state.exportSaveJson();
-      await setDoc(
-        doc(this.db, 'saves', this.currentUser.uid),
+      await sdk.setDoc(
+        sdk.doc(this.db, 'saves', this.currentUser.uid),
         {
           saveJson,
           day: state.day,
@@ -247,7 +241,7 @@ class FirebaseCloudService {
       );
 
       const entry = this.buildLeaderboardEntry(state, this.currentUser.uid, state.captainName || this.currentUser.displayName);
-      await setDoc(doc(this.db, 'leaderboard', this.currentUser.uid), entry, { merge: true });
+      await sdk.setDoc(sdk.doc(this.db, 'leaderboard', this.currentUser.uid), entry, { merge: true });
 
       this.lastSyncAt = now;
       this.syncStatus = 'synced';
@@ -265,11 +259,12 @@ class FirebaseCloudService {
   }
 
   public async downloadCloudSave(): Promise<{ ok: boolean; saveJson?: string; updatedAt?: number; error?: string }> {
-    if (!this.configured || !this.currentUser || !this.db) {
+    const sdk = this.sdk;
+    if (!this.configured || !this.currentUser || !this.db || !sdk) {
       return { ok: false, error: 'Nicht angemeldet.' };
     }
     try {
-      const snap = await getDoc(doc(this.db, 'saves', this.currentUser.uid));
+      const snap = await sdk.getDoc(sdk.doc(this.db, 'saves', this.currentUser.uid));
       if (!snap.exists()) {
         return { ok: false, error: 'Noch kein Cloud-Spielstand vorhanden.' };
       }
@@ -378,12 +373,13 @@ class FirebaseCloudService {
     state: GameState,
   ): Promise<{ ok: boolean; reason: 'ok' | 'offline' | 'not_logged_in' | 'nothing' | 'error'; error?: string }> {
     if (!state.weeklyTrial) return { ok: false, reason: 'nothing' };
-    if (!this.configured || !this.db) return { ok: false, reason: 'offline' };
+    const sdk = this.sdk;
+    if (!this.configured || !this.db || !sdk) return { ok: false, reason: 'offline' };
     if (!this.currentUser) return { ok: false, reason: 'not_logged_in' };
     const entry = this.buildWeeklyTrialEntry(state, this.currentUser.uid);
     if (!entry) return { ok: false, reason: 'nothing' };
     try {
-      await setDoc(doc(this.db, 'weeklyTrials', entry.weekId, 'entries', this.currentUser.uid), entry);
+      await sdk.setDoc(sdk.doc(this.db, 'weeklyTrials', entry.weekId, 'entries', this.currentUser.uid), entry);
       if (state.weeklyTrial && state.weeklyTrial.weekId === entry.weekId) {
         state.weeklyTrial.uploaded = true; // wird beim nächsten regulären Speichern persistiert
       }
@@ -394,10 +390,11 @@ class FirebaseCloudService {
   }
 
   public async fetchWeeklyTrialEntries(weekId: string, maxRows = 30): Promise<WeeklyTrialEntry[]> {
-    if (!this.configured || !this.db) return [];
+    const sdk = this.sdk;
+    if (!this.configured || !this.db || !sdk) return [];
     try {
-      const q = query(collection(this.db, 'weeklyTrials', weekId, 'entries'), orderBy('score', 'asc'), limit(maxRows));
-      const snap = await getDocs(q);
+      const q = sdk.query(sdk.collection(this.db, 'weeklyTrials', weekId, 'entries'), sdk.orderBy('score', 'asc'), sdk.limit(maxRows));
+      const snap = await sdk.getDocs(q);
       const list: WeeklyTrialEntry[] = [];
       snap.forEach((d) => {
         list.push(d.data() as WeeklyTrialEntry);
@@ -409,10 +406,11 @@ class FirebaseCloudService {
   }
 
   public async fetchLeaderboard(maxRows = 30): Promise<LeaderboardEntry[]> {
-    if (!this.configured || !this.db) return [];
+    const sdk = this.sdk;
+    if (!this.configured || !this.db || !sdk) return [];
     try {
-      const q = query(collection(this.db, 'leaderboard'), orderBy('updatedAt', 'desc'), limit(maxRows));
-      const snap = await getDocs(q);
+      const q = sdk.query(sdk.collection(this.db, 'leaderboard'), sdk.orderBy('updatedAt', 'desc'), sdk.limit(maxRows));
+      const snap = await sdk.getDocs(q);
       const list: LeaderboardEntry[] = [];
       snap.forEach((d) => {
         list.push(d.data() as LeaderboardEntry);
@@ -429,9 +427,10 @@ class FirebaseCloudService {
     badge: string,
     accent: string,
   ): Promise<void> {
-    if (!this.configured || !this.currentUser || !this.db) return;
+    const sdk = this.sdk;
+    if (!this.configured || !this.currentUser || !this.db || !sdk) return;
     try {
-      await addDoc(collection(this.db, 'activities'), {
+      await sdk.addDoc(sdk.collection(this.db, 'activities'), {
         uid: this.currentUser.uid,
         captainName: captainName.trim().slice(0, 22) || this.currentUser.displayName,
         text: text.slice(0, 120),
@@ -445,10 +444,11 @@ class FirebaseCloudService {
   }
 
   public async fetchRecentActivities(maxRows = 16): Promise<ActivityFeedEntry[]> {
-    if (!this.configured || !this.db) return [];
+    const sdk = this.sdk;
+    if (!this.configured || !this.db || !sdk) return [];
     try {
-      const q = query(collection(this.db, 'activities'), orderBy('createdAt', 'desc'), limit(maxRows));
-      const snap = await getDocs(q);
+      const q = sdk.query(sdk.collection(this.db, 'activities'), sdk.orderBy('createdAt', 'desc'), sdk.limit(maxRows));
+      const snap = await sdk.getDocs(q);
       const list: ActivityFeedEntry[] = [];
       snap.forEach((d) => {
         const raw = d.data() as Omit<ActivityFeedEntry, 'id'>;

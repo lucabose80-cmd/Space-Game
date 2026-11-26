@@ -70,7 +70,7 @@ npm install
 npm run dev
 ```
 
-Produktions-Build (`tsc && vite build`):
+Produktions-Build (`tsc && vite build`; Einzeldatei-Variante: `npm run build:single` → `dist-single/`):
 
 ```bash
 npm run build

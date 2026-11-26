@@ -219,7 +219,7 @@ Vulkan-Titan und Sternen-Archon behalten ihre bestehenden Sprites (`boss_vulkan_
 Für Meilenstein 11 (`MILESTONE_11_ARCHITECTURE.md` §2 & §6) erzeugt Antigravity Roh-Sheets direkt per `generate_image` und legt sie als verlustfreie PNGs im Repo ab:
 
 - **Boss-Teile-Sheets (`3×2`):** `AspectRatio: '3:2'`, Ziel `art_source/rigs/<id>_parts.png` (ideal `1536×1024`, d. h. `512×512` pro Zelle).
-- **Gegner-Pose-Sheets (`2×2`):** `AspectRatio: '1:1'`, Ziel `art_source/poses/<id>_poses.png` (ideal `1024×1024`, d. h. `512×512` pro Zelle).
+- **Gegner-Rig-Sheets (Typ G, `3×2`):** `AspectRatio: '3:2'`, Ziel `art_source/rigs/<kind>_rig.png` (ideal `1536×1024`, d. h. `512×512` pro Zelle) — siehe `ART_BRIEF_M11_ENEMIES.md`. (Die frühere 2×2-Pose-Sheet-Variante ist entfallen.)
 - **Referenzbild nutzen:** Wo in `MILESTONE_11_ARCHITECTURE.md` §6 ein vorhandenes Sprite genannt ist, den absoluten Pfad (z. B. `public/art/sprites/boss.png`) über `ImagePaths` mitgeben.
 - **Nachprüfung vor Commit (wichtig für `npm run art:import`):**
   1. `generate_image` schreibt zunächst ins Artifact-Verzeichnis (oft `.jpg`) und zeichnet trotz Prompt gelegentlich dünne graue Trennlinien oder lässt lange Gliedmaßen minimal über die Zellengrenze (`h/2`) hinausragen.

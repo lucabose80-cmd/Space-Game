@@ -50,6 +50,8 @@
 - **Prüfung + Wochen-Mutator:** Ist der Mutator „gepanzert“, haben Gegner ×1,3 HP. Für Kalibrier-Messungen `dng.activeRiftMutator = null` setzen.
 - **Parallele Läufe:** Nie zwei Harness-Läufe gleichzeitig starten (Port 4197) und während `npm run verify` keine Quelldateien ändern.
 
+- **Firebase (`t6`):** Das SDK lädt nach dem Start per `import('./firebaseSdk')`; Tests, die Cloud-Funktionen brauchen, erst `await firebaseService['ready']`. Keine Netzwerk-Aufrufe in Tests.
+
 ### Tests & Fallstricke für Meilenstein 11 (Rigs & Boss-Animation)
 - **Tests:** `m11p0` (Import-Pipeline), `m11p1` (Rig-Engine), `m11p2` (Pose-Sets, Übergangs-Glätte < 0,2 rad/Frame, Zwischen-Posen, Zuordnung Zustand→Variante), `m11p3` (abgelöste Teile), `m11p4` (Teilen: gemeinsamer HP-Pool, Sieg nur einmal). `m11lab` (Boss-Labor) läuft nicht über `npm test`.
 - **Test-Enemies brauchen `hp`/`maxHp`:** `getBossPose` liest die HP-Quote (stark beschädigter Kopf < 15 %); fehlt `maxHp`, gilt 100 %.

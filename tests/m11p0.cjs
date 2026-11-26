@@ -4,7 +4,7 @@ module.exports = async () => {
   const { execFileSync } = require('node:child_process');
   const root = path.resolve(__dirname, '..'); const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'artimport-'));
   const py = (code) => execFileSync('python3', ['-I', '-c', code], { encoding: 'utf8' });
-  fs.mkdirSync(path.join(tmp, 'src/rigs'), { recursive: true }); fs.mkdirSync(path.join(tmp, 'src/poses'), { recursive: true });
+  fs.mkdirSync(path.join(tmp, 'src/rigs'), { recursive: true });
   fs.writeFileSync(path.join(tmp, 'rigs.json'), JSON.stringify({ dummy: { kind: 'x', sheet: { file: 'dummy', cols: 3, rows: 2, order: ['body', 'arm', 'ring', 'leg', '', 'plate'], scaleRef: 'body', torsoDisplayH: 20 }, parts: [] } }));
   // Synthetische Sheets: Zellen 300×300, weißer Hintergrund, farbige Teile (Ring mit weißem Inneren, graues Highlight)
   py(`
@@ -17,13 +17,9 @@ x,y=cell(2); d.ellipse((x+80,y+80,x+220,y+220),fill=(200,160,40),outline=(10,10,
 x,y=cell(3); d.rectangle((x+100,y+100,x+130,y+200),fill=(40,120,60),outline=(10,10,10),width=3); d.rectangle((x+105,y+105,x+112,y+112),fill=(240,240,240))  # leg + helles Highlight
 x,y=cell(5); d.rectangle((x+90,y+90,x+210,y+160),fill=(90,40,120),outline=(10,10,10),width=3)
 W.save('${tmp}/src/rigs/dummy_parts.png')
-P=Image.new('RGB',(600,600),(255,255,255)); d=ImageDraw.Draw(P)
-for i,(c,r) in enumerate([(0,0),(1,0),(0,1),(1,1)]):
-    d.ellipse((c*300+50+i*10,r*300+50,c*300+250-i*10,r*300+250),fill=(80,80,200),outline=(5,5,5),width=4)
-P.save('${tmp}/src/poses/blobby_poses.png')
 `);
   const run = (...a) => execFileSync('python3', [path.join(root, 'scripts/art-import.py'), '--src', path.join(tmp, 'src'), '--out', path.join(tmp, 'out'), '--rigs', path.join(tmp, 'rigs.json'), ...a], { encoding: 'utf8' });
-  const o1 = run(); assert.ok(/✔ dummy: 5 Teile/.test(o1), o1); assert.ok(/✔ blobby: 4 Posen/.test(o1), o1);
+  const o1 = run(); assert.ok(/✔ dummy: 5 Teile/.test(o1), o1);
   const info = JSON.parse(py(`
 from PIL import Image; import json
 o='${tmp}/out/rigs/dummy/'; r={}
@@ -32,7 +28,7 @@ for p in ['body','arm','ring','leg','plate']:
 im=Image.open(o+'ring.png'); r['ringCenter']=im.getpixel((im.width//2, im.height//2))
 im=Image.open(o+'leg.png'); r['legAlphaMin']=min(im.getpixel((x,y))[3] for x in range(im.width) for y in range(im.height) if im.getpixel((x,y))[3]>0)
 r['meta']=json.load(open(o+'import.json'))
-import os; r['files']=sorted(os.listdir(o)); r['poses']=sorted(os.listdir('${tmp}/out/poses'))
+import os; r['files']=sorted(os.listdir(o))
 print(json.dumps(r))`));
   assert.deepStrictEqual(info.files, ['arm.png', 'body.png', 'import.json', 'leg.png', 'plate.png', 'ring.png']); // Zelle 5 war leer-benannt → übersprungen
   assert.strictEqual(info.body[1], 20, 'Referenzteil = Anzeigehöhe 20 px');
@@ -40,7 +36,6 @@ print(json.dumps(r))`));
   assert.strictEqual(info.ring[2], 0, 'Ring: Ecke oben-links transparent (Hintergrund entfernt)'); assert.strictEqual(info.ring[3], 0, 'Ring: Ecke unten-rechts transparent');
   assert.strictEqual(info.ringCenter[3], 255, 'eingeschlossenes Weiß (Loch im Ring) bleibt erhalten');
   assert.strictEqual(info.legAlphaMin, 255, 'kein halbtransparenter Rand');
-  assert.deepStrictEqual(info.poses, ['blobby_1.png', 'blobby_2.png', 'blobby_3.png', 'blobby_4.png']);
   // Idempotenz + --force + --keep-cell
   assert.ok(/= dummy: unverändert/.test(run('dummy')), 'Zweiter Lauf überspringt');
   const mtime = fs.statSync(path.join(tmp, 'out/rigs/dummy/arm.png')).mtimeMs;

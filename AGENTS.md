@@ -25,7 +25,6 @@
 | [ART_BRIEF_M11_ENEMIES.md](ART_BRIEF_M11_ENEMIES.md) | **Sprite briefing for normal enemies (M11):** one 3×2 cut-out parts sheet per enemy (joint at cell centre), per-enemy cell lists, ready-to-use prompt, generation order & credit plan. Read before generating any enemy rig sheet. |
 | [ART_AND_DESIGN_GUIDE.md](ART_AND_DESIGN_GUIDE.md) | Generating new pixel-art sprites/backgrounds (prompt templates, color palettes, Python flood-fill extraction script, `artLoader.ts` & UI rules). |
 | [TESTING_AND_VERIFICATION.md](TESTING_AND_VERIFICATION.md) | Running `npm run build`, checking invariants, Headless Chrome CDP verification harness, visual screenshot QA, and known pitfalls. |
-| [CLEANUP_PLAN.md](CLEANUP_PLAN.md) | **Aufräum-Liste (Audit 2026-11-26):** C1–C5 erledigt, nur optionaler Block C6 offen. |
 | [firestore.rules](firestore.rules) | Production Firestore security rules (`saves/{uid}`, `leaderboard/{uid}`, `activities`, `weeklyTrials/{weekId}/entries/{uid}`). |
 
 ---
@@ -87,6 +86,7 @@
 ## 5. Key Commands
 ```bash
 npm run build      # TypeScript check + Vite production build (index, dungeon & firebase chunks)
+npm run build:single # Einzeldatei-Build (iife, alles inline) nach dist-single/ (vite.single.config.ts)
 npm run verify     # Build + Invarianten + Sprite-Check + alle Headless-Tests (vor jedem Push)
 npm test -- m10p3  # einzelne Tests (tests/*.cjs, Playwright)
 npm run check:sprites  # listet fehlende optionale Sprites (Fallbacks aktiv)
@@ -103,11 +103,11 @@ npm run dev        # Local Vite dev server (use --host 127.0.0.1 --strictPort in
 
 1. **Sitzungsstart (immer zuerst):** `git fetch origin && git status` (und `git pull --ff-only`, falls `origin/main` voraus ist), dann [`HANDOFF.md`](HANDOFF.md) lesen. Claude Code und Antigravity pushen abwechselnd auf `main`; eine wiederaufgenommene VM kann auf einem älteren Commit stehen.
 2. **Typische Aufgabenteilung:**
-   - **Antigravity (`generate_image` + PIL + Repo-Commit):** Pixel-Art-Sprites, M11-Teile-Sheets (`art_source/rigs/<id>_parts.png`) und Pose-Sheets (`art_source/poses/<id>_poses.png`) sowie reguläre Code-/Doku-Aufgaben nach Bedarf.
+   - **Antigravity (`generate_image` + PIL + Repo-Commit):** Pixel-Art-Sprites, M11-Teile-Sheets (`art_source/rigs/<id>_parts.png`) sowie Pose-Set- und Gegner-Rig-Sheets (`art_source/rigs/<id>_arms_L.png`, `<kind>_rig.png`, …) und reguläre Code-/Doku-Aufgaben nach Bedarf.
    - **Claude Code:** Architektur-Pläne, Code-Phasen, Tests, `npm run art:import` & `npm run verify`.
 3. **Pflicht-Workflow für generierte Bilder (`generate_image`):**
    - `generate_image` speichert zunächst nur im internen Artifact-Ordner (oft als `.jpg`) — **niemals** dort liegen lassen!
-   - Bestehendes Sprite als Referenz über `ImagePaths` übergeben (z. B. `public/art/sprites/boss.png` für den Kern-Wächter); Seitenverhältnis setzen (`AspectRatio: '3:2'` für 3×2-Teile-Sheets, `'1:1'` für 2×2-Pose-Sheets und Einzel-Sprites).
+   - Bestehendes Sprite als Referenz über `ImagePaths` übergeben (z. B. `public/art/sprites/boss.png` für den Kern-Wächter); Seitenverhältnis setzen (`AspectRatio: '3:2'` für 3×2-Teile-Sheets, `'1:1'` für Einzel-Sprites).
    - **Sicht- & Rasterprüfung vor Ablage:** Per `view_file` und Python/PIL prüfen, dass alle Teile sauber in ihrer Zelle liegen, keine Rasterlinien/Texte/Schatten/Überlappungen vorhanden sind und einheitlicher Maßstab gilt. Bei 3×2-Teile-Sheets ggf. per PIL sauber ohne Skalierungsverlust in ein reines `#FFFFFF`-Raster `1536×1024` (`512×512` pro Zelle) als verlustfreies `.png` nach `art_source/rigs/<id>_parts.png` packen; fertige Einzel-Sprites nach `ART_AND_DESIGN_GUIDE.md` §3 freistellen und nach `public/art/sprites/<name>.png` legen.
    - **Credits sparen:** Bei neuen Serien (wie M11) immer erst 1–2 Pilot-Sheets erzeugen, pushen und vom Projektinhaber abnehmen lassen, bevor der Rest generiert wird.
 4. **VM-Besonderheiten (Antigravity):** `python3` mit `Pillow` und `/usr/bin/google-chrome` sind vorinstalliert. In einer frischen VM fehlt ggf. `node_modules` → für `npm run build` / `npm run verify` zuerst `npm install` (und falls Playwright-Chromium fehlt: `npx playwright install chromium`).

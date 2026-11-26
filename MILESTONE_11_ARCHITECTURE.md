@@ -55,7 +55,7 @@
 
 ### 2.4 Import-Befehl (wird in Phase 0 gebaut)
 ```bash
-npm run art:import            # alle neuen/geänderten Sheets in art_source/rigs & art_source/poses
+npm run art:import            # alle Rigs aus rigs.json (Sheets in art_source/rigs) — Pose-Sheet-Import (poses/) wurde entfernt
 npm run art:import -- krall   # nur ein Boss/Gegner
 ```
 **Auflösung:** Das Spiel zeichnet mit `RENDER_SCALE = 2`. Teile werden deshalb in **Bildschirm-Auflösung** gespeichert (`pixelRatio: 2` in `rigs.json`, Zielhöhe = `torsoDisplayH × 2`) und von `drawRig` mit halber Größe gezeichnet — 1:1 auf dem Bildschirm, wie die alten Boss-Sprites. Verkleinert wird mit Lanczos + hartem Alpha-Rand (`--resample`), nicht mit Nearest (weiße Fransen, Rauschen).

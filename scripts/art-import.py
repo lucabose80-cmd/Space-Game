@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""M11 Phase 0 — Sprite-Import: zerschneidet Teile-Sheets (3×2) / Pose-Sheets (2×2) aus Gemini/Antigravity.
+"""M11 Phase 0 — Sprite-Import: zerschneidet Teile-Sheets (3×2) und Pose-Set-Sheets aus Gemini/Antigravity.
 
   python3 scripts/art-import.py [ids …] [--force] [--resample lanczos|nearest|box] [--keep-cell N] [--src art_source] [--out public/art] [--rigs src/data/rigs.json]
 
 Teile-Sheets:  art_source/rigs/<file>_parts.png   → public/art/rigs/<id>/<teil>.png (+ import.json)
-Pose-Sheets:   art_source/poses/<id>_poses.png    → public/art/poses/<id>_<1-4>.png
 Pose-Sets (M11 v2, `sheet.sets` in rigs.json): art_source/rigs/<file>.png (3×2, Zellmitte = Gelenk) → public/art/rigs/<id>/<ids[i]>.png
   mode "limb" (Arm/Bein) und "swap" (Kopf/Rumpf): KEIN enger Zuschnitt je Pose, sondern ein gemeinsamer, um die Zellmitte
   zentrierter Ausschnitt (größte Ausdehnung aller Posen) → alle Posen eines Sets sind gleich groß, Gelenk exakt bei (0.5, 0.5);
@@ -193,29 +192,6 @@ def import_rig(rid, rig, args, report):
     report.append(f"✔ {rid}: {len(cleaned)} Teile + {n_set} Posen · Maßstab {scale:.3f} · {args.resample}")
 
 
-def import_poses(pid, args, report):
-    src = os.path.join(args.src, "poses", f"{pid}_poses.png")
-    if not os.path.exists(src):
-        return False
-    outdir = os.path.join(args.out, "poses")
-    os.makedirs(outdir, exist_ok=True)
-    sheet = Image.open(src)
-    imgs = []
-    for i, cell in cells(sheet, 2, 2):
-        t = trim(clean_cell(cell))
-        if t is None:
-            report.append(f"  ! {pid}: Pose {i + 1} leer")
-            return True
-        imgs.append((i, t))
-    # gemeinsamer Maßstab: größte Pose bestimmt die Zielhöhe (Anzeige 28 px)
-    target = 28
-    scale = target / max(t.height for _, t in imgs)
-    for i, t in imgs:
-        resize(t, scale, args.resample).save(os.path.join(outdir, f"{pid}_{i + 1}.png"))
-    report.append(f"✔ {pid}: 4 Posen · Maßstab {scale:.3f}")
-    return True
-
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("ids", nargs="*")
@@ -232,14 +208,8 @@ def main():
     for rid in ids:
         if rid in rigs:
             import_rig(rid, rigs[rid], args, report)
-        elif not import_poses(rid, args, report):
-            report.append(f"? {rid}: weder Rig noch Pose-Sheet gefunden")
-    if not args.ids:
-        pdir = os.path.join(args.src, "poses")
-        if os.path.isdir(pdir):
-            for f in sorted(os.listdir(pdir)):
-                if f.endswith("_poses.png"):
-                    import_poses(f[:-len("_poses.png")], args, report)
+        else:
+            report.append(f"? {rid}: kein Rig in {args.rigs} (2×2-Pose-Sheets werden nicht mehr importiert)")
     print("\n".join(report) if report else "Nichts zu tun.")
 
 

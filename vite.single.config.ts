@@ -6,7 +6,8 @@ export default defineConfig({
     emptyOutDir: true,
     cssCodeSplit: false,
     assetsInlineLimit: 100_000_000,
-    rollupOptions: {
+    // Einzeldatei-Build (iife, alles inline) — `npm run build:single`; nutzt Vite-8-Rolldown
+    rolldownOptions: {
       input: 'src/main.ts',
       output: {
         format: 'iife',
