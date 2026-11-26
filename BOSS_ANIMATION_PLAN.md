@@ -28,6 +28,8 @@ Ein Boss gilt erst als **„Animation fertig“**, wenn alle Punkte erfüllt **u
 ## 2. Kern-Wächter (`core_warden`, kind `boss`) — Pilot
 
 ### 2.1 Stand (erledigt)
+> **Update:** K1–K8 sind abgearbeitet (K5 verworfen, K6 als Variante). Offen: Abnahme durch den Projektinhaber (§2.4) und Sprite-Aufgaben S1–S5.
+
 - [x] Pose-Sets Arme L/R, Köpfe, Rümpfe (je 6) importiert, Posen je Zustand (`coreWardenSet` in `src/dungeon/anim/bossAnims.ts`)
 - [x] Schulter-Feinjustierung je Rumpf-Variante (`SHOULDER_ADJUST`)
 - [x] Phase 2: Brustplatten fliegen weg (`detach: 'phase2'`, `src/dungeon/anim/detached.ts`), Rumpf/Kopf Phase-2-Varianten
@@ -50,33 +52,33 @@ Zustände des Kern-Wächters (aus `src/dungeon/enemyAi.ts`, `updateBossAI`) — 
 ### 2.2 Code-Aufgaben (ohne neue Sprites) — für Sonnet/Opus
 Reihenfolge = Priorität. Alle Änderungen rein darstellend (D8).
 
-- [ ] **K1 · Weiche Übergänge (D3)** — `bossAnims.ts`
+- [x] **K1 · Weiche Übergänge (D3)** — `bossAnims.ts` ✅ umgesetzt (Glättung `SMOOTH_TAU` 0,05 s, Stauch-Impuls 0,09 s beim Bildwechsel in `smoothPose`; zusätzlich `smoothBossBody` im Renderer: Ganzkörper-Stauchen/Neigung weich + mit Rig auf 30 % abgemildert, weil die Teile es selbst zeigen). Kreuzblende (`prevVariant`) bewusst **nicht** gebaut — Impuls reicht im Labor.
   - Pro Boss einen kleinen Animations-Zustand halten (`WeakMap<Enemy, { pose: Pose; set: {arms, head, torso}; t: number }>`), Zeit über den `time`-Parameter (kein `Date.now`).
   - Drehung/`dx`/`dy`/`sx`/`sy` jedes Teils über ~0,10 s zur Ziel-Pose überblenden (`blendPose` aus `rig.ts` mit exponentieller Annäherung: `k = 1 − exp(−dt/0,05)`).
   - Bildwechsel (`variant`) bleibt hart, bekommt aber einen **Impuls**: im Frame des Wechsels an diesem Teil `sx 1.08 / sy 0.94`, der über 0,08 s zurückfedert; beim Rumpf zusätzlich `dy +0.6`.
   - Optional (wenn das „Ploppen“ noch stört): in `rig.ts` `PartPose.prevVariant` + `mix` (0…1) einführen und in `drawRig` das alte Bild mit `alpha = 1 − mix` **unter** dem neuen zeichnen (Kreuzblende 0,06 s). Test in `tests/m11p2.cjs` ergänzen.
   - Abnahme: Labor 0,25×, alle Zustände durchklicken — keine Sprünge in Drehung/Lage.
-- [ ] **K2 · Anlauf & Nachfedern (D4)** — `bossAnims.ts`
+- [x] **K2 · Anlauf & Nachfedern (D4)** — `bossAnims.ts` ✅ umgesetzt (`coreWardenSet`: Anlauf, Sprung stauchen→strecken, Landung `exp(−el/0,08)` + Arm-Nachschwingen, Rückprall/Kopf-Nachschwingen bei `stunned`)
   - Fortschritt der Vorwarnung `p = 1 − bossStateTimer / bossStateMax`.
   - `charge_windup`: Rumpf `dy = +2·p`, `sy = 1 − 0.06·p`, Arme drehen um `±0.25·p` nach hinten.
   - `slam_jump`: Stauchen in den ersten 40 % (`sy 0.9`), dann Strecken (`sy 1.08`); `slam_air`: gestreckt; `slam_impact`: 0,15 s Stauchen `sy 0.86 → 1` + Arme `rot` Nachschwingen (gedämpfte Sinuswelle, 2 Schwingungen).
   - `charge_dash` → `stunned`: Kopf `rot` Nachschwingen, Rumpf `dx` Rückprall 2 px.
   - Abnahme: Ausholen ist in der vorhandenen Vorwarnzeit sichtbar; keine Zustandsdauer geändert (`enemyAi.ts` unberührt).
-- [ ] **K3 · Fortbewegung (D5)** — `bossAnims.ts`
+- [x] **K3 · Fortbewegung (D5)** — `bossAnims.ts` ✅ umgesetzt — Abweichung: Armschwung **gegenläufig** (`armL += s`, `armR += s`: ein Arm schwingt nach außen, der andere nach innen) statt beide gleichzeitig nach außen; Ruhe-Pendeln beim Gehen auf 40 % gedämpft
   - Tempo `v = hypot(vx, vy)`, Takt `ph = time · (3 + v/25)`.
   - Rumpf-Wippen `dy = −|sin ph| · min(1.5, v/40)`, Arme gegenläufig `armL rot += sin(ph)·0.12·w`, `armR rot −= sin(ph)·0.12·w` (nur im Ruhe-Set `hang`), Kopf hängt nach (`rot = −sin(ph − 0.4)·0.05·w`), leichtes Lehnen in Laufrichtung über den Rumpf (`rot = clamp(vx·0.0015, ±0.08)`).
   - Achtung: der Renderer neigt den ganzen Boss bereits (`tilt`) — Werte klein halten, im Labor prüfen.
-- [ ] **K4 · Treffer-Reaktion (D6)** — `bossAnims.ts`
+- [x] **K4 · Treffer-Reaktion (D6)** — `bossAnims.ts` ✅ umgesetzt (voll im Ruhe-/Gehzustand, im Pylonen-Block nur Rumpfzittern, in Sturm/Sprung/Laser unverändert)
   - Bei `flashTimer > 0`: zusätzlich Rumpf `dx` ±1 px Zittern (deterministisch: `sin(time·90)`), Arme `rot` +0,08 nach außen, 0,12 s. Nicht während `charge_dash`/`slam_*`/`laser_sweep` (dort nur der Kopf-Ruck, wie jetzt).
-- [ ] **K5 · Laser: Brust öffnet sich (Plan §4.1)** — `bossAnims.ts` + `rigs.json`
+- [x] **K5 · Laser: Brust öffnet sich (Plan §4.1)** — `bossAnims.ts` + `rigs.json` ✅ **verworfen** — im Kontaktbogen verdecken die geschlossenen Brustplatten den offenen Kern (`node scripts/rig-sheet.cjs core_warden`, Zustand „laser_sweep“). Echte Lösung = Sprite-Aufgabe S3
   - Während `laser_windup`/`laser_sweep` die vorhandenen Platten `plateL/plateR` (Typ-P-Bilder) **sichtbar** machen und seitlich aufklappen: `dx ∓ 3·p`, `rot ∓ 0.35·p`, dazu Rumpf-Variante `normal` → Kern bleibt sichtbar.
   - Erst im Kontaktbogen prüfen: wirkt es **doppelt** (Platten über intaktem Brustpanzer), dann verwerfen und stattdessen Sprite-Aufgabe **S3** abwarten. Teile mit `detach: 'phase2'` dürfen nach Phase 2 nicht wieder auftauchen (`getBossPose` blendet sie aus — so lassen).
-- [ ] **K6 · Fäuste als Pylonen in Phase 2 (Plan §4.1)** — Renderer + `bossAnims.ts`
+- [x] **K6 · Fäuste als Pylonen in Phase 2 (Plan §4.1)** — Renderer + `bossAnims.ts` ✅ umgesetzt als Variante: in Phase 2 zeichnet `drawBossPylon` statt der Rauten das Bild `fist` (über `extraImages` in `rigs.json` geladen), Manschette zum Boss; Hitbox/Schüsse unverändert. Die Arme zeigen ihre Fäuste weiter (doppelt) — saubere Lösung mit S4
   - Heute kreisen eigene Plasma-Pylonen (`enemyAi.getBossPylonPositions`, `dungeonRenderer.drawBossPylon`). Variante **ohne** neue Sprites: In Phase 2 während `pylon_barrage` an zwei Pylon-Positionen zusätzlich das vorhandene Bild `fist.png` (Typ-P-Teil, aktuell ungenutzt) gedreht zeichnen (glühend über `drawGlow`), Arme in Pose `block`.
   - Ehrliche Einschränkung: die Arm-Posen enthalten die Faust schon → Fäuste wären doppelt. Saubere Lösung erst mit Sprite-Aufgabe **S4** (Arme ohne Faust). Ohne S4 nur umsetzen, wenn es im Labor überzeugt; sonst zurückstellen.
-- [ ] **K7 · Schulter-/Halskontrolle in Bewegung** — `SHOULDER_ADJUST`, `rigs.json` (`offset` von `armL/armR/head`)
+- [x] **K7 · Schulter-/Halskontrolle in Bewegung** — `SHOULDER_ADJUST`, `rigs.json` (`offset` von `armL/armR/head`) ✅ umgesetzt (Bewegungsfolge im Labor bei 0,25× geprüft: Gehen, Pylonen-Block, Rückkehr in `stalk`; keine schwebenden Schulterkappen, `SHOULDER_ADJUST` unverändert)
   - Bisher nur Standbilder geprüft. Im Labor bei 0,25× jeden Zustand ansehen; schwebende Schulterkappen/Hals-Lücken über `SHOULDER_ADJUST` (je Rumpf-Variante) bzw. Kopf-`offset` korrigieren. Ergebnisse als Kommentar an der Tabelle vermerken.
-- [ ] **K8 · Tests (D10)** — `tests/m11p2.cjs`: je Zustand Pose ≠ Ruhe-Pose; Übergang: zwei aufeinanderfolgende Frames unterscheiden sich in `rot` um < 0,2 rad; Impuls klingt in ≤ 0,1 s ab.
+- [x] **K8 · Tests (D10)** — `tests/m11p2.cjs`: je Zustand Pose ≠ Ruhe-Pose; Übergang: zwei aufeinanderfolgende Frames unterscheiden sich in `rot` um < 0,2 rad; Impuls klingt in ≤ 0,1 s ab. ✅ umgesetzt (`tests/m11p2.cjs`: Übergangs-Glätte < 0,2 rad/Frame über alle Zustände, Impuls klingt ab, Pose-Effekte K2–K4, Faust-Bild, Platten im Laser)
 
 ### 2.3 Sprite-Aufgaben — für Antigravity (Gemini)
 Format & Regeln wie `ART_BRIEF_M11.md` §2 (512×512-Zellen, Gelenk in Zellmitte, gleicher Maßstab wie die vorhandenen `core_warden_*`-Sheets, Referenzbilder: `public/art/sprites/boss.png` + das jeweils vorhandene Sheet). Prüfen mit `npm run art:check`.

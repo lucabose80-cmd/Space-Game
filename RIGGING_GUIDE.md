@@ -70,6 +70,9 @@ Wenn ein Rig fehlt oder ein Bild nicht lädt, wird automatisch das alte Einzelbi
 - **Krall** — `krallClaw()`: Zange nach `bossSub` (`idle/windup/active/recover`) und `bossStatusText` (= Zugname aus `bosses/defs.ts`: GREIFARM-STOSS, MAGNET-ZUG, SCHROTT-WURF, SCHROTT-HAGEL).
 - **Neuer Boss:** Rig in `rigs.json` anlegen (`kind` = Enemy-kind), `case '<rig-id>'` in `getBossPose` ergänzen. Die **Spiellogik** (Zustände, Schaden, Telegraph) bleibt in `enemyAi.ts` bzw. `bosses/defs.ts` — `bossAnims.ts` liest sie nur.
 
+### Glättung, Impuls, Zusatzbewegung (`bossAnims.ts`)
+`getBossPose` liefert **geglättete** Posen: `rawBossPose` berechnet das Ziel, `smoothPose` nähert Drehung/Lage/Skalierung exponentiell an (`SMOOTH_TAU`), `variant`-Wechsel bleiben hart, bekommen aber einen kurzen Stauch-Impuls (`PULSE_TIME`). Zustand je Boss in einer `WeakMap` (nur `time`, kein `Date.now`). Zustandsabhängige Zusatzbewegung (Anlauf, Nachfedern, Gehen, Treffer) steht im `fx`-Block von `coreWardenSet`. `smoothBossBody` (Renderer) führt das Ganzkörper-Stauchen/Neigen weich nach. Bilder ohne eigenes Teil (z. B. kreisende Fäuste) über `extraImages` in `rigs.json` laden.
+
 ### Schulter-Feinjustierung
 Der Rumpf neigt sich je Pose; die Arme hängen aber an einem festen Punkt (`offset` im Teil `armL/armR`). Ausgleich: `SHOULDER_ADJUST[rumpfVariante] = [L dx, L dy, R dx, R dy]` (Spielpixel) in `bossAnims.ts`. Aktuell: geduckt `[0.5,0.5,-3,1]`, zurückgelehnt `[0,1,-3,0.5]`, übrige `0`. **Vorgehen:** Kontaktbogen rendern (§6), schauen, ob die Schulterkappe am Rumpf klebt oder schwebt → Wert ändern, neu rendern. Grundposition der Schultern: `offset` der Teile `armL`/`armR` in `rigs.json` (aus Rumpf-Variante 1 gemessen: ±10 px seitlich, −6,2 px über dem Kern); Kopf: `offset [0,-9.5]` (Halsgelenk im Kragen).
 

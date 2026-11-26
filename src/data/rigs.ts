@@ -7,6 +7,8 @@ interface RigJson {
   kind: Enemy['kind'];
   sheet: { file: string; order: string[]; pixelRatio?: number };
   parts: RigPartDef[];
+  /** zusätzliche Bilder ohne eigenes Teil (z. B. kreisende Fäuste) — werden mitgeladen */
+  extraImages?: string[];
 }
 
 const raw = rigData as unknown as Record<string, RigJson>;
@@ -18,5 +20,5 @@ export const RIG_BY_KIND: Partial<Record<Enemy['kind'], string>> = Object.fromEn
 
 /** Alle Bildnamen eines Rigs (aus den Teilen, ohne Doppelte). */
 export function rigImageNames(id: string): string[] {
-  return [...new Set(RIGS[id].parts.flatMap((p) => [p.image ?? p.id, ...(p.variants ?? [])]))];
+  return [...new Set([...RIGS[id].parts.flatMap((p) => [p.image ?? p.id, ...(p.variants ?? [])]), ...(raw[id].extraImages ?? [])])];
 }

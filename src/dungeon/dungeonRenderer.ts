@@ -1,7 +1,7 @@
 import { getHDArt } from '../assets/artLoader';
 import { drawGlow, drawPixelShadow } from '../assets/pixelArt';
 import { drawBossLook } from './bosses/bossLooks';
-import { getBossPose } from './anim/bossAnims';
+import { getBossPose, smoothBossBody } from './anim/bossAnims';
 import { drawDetached, spawnPhase2Parts } from './anim/detached';
 import { enemyMotion, wantsMotion } from './anim/motion';
 import { drawRig } from '../engine/rig';
@@ -1831,6 +1831,19 @@ export class DungeonRenderer {
     ctx.stroke();
     ctx.restore();
 
+    // M11 K6: in Phase 2 kreisen die abgelösten Fäuste statt der Rauten (Bild `fist` des Kern-Wächter-Rigs; Hitbox/Schüsse bleiben die der Pylonen)
+    const fist = enraged ? getHDArt().rigs.core_warden?.parts.fist : null;
+    if (fist) {
+      drawGlow(ctx, px, py, charging ? 16 : 11, coreColor, charging ? 0.6 : 0.3);
+      const ang = Math.atan2(py - bossY, px - bossX); // Manschette zeigt zum Boss, Faust nach außen
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.rotate(ang + Math.PI);
+      ctx.drawImage(fist, -fist.width / 4, -fist.height / 4, fist.width / 2, fist.height / 2);
+      ctx.restore();
+      return;
+    }
+
     // Armored diamond satellite pylon
     drawGlow(ctx, px, py, charging ? 16 : 11, coreColor, charging ? 0.65 : 0.35);
     ctx.fillStyle = '#1e293b';
@@ -1914,6 +1927,15 @@ export class DungeonRenderer {
       scaleY = 0.94;
     }
 
+    if (getHDArt().rigs.core_warden) {
+      // M11 K1/K2: mit Rig zeigen die Teile Stauchen/Strecken selbst → Ganzkörper-Effekt abmildern, weich nachführen, Zittern halbieren
+      const sm = smoothBossBody(e, scaleX, scaleY, tilt, this.scene.time, 0.3);
+      scaleX = sm.sx;
+      scaleY = sm.sy;
+      tilt = sm.tilt;
+      jitterX *= 0.5;
+      jitterY *= 0.5;
+    }
     const bodyX = e.x + jitterX;
     const bodyY = e.y - z + hover + jitterY;
     const pylons = this.scene.enemyAi.getBossPylonPositions(e);
