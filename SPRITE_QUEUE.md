@@ -45,12 +45,12 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 
 ---
 
-## P1 — M11 Gegner-Rigs: Pilot (2 Sheets)
+## P1 — M11 Gegner-Rigs: Pilot (2 Sheets — geliefert ✅, wartet auf Abnahme)
 
 | ID | Status | Zieldatei | Typ & Format | Referenz (`ImagePaths`) | Brief / Prompt | Notiz |
 | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
-| `P1-01` | [ ] | `art_source/rigs/turret_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/turret_0.png`, `public/art/sprites/turret_1.png` | `ART_BRIEF_M11_ENEMIES.md` §3 & §4 (S1) | Pilot mechanisch (Geschütz) |
-| `P1-02` | [ ] | `art_source/rigs/phase_stalker_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_phase_stalker.png` | `ART_BRIEF_M11_ENEMIES.md` §3 & §4 (S1) | Pilot humanoid (Phasen-Jäger) |
+| `P1-01` | [x] | `art_source/rigs/turret_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/turret_0.png`, `public/art/sprites/turret_1.png` | `ART_BRIEF_M11_ENEMIES.md` §3 & §4 (S1) | ✅ Pilot mechanisch (`min_margin ≥ 45 px`, `art:check` ok, bereit für Claude-Import) |
+| `P1-02` | [x] | `art_source/rigs/phase_stalker_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_phase_stalker.png` | `ART_BRIEF_M11_ENEMIES.md` §3 & §4 (S1) | ✅ Pilot humanoid (`min_margin ≥ 53 px`, `art:check` ok, bereit für Claude-Import) |
 
 > **⛔ STOP-GATE (GESPERRT):** Nach `P1-01` und `P1-02` **anhalten**! Erst nach Einbindung durch Claude Code und **Abnahme im Spiel durch den Projektinhaber** mit **P2** fortfahren (spart Credits, falls am Typ-G-Format noch nachjustiert wird).
 
