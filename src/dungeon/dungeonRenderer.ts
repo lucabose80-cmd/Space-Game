@@ -741,7 +741,29 @@ export class DungeonRenderer {
       ctx.fill();
     }
 
+    const fistParts = getHDArt().rigs.core_warden?.parts;
     for (const p of this.scene.projectiles) {
+      if (p.sprite === 'fist' && fistParts?.fist_angled) {
+        // M11: abgefeuerte Faust (Kern-Wächter Phase 2) — Schweif hinter, Faust um die Flugrichtung gedreht, ~60 % Größe (Hitbox bleibt klein)
+        const ang = Math.atan2(p.vy, p.vx);
+        drawGlow(ctx, p.x, p.y, 13, p.color, 0.6);
+        const tr = fistParts.fist_trail;
+        const f = fistParts.fist_angled;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(ang);
+        if (tr) {
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.globalAlpha = 0.85;
+          ctx.drawImage(tr, -tr.width * 0.3 - 5, -tr.height * 0.15, tr.width * 0.3, tr.height * 0.3);
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.globalAlpha = 1;
+        }
+        ctx.rotate(0.4); // Manschette hinten, Knöchel in Flugrichtung
+        ctx.drawImage(f, -f.width * 0.15, -f.height * 0.15, f.width * 0.3, f.height * 0.3);
+        ctx.restore();
+        continue;
+      }
       drawGlow(ctx, p.x, p.y, 12, p.color, 0.55);
       ctx.fillStyle = p.color;
       ctx.beginPath();
@@ -1817,6 +1839,7 @@ export class DungeonRenderer {
     bossY: number,
     enraged: boolean,
     charging: boolean,
+    fistScale = 1,
   ): void {
     const coreColor = enraged ? '#fb7185' : charging ? '#fde047' : '#38e8d4';
     // Thin glowing energy tether linking pylon to boss reactor
@@ -1848,11 +1871,14 @@ export class DungeonRenderer {
         ctx.drawImage(trail, -trail.width / 2 - 4, -trail.height / 4, trail.width / 2, trail.height / 2);
         ctx.restore();
       }
-      ctx.save();
-      ctx.translate(px, py);
-      if (!charging) ctx.rotate(ang + 0.4); // Manschette (unten links im Bild) zeigt zum Boss
-      ctx.drawImage(fistImg, -fistImg.width / 4, -fistImg.height / 4, fistImg.width / 2, fistImg.height / 2);
-      ctx.restore();
+      if (fistScale > 0.02) {
+        ctx.save();
+        ctx.translate(px, py);
+        if (!charging) ctx.rotate(ang + 0.4); // Manschette (unten links im Bild) zeigt zum Boss
+        ctx.scale(fistScale, fistScale);
+        ctx.drawImage(fistImg, -fistImg.width / 4, -fistImg.height / 4, fistImg.width / 2, fistImg.height / 2);
+        ctx.restore();
+      }
       return;
     }
 
@@ -1952,11 +1978,13 @@ export class DungeonRenderer {
     const bodyY = e.y - z + hover + jitterY;
     const pylons = this.scene.enemyAi.getBossPylonPositions(e);
     const pylonCharging = state === 'pylon_barrage' || state === 'phase2_roar';
+    // M11: nach jeder Salve fliegt die Faust los und wächst im Orbit nach (nur Phase 2, nur Optik)
+    const fistScale = state === 'pylon_barrage' && e.subBurst > 0 ? Math.max(0, Math.min(1, 1 - Math.max(0, e.burstDelay) / 0.24)) : 1;
 
     // 1. Back-orbiting 3D plasma pylons (drawn behind boss chassis)
     for (const py of pylons) {
       if (py.depth < 0) {
-        this.drawBossPylon(ctx, py.x, py.y, bodyX, bodyY - 4, enraged, pylonCharging);
+        this.drawBossPylon(ctx, py.x, py.y, bodyX, bodyY - 4, enraged, pylonCharging, fistScale);
       }
     }
 
@@ -2054,7 +2082,7 @@ export class DungeonRenderer {
     // 5. Front-orbiting 3D plasma pylons (drawn IN FRONT of boss chassis!)
     for (const py of pylons) {
       if (py.depth >= 0) {
-        this.drawBossPylon(ctx, py.x, py.y, bodyX, bodyY - 4, enraged, pylonCharging);
+        this.drawBossPylon(ctx, py.x, py.y, bodyX, bodyY - 4, enraged, pylonCharging, fistScale);
       }
     }
   }

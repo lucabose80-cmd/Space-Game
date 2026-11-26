@@ -53,7 +53,7 @@ function coreWardenSet(e: Enemy, time: number, lookDx: number): { arms: number; 
   const p2 = e.bossPhase2 === true;
   const hpPct = e.maxHp > 0 ? e.hp / e.maxHp : 1;
   const wrecked = hpPct < 0.15; // S5: stark beschädigt, Halo zerbrochen
-  let arms: number = p2 ? ARM.damagedP2 : ARM.hang;
+  let arms: number = p2 ? ARM.noFist : ARM.hang; // Phase 2: die Fäuste kreisen → Arme hängen ohne Faust
   let head: number = wrecked ? HEAD.wrecked : p2 ? HEAD.p2 : HEAD.neutral;
   let torso: number = p2 ? (hpPct < 0.25 ? TORSO.p2Damaged : TORSO.p2) : TORSO.normal;
   const fx: Fx = { torso: {}, head: {}, armL: {}, armR: {} };
@@ -100,13 +100,14 @@ function coreWardenSet(e: Enemy, time: number, lookDx: number): { arms: number; 
     case 'pylon_barrage':
       arms = p2 ? ARM.noFist : hit ? ARM.blockHit : ARM.block; // S4: Phase 2 — die Fäuste kreisen
       head = p2 ? HEAD.roarP2 : HEAD.roar;
-      if (hit) fx.torso = { dx: Math.sin(time * 90) };
+      if (p2 && e.subBurst > 0) fx.torso = { dy: -1.5 * clamp01(e.burstDelay / 0.24) }; // Abschuss-Ruck nach jeder Faust-Salve
+      if (hit) fx.torso = { ...fx.torso, dx: Math.sin(time * 90) };
       break;
     case 'phase2_roar':
       arms = ARM.windup; torso = TORSO.p2; head = HEAD.roarP2;
       break;
     case 'stunned': // K2: Rückprall + Kopf schwingt nach
-      arms = p2 ? ARM.damagedP2 : ARM.hang;
+      arms = p2 ? ARM.noFist : ARM.hang;
       torso = p2 ? TORSO.p2Damaged : TORSO.hot;
       head = wrecked ? HEAD.wrecked : HEAD.damaged;
       fx.torso = { dx: -Math.sign(e.chargeDirX || 1) * 2 * Math.exp(-el / 0.15) };
@@ -287,7 +288,7 @@ function rawBossPose(rigId: string, e: Enemy, time: number, lookDx: number): Pos
       const walking = Math.hypot(e.vx, e.vy) > 8;
       const sway = (0.07 + sw * 0.05) * (walking ? 0.4 : 1);
       const sh = SHOULDER_ADJUST[set.torso] ?? SHOULDER_ADJUST[0];
-      const still = set.arms === ARM.hang || set.arms === ARM.damagedP2; // nur im Ruhezustand pendeln, Angriffsposen stehen
+      const still = set.arms === ARM.hang || set.arms === ARM.noFist; // nur im Ruhezustand pendeln, Angriffsposen stehen
       return {
         torso: { variant: set.torso, dx: fx.torso.dx, dy: fx.torso.dy, rot: fx.torso.rot, sx: fx.torso.sx, sy: (fx.torso.sy ?? 1) * (1 + breathe * 0.012) },
         head: { variant: set.head, rot: Math.sin(time * 1.3) * 0.04 + (fx.head.rot ?? 0), dy: Math.sin(time * 2.4 + 0.6) * 0.5 },

@@ -2202,7 +2202,7 @@ export class DungeonEnemyAi {
         for (const py of pylons) {
           const toPlayer = Math.atan2(this.scene.playerY - py.y, this.scene.playerX - py.x);
           const aim = e.subBurst % 2 === 0 ? toPlayer : py.angle;
-          this.fireEnemyBolt(py.x, py.y, aim, enraged ? 148 : 122, 14, enraged ? '#fb7185' : '#38e8d4');
+          this.fireEnemyBolt(py.x, py.y, aim, enraged ? 148 : 122, 14, enraged ? '#fb7185' : '#38e8d4', enraged ? 'fist' : undefined); // Phase 2: die kreisenden Fäuste fliegen los
           this.scene.spawnBurst(py.x, py.y, enraged ? '#fb7185' : '#38e8d4', 4);
         }
         sound.playBlaster();
@@ -2272,8 +2272,10 @@ export class DungeonEnemyAi {
     speed: number,
     damage: number,
     color: string,
+    sprite?: 'fist',
   ): void {
     this.scene.projectiles.push({
+      sprite,
       x,
       y,
       vx: Math.cos(angle) * speed,

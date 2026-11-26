@@ -228,6 +228,8 @@ export interface Projectile {
   isSporeGlob?: boolean;
   /** Milestone 10-A: Generation eines vom Kristall-Prisma geteilten Projektils (verhindert Ketten-Teilung). */
   splitGen?: number;
+  /** M11: Darstellung als Faust (Kern-Wächter Phase 2: die kreisenden Fäuste werden abgefeuert) — nur Optik, Hitbox = radius */
+  sprite?: 'fist';
 }
 
 export interface LootDrop {

@@ -109,7 +109,7 @@ module.exports = async ({ page }) => {
   assert.ok(r.maxRotStep < 0.2, 'Drehung springt nie > 0,2 rad pro Frame: ' + r.maxRotStep);
   for (const [k, v] of Object.entries(r.fxDiffer)) assert.ok(v, 'Pose-Effekt ' + k + ': ' + JSON.stringify(r.fxDiffer));
   const S = r.s;
-  assert.deepStrictEqual([S.p2idle.a, S.p2idle.t, S.p2idle.h], [11, 4, 4], 'P2 Ruhe: Arme beschädigt, Rumpf offen, Phase-2-Kopf');
+  assert.deepStrictEqual([S.p2idle.a, S.p2idle.t, S.p2idle.h], [12, 4, 4], 'P2 Ruhe: Arme ohne Faust (die Fäuste kreisen), Rumpf offen, Phase-2-Kopf');
   assert.deepStrictEqual([S.p2pylon.a, S.p2pylon.h], [12, 9], 'P2 Pylonen: Arme ohne Faust, brüllender P2-Kopf');
   assert.strictEqual(S.p1pylonHit.a, 10, 'Block-Treffer');
   assert.deepStrictEqual([S.laserW1.t, S.laserW2.t, S.laserW1.a], [7, 6, 9], 'Laser: Brust halb offen → offen, Arme laden');

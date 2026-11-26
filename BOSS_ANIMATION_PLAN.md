@@ -32,6 +32,8 @@ Ein Boss gilt erst als **„Animation fertig“**, wenn alle Punkte erfüllt **u
 >
 > **Varianten-Karte (Indizes = Reihenfolge in `rigs.json` `variants`):**
 > Arme je Seite: 0–5 Hauptposen · 6 halb ausgeholt · 7 Schlag kurz vor Treffer · 8 zurückfedernd · 9 Laser-Ladung · 10 Block-Treffer · 11 Phase 2 beschädigt · 12 ohne Faust. Köpfe: 0–5 · 6 Visier feuert · 7 Blick links · 8 Blick rechts · 9 brüllend Phase 2 · 10 stark beschädigt (< 15 % HP) · 11 Blinzeln. Rümpfe: 0–5 · 6 Brust offen · 7 halb offen · 8 Sprung gestreckt · 9 Landung gestaucht · 10 Phase 2 Laser · 11 Phase 2 beschädigt. Fäuste (nur Bilder): `fist_front`, `fist_charged`, `fist_angled`, `fist_trail`.
+>
+> **Phase-2-Fäuste als Angriff (umgesetzt):** In `pylon_barrage` der Phase 2 fliegen die kreisenden Fäuste als Projektile los (`Projectile.sprite = 'fist'`, Hitbox/Schaden/Takt wie die bisherigen Pylonen-Schüsse, ~60 % Bildgröße), der Orbit-Platz wächst nach jeder Salve nach (`fistScale`), der Rumpf bekommt einen Abschuss-Ruck. Phase 2: hängende Arme sind „ohne Faust“ (12). Angriffsposen haben noch Fäuste → S6.
 
 - [x] Pose-Sets Arme L/R, Köpfe, Rümpfe (je 6) importiert, Posen je Zustand (`coreWardenSet` in `src/dungeon/anim/bossAnims.ts`)
 - [x] Schulter-Feinjustierung je Rumpf-Variante (`SHOULDER_ADJUST`)
@@ -91,9 +93,10 @@ Format & Regeln wie `ART_BRIEF_M11.md` §2 (512×512-Zellen, Gelenk in Zellmitte
   ✅ eingebunden: `armR_7…12`/`armL_7…12`; Zwischen-Posen 0,08 s beim Wechsel hängend→ausholen (6), ausholen→Schlag (7), Schlag→hängend (8) (`ARM_BETWEEN` in `smoothPose`); Laser-Ladung beim `laser_windup`, Block-Treffer im Pylonen-Block, beschädigt als Phase-2-Ruhe.
 - [x] **S3 · Rumpf „Brust offen – Laser“ (Typ S)** ✅ `art_source/rigs/core_warden_torsos2.png` erzeugt & per `art:check` geprüft (Kern im Fadenkreuz, `min_margin ≥ 40 px`, 6 Varianten: Brustklappen offen · halb offen · Sprung gestreckt · Landung gestaucht · Phase 2 Laser · Phase 2 beschädigt).
 - [x] **S4 · Arme ohne Faust + Faust einzeln (Typ L/E)** ✅ `art_source/rigs/core_warden_fists.png` erzeugt & per `art:check` geprüft (Arme R/L ohne Faust mit leuchtender Manschette = Schulter im Fadenkreuz; Fäuste vorn/geladen/schräg-oben + Energie-Schweif = Mitte im Fadenkreuz, `min_margin ≥ 115 px`).
+- [ ] **S6 · Arme OHNE Faust in den Angriffsposen (Typ L, Phase 2)** — `core_warden_arms_R3.png` und `core_warden_arms_L3.png`, 3×2 (wie `arms_R`/`arms_L`, aber ohne Faust, leuchtende Manschette am Handgelenk wie in `core_warden_fists.png` Zelle 1/2): 1 Ausholen · 2 Schlag zur Kamera (offener Energie-Stumpf statt Faust) · 3 seitlich/Laser · 4 Block · 5 Boden-Stampfer · 6 halb ausgeholt. **Warum:** In Phase 2 kreisen die Fäuste und werden abgefeuert; nur *hängend* gibt es schon eine Variante ohne Faust (`armX_nf`). In Ausholen/Schlag/Stampfer/Laser zeigen die Arme noch Fäuste — dort sind sie doppelt. Code danach: Sets als `armR_13…18`/`armL_13…18` anhängen, in `coreWardenSet` bei `p2` die Faust-losen Varianten wählen (Index-Offset +13 bzw. Karte `NOFIST_OF`).
 - [x] **S5 · Köpfe Zusatz (Typ S)** ✅ `art_source/rigs/core_warden_heads2.png` erzeugt & per `art:check` geprüft (Halsgelenk im Fadenkreuz, `min_margin ≥ 36 px`: 1 Visier feuert Laser · 2 Blick links · 3 Blick rechts · 4 brüllend Phase 2 · 5 stark beschädigt < 15 % HP mit zerbrochenem Halo · 6 Blinzeln/Visier zu).
 
-**Reihenfolge für Credits:** S1 ✅ → S3 ✅ → S4 ✅ → S2 ✅ → S5 ✅ *(alle Sprite-Aufgaben für Kern-Wächter erledigt!)*
+**Reihenfolge für Credits:** S6 (nur Phase-2-Fäuste) · S1 ✅ → S3 ✅ → S4 ✅ → S2 ✅ → S5 ✅ *(alle Sprite-Aufgaben für Kern-Wächter erledigt!)*
 
 ### 2.4 Abnahme Kern-Wächter
 Alle Punkte D1–D10 erfüllt, K1–K8 abgehakt, S1–S5 erledigt (S2–S5 eingebunden), Projektinhaber hat einen vollständigen Kampf (Phase 1 + 2) im echten Spiel gesehen und freigegeben → hier „✅ abgenommen am …“ eintragen.
