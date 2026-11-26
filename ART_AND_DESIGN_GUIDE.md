@@ -214,7 +214,23 @@ Vulkan-Titan und Sternen-Archon behalten ihre bestehenden Sprites (`boss_vulkan_
 
 ---
 
-## 6. Verknüpfte Dokumente
+## 9. M11 Teile- & Pose-Sheets (Antigravity `generate_image`-Workflow)
 
-- [GAME_DESIGN_DOCUMENT.md](GAME_DESIGN_DOCUMENT.md) — Gesamtübersicht, Stand v1.1 & Phase-2-Roadmap.
-- [TESTING_AND_VERIFICATION.md](TESTING_AND_VERIFICATION.md) — Build-, Invarianten- & Headless-Chrome-Verifikations-Playbook.
+Für Meilenstein 11 (`MILESTONE_11_ARCHITECTURE.md` §2 & §6) erzeugt Antigravity Roh-Sheets direkt per `generate_image` und legt sie als verlustfreie PNGs im Repo ab:
+
+- **Boss-Teile-Sheets (`3×2`):** `AspectRatio: '3:2'`, Ziel `art_source/rigs/<id>_parts.png` (ideal `1536×1024`, d. h. `512×512` pro Zelle).
+- **Gegner-Pose-Sheets (`2×2`):** `AspectRatio: '1:1'`, Ziel `art_source/poses/<id>_poses.png` (ideal `1024×1024`, d. h. `512×512` pro Zelle).
+- **Referenzbild nutzen:** Wo in `MILESTONE_11_ARCHITECTURE.md` §6 ein vorhandenes Sprite genannt ist, den absoluten Pfad (z. B. `public/art/sprites/boss.png`) über `ImagePaths` mitgeben.
+- **Nachprüfung vor Commit (wichtig für `npm run art:import`):**
+  1. `generate_image` schreibt zunächst ins Artifact-Verzeichnis (oft `.jpg`) und zeichnet trotz Prompt gelegentlich dünne graue Trennlinien oder lässt lange Gliedmaßen minimal über die Zellengrenze (`h/2`) hinausragen.
+  2. Per Python/PIL die Bounding-Boxen der 6 bzw. 4 Teile prüfen, jedes Teil ohne Skalierungsverlust auf reinem `#FFFFFF` in seine eigene Zelle zentrieren (z. B. `512×512` mit ≥ 30 px Weißrand ringsum) und als `.png` ins Repo speichern.
+  3. Finales PNG per `view_file` prüfen (Reihenfolge, Proportionen, keine Linien/Texte/Schatten), dann committen & pushen.
+
+---
+
+## 10. Verknüpfte Dokumente
+
+- [GAME_DESIGN_DOCUMENT.md](GAME_DESIGN_DOCUMENT.md) — Gesamtübersicht, aktueller Meilenstein-Stand & Roadmap.
+- [MILESTONE_11_ARCHITECTURE.md](MILESTONE_11_ARCHITECTURE.md) — Meilenstein 11: Rig-Architektur, Lieferformat & vollständiger Prompt-Katalog.
+- [TESTING_AND_VERIFICATION.md](TESTING_AND_VERIFICATION.md) — Build-, Invarianten- & Verifikations-Playbook.
+

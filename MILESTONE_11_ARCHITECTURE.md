@@ -38,10 +38,11 @@
 - **Raster 2 × 2**, Seitenverhältnis **1:1**: ① Ruhe A · ② Ruhe B (Laufschritt/Schweben) · ③ Ausholen (Vorwarnung) · ④ Angriff.
 - **Exakt gleiche Figur und Größe** in allen 4 Zellen, nur die Pose ändert sich.
 
-### 2.3 Tipps für Gemini
+### 2.3 Tipps für Gemini & Antigravity
 - **Vorhandenes Sprite als Referenzbild hochladen** („keep exactly this character design, colors and outline“) — dann bleiben Teile/Posen konsistent zum Spiel.
 - Mehrere Versuche, das beste Sheet nehmen; einzelne misslungene Zellen kann `art:import` überspringen (`--keep-cell 3`, behält das bisherige Teil).
 - Nie Text, nie Bodenschatten, nie farbigen Hintergrund.
+- **In Antigravity (`generate_image`):** `AspectRatio: '3:2'` für Teile-Sheets bzw. `'1:1'` für Pose-Sheets setzen, bestehendes Sprite über `ImagePaths` mitgeben, erzeugtes Bild aus dem Artifact-Ordner als verlustfreies PNG nach `art_source/rigs/` bzw. `art_source/poses/` übernehmen (dabei ggf. dünne Rasterlinien entfernen und Teile sauber auf `512×512`-Zellen mit `#FFFFFF`-Rand zentrieren, siehe `ART_AND_DESIGN_GUIDE.md` §9) und auf `main` pushen.
 
 ### 2.4 Import-Befehl (wird in Phase 0 gebaut)
 ```bash
