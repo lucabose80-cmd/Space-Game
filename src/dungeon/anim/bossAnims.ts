@@ -19,6 +19,8 @@ const progress = (e: Enemy): number => (e.bossStateMax && e.bossStateMax > 0 ? c
  *   · 6 halb ausgeholt · 7 Schlag kurz vor Treffer · 8 zurückfedernd · 9 Laser-Ladung · 10 Block-Treffer · 11 Phase 2 beschädigt · 12 ohne Faust (Fäuste kreisen).
  */
 const ARM = { hang: 0, windup: 1, punch: 2, side: 3, block: 4, stomp: 5, halfWindup: 6, preImpact: 7, recoil: 8, laserCharge: 9, blockHit: 10, damagedP2: 11, noFist: 12 } as const;
+/** S6 (Phase 2): Angriffsposen ohne Faust — 13 Ausholen · 14 Stoß/Energie-Stumpf · 15 seitlich/Laser · 16 Block · 17 Stampfer · 18 halb ausgeholt (die Fäuste kreisen/fliegen separat). */
+const NOFIST_OF: Record<number, number> = { 1: 13, 2: 14, 3: 15, 4: 16, 5: 17, 6: 18, 7: 14, 8: 18, 9: 15, 10: 16, 11: 12 };
 /** Köpfe: 0 neutral · 1 brüllend · 2 zielend · 3 getroffen · 4 Phase 2 · 5 beschädigt · 6 Visier feuert · 7 Blick links · 8 Blick rechts · 9 brüllend Phase 2 · 10 stark beschädigt (< 15 % HP) · 11 Blinzeln. */
 const HEAD = { neutral: 0, roar: 1, aim: 2, hit: 3, p2: 4, damaged: 5, visorFire: 6, lookL: 7, lookR: 8, roarP2: 9, wrecked: 10, blink: 11 } as const;
 /** Rümpfe: 0 normal · 1 geduckt · 2 zurück · 3 vorgebeugt · 4 Phase 2 offen · 5 überhitzt · 6 Brust offen (Laser) · 7 halb offen · 8 Sprung gestreckt · 9 Landung gestaucht · 10 Phase 2 Laser · 11 Phase 2 beschädigt. */
@@ -137,6 +139,7 @@ function coreWardenSet(e: Enemy, time: number, lookDx: number): { arms: number; 
       }
     }
   }
+  if (p2 && NOFIST_OF[arms] !== undefined) arms = NOFIST_OF[arms]; // S6: in Phase 2 immer die Faust-losen Posen
   return { arms, head, torso, fx };
 }
 

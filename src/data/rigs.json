@@ -378,6 +378,30 @@
             "fist_angled",
             "fist_trail"
           ]
+        },
+        {
+          "file": "core_warden_arms_R3",
+          "mode": "limb",
+          "ids": [
+            "armR_13",
+            "armR_14",
+            "armR_15",
+            "armR_16",
+            "armR_17",
+            "armR_18"
+          ]
+        },
+        {
+          "file": "core_warden_arms_L3",
+          "mode": "limb",
+          "ids": [
+            "armL_13",
+            "armL_14",
+            "armL_15",
+            "armL_16",
+            "armL_17",
+            "armL_18"
+          ]
         }
       ]
     },
@@ -398,7 +422,13 @@
           "armL_10",
           "armL_11",
           "armL_12",
-          "armL_nf"
+          "armL_nf",
+          "armL_13",
+          "armL_14",
+          "armL_15",
+          "armL_16",
+          "armL_17",
+          "armL_18"
         ],
         "parent": "torso",
         "attach": [
@@ -431,7 +461,13 @@
           "armR_10",
           "armR_11",
           "armR_12",
-          "armR_nf"
+          "armR_nf",
+          "armR_13",
+          "armR_14",
+          "armR_15",
+          "armR_16",
+          "armR_17",
+          "armR_18"
         ],
         "parent": "torso",
         "attach": [

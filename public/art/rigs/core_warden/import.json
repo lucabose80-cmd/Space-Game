@@ -14,7 +14,9 @@
   "core_warden_arms_L2.png": "abef5f08fa9f8950",
   "core_warden_torsos2.png": "1abd02c49c4158f0",
   "core_warden_heads2.png": "d22a4597c681f0e7",
-  "core_warden_fists.png": "e5409b47ca5e25c9"
+  "core_warden_fists.png": "e5409b47ca5e25c9",
+  "core_warden_arms_R3.png": "2f24aafe07f32a6d",
+  "core_warden_arms_L3.png": "212a35f731b21274"
  },
  "parts": {
   "torso": {
@@ -376,6 +378,78 @@
    "h": 32,
    "mode": "swap",
    "set": "core_warden_fists"
+  },
+  "armR_13": {
+   "w": 68,
+   "h": 60,
+   "mode": "limb",
+   "set": "core_warden_arms_R3"
+  },
+  "armR_14": {
+   "w": 68,
+   "h": 60,
+   "mode": "limb",
+   "set": "core_warden_arms_R3"
+  },
+  "armR_15": {
+   "w": 68,
+   "h": 60,
+   "mode": "limb",
+   "set": "core_warden_arms_R3"
+  },
+  "armR_16": {
+   "w": 68,
+   "h": 60,
+   "mode": "limb",
+   "set": "core_warden_arms_R3"
+  },
+  "armR_17": {
+   "w": 68,
+   "h": 60,
+   "mode": "limb",
+   "set": "core_warden_arms_R3"
+  },
+  "armR_18": {
+   "w": 68,
+   "h": 60,
+   "mode": "limb",
+   "set": "core_warden_arms_R3"
+  },
+  "armL_13": {
+   "w": 68,
+   "h": 60,
+   "mode": "limb",
+   "set": "core_warden_arms_L3"
+  },
+  "armL_14": {
+   "w": 68,
+   "h": 60,
+   "mode": "limb",
+   "set": "core_warden_arms_L3"
+  },
+  "armL_15": {
+   "w": 68,
+   "h": 60,
+   "mode": "limb",
+   "set": "core_warden_arms_L3"
+  },
+  "armL_16": {
+   "w": 68,
+   "h": 60,
+   "mode": "limb",
+   "set": "core_warden_arms_L3"
+  },
+  "armL_17": {
+   "w": 68,
+   "h": 60,
+   "mode": "limb",
+   "set": "core_warden_arms_L3"
+  },
+  "armL_18": {
+   "w": 68,
+   "h": 60,
+   "mode": "limb",
+   "set": "core_warden_arms_L3"
   }
  }
 }
