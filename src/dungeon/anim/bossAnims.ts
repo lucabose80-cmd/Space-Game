@@ -158,7 +158,18 @@ const KRALL_RECOVER: Record<string, number> = { 'MAGNET-ZUG': 1.3, 'SCHROTT-WURF
 /** Rumpf-Haltung (Variante in Phase 1, `fx` in Phase 2 — dort gibt es nur den Skelett-Rahmen). */
 type KPosture = 'normal' | 'duck' | 'upright' | 'fwd';
 
+/** Bein-Posen (krall_legs_R/L): 0 Schritt vor · 1 Schritt zurück · 2 Standbein · 3 angehoben · 4 geduckt · 5 Absprung. */
+const KLEG = { fwd: 0, back: 1, stand: 2, lift: 3, crouch: 4, jump: 5 } as const;
+/** Bein-Variante aus Gangphase `s` (−1…1): Geduckt/Stampfen überschreibt, im Stand Standbein, beim Gehen Vor → Anheben → Zurück. */
+function legPose(ks: KrallSet, walk: number, s: number): number {
+  if (ks.crouch) return KLEG.crouch;
+  if (walk < 0.12) return KLEG.stand;
+  return s > 0.45 ? KLEG.fwd : s < -0.45 ? KLEG.back : KLEG.lift;
+}
+
 interface KrallSet {
+  magnetOn: boolean;
+  crouch: boolean;
   clawR: number;
   clawL: number;
   torso: number;
@@ -229,7 +240,7 @@ function krallSet(e: Enemy, time: number): KrallSet {
       fx.clawL = { rot: (fx.clawL.rot ?? 0) + 0.08 };
     }
   }
-  return { clawR: r, clawL: l, torso, fx };
+  return { clawR: r, clawL: l, torso, fx, magnetOn: move === 'MAGNET-ZUG' && act && el < 1.1, crouch: posture === 'duck' };
 }
 
 // ---------- K1: weiche Übergänge ----------
@@ -243,7 +254,7 @@ const BETWEEN_TIME = 0.08;
 const ARM_BETWEEN: Record<string, number> = { '0>1': ARM.halfWindup, '1>2': ARM.preImpact, '2>0': ARM.recoil };
 const normArm = (v: number): number => (v === ARM.damagedP2 ? ARM.hang : v);
 /** Teile, deren Bildwechsel keinen Stauch-Impuls bekommen (Blinzeln/Blickwechsel des Kopfes wären sonst unruhig). */
-const NO_PULSE = new Set(['head']);
+const NO_PULSE = new Set(['head', 'legFL', 'legFR', 'legBL', 'legBR', 'magnet']);
 /** Krall: schwere Maschine → trägere Annäherung als der Kern-Wächter. */
 const KRALL_TAU = 0.1;
 /** Krall-Zwischen-Posen der Arme (`von>nach`): Anlauf vor Stoß/Wurf/Stampfer, Ausschwingen nach dem Stoß. */
@@ -368,13 +379,13 @@ function rawBossPose(rigId: string, e: Enemy, time: number, lookDx: number): Pos
       const kf = ks.fx;
       return {
         torso: { variant: ks.torso, dx: kf.torso.dx, rot: kf.torso.rot, sx: kf.torso.sx, dy: (kf.torso.dy ?? 0) - Math.abs(s) * walk * 1.2 + breathe * 0.4, sy: kf.torso.sy },
-        legFL: { rot: s * amp },
-        legBR: { rot: -s * amp * 0.9 },
-        legFR: { rot: c * amp },
-        legBL: { rot: -c * amp * 0.9 },
+        legFL: { variant: legPose(ks, walk, s), rot: s * amp * 0.25 },
+        legBR: { variant: legPose(ks, walk, -s), rot: -s * amp * 0.2 },
+        legFR: { variant: legPose(ks, walk, c), rot: c * amp * 0.25 },
+        legBL: { variant: legPose(ks, walk, -c), rot: -c * amp * 0.2 },
         clawR: { variant: ks.clawR, rot: Math.sin(time * 1.7 + 1) * 0.04 + (kf.clawR.rot ?? 0) },
         clawL: { variant: ks.clawL, rot: Math.sin(time * 1.7 + 2) * 0.04 + (kf.clawL.rot ?? 0) },
-        magnet: { dy: Math.sin(time * 3.1) * 0.6 + (kf.magnet.dy ?? 0), rot: Math.sin(time * 2) * 0.06 + (kf.magnet.rot ?? 0) },
+        magnet: { variant: ks.magnetOn ? 1 : 0, dy: Math.sin(time * 3.1) * 0.6 + (kf.magnet.dy ?? 0), rot: Math.sin(time * 2) * 0.06 + (kf.magnet.rot ?? 0) },
         plate: { dy: breathe * 0.5 },
       };
     }

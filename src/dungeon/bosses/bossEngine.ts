@@ -56,6 +56,7 @@ export function bossBolt(
   color: string,
   radius = 3.8,
   life = 2.2,
+  extra?: { sprite?: 'scrap'; scrapVariant?: number },
 ): void {
   scene.projectiles.push({
     x: x + Math.cos(angle) * 10,
@@ -67,6 +68,7 @@ export function bossBolt(
     color,
     radius,
     life,
+    ...extra,
   });
 }
 

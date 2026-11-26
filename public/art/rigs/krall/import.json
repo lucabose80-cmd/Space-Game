@@ -8,7 +8,10 @@
   "krall_parts.png": "4122728e013e67a8",
   "krall_arms_R.png": "ccb8120ab3fd6ad8",
   "krall_arms_L.png": "353ab089bebbfb53",
-  "krall_torsos.png": "d0f4ea536f5cae1c"
+  "krall_torsos.png": "d0f4ea536f5cae1c",
+  "krall_legs_R.png": "3c5bfacfdccc6a9a",
+  "krall_legs_L.png": "98caeb295159c7cc",
+  "krall_effects.png": "7de5b99dca527a36"
  },
  "parts": {
   "torso": {
@@ -154,6 +157,114 @@
    "h": 100,
    "mode": "swap",
    "set": "krall_torsos"
+  },
+  "legR_1": {
+   "w": 84,
+   "h": 82,
+   "mode": "limb",
+   "set": "krall_legs_R"
+  },
+  "legR_2": {
+   "w": 84,
+   "h": 82,
+   "mode": "limb",
+   "set": "krall_legs_R"
+  },
+  "legR_3": {
+   "w": 84,
+   "h": 82,
+   "mode": "limb",
+   "set": "krall_legs_R"
+  },
+  "legR_4": {
+   "w": 84,
+   "h": 82,
+   "mode": "limb",
+   "set": "krall_legs_R"
+  },
+  "legR_5": {
+   "w": 84,
+   "h": 82,
+   "mode": "limb",
+   "set": "krall_legs_R"
+  },
+  "legR_6": {
+   "w": 84,
+   "h": 82,
+   "mode": "limb",
+   "set": "krall_legs_R"
+  },
+  "legL_1": {
+   "w": 86,
+   "h": 82,
+   "mode": "limb",
+   "set": "krall_legs_L"
+  },
+  "legL_2": {
+   "w": 86,
+   "h": 82,
+   "mode": "limb",
+   "set": "krall_legs_L"
+  },
+  "legL_3": {
+   "w": 86,
+   "h": 82,
+   "mode": "limb",
+   "set": "krall_legs_L"
+  },
+  "legL_4": {
+   "w": 86,
+   "h": 82,
+   "mode": "limb",
+   "set": "krall_legs_L"
+  },
+  "legL_5": {
+   "w": 86,
+   "h": 82,
+   "mode": "limb",
+   "set": "krall_legs_L"
+  },
+  "legL_6": {
+   "w": 86,
+   "h": 82,
+   "mode": "limb",
+   "set": "krall_legs_L"
+  },
+  "magnet_on": {
+   "w": 56,
+   "h": 68,
+   "mode": "swap",
+   "set": "krall_effects"
+  },
+  "magnet_off": {
+   "w": 56,
+   "h": 68,
+   "mode": "swap",
+   "set": "krall_effects"
+  },
+  "scrap_a": {
+   "w": 40,
+   "h": 40,
+   "mode": "swap",
+   "set": "krall_effects"
+  },
+  "scrap_b": {
+   "w": 40,
+   "h": 40,
+   "mode": "swap",
+   "set": "krall_effects"
+  },
+  "scrap_c": {
+   "w": 40,
+   "h": 40,
+   "mode": "swap",
+   "set": "krall_effects"
+  },
+  "spark": {
+   "w": 40,
+   "h": 40,
+   "mode": "swap",
+   "set": "krall_effects"
   }
  }
 }

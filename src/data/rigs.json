@@ -52,6 +52,59 @@
             "torso_5",
             "torso_6"
           ]
+        },
+        {
+          "file": "krall_legs_R",
+          "mode": "limb",
+          "ids": [
+            "legR_1",
+            "legR_2",
+            "legR_3",
+            "legR_4",
+            "legR_5",
+            "legR_6"
+          ]
+        },
+        {
+          "file": "krall_legs_L",
+          "mode": "limb",
+          "ids": [
+            "legL_1",
+            "legL_2",
+            "legL_3",
+            "legL_4",
+            "legL_5",
+            "legL_6"
+          ]
+        },
+        {
+          "file": "krall_effects",
+          "mode": "swap",
+          "cells": [
+            3,
+            4
+          ],
+          "ids": [
+            "magnet_on",
+            "magnet_off"
+          ],
+          "holes": true
+        },
+        {
+          "file": "krall_effects",
+          "mode": "swap",
+          "cells": [
+            0,
+            1,
+            2,
+            5
+          ],
+          "ids": [
+            "scrap_a",
+            "scrap_b",
+            "scrap_c",
+            "spark"
+          ]
         }
       ]
     },
@@ -72,76 +125,106 @@
       },
       {
         "id": "legBL",
-        "image": "legB",
-        "flipX": true,
+        "image": "legL_1",
         "parent": "torso",
         "attach": [
           0.5,
           0.5
         ],
         "pivot": [
-          0.12,
-          0.1
+          0.5,
+          0.5
         ],
         "z": -3,
         "offset": [
           -14.6,
           5.8
+        ],
+        "variants": [
+          "legL_1",
+          "legL_2",
+          "legL_3",
+          "legL_4",
+          "legL_5",
+          "legL_6"
         ]
       },
       {
         "id": "legBR",
-        "image": "legB",
+        "image": "legR_1",
         "parent": "torso",
         "attach": [
           0.5,
           0.5
         ],
         "pivot": [
-          0.12,
-          0.1
+          0.5,
+          0.5
         ],
         "z": -3,
         "offset": [
           14.6,
           5.8
+        ],
+        "variants": [
+          "legR_1",
+          "legR_2",
+          "legR_3",
+          "legR_4",
+          "legR_5",
+          "legR_6"
         ]
       },
       {
         "id": "legFL",
-        "image": "legF",
-        "flipX": true,
+        "image": "legL_1",
         "parent": "torso",
         "attach": [
           0.5,
           0.5
         ],
         "pivot": [
-          0.12,
-          0.1
+          0.5,
+          0.5
         ],
         "z": -1,
         "offset": [
           -16.1,
           0.7
+        ],
+        "variants": [
+          "legL_1",
+          "legL_2",
+          "legL_3",
+          "legL_4",
+          "legL_5",
+          "legL_6"
         ]
       },
       {
         "id": "legFR",
-        "image": "legF",
+        "image": "legR_1",
         "parent": "torso",
         "attach": [
           0.5,
           0.5
         ],
         "pivot": [
-          0.12,
-          0.1
+          0.5,
+          0.5
         ],
         "z": -1,
         "offset": [
           16.1,
           0.7
+        ],
+        "variants": [
+          "legR_1",
+          "legR_2",
+          "legR_3",
+          "legR_4",
+          "legR_5",
+          "legR_6"
         ]
       },
       {
@@ -193,7 +276,7 @@
       },
       {
         "id": "magnet",
-        "image": "magnet",
+        "image": "magnet_off",
         "parent": "torso",
         "attach": [
           0.5,
@@ -207,6 +290,10 @@
         "offset": [
           0.0,
           -14.4
+        ],
+        "variants": [
+          "magnet_off",
+          "magnet_on"
         ]
       },
       {
@@ -235,6 +322,12 @@
           -7.4
         ]
       }
+    ],
+    "extraImages": [
+      "scrap_a",
+      "scrap_b",
+      "scrap_c",
+      "spark"
     ]
   },
   "core_warden": {

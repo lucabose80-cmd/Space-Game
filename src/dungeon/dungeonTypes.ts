@@ -195,7 +195,9 @@ export interface Projectile {
   /** Milestone 10-A: Generation eines vom Kristall-Prisma geteilten Projektils (verhindert Ketten-Teilung). */
   splitGen?: number;
   /** M11: Darstellung als Faust (Kern-Wächter Phase 2: die kreisenden Fäuste werden abgefeuert) — nur Optik, Hitbox = radius */
-  sprite?: 'fist';
+  sprite?: 'fist' | 'scrap';
+  /** M11: Schrottklumpen-Bild (Krall Schrott-Wurf): 0–2 = scrap_a/b/c */
+  scrapVariant?: number;
   /** M11: Lenkung zum Spieler (rad/s) solange `life` > `homingUntilLife` — nur für abgefeuerte Fäuste */
   homing?: number;
   homingUntilLife?: number;

@@ -744,6 +744,7 @@ export class DungeonRenderer {
     }
 
     const fistParts = getHDArt().rigs.core_warden?.parts;
+    const krallParts = getHDArt().rigs.krall?.parts;
     for (const p of this.scene.projectiles) {
       if (p.sprite === 'fist' && fistParts?.fist_angled) {
         // M11: abgefeuerte Faust (Kern-Wächter Phase 2) — dieselbe Faust wie im Orbit (gleiche Größe), Schweif hinter, in Flugrichtung gedreht
@@ -763,6 +764,17 @@ export class DungeonRenderer {
         }
         ctx.rotate(0.4); // Manschette hinten, Knöchel in Flugrichtung
         ctx.drawImage(f, -f.width * 0.25, -f.height * 0.25, f.width * 0.5, f.height * 0.5);
+        ctx.restore();
+        continue;
+      }
+      const scrapImg = p.sprite === 'scrap' ? krallParts?.[['scrap_a', 'scrap_b', 'scrap_c'][(p.scrapVariant ?? 0) % 3]] : undefined;
+      if (scrapImg) {
+        // M11: Schrottklumpen (Krall) — trudelt in Flugrichtung, Größe aus der Hitbox
+        const sz = p.radius * 2.8;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(this.scene.time * 9 + (p.scrapVariant ?? 0) * 2.1);
+        ctx.drawImage(scrapImg, -sz / 2, -sz / 2, sz, sz * (scrapImg.height / scrapImg.width));
         ctx.restore();
         continue;
       }

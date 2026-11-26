@@ -22,7 +22,7 @@ def is_bg(p):
     return p[0] >= WHITE and p[1] >= WHITE and p[2] >= WHITE
 
 
-def clean_cell(img):
+def clean_cell(img, holes=False):
     """Äußeren weißen Hintergrund entfernen (Flood-Fill vom Rand), 1-px-Defringe. Gibt RGBA zurück."""
     q = img.convert("RGBA")
     w, h = q.size
@@ -41,6 +41,11 @@ def clean_cell(img):
             seen[y][x] = True
             px[x, y] = (0, 0, 0, 0)
             dq.extend(((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)))
+    if holes:  # eingeschlossenes Weiß (z. B. Magnet-Öffnung) ebenfalls transparent
+        for y in range(h):
+            for x in range(w):
+                if px[x, y][3] and is_bg(px[x, y]):
+                    px[x, y] = (0, 0, 0, 0)
     clear = []
     for y in range(h):
         for x in range(w):
@@ -100,11 +105,11 @@ def import_set(rid, st, scale, args, outdir, meta, report):
         if want is not None:
             if i not in want or want.index(i) >= len(st["ids"]):
                 continue
-            cleaned.append((st["ids"][want.index(i)], clean_cell(cell)))
+            cleaned.append((st["ids"][want.index(i)], clean_cell(cell, st.get("holes", False))))
         else:
             if i >= len(st["ids"]):
                 break
-            cleaned.append((st["ids"][i], clean_cell(cell)))
+            cleaned.append((st["ids"][i], clean_cell(cell, st.get("holes", False))))
     hx = hy = 1
     for pid, img in cleaned:
         bb = img.getbbox()

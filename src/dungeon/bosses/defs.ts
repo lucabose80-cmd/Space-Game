@@ -40,7 +40,7 @@ const krall: BossDef = {
       windup: 0.5,
       fire: (e, c) => {
         sound.playBlaster();
-        for (const off of [-0.3, 0, 0.3]) bossBolt(c.scene, e.x, e.y, e.aimAngle + off, 125, 14, '#a16207', 4.6);
+        [-0.3, 0, 0.3].forEach((off, i) => bossBolt(c.scene, e.x, e.y, e.aimAngle + off, 125, 14, '#a16207', 4.6, 2.2, { sprite: 'scrap', scrapVariant: i }));
       },
       recover: 0.9,
     },

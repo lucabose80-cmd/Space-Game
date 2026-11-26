@@ -3715,6 +3715,7 @@ export class DungeonScene {
       p.y += p.vy * dt;
       p.life -= dt;
       if (p.sprite === 'fist' && p.life <= 0) this.spawnBurst(p.x, p.y, '#fb7185', 8); // Faust löst sich auf
+      if (p.sprite === 'scrap' && p.life <= 0) this.spawnBurst(p.x, p.y, '#fb923c', 6); // Schrottklumpen zerplatzt
 
       // Milestone 10-A: Kristall-Prismen spiegeln/teilen Projektile, BEVOR die Wand-Prüfung greift
       const mechRes = this.mechanics.handleProjectile(p);

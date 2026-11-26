@@ -137,7 +137,7 @@ Offen für Krall: Einbindung von `krall_legs_R/L` + `krall_effects`, Maßstab bl
 | Boss | Rig | Pose-Sets | Phase 2 | Teilen | Nächster Schritt |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | Kern-Wächter | ✅ | ✅ (S1–S6 fertig, S1–S5 eingebunden, K1–K8) | ✅ Platten fliegen, Faust-Salve | — | S6 eingebunden ✅ · Abnahme im echten Kampf §2.4 |
-| Krall | ✅ Rumpf-Set (6), `clawR`/`clawL` (je 6 Posen), Phase-2-Skelettrahmen, `krallSet()` | ✅ **6/6 Sheets fertig** (Arme L/R + Rümpfe eingebunden; `legs_R/L` + `effects` bereit) | ✅ Panzer fällt ab, Skelett-Rumpf | — | `krall_legs_R/L` + `krall_effects` einbinden (Claude Code); Abnahme im echten Kampf |
+| Krall | ✅ Rumpf-Set (6), `clawR`/`clawL` (je 6 Posen), Phase-2-Skelettrahmen, `krallSet()` | ✅ **6/6 Sheets fertig** (Arme L/R + Rümpfe eingebunden; `legs_R/L` + `effects` bereit) | ✅ Panzer fällt ab, Skelett-Rumpf | — | Beine/Magnet/Schrott eingebunden ✅ · Abnahme im echten Kampf |
 | Quarz-Koloss | – | – | – | ✅ Logik (Hälften gleich aussehend, 85 %) | Teile-Sheets (`ART_BRIEF_M11.md` §4.3) |
 | Sternen-Archon | – | – | – | ✅ Logik | Teile-Sheets |
 | übrige Bosse | – | – | – | – | Teile-Sheets |
