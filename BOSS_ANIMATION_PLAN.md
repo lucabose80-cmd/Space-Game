@@ -88,12 +88,12 @@ Format & Regeln wie `ART_BRIEF_M11.md` §2 (512×512-Zellen, Gelenk in Zellmitte
   Code danach: Sets in `rigs.json` an die Varianten anhängen (`armR_7…12`), Zuordnung in `coreWardenSet` (Zwischen-Posen für ~0,08 s zwischen den Hauptposen → ersetzt die Kreuzblende).
 - [x] **S3 · Rumpf „Brust offen – Laser“ (Typ S)** ✅ `art_source/rigs/core_warden_torsos2.png` erzeugt & per `art:check` geprüft (Kern im Fadenkreuz, `min_margin ≥ 40 px`, 6 Varianten: Brustklappen offen · halb offen · Sprung gestreckt · Landung gestaucht · Phase 2 Laser · Phase 2 beschädigt).
 - [x] **S4 · Arme ohne Faust + Faust einzeln (Typ L/E)** ✅ `art_source/rigs/core_warden_fists.png` erzeugt & per `art:check` geprüft (Arme R/L ohne Faust mit leuchtender Manschette = Schulter im Fadenkreuz; Fäuste vorn/geladen/schräg-oben + Energie-Schweif = Mitte im Fadenkreuz, `min_margin ≥ 115 px`).
-- [ ] **S5 · Köpfe Zusatz (Typ S)** `core_warden_heads2.png`, 3×2: 1 Visier feuert (Laser aus dem Visier) · 2 zur Seite blickend links · 3 zur Seite blickend rechts · 4 brüllend Phase 2 · 5 stark beschädigt (Halo zerbrochen, für < 15 % HP) · 6 Blinzeln/Visier zu. Halsgelenk in Zellmitte.
+- [x] **S5 · Köpfe Zusatz (Typ S)** ✅ `art_source/rigs/core_warden_heads2.png` erzeugt & per `art:check` geprüft (Halsgelenk im Fadenkreuz, `min_margin ≥ 36 px`: 1 Visier feuert Laser · 2 Blick links · 3 Blick rechts · 4 brüllend Phase 2 · 5 stark beschädigt < 15 % HP mit zerbrochenem Halo · 6 Blinzeln/Visier zu).
 
-**Reihenfolge für Credits:** S1 (billig, sichtbarster Fehler) → S3 (Laser) → S4 (Fäuste) → S2 → S5.
+**Reihenfolge für Credits:** S1 ✅ → S3 ✅ → S4 ✅ → S2 ✅ → S5 ✅ *(alle Sprite-Aufgaben für Kern-Wächter erledigt!)*
 
 ### 2.4 Abnahme Kern-Wächter
-Alle Punkte D1–D10 erfüllt, K1–K8 abgehakt, S1 erledigt (S2–S5 optional, aber vermerkt), Projektinhaber hat einen vollständigen Kampf (Phase 1 + 2) im echten Spiel gesehen und freigegeben → hier „✅ abgenommen am …“ eintragen.
+Alle Punkte D1–D10 erfüllt, K1–K8 abgehakt, S1–S5 erledigt (S2–S5 warten noch auf Einbindung in `rigs.json`/`bossAnims.ts` durch Claude Code), Projektinhaber hat einen vollständigen Kampf (Phase 1 + 2) im echten Spiel gesehen und freigegeben → hier „✅ abgenommen am …“ eintragen.
 
 ---
 
@@ -107,7 +107,7 @@ Für jeden weiteren Boss einen Abschnitt nach diesem Muster anlegen:
 **Aktueller Stand je Boss**
 | Boss | Rig | Pose-Sets | Phase 2 | Teilen | Nächster Schritt |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| Kern-Wächter | ✅ | ✅ (4/4) | ✅ Platten fliegen | — | §2 K1–K8, S1 |
+| Kern-Wächter | ✅ | ✅ (alle S1–S5 fertig!) | ✅ Platten fliegen | — | S2–S5 in `rigs.json`/`bossAnims.ts` einbinden & Abnahme §2.4 |
 | Krall | ✅ (alt) | 1/6 (`krall_arms_R`) | ✅ Panzer fällt ab | — | restliche 5 Sheets (`HANDOFF.md`), dann §3 |
 | Quarz-Koloss | – | – | – | ✅ Logik | Teile-Sheets (`ART_BRIEF_M11.md` §4.3) |
 | Sternen-Archon | – | – | – | ✅ Logik | Teile-Sheets |

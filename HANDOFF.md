@@ -40,6 +40,7 @@ npm run verify                           # Build + Invarianten + Sprite-Check + 
     - `art_source/rigs/core_warden_fists.png` (**S4**: Arme R/L ohne Faust mit leuchtender Manschette + Fäuste vorn/geladen/schräg-oben + Energie-Schweif; Schulter bzw. Faustmitte im Fadenkreuz, `min_margin ≥ 115 px`)
     - `art_source/rigs/core_warden_arms_R2.png` (**S2 rechts**: 6 Zwischen-/Schadens-Posen, Schulterring im Fadenkreuz, `min_margin ≥ 34 px`)
     - `art_source/rigs/core_warden_arms_L2.png` (**S2 links**: 6 Zwischen-/Schadens-Posen mit Licht links-oben, Schulterring im Fadenkreuz, `min_margin ≥ 46 px`)
+    - `art_source/rigs/core_warden_heads2.png` (**S5**: Visier-Laser, Blick links/rechts, brüllend Phase 2, stark beschädigt < 15 % HP mit zerbrochenem Halo, Blinzeln/Visier zu; Halsgelenk im Fadenkreuz, `min_margin ≥ 36 px`)
   - **§4.1 Krall (1/6 fertig):**
     - `art_source/rigs/krall_arms_R.png` (rechter Greifzangen-Arm `x=0.96`, 6 Posen, Schulterring im Fadenkreuz, `min_margin ≥ 31 px`)
 - **Noch offen (§4.1 Krall, 5 Sheets):**
@@ -67,8 +68,8 @@ Nach und nach erzeugen, sobald Gemini-Volumen frei ist (Reihenfolge §5 im Brief
 - Code-Seite (Claude Code, sobald der Pilot da ist): Import-Modus `parts`, Rigs in `rigs.json`, `anim/enemyAnims.ts`.
 
 ## Nächster Schritt
-- **Boss-Animation (Stand):** `BOSS_ANIMATION_PLAN.md` §2.2 K1–K8 + S1 umgesetzt — Kern-Wächter wartet auf **Abnahme im echten Kampf** (§2.4). Offen: S3 → S4 → S2 → S5 (Antigravity), danach Übertragung auf die anderen Bosse (§3).
-- **Antigravity (Quota-Reset):** restliche 5 Krall-Sheets: `krall_arms_L.png` (Schrott-Haken + Mini-Säge), `krall_legs_R.png`, `krall_legs_L.png`, `krall_torsos.png`, `krall_effects.png` → `npm run art:check` → pushen. Danach Claude Code: Sets in `rigs.json` eintragen (linker Arm = neues Teil `clawL`, Beine/Rumpf-Sets) und Posen in `bossAnims.ts` verdrahten.
+- **Boss-Animation (Stand):** `BOSS_ANIMATION_PLAN.md` §2.2 K1–K8 **und alle Sprite-Aufgaben S1–S5** sind fertig! Claude Code kann jetzt direkt S2 (`arms_R2/L2`), S3 (`torsos2`), S4 (`fists`) und S5 (`heads2`) in `src/data/rigs.json` eintragen, per `npm run art:import -- core_warden --force` importieren und in `bossAnims.ts`/`dungeonRenderer.ts` verdrahten → danach finale Abnahme (§2.4).
+- **Antigravity (als Nächstes):** restliche 5 Krall-Sheets (`krall_arms_L`, `krall_legs_R/L`, `krall_torsos`, `krall_effects`) und/oder Gegner-Rig-Piloten (`turret_rig`, `phase_stalker_rig`).
 - **Claude Code (ohne neue Sprites):** Teilen von Quarz-Koloss/Sternen-Archon (`MILESTONE_11_ARCHITECTURE.md` §4.3), prozedurale Bewegung der übrigen Bosse, Krall-Verdrahtung vorbereiten, Kern-Glühen des Kern-Wächters an die neue Kernposition anpassen (Schulter-Offsets sind justiert: `SHOULDER_ADJUST`), danach Plan-Phase 3 (Angriffe der Sektor-1-Bosse mit Teil-Abwurf/Splitting, `MILESTONE_11_ARCHITECTURE.md`).
 - Ökonomie & Boss-Kampfgefühl im echten Spiel beobachten und in `src/data/balance.ts` nachjustieren (Berichte: `tests/out/economy.json`, `tests/out/ttk.json`).
 - Optionale M10/M10-C-Einzel-Sprites bei Bedarf ebenfalls per Antigravity erzeugen.
