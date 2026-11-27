@@ -145,15 +145,42 @@ export class DungeonRenderer {
     const groundBiome = Math.min(5, Math.max(1, this.scene.currentRoom.riftSector ?? this.scene.floor.visualSector ?? this.scene.currentSector));
     const cwParts = getHDArt().rigs.core_warden?.parts;
     for (const d of this.scene.decals) {
-      const gImg = d.fx === 'cw_crater' ? cwParts?.[`fx_ground_s${groundBiome}`] : d.fx === 'cw_remnant' ? cwParts?.fx_remnant : undefined;
-      if (gImg) {
-        ctx.save();
-        ctx.globalAlpha = Math.min(1, (d.life / d.maxLife) * 2.5);
-        const w = d.r * 2.6;
-        const h = w * (gImg.height / gImg.width);
-        ctx.drawImage(gImg, d.x - w / 2, d.y - h / 2, w, h);
-        ctx.restore();
-        continue;
+      if (d.fx && cwParts) {
+        const age = d.maxLife - d.life;
+        const lf = Math.max(0, d.life / d.maxLife);
+        const im = (k: string): HTMLCanvasElement | HTMLImageElement | undefined => cwParts[k] ?? undefined;
+        const put = (img: HTMLCanvasElement | HTMLImageElement | undefined, x: number, y: number, sc: number, alpha: number, rot = 0, add = false): boolean => {
+          if (!img || alpha <= 0.01) return !!img;
+          const w = (img.width / 2) * sc;
+          const h = (img.height / 2) * sc;
+          ctx.save();
+          ctx.globalAlpha = Math.min(1, alpha);
+          if (add) ctx.globalCompositeOperation = 'lighter';
+          ctx.translate(x, y);
+          if (rot) ctx.rotate(rot);
+          ctx.drawImage(img, -w / 2, -h / 2, w, h);
+          ctx.restore();
+          return true;
+        };
+        if (d.fx === 'cw_crater' && put(im(`fx_ground_s${groundBiome}`), d.x, d.y, (d.r * 2.6) / (cwParts.fx_ground_s1 ? cwParts.fx_ground_s1.width / 2 : 80), Math.min(1, lf * 2.5))) continue;
+        if (d.fx === 'cw_remnant' && put(im(`fx_rem_s${groundBiome}`) ?? im('fx_remnant'), d.x, d.y, 1, Math.min(1, age / 0.9) * Math.min(1, lf * 4))) continue;
+        if (d.fx === 'cw_dust' && put(im(`fx_dust_s${groundBiome}`) ?? im('fx_dust_n'), d.x, d.y - 4 * age, (d.r / 14) * (0.55 + age * 1.1), lf * 0.8)) continue;
+        if (d.fx === 'cw_death' && cwParts.fx_d_core) {
+          // Todes-Sequenz (Körper-Effekt, biom-neutral): Kern reißt auf → Blitz → Feuerball → Rauch; Trümmer fliegen im Bogen (deterministisch)
+          const cy = d.y - 10;
+          if (age < 0.3) put(im('fx_d_core'), d.x + Math.sin(age * 90) * 1.2, cy, 0.9, 1);
+          put(im('fx_d_flash'), d.x, cy, 0.3 + age * 2.2, 1 - age / 0.55, age * 1.5, true);
+          if (age > 0.2) put(im('fx_d_fire'), d.x, cy, 0.5 + (age - 0.2) * 1.3, 1 - (age - 0.2) / 0.7);
+          if (age > 0.35) put(im('fx_d_smoke'), d.x, cy - (age - 0.35) * 14, 0.6 + (age - 0.35) * 0.9, (1 - (age - 0.35) / 0.85) * 0.9);
+          for (let k = 0; k < 6; k++) {
+            if (age < 0.22) break;
+            const t = age - 0.22;
+            const ang = (k / 6) * Math.PI * 2 + 0.5;
+            const sp = 38 + (k % 3) * 16;
+            put(im(k % 2 ? 'fx_d_limb' : 'fx_d_chunk'), d.x + Math.cos(ang) * sp * t, cy + Math.sin(ang) * sp * t * 0.6 + 70 * t * t - 14 * t, 0.42, 1 - t / 0.95, t * (k % 2 ? 7 : -9) + k);
+          }
+          continue;
+        }
       }
       ctx.save();
       ctx.globalAlpha = Math.max(0, d.life / d.maxLife);

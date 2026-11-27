@@ -21,7 +21,7 @@
 - ✅ D12 Beschädigungsstufen — P1 <80/<65 % (Helm, Rumpf, **Arme `armX_19…24`**), P2 <35/<25 %, <15 % (Test `m11p2`)
 - ✅ D13 Körper hängt zusammen — `SHOULDER_ADJUST`, Kontaktbogen
 - ✅ D14 n. z. (schwebt)
-- ✅ D15 Biom-Boden-Effekte — `core_warden_ground.png` (P3-23): Slam-Krater S1–S5 + Todes-Rückstand, Auswahl nach Raum-Biom (`dungeonRenderer` Decal-Schleife, `FloorDecal.fx`), Rückfall dunkler Kreis; Screenshots S1/S3 geprüft. Sturm-Staubspur ist Partikel-Optik (Körper-Effekt, kein Boden-Sheet nötig)
+- ✅ D15 Biom-Boden-/Todes-Effekte — Krater S1–S5 (`ground`, P3-23), Todes-Rückstand je Biom + Brandfleck (`ground2`, P3-24), Todes-Sequenz biom-neutral (`death`, P3-25: Decal `cw_death`), Boden-Staub je Biom für Sturm-Spur & Landung (`ground3`, P3-26); Auswahl im Renderer nach `riftSector → visualSector → currentSector`; Test `m11p2` (Bilder vorhanden), Screenshots Lava-Boden geprüft
 - ⬜ Stufe 8 Abnahme im echten Kampf — **Projektinhaber** (Phase 1 + 2)
 
 ## Audit gegen den Boss-Mindeststandard D11–D14 (Stand 2026-11-27, Screenshots je Angriff, Phase 1 + 2)

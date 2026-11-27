@@ -1985,6 +1985,8 @@ export class DungeonEnemyAi {
           life: 0.24,
           maxLife: 0.24,
         });
+        // D15: Staubwolke je Boden-Biom hinter dem Sturm (Sprite-Decal, nur Optik)
+        this.scene.decals.push({ x: e.x - e.chargeDirX * 6, y: e.y + 8, r: 12, color: 'rgba(0,0,0,0)', life: 0.55, maxLife: 0.55, fx: 'cw_dust' });
       }
       if (e.bossStateTimer <= 0) {
         e.bossState = 'stalk';
@@ -2079,6 +2081,7 @@ export class DungeonEnemyAi {
           life: 0.24,
           maxLife: 0.24,
         });
+        this.scene.decals.push({ x: e.x, y: e.y + 6, r: 26, color: 'rgba(0,0,0,0)', life: 0.8, maxLife: 0.8, fx: 'cw_dust' });
         this.scene.spawnBurst(e.x, e.y + 4, '#fbbf24', 24);
         const bolts = enraged ? 10 : 8;
         for (let k = 0; k < bolts; k++) {
