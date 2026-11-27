@@ -31,9 +31,11 @@ import { getMechanicsDrawables, renderMechanicsGround } from './roomMechanicsRen
 import type { Enemy, SpearThrustFx, WeaponSwing } from './dungeonTypes';
 
 export class DungeonRenderer {
-  /** M11 Kristall-Krabbler: zuletzt gesehene Rig-Positionen + laufende Tod-Splitter (nur Darstellung) */
+  /** M11 Kristall-Krabbler & Splitter-Scharfschütze: zuletzt gesehene Rig-Positionen + laufende Tod-Splitter (nur Darstellung) */
   private crawlerSeen = new Map<number, { x: number; y: number; flip: number }>();
   private crawlerDeaths: { x: number; y: number; flip: number; t0: number }[] = [];
+  private sniperSeen = new Map<number, { x: number; y: number; flip: number }>();
+  private sniperDeaths: { x: number; y: number; flip: number; t0: number }[] = [];
   private lastDefeated = -1;
   private scene: DungeonScene;
 
@@ -2480,50 +2482,94 @@ export class DungeonRenderer {
     const images = getHDArt().rigs.crystal_crawler;
     if (!images) {
       this.crawlerDeaths.length = 0;
+    } else {
+      this.crawlerDeaths = this.crawlerDeaths.filter((d) => sc.time - d.t0 < 0.95 && sc.time >= d.t0);
+      // [Teil, vx, vy, Drehung/s, Start-dy, Maßstab] — Splitter/Panzerbruch aus dem Effekt-Sheet (P3-21), Kopf/Beine aus den Rig-Teilen
+      const fx = images.parts.fxShardS ? 1 : 0;
+      const pieces: [string, number, number, number, number, number][] = [
+        [fx ? 'fxShardL' : 'crystal', 6, -78, 7, -10, 0.38],
+        [fx ? 'fxShardM' : 'crystal', -26, -58, -9, -7, 0.8],
+        [fx ? 'fxShardS' : 'crystal', 30, -48, 11, -5, 1],
+        [fx ? 'fxShardS' : 'crystal', -40, -36, 9, -3, 0.9],
+        [fx ? 'fxPlate' : 'torso', 8, -30, 3, 0, 0.6],
+        ['head', 40, -50, 6, -1, 1],
+        ['legA', -36, -34, -8, 4, 1],
+        ['legB', 18, -40, 9, 4, 1],
+        ['legC', -12, -26, -5, 4, 1],
+      ];
+      for (const d of this.crawlerDeaths) {
+        out.push({
+          y: d.y + 6,
+          draw: () => {
+            const t = sc.time - d.t0;
+            const fade = t > 0.6 ? 1 - (t - 0.6) / 0.35 : 1;
+            const floorDy = 10;
+            pieces.forEach(([part, vx, vy, spin, dy0, k], i) => {
+              const img = images.parts[part];
+              if (!img) return;
+              const x = d.x + vx * d.flip * t;
+              const rawY = d.y + dy0 + vy * t + 130 * t * t;
+              const y = Math.min(rawY, d.y + floorDy);
+              ctx.save();
+              ctx.globalAlpha = Math.max(0, fade);
+              ctx.translate(x, y);
+              ctx.rotate(spin * Math.min(t, 0.5) + i);
+              ctx.drawImage(img, (-img.width / 4) * k, (-img.height / 4) * k, (img.width / 2) * k, (img.height / 2) * k);
+              ctx.restore();
+            });
+            const rem = images.parts.fxRemnant;
+            if (rem && t > 0.15) {
+              ctx.save();
+              ctx.globalAlpha = Math.max(0, Math.min(1, (t - 0.15) / 0.2) * fade * 0.9);
+              ctx.drawImage(rem, d.x - rem.width / 4, d.y + floorDy - rem.height / 4, rem.width / 2, rem.height / 2);
+              ctx.restore();
+            }
+            drawGlow(ctx, d.x, d.y - 2, 16 * (1 - t), '#67e8f9', 0.5 * (1 - t));
+          },
+        });
+      }
+    }
+    // M11 Splitter-Scharfschütze: Tod-Trümmer (Jetpack, Gewehr, Rumpf, Beine fliegen ab)
+    if (this.sniperSeen.size > 0) {
+      const alive = new Set(sc.enemies.map((en) => en.id));
+      for (const [id, pos] of this.sniperSeen) {
+        if (alive.has(id)) continue;
+        this.sniperSeen.delete(id);
+        if (killed) this.sniperDeaths.push({ x: pos.x, y: pos.y, flip: pos.flip, t0: sc.time });
+      }
+    }
+    const snImgs = getHDArt().rigs.shard_sniper;
+    if (!snImgs || this.sniperDeaths.length === 0) {
+      this.sniperDeaths.length = 0;
       return;
     }
-    this.crawlerDeaths = this.crawlerDeaths.filter((d) => sc.time - d.t0 < 0.95 && sc.time >= d.t0);
-    // [Teil, vx, vy, Drehung/s, Start-dy, Maßstab] — Splitter/Panzerbruch aus dem Effekt-Sheet (P3-21), Kopf/Beine aus den Rig-Teilen
-    const fx = images.parts.fxShardS ? 1 : 0;
-    const pieces: [string, number, number, number, number, number][] = [
-      [fx ? 'fxShardL' : 'crystal', 6, -78, 7, -10, 0.38],
-      [fx ? 'fxShardM' : 'crystal', -26, -58, -9, -7, 0.8],
-      [fx ? 'fxShardS' : 'crystal', 30, -48, 11, -5, 1],
-      [fx ? 'fxShardS' : 'crystal', -40, -36, 9, -3, 0.9],
-      [fx ? 'fxPlate' : 'torso', 8, -30, 3, 0, 0.6],
-      ['head', 40, -50, 6, -1, 1],
-      ['legA', -36, -34, -8, 4, 1],
-      ['legB', 18, -40, 9, 4, 1],
-      ['legC', -12, -26, -5, 4, 1],
+    this.sniperDeaths = this.sniperDeaths.filter((d) => sc.time - d.t0 < 0.85 && sc.time >= d.t0);
+    const snPieces: [string, number, number, number, number][] = [
+      ['jetpack', -38, -58, -7, -10],
+      ['rifle', 42, -52, 9, -6],
+      ['torso', -10, -44, -4, -10],
+      ['legs', 16, -24, 5, 2],
+      ['armR', 28, -36, 8, -6],
     ];
-    for (const d of this.crawlerDeaths) {
+    for (const d of this.sniperDeaths) {
       out.push({
         y: d.y + 6,
         draw: () => {
           const t = sc.time - d.t0;
-          const fade = t > 0.6 ? 1 - (t - 0.6) / 0.35 : 1;
-          const floorDy = 10;
-          pieces.forEach(([part, vx, vy, spin, dy0, k], i) => {
-            const img = images.parts[part];
+          const fade = t > 0.55 ? 1 - (t - 0.55) / 0.3 : 1;
+          snPieces.forEach(([part, vx, vy, spin, dy0], i) => {
+            const img = snImgs.parts[part];
             if (!img) return;
             const x = d.x + vx * d.flip * t;
-            const rawY = d.y + dy0 + vy * t + 130 * t * t;
-            const y = Math.min(rawY, d.y + floorDy);
+            const y = Math.min(d.y + 10, d.y + dy0 + vy * t + 145 * t * t);
             ctx.save();
             ctx.globalAlpha = Math.max(0, fade);
             ctx.translate(x, y);
             ctx.rotate(spin * Math.min(t, 0.5) + i);
-            ctx.drawImage(img, (-img.width / 4) * k, (-img.height / 4) * k, (img.width / 2) * k, (img.height / 2) * k);
+            ctx.drawImage(img, -img.width / 4, -img.height / 4, img.width / 2, img.height / 2);
             ctx.restore();
           });
-          const rem = images.parts.fxRemnant;
-          if (rem && t > 0.15) {
-            ctx.save();
-            ctx.globalAlpha = Math.max(0, Math.min(1, (t - 0.15) / 0.2) * fade * 0.9);
-            ctx.drawImage(rem, d.x - rem.width / 4, d.y + floorDy - rem.height / 4, rem.width / 2, rem.height / 2);
-            ctx.restore();
-          }
-          drawGlow(ctx, d.x, d.y - 2, 16 * (1 - t), '#67e8f9', 0.5 * (1 - t));
+          drawGlow(ctx, d.x, d.y - 4, 18 * (1 - t), '#f472b6', 0.55 * (1 - t));
         },
       });
     }
@@ -3249,6 +3295,13 @@ export class DungeonRenderer {
       return;
     }
     if (e.kind === 'shard_sniper') {
+      if (this.tryDrawEnemyRig(ctx, e, false)) {
+        const dir = this.scene.playerX < e.x - 2 ? -1 : 1;
+        this.sniperSeen.set(e.id, { x: e.x, y: e.y, flip: dir });
+        drawGlow(ctx, e.x, e.y - 4, e.telegraphTimer > 0 ? 22 : 14, '#f472b6', e.telegraphTimer > 0 ? 0.52 : 0.22);
+        this.renderEnemyMiniHp(ctx, e);
+        return;
+      }
       const spr = e.flashTimer > 0 ? art.shardSniperFlash : art.shardSniper;
       if (spr) {
         ctx.drawImage(spr, e.x - 12, e.y - 16, 24, 27);

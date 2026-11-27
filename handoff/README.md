@@ -11,6 +11,7 @@ Jeder Chat/Agent pflegt **nur die Datei seines Bereichs**. `HANDOFF.md` bleibt d
 | Bogen-Drohne | [`enemy_drone_arc.md`](enemy_drone_arc.md) | `anim/rigs/drone_arc.ts` (+ Wrack-Block `renderDroneArcWrecks` in `dungeonRenderer.ts`) | `data/rigs/drone_arc.json` | `m11p10_drone_arc` |
 | Phasen-Jäger | [`enemy_phase_stalker.md`](enemy_phase_stalker.md) | `anim/rigs/phase_stalker.ts` | `data/rigs/phase_stalker.json` | `m11p9_phase_stalker` |
 | Kristall-Krabbler | [`enemy_crystal_crawler.md`](enemy_crystal_crawler.md) | `anim/rigs/crystal_crawler.ts` | `data/rigs/crystal_crawler.json` | `m11p11_crystal_crawler` |
+| Splitter-Scharfschütze | [`enemy_shard_sniper.md`](enemy_shard_sniper.md) | `anim/rigs/shard_sniper.ts` | `data/rigs/shard_sniper.json` | `m11p12_shard_sniper` |
 | Sporenspucker | [`enemy_spore_spitter.md`](enemy_spore_spitter.md) | `anim/rigs/spore_spitter.ts` (+ Renderer-Zweig `spore_spitter`, Todes-Animation) | `data/rigs/spore_spitter.json` | `m11p9_spore_spitter` |
 | Schild-Drohne | [`enemy_shield_drone.md`](enemy_shield_drone.md) | `anim/rigs/shield_drone.ts` | `data/rigs/shield_drone.json` | `m11p…_shield_drone` |
 | Endboss-Arenen (M12) | [`endboss_arena.md`](endboss_arena.md) | `src/dungeon/camera.ts`, `src/data/arenas/`, `bosses/leviathanArena.ts` (+ Phase A/B in gemeinsamen Dateien, siehe Blatt) | `data/arenas/<kind>.ts` | `m12p1…m12p5` |

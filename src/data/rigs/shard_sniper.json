@@ -1,0 +1,125 @@
+{
+  "kind": "shard_sniper",
+  "sheet": {
+    "file": "shard_sniper",
+    "srcFile": "shard_sniper_rig",
+    "cols": 3,
+    "rows": 2,
+    "order": [
+      "torso",
+      "jetpack",
+      "rifle",
+      "armR",
+      "armL",
+      "legs"
+    ],
+    "scaleRef": "torso",
+    "torsoDisplayH": 15,
+    "pixelRatio": 2
+  },
+  "parts": [
+    {
+      "id": "torso",
+      "image": "torso",
+      "z": 2,
+      "pivot": [
+        0.5,
+        0.65
+      ],
+      "offset": [
+        0,
+        -17
+      ]
+    },
+    {
+      "id": "jetpack",
+      "image": "jetpack",
+      "parent": "torso",
+      "attach": [
+        0.24,
+        0.62
+      ],
+      "pivot": [
+        0.65,
+        0.48
+      ],
+      "z": 0,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "legs",
+      "image": "legs",
+      "parent": "torso",
+      "attach": [
+        0.5,
+        0.92
+      ],
+      "pivot": [
+        0.48,
+        0.12
+      ],
+      "z": 1,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "armL",
+      "image": "armL",
+      "parent": "torso",
+      "attach": [
+        0.74,
+        0.62
+      ],
+      "pivot": [
+        0.18,
+        0.18
+      ],
+      "z": 1,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "armR",
+      "image": "armR",
+      "parent": "torso",
+      "attach": [
+        0.28,
+        0.62
+      ],
+      "pivot": [
+        0.24,
+        0.2
+      ],
+      "z": 4,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "rifle",
+      "image": "rifle",
+      "parent": "armR",
+      "attach": [
+        0.84,
+        0.7
+      ],
+      "pivot": [
+        0.24,
+        0.55
+      ],
+      "z": 3,
+      "offset": [
+        0,
+        0
+      ]
+    }
+  ]
+}

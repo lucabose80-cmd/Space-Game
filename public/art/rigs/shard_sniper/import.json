@@ -1,0 +1,48 @@
+{
+ "rig": "shard_sniper",
+ "scale": 0.15464,
+ "resample": "lanczos",
+ "torsoDisplayH": 15,
+ "pixelRatio": 2,
+ "sheets": {
+  "shard_sniper_rig.png": "f7674da1f4bedb9b"
+ },
+ "parts": {
+  "torso": {
+   "w": 23,
+   "h": 30,
+   "srcW": 148,
+   "srcH": 194
+  },
+  "jetpack": {
+   "w": 26,
+   "h": 34,
+   "srcW": 169,
+   "srcH": 223
+  },
+  "rifle": {
+   "w": 42,
+   "h": 13,
+   "srcW": 270,
+   "srcH": 81
+  },
+  "armR": {
+   "w": 21,
+   "h": 20,
+   "srcW": 139,
+   "srcH": 131
+  },
+  "armL": {
+   "w": 26,
+   "h": 21,
+   "srcW": 169,
+   "srcH": 139
+  },
+  "legs": {
+   "w": 28,
+   "h": 32,
+   "srcW": 181,
+   "srcH": 207
+  }
+ }
+}
