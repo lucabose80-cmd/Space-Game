@@ -17,11 +17,11 @@
 - ✅ D8 Lesbarkeit/keine Hitbox-Änderung — nur Renderer/`bossAnims`
 - ✅ D9 Rückfall — Rig-Schalter im Labor, Test `m11lab`
 - ✅ D10 Tests & Doku — `m11p2` prüft alle neuen Bilder (`fx_*`, `fx_ground_s1…5`, Arme 19–24), `RIGGING_GUIDE.md` §5 ergänzt
-- ✅ D11 Angriffsgrafik — Audit unten; Laser/Orbit jetzt mit Sprite-Effekten (`core_warden_fx.png`, P3-20)
+- ✅ D11 Angriffsgrafik — Audit unten; Laser/Orbit jetzt mit Sprite-Effekten (`core_warden_fx.png`, P3-22)
 - ✅ D12 Beschädigungsstufen — P1 <80/<65 % (Helm, Rumpf, **Arme `armX_19…24`**), P2 <35/<25 %, <15 % (Test `m11p2`)
 - ✅ D13 Körper hängt zusammen — `SHOULDER_ADJUST`, Kontaktbogen
 - ✅ D14 n. z. (schwebt)
-- ✅ D15 Biom-Boden-Effekte — `core_warden_ground.png` (P3-21): Slam-Krater S1–S5 + Todes-Rückstand, Auswahl nach Raum-Biom (`dungeonRenderer` Decal-Schleife, `FloorDecal.fx`), Rückfall dunkler Kreis; Screenshots S1/S3 geprüft. Sturm-Staubspur ist Partikel-Optik (Körper-Effekt, kein Boden-Sheet nötig)
+- ✅ D15 Biom-Boden-Effekte — `core_warden_ground.png` (P3-23): Slam-Krater S1–S5 + Todes-Rückstand, Auswahl nach Raum-Biom (`dungeonRenderer` Decal-Schleife, `FloorDecal.fx`), Rückfall dunkler Kreis; Screenshots S1/S3 geprüft. Sturm-Staubspur ist Partikel-Optik (Körper-Effekt, kein Boden-Sheet nötig)
 - ⬜ Stufe 8 Abnahme im echten Kampf — **Projektinhaber** (Phase 1 + 2)
 
 ## Audit gegen den Boss-Mindeststandard D11–D14 (Stand 2026-11-27, Screenshots je Angriff, Phase 1 + 2)
@@ -55,4 +55,4 @@
     - `art_source/rigs/core_warden_arms_L3.png` (**S6 links**: Phase-2-Angriffsposen ohne Faust mit Licht links-oben, Schulterring im Fadenkreuz, `min_margin ≥ 63 px`)
 
 - **Phase-1-Armschäden ✅ (P3-18/19):** `core_warden_arms_R4/L4.png` per `art:gen` erzeugt, als `armR/L_19…24` importiert; `core_warden.ts`: Phase 1 und HP < 65 % → beschädigte Hauptposen (`DMG_OF`), Test `m11p2` angepasst. D12-Lücke geschlossen.
-- **Effekt-Sheet ✅ (P3-20):** `core_warden_fx.png` (`fx_ring/flare/orb/arc_a/arc_b/burst`, `extraImages`) in `dungeonRenderer.ts`: Laser-Aufladung (Ringe, Flare, Kugel) und Orbit-Salve P1 (Blitze, Funkenstern); prozeduraler Rückfall bleibt. **Offen: nur noch Abnahme im echten Kampf.**
+- **Effekt-Sheet ✅ (P3-22):** `core_warden_fx.png` (`fx_ring/flare/orb/arc_a/arc_b/burst`, `extraImages`) in `dungeonRenderer.ts`: Laser-Aufladung (Ringe, Flare, Kugel) und Orbit-Salve P1 (Blitze, Funkenstern); prozeduraler Rückfall bleibt. **Offen: nur noch Abnahme im echten Kampf.**
