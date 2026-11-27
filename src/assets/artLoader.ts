@@ -369,13 +369,19 @@ export const M10_OPTIONAL_SPRITES = {
   propNyxFreeLantern: 'prop_nyx_free_lantern',
   propVexBeacon: 'prop_vex_beacon',
   propVexClassboard: 'prop_vex_classboard',
-  propTrophyLeviathan: 'prop_trophy_leviathan',
   npcPilgrim: 'npc_pilgrim',
   npcFoundryWorker: 'npc_foundry_worker',
   npcElderScholar: 'npc_elder_scholar',
 } as const;
 
 export type M10SpriteKey = keyof typeof M10_OPTIONAL_SPRITES;
+
+/** Meilenstein 12: optionale Sprites der Endboss-Belohnungen. Fehlt die Datei → prozeduraler Fallback (hubEvolution.ts). */
+export const M12_OPTIONAL_SPRITES = {
+  propTrophyLeviathan: 'prop_trophy_leviathan',
+} as const;
+
+export type M12SpriteKey = keyof typeof M12_OPTIONAL_SPRITES;
 
 /** Meilenstein 10-C: optionale Boss-Sprites (128×128). Fehlt die Datei → eingefärbter Fallback + Merkmale (bossLooks.ts). */
 export const BOSS_OPTIONAL_SPRITES = {
@@ -691,6 +697,12 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
   const m10Imgs = await Promise.all(m10Keys.map((k) => loadImage(`/art/sprites/${M10_OPTIONAL_SPRITES[k]}.png`)));
   m10Keys.forEach((k, i) => {
     art[k] = imgToCanvas(m10Imgs[i]);
+  });
+
+  const m12Keys = Object.keys(M12_OPTIONAL_SPRITES) as M12SpriteKey[];
+  const m12Imgs = await Promise.all(m12Keys.map((k) => loadImage(`/art/sprites/${M12_OPTIONAL_SPRITES[k]}.png`)));
+  m12Keys.forEach((k, i) => {
+    art[k] = imgToCanvas(m12Imgs[i]);
   });
 
   // Meilenstein 10-C: optionale Boss-Sprites (inkl. Treffer-Silhouette)

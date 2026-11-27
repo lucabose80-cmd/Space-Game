@@ -6,7 +6,7 @@
  * fehlt die PNG-Datei, zeichnet dieser Renderer einen prozeduralen Fallback im selben Pixel-Look.
  * Keine neuen Hub-Hintergründe: Kollisionen & Prompts hängen an hub_bg.png.
  */
-import { getHDArt, type M10SpriteKey } from '../assets/artLoader';
+import { getHDArt, type M10SpriteKey, type M12SpriteKey } from '../assets/artLoader';
 import { drawGlow, drawPixelShadow } from '../assets/pixelArt';
 import { SUIT_THEMES } from '../data/companions';
 import type { GameState } from '../systems/gameState';
@@ -88,7 +88,7 @@ export class HubEvolutionRenderer {
     return this.state.story.flags.includes(f);
   }
 
-  private sprite(key: M10SpriteKey): HTMLCanvasElement | null {
+  private sprite(key: M10SpriteKey | M12SpriteKey): HTMLCanvasElement | null {
     return this.spritesEnabled ? getHDArt()[key] : null;
   }
 
