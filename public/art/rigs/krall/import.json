@@ -11,7 +11,9 @@
   "krall_torsos.png": "d0f4ea536f5cae1c",
   "krall_legs_R.png": "3c5bfacfdccc6a9a",
   "krall_legs_L.png": "98caeb295159c7cc",
-  "krall_effects.png": "7de5b99dca527a36"
+  "krall_effects.png": "7de5b99dca527a36",
+  "krall_arms_R2.png": "3490bfdca5ca035b",
+  "krall_arms_L2.png": "cb5601953cdb5cba"
  },
  "parts": {
   "torso": {
@@ -265,6 +267,78 @@
    "h": 40,
    "mode": "swap",
    "set": "krall_effects"
+  },
+  "clawR_7": {
+   "w": 98,
+   "h": 54,
+   "mode": "limb",
+   "set": "krall_arms_R2"
+  },
+  "clawR_8": {
+   "w": 98,
+   "h": 54,
+   "mode": "limb",
+   "set": "krall_arms_R2"
+  },
+  "clawR_9": {
+   "w": 98,
+   "h": 54,
+   "mode": "limb",
+   "set": "krall_arms_R2"
+  },
+  "clawR_10": {
+   "w": 98,
+   "h": 54,
+   "mode": "limb",
+   "set": "krall_arms_R2"
+  },
+  "clawR_11": {
+   "w": 98,
+   "h": 54,
+   "mode": "limb",
+   "set": "krall_arms_R2"
+  },
+  "clawR_12": {
+   "w": 98,
+   "h": 54,
+   "mode": "limb",
+   "set": "krall_arms_R2"
+  },
+  "clawL_7": {
+   "w": 100,
+   "h": 72,
+   "mode": "limb",
+   "set": "krall_arms_L2"
+  },
+  "clawL_8": {
+   "w": 100,
+   "h": 72,
+   "mode": "limb",
+   "set": "krall_arms_L2"
+  },
+  "clawL_9": {
+   "w": 100,
+   "h": 72,
+   "mode": "limb",
+   "set": "krall_arms_L2"
+  },
+  "clawL_10": {
+   "w": 100,
+   "h": 72,
+   "mode": "limb",
+   "set": "krall_arms_L2"
+  },
+  "clawL_11": {
+   "w": 100,
+   "h": 72,
+   "mode": "limb",
+   "set": "krall_arms_L2"
+  },
+  "clawL_12": {
+   "w": 100,
+   "h": 72,
+   "mode": "limb",
+   "set": "krall_arms_L2"
   }
  }
 }

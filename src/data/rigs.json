@@ -105,6 +105,30 @@
             "scrap_c",
             "spark"
           ]
+        },
+        {
+          "file": "krall_arms_R2",
+          "mode": "limb",
+          "ids": [
+            "clawR_7",
+            "clawR_8",
+            "clawR_9",
+            "clawR_10",
+            "clawR_11",
+            "clawR_12"
+          ]
+        },
+        {
+          "file": "krall_arms_L2",
+          "mode": "limb",
+          "ids": [
+            "clawL_7",
+            "clawL_8",
+            "clawL_9",
+            "clawL_10",
+            "clawL_11",
+            "clawL_12"
+          ]
         }
       ]
     },
@@ -272,7 +296,13 @@
           "clawR_3",
           "clawR_4",
           "clawR_5",
-          "clawR_6"
+          "clawR_6",
+          "clawR_7",
+          "clawR_8",
+          "clawR_9",
+          "clawR_10",
+          "clawR_11",
+          "clawR_12"
         ],
         "offset": [
           11.4,
@@ -320,7 +350,13 @@
           "clawL_3",
           "clawL_4",
           "clawL_5",
-          "clawL_6"
+          "clawL_6",
+          "clawL_7",
+          "clawL_8",
+          "clawL_9",
+          "clawL_10",
+          "clawL_11",
+          "clawL_12"
         ],
         "offset": [
           -14.4,

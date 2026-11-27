@@ -156,7 +156,8 @@ function coreWardenSet(e: Enemy, time: number, lookDx: number): { arms: number; 
 /** Kern-Wächter: Umrechnung Strecken-Phase → Schritt-Takt (≈ alte Frequenz bei ~40 px/s). */
 const CW_STRIDE_K = 0.72;
 
-const KARM = { hang: 0, windup: 1, punch: 2, side: 3, block: 4, stomp: 5 } as const;
+/** + P0-06/07: 6 Teleskop kurz · 7 mittel · 8 voll ausgefahren · 9 Zuschnappen · 10 Sog (Funken) · 11 Hagel/Wurf mit Schrott gepackt */
+const KARM = { hang: 0, windup: 1, punch: 2, side: 3, block: 4, stomp: 5, telS: 6, telM: 7, telL: 8, snap: 9, sog: 10, hold: 11 } as const;
 const KTORSO = { normal: 0, duck: 1, upright: 2, fwd: 3, p2: 4, damaged: 5 } as const;
 /** Erholungszeit je Zug (defs.ts) — die Engine setzt `bossStateMax` nur für die Vorwarnung, `bossStateTimer` läuft in der Erholung von diesem Wert ab. */
 const KRALL_RECOVER: Record<string, number> = { 'MAGNET-ZUG': 1.3, 'SCHROTT-WURF': 0.9, 'GREIFARM-STOSS': 0.9, 'SCHROTT-HAGEL': 1.1 };
@@ -203,21 +204,32 @@ function krallSet(e: Enemy, time: number): KrallSet {
     switch (move) {
       case 'GREIFARM-STOSS':
         if (sub === 'windup') { leg = KLEG.crouch; r = KARM.windup; l = KARM.windup; posture = 'duck'; fx.torso = { dy: 1.5 * wp, sy: 1 - 0.05 * wp }; fx.clawR = { rot: -0.2 * wp }; fx.clawL = { rot: 0.2 * wp }; }
-        else if (el < 0.55) { leg = el < 0.3 ? KLEG.jump : KLEG.fwd; r = KARM.punch; l = KARM.side; posture = 'fwd'; fx.torso = { sx: 1 + 0.03 * k, dx: 1.2 * k }; const reach = clamp01(1 - el / 0.35); const rdx = (e.chargeDirX ?? 0) * 7 * reach; const rdy = (e.chargeDirY ?? 0) * 5 * reach; fx.clawR = { rot: 0.12 * damped(el), dx: rdx, dy: rdy }; fx.clawL = { dx: rdx * 0.7, dy: rdy * 0.7 }; }
+        else if (el < 0.55) {
+          // Teleskop-Stoß (P0-06/07): der Arm zur Stoßseite fährt aus (kurz → mittel → voll), zeigt zum Ziel, schnappt am Ende zu
+          const tel = el < 0.1 ? KARM.telS : el < 0.2 ? KARM.telM : el < 0.4 ? KARM.telL : KARM.snap;
+          const dirX = e.chargeDirX ?? 1;
+          const ang = Math.atan2(e.chargeDirY ?? 0, dirX);
+          const aim = Math.max(-1.2, Math.min(1.2, dirX >= 0 ? ang : ang > 0 ? ang - Math.PI : ang + Math.PI));
+          leg = el < 0.3 ? KLEG.jump : KLEG.fwd;
+          if (dirX >= 0) { r = tel; l = KARM.side; } else { l = tel; r = KARM.side; }
+          posture = 'fwd'; fx.torso = { sx: 1 + 0.03 * k, dx: 1.2 * k };
+          const rdx2 = (e.chargeDirX ?? 0) * 4 * k; const rdy2 = (e.chargeDirY ?? 0) * 3 * k;
+          if (dirX >= 0) { fx.clawR = { rot: aim, dx: rdx2, dy: rdy2 }; fx.clawL = { dx: rdx2 * 0.5, dy: rdy2 * 0.5 }; } else { fx.clawL = { rot: aim, dx: rdx2, dy: rdy2 }; fx.clawR = { dx: rdx2 * 0.5, dy: rdy2 * 0.5 }; }
+        }
         else { r = KARM.hang; l = KARM.hang; fx.clawR = { rot: 0.1 * damped(el - 0.55) }; }
         break;
       case 'MAGNET-ZUG': // Rumpf richtet sich auf, beide Arme öffnen seitlich — solange der Sog läuft
         if (sub === 'windup') { leg = KLEG.stand; r = KARM.windup; l = KARM.windup; posture = 'upright'; fx.torso = { dy: -1.4 * wp }; fx.magnet = { dy: -1.2 * wp }; }
-        else if (el < 1.1) { leg = KLEG.crouch; r = KARM.side; l = KARM.side; posture = 'upright'; fx.torso = { dy: -1.4, dx: Math.sin(time * 40) * 0.5 }; fx.magnet = { dy: -1.2 + Math.sin(time * 30) * 0.6, rot: Math.sin(time * 26) * 0.12 }; }
+        else if (el < 1.1) { leg = KLEG.crouch; r = KARM.sog; l = KARM.sog; posture = 'upright'; fx.torso = { dy: -1.4, dx: Math.sin(time * 40) * 0.5 }; fx.magnet = { dy: -1.2 + Math.sin(time * 30) * 0.6, rot: Math.sin(time * 26) * 0.12 }; }
         else { fx.torso = { dy: -1.4 * Math.exp(-(el - 1.1) / 0.1) }; }
         break;
       case 'SCHROTT-WURF':
-        if (sub === 'windup') { leg = KLEG.crouch; r = KARM.windup; l = KARM.windup; posture = 'duck'; fx.torso = { dy: 1.2 * wp, rot: -0.04 * wp }; fx.clawR = { rot: -0.2 * wp }; fx.clawL = { rot: 0.15 * wp }; }
+        if (sub === 'windup') { leg = KLEG.crouch; r = KARM.hold; l = KARM.windup; posture = 'duck'; fx.torso = { dy: 1.2 * wp, rot: -0.04 * wp }; fx.clawR = { rot: -0.2 * wp }; fx.clawL = { rot: 0.15 * wp }; }
         else if (el < 0.4) { leg = KLEG.fwd; r = KARM.side; l = KARM.hang; posture = 'fwd'; fx.torso = { dx: 1 * k }; fx.clawR = { rot: 0.15 * damped(el) }; }
         else { fx.clawR = { rot: 0.1 * damped(el - 0.4) }; }
         break;
       case 'SCHROTT-HAGEL': // Phase 2: hebt beide Arme, stampft sie in den Boden
-        if (sub === 'windup') { leg = wp < 0.5 ? KLEG.lift : KLEG.jump; r = KARM.windup; l = KARM.windup; posture = 'upright'; fx.torso = { dy: -1.5 * wp }; fx.clawR = { rot: -0.25 * wp }; fx.clawL = { rot: 0.25 * wp }; fx.magnet = { dy: -1.2 * wp }; }
+        if (sub === 'windup') { leg = wp < 0.5 ? KLEG.lift : KLEG.jump; r = KARM.hold; l = KARM.hold; posture = 'upright'; fx.torso = { dy: -1.5 * wp }; fx.clawR = { rot: -0.25 * wp }; fx.clawL = { rot: 0.25 * wp }; fx.magnet = { dy: -1.2 * wp }; }
         else { leg = el < 0.5 ? KLEG.crouch : KLEG.stand; r = KARM.stomp; l = KARM.stomp; posture = el < 0.5 ? 'fwd' : 'normal'; fx.torso = { dy: 1.5 * k, sy: 1 - 0.06 * k }; fx.clawR = { rot: -0.15 * damped(el) }; fx.clawL = { rot: 0.15 * damped(el) }; }
         break;
     }
