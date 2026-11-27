@@ -25,6 +25,6 @@ Rig-Animationen und Rig-Daten werden **automatisch gefunden** (`import.meta.glob
 ## 4. Regeln, die Konflikte vermeiden
 - **Nie** direkt `git push` ohne vorheriges Merge + Tests; **nie** `verify || git push` oder `;`-Ketten (ein roter Test darf nicht pushen) — dafür gibt es `npm run ship`.
 - Eigene Tests je Rig anlegen (`m11p…_<rig>.cjs`, wird vom Runner automatisch gefunden) statt `m11p2.cjs` zu erweitern.
-- Sprite-Wünsche: neue Zeile in `SPRITE_QUEUE.md` mit **neuer, fortlaufender ID** in der passenden Priorität (kein Umnummerieren).
+- Sprite-Wünsche (ausdrücklich erwünscht, auch Ersatz für Sheets, die nicht gefallen — `AGENTS.md` Regel 14): neue Zeile in `SPRITE_QUEUE.md` mit **neuer, fortlaufender ID** in der passenden Priorität (kein Umnummerieren).
 - `npm run art:import -- <rig> --force` ändert nur `public/art/rigs/<rig>/` — nie ohne Rig-ID für alle Rigs gleichzeitig laufen lassen.
 - Test-/Screenshot-Hilfsdateien nicht committen (`tests/out/`, `tests/zz_*.cjs`).

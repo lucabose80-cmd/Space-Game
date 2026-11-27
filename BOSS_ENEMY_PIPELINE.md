@@ -11,7 +11,9 @@
 Gute Animation scheitert fast immer an **zu wenigen Bildern**, nicht am Code. Deshalb gilt:
 1. **Viele Sprites sind normal und erwünscht.** Lieber 2 Sheets mehr einplanen als eine Pose mit Code „verbiegen“ (Rotation/Skalierung eines einzelnen Bildes wirkt puppenhaft — Rückmeldung Projektinhaber zum Kern-Wächter).
 2. **Fehlt ein Sprite → nie blockieren:** prozeduraler Fallback bzw. altes Sprite zeigen, **und sofort** in `SPRITE_QUEUE.md` einreihen (`AGENTS.md` §3 Regel 7). Ein Fallback ist ein *Notfall*, kein Endzustand.
-3. **Richtwerte (Mindest-Bedarf):**
+3. **Nicht an Bild-Credits sparen** (Projektinhaber, 2026-11-27): Es ist genug Gemini-Guthaben da. Wenn es der Qualität dient, wird bestellt — auch mehrfach.
+4. **Gefällt etwas nicht oder klappt es nicht → zurück auf neue Sheets:** jederzeit, in jeder Stufe (auch nach Stufe 8). Ersatz-Sheet (*„ersetzt `<datei>` — Grund: …“*) oder Zusatz-Sheet in `SPRITE_QUEUE.md` eintragen (§0 dort), Fallback bis zur Lieferung, danach Stufen 5–8 für die betroffenen Teile wiederholen. Ein schwaches Sheet zu behalten, nur weil es schon geliefert ist, ist **kein** gültiger Grund.
+5. **Richtwerte (Mindest-Bedarf — eher mehr):**
 
 | Art | Mindest-Sprites | typischer Umfang |
 | :--- | :--- | :--- |
@@ -33,7 +35,7 @@ Jede Stufe hat ein **Tor**: erst weiter, wenn das Tor erfüllt ist. Status je St
 | **7 Prüfung gegen Checkliste** | Claude Code | jede Zeile G1–G9 / D1–D14 / A1–A10 im Status-Blatt mit ✅ + Nachweis (Test, Screenshot, Labor-Stelle) | eigener Test `tests/m11p…_<id>.cjs` bzw. `m12p…`, `npm run verify` grün, Screenshots in `tests/out/` angesehen |
 | **8 Abnahme im Spiel** | Projektinhaber | 1–2 echte Kämpfe, Rückmeldung mit konkreten Stellen | Inhaber sagt „abgenommen“ → Status-Tabelle in `BOSS_ANIMATION_PLAN.md` §3 auf ✅ |
 
-**Fehlen in Stufe 5–7 Bilder:** nicht mit Code überbrücken, sondern zurück zu Stufe 3 (neue Queue-Zeile, Priorität P0 für laufende Bosse), Fallback bis dahin.
+**Fehlen in Stufe 5–7 Bilder oder überzeugen die gelieferten nicht:** nicht mit Code überbrücken, sondern zurück zu Stufe 3 (neue Queue-Zeile bzw. Ersatz-Sheet, Priorität P0 für laufende Bosse), Fallback bis dahin. **Rückmeldung des Inhabers „gefällt mir nicht“ in Stufe 8** → betroffene Sheets als Ersatz bestellen, nicht nur den Code nachjustieren.
 
 ## 2. Steckbrief-Vorlage (Stufe 1)
 ```md

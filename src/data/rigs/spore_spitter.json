@@ -1,0 +1,24 @@
+{
+  "kind": "spore_spitter",
+  "sheet": {
+    "file": "spore_spitter",
+    "srcFile": "spore_spitter_rig",
+    "cols": 3,
+    "rows": 2,
+    "order": ["body", "eye", "podShut", "podOpen", "spore", "burrowed"],
+    "scaleRef": "body",
+    "torsoDisplayH": 19,
+    "pixelRatio": 2,
+    "sets": [
+      { "file": "spore_spitter_rig", "mode": "swap", "cells": [0, 5], "ids": ["sp_body", "sp_burrowed"] },
+      { "file": "spore_spitter_rig", "mode": "swap", "cells": [2, 3], "ids": ["pod_shut", "pod_open"] }
+    ]
+  },
+  "parts": [
+    { "id": "body", "image": "sp_body", "variants": ["sp_body", "sp_burrowed"], "z": 0, "pivot": [0.5, 0.5], "offset": [0, -6] },
+    { "id": "eye", "image": "eye", "parent": "body", "attach": [0.5, 0.5], "pivot": [0.5, 0.5], "z": 2, "offset": [0, -3] },
+    { "id": "podL", "image": "pod_shut", "variants": ["pod_shut", "pod_open"], "parent": "body", "attach": [0.5, 0.5], "pivot": [0.5, 0.5], "z": 1, "offset": [-5.5, -5.5], "rot": -0.4 },
+    { "id": "podR", "image": "pod_shut", "variants": ["pod_shut", "pod_open"], "flipX": true, "parent": "body", "attach": [0.5, 0.5], "pivot": [0.5, 0.5], "z": 1, "offset": [5.5, -5.5], "rot": 0.4 },
+    { "id": "spore", "image": "spore", "parent": "body", "attach": [0.5, 0.5], "pivot": [0.5, 0.5], "z": 3, "offset": [0, -8] }
+  ]
+}

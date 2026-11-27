@@ -21,6 +21,7 @@ npm run verify                           # Build + Invarianten + Sprite-Check + 
 - Dev-Test-Hook `window.__game` gibt es nur im Vite-Dev-Server.
 
 ## ⚠ Fehlende Sprites (Fallbacks aktiv → neue PNGs gewünscht)
+> **Grundhaltung (Inhaber, 2026-11-27): Qualität vor Sparen.** Genug Gemini-Guthaben vorhanden — wenn etwas mit den vorhandenen Bildern nicht gut aussieht, nicht klappt oder nicht gefällt, wird ein neues bzw. ersetzendes Sheet bestellt (`AGENTS.md` Regel 14, `SPRITE_QUEUE.md` §0).
 `npm run check:sprites` listet die aktuelle Lage. Stand: **alle 12 optionalen M10-Sprites fehlen**
 (`prop_hub_*`, `prop_kael_memorial`, `prop_lyra_echo_sign`, `prop_nyx_free_lantern`, `prop_vex_*`, `npc_pilgrim`, `npc_foundry_worker`, `npc_elder_scholar`) **plus 5 Boss-Sprites (M10-C)**: `boss_scrap_collector` *(Krall hat inzwischen ein Rig → nur noch Rückfall, niedrige Priorität)*, `boss_slag_colossus`, `boss_forge_mistress`, `boss_chrono_warden`, `boss_monolith_colossus` (128×128, Prompts: Art-Guide §8).
 - Prompts & Maße: `ART_AND_DESIGN_GUIDE.md` §7–§8 · Ablage: `public/art/sprites/<datei>.png` (96×96 bzw. 128×128, kein Code nötig).
@@ -46,7 +47,7 @@ Jeder Bereich hat ein eigenes Status-Blatt in [`handoff/`](handoff/README.md) �
 - **Polish (Teile 1–3) abgenommen & erledigt:** Hintergrund-Pause, Wackeln/Vibration im Hilfe-Tab, Tür-Label · Kern-Wächter-Schritte, Hit-Stop (`heavyStop`), Telegraph-Blitz, Schadenszahlen-Merge · Dungeon-Code lädt nach (`__game.dungeonReady`, Chunk-Gruppe `dungeon` entfernt). Tests `t7`, `t7b`, `t8`.
 - **Aufräumen erledigt** (Audit 2026-11-26, Blöcke C1–C6): Doku auf aktuellem Stand, „Kern-Wächter“ einheitlich, Repo-Hygiene, toter Code entfernt, gemeinsamer `EnemyKind`, `check:sprites` prüft Sheets/Imports, Pose-Sheet-Import (`art_source/poses`) entfernt, `npm run build:single` dokumentiert, Version 1.4.0. **Firebase-SDK lädt nach dem Start nach** (`src/services/firebaseSdk.ts` per `import()`, Service-API unverändert; Test `t6`) — Abweichung vom Plan: nicht der ganze Service, nur das SDK.
 - **Claude Code:** je Bereich siehe `handoff/*.md` (Krall: Einbinden P0-08…12 · Gegner: Drohne, Phasen-Jäger · Kern-Wächter: Prüfung D11–D14).
-- **Antigravity (als Nächstes, nach kurzem Quota-Reset ~35 min):** Weiter in [`SPRITE_QUEUE.md`](SPRITE_QUEUE.md) via Skill `sprite-batch`: **`P0-15`** (`krall_arms_R4.png`) + **`P0-17`** (`krall_arms_R5.png`) / **`P0-18`** (`krall_arms_L5.png`), danach **P2** ab `P2-03` (`spore_spitter_rig.png`).
+- **Antigravity (als Nächstes, nach kurzem Quota-Reset ~35 min):** Weiter in [`SPRITE_QUEUE.md`](SPRITE_QUEUE.md) via Skill `sprite-batch`: **`P0-15`** (`krall_arms_R4.png`) + **`P0-17`** (`krall_arms_R5.png`) / **`P0-18`** (`krall_arms_L5.png`), danach **P2** ab `P2-06` (`shard_sniper_rig.png`); `P2-03` (Sporenspucker) ist eingebunden (`handoff/enemy_spore_spitter.md`). Neu: `P2-20` (optionale Sporenspucker-Effekte, niedrig).
 - Ökonomie & Boss-Kampfgefühl im echten Spiel beobachten und in `src/data/balance.ts` nachjustieren (Berichte: `tests/out/economy.json`, `tests/out/ttk.json`).
 - Optionale M10/M10-C-Einzel-Sprites bei Bedarf ebenfalls per Antigravity erzeugen.
 

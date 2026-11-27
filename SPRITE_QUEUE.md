@@ -8,6 +8,11 @@
 
 ## Verbindliche Regeln für ALLE Agenten & KIs
 
+### 0. Grundhaltung: Qualität vor Sparen (Projektinhaber, 2026-11-27)
+- **Neue Sheets bestellen ist ausdrücklich erwünscht.** Der Projektinhaber hat genug Gemini-Guthaben — Bild-Credits sind **kein** Grund, eine Pose/Arena/Effekt mit Code zu verbiegen oder ein schwaches Sheet zu behalten (`AGENTS.md` Regel 14).
+- **Gefällt etwas nicht oder klappt es technisch nicht** (falscher Maßstab, Gelenk sitzt nicht, Pose wirkt puppenhaft, Stil passt nicht, Rückmeldung des Inhabers): **Ersatz-Sheet** eintragen — neue ID, Status `[ ]`, Notiz *„ersetzt `<datei>` — Grund: …“*, Referenz = altes Sheet + was anders werden soll. Ersatz-Einträge werden auch bei vorhandener Datei neu generiert (Ausnahme in Regel 2.2). Zusätzliche Posen/Zustände = **Zusatz-Sheet** (`<id>_<teil>N.png`).
+- Die STOP-GATES bleiben — sie sichern die **Qualität** (erst Pilot im Spiel prüfen, dann Serie), nicht das Budget. Der Inhaber kann Gates und den Sicherheits-Deckel (Regel 2.5) jederzeit lockern.
+
 ### 1. Einsortier-Pflicht (Claude Code, Feature-Agenten & Planung)
 Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet oder einen prozeduralen Fallback anlegt, **muss** es im selben Commit hier in `SPRITE_QUEUE.md` eintragen:
 - in der passenden Prioritätsstufe (**P0** = laufendes Boss-Rig / Blocker · **P1** = Pilot vor Serie · **P2** = M11 Gegner-Rigs · **P3** = optionale M10/M10-C-Fallbacks · **P4** = weitere Boss-Rigs),
@@ -107,6 +112,7 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 | `P2-02` | [x] | `art_source/rigs/shield_drone_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_shield_drone.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S1) | ✅ Schild-Drohne (`min_margin ≥ 80 px`, `art:check` ok; Emitter-Ring Zelle 4 mit `holes: true` importieren) |
 | `P2-03` | [x] | `art_source/rigs/spore_spitter_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_spore_spitter.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S1) | ✅ Sporenspucker (Körper · Auge · Kapsel zu/offen · Spore · halb eingegraben; Gelenke im Fadenkreuz, `min_margin ≥ 85 px`, `art:check` ok) |
 | `P2-04` | [x] | `art_source/rigs/drone_arc_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_drone_arc.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S1) | ✅ Bogen-Drohne (Gold-Rumpf · Visier · linke Tesla-Spule · linke Düsen-Gondel · Funken klein/groß; Gelenke im Fadenkreuz, `min_margin ≥ 72 px`, `art:check` ok) |
+| `P2-20` | [ ] | `art_source/rigs/spore_spitter_fx.png` | Typ E · 3×2 · `1536×1024` (Effekte, Mitte = Gelenk) | `art_source/rigs/spore_spitter_rig.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S1) — Prompt sinngemäß wie Effekt-Sheets (`ART_BRIEF_M11.md`), Stil/Palette des Rig-Sheets | **Optional (niedrig, P2 Zusatz):** Sporenspucker-Effekte, bisher ersetzt durch Code-Glühen/Partikel: 1–3 Erdkrümel-Puff beim Eingraben (klein → groß → zerstäubt) · 4 Sporen-Puff beim Ausstoß · 5 Schleim-Spritzer (Tod) · 6 Spore platzt (Ring). Fallback aktiv (Rig läuft ohne). |
 
 ### P2b — Sektor 2
 
@@ -142,7 +148,7 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 
 ## P3 — Optionale M10 & M10-C Einzel-Sprites (Fallbacks ersetzen)
 
-> **Credit-Spar-Hinweis:** Bis zu 6 zusammengehörige M10-Promenade-Props (oder 4 M10-C-Boss-Sprites) können als **ein** `3×2`-Sheet auf `#FFFFFF` erzeugt und per PIL sauber in einzelne `96×96`- bzw. `128×128`-RGBA-PNGs extrahiert werden (1 Slot statt 6 Slots). Eine abgelegte PNG ersetzt den prozeduralen Fallback sofort ohne Codeänderung.
+> **Bündel-Tipp (optional, kein Muss — §0):** Bis zu 6 zusammengehörige M10-Promenade-Props (oder 4 M10-C-Boss-Sprites) können als **ein** `3×2`-Sheet auf `#FFFFFF` erzeugt und per PIL sauber in einzelne `96×96`- bzw. `128×128`-RGBA-PNGs extrahiert werden (1 Slot statt 6 Slots). Eine abgelegte PNG ersetzt den prozeduralen Fallback sofort ohne Codeänderung.
 
 ### P3a — Schwächste Promenaden-Fallbacks zuerst (M10-A)
 
@@ -190,7 +196,7 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 
 ## P4 — Weitere Boss-Rig-Sets (`ART_BRIEF_M11.md` §4.3)
 
-> **⛔ STOP-GATE (GESPERRT):** Zellenlisten pro Boss werden erst festgelegt (jede muss den **Mindeststandard D11–D14** abdecken: Angriffsgrafik, Beschädigungsstufen, Beine/Unterkörper je Angriff), wenn **Kern-Wächter** und **Krall** im echten Spiel abgenommen sind (spart Credits). Danach trägt Claude Code die konkreten Sheets je Boss hier als `P4-01 …` ein:
+> **⛔ STOP-GATE (GESPERRT):** Zellenlisten pro Boss werden erst festgelegt (jede muss den **Mindeststandard D11–D14** abdecken: Angriffsgrafik, Beschädigungsstufen, Beine/Unterkörper je Angriff), wenn **Kern-Wächter** und **Krall** im echten Spiel abgenommen sind (damit die Serie auf einem abgenommenen Vorbild aufbaut — Qualität, nicht Budget; §0). Danach trägt Claude Code die konkreten Sheets je Boss hier als `P4-01 …` ein:
 > Quarz-Koloss · Sternen-Archon · Leviathan · Prisma-Weberin · Prisma-Archon · Schlacken-Koloss · Gießerei-Meisterin · Vulkan-Titan · Chrono-Wächter · Monolith-Koloss.
 
 ---

@@ -20,7 +20,7 @@
 4. **Gleiches Design wie das Referenzbild** (`public/art/sprites/<datei>.png` immer über `ImagePaths` mitgeben): *„keep exactly this character design, colors, dark outline and shading, light from the upper left“*. Nicht „neu interpretieren“.
 5. **Teile vollständig zeichnen** — auch die Stellen, die im Original verdeckt sind (z. B. die Oberseite eines Beins unter dem Panzer, die Rückseite des Rumpfes hinter dem Arm). Der Code schiebt Teile übereinander; Löcher würden sichtbar.
 6. **Teile freistehend**, ≥ 30 px Weißrand, nichts berührt den Zellrand, **keine** Rasterlinien, **keine** Mittenmarkierung, kein Text, kein Bodenschatten, keine Effekte außerhalb des eigenen Teils.
-7. **Symmetrische Insekten-/Spinnenbeine (Draufsicht):** nur die **linke** Seite zeichnen, der Code spiegelt (spart Credits — bei Gegnern dieser Größe sieht man den Unterschied nicht). **Humanoide** (Arme/Beine): links und rechts **getrennt** zeichnen (wie bei den Bossen).
+7. **Symmetrische Insekten-/Spinnenbeine (Draufsicht):** nur die **linke** Seite zeichnen, der Code spiegelt (bei Gegnern dieser Größe sieht man den Unterschied nicht; wirkt es im Spiel doch gespiegelt, rechte Seite als Zusatz-Sheet bestellen). **Humanoide** (Arme/Beine): links und rechts **getrennt** zeichnen (wie bei den Bossen).
 8. **Erst Pilot, dann Serie:** zuerst die 2 Pilot-Sheets aus §5 erzeugen, pushen, vom Projektinhaber im Spiel abnehmen lassen — erst dann weitere.
 
 ## 3. Prompt-Vorlage (Formel G)
@@ -85,7 +85,7 @@ Das Geschütz bewegt sich im Spiel (`scurry`), das Rig hat aber nur Sockel + Geh
 
 **Optional später (Typ L, wie bei Bossen):** Für Humanoide (`phase_stalker`, `ember_stalker`, `star_lancer`, `monolith_guard`) ein zweites Sheet `<kind>_arms_R.png` mit 6 Arm-Posen (hängend · ausholen · Schlag zur Kamera · seitlich · Block · Stoß). Erst wenn die Teile-Sheets im Spiel gut aussehen.
 
-## 5. Reihenfolge & Credit-Plan
+## 5. Reihenfolge (Qualität vor Sparen — `SPRITE_QUEUE.md` §0)
 | Schritt | Sheets | Warum |
 | :--- | :--- | :--- |
 | **Pilot** | `turret_rig.png`, `phase_stalker_rig.png` | ein mechanischer + ein humanoider Gegner aus Sektor 1 — zeigt, ob das Format für beide Typen trägt. **Danach Abnahme im Spiel.** |
@@ -95,7 +95,7 @@ Das Geschütz bewegt sich im Spiel (`scurry`), das Rig hat aber nur Sockel + Geh
 | 5 | `chrono_eye_rig.png`, `astral_scarab_rig.png`, `star_lancer_rig.png`, `void_wraith_rig.png`, `monolith_guard_rig.png` | Sektor 4 |
 | 6 | optionale Arm-Posen (Typ L) für Humanoide | Feinschliff |
 
-Pro Sitzung lieber **wenige Sheets sauber** als viele schief. Die Boss-Sheets aus `ART_BRIEF_M11.md` (restliche Krall-Sheets) haben Vorrang, wenn beides offen ist.
+Pro Sitzung lieber **wenige Sheets sauber** als viele schief. **Zusatz- oder Ersatz-Sheets sind jederzeit erlaubt** (z. B. Arm-Posen, Angriffs-/Tod-Effekte, ein neues Sheet, wenn eines nicht gefällt) — Credits sind kein Grund dagegen (`AGENTS.md` Regel 14). Die Boss-Sheets aus `ART_BRIEF_M11.md` (restliche Krall-Sheets) haben Vorrang, wenn beides offen ist.
 
 ## 6. Prüfen & Ablegen (Antigravity)
 1. Bild erzeugen (Referenz über `ImagePaths`, `AspectRatio: '3:2'`), als verlustfreies PNG nach `art_source/rigs/<kind>_rig.png` (1536×1024; bei abweichender Größe per PIL ohne Skalierungsverlust auf ein `#FFFFFF`-Raster mit 512×512-Zellen packen).
