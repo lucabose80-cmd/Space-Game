@@ -1,0 +1,155 @@
+{
+  "kind": "shield_drone",
+  "sheet": {
+    "file": "shield_drone",
+    "srcFile": "shield_drone_rig",
+    "cols": 3,
+    "rows": 2,
+    "order": [
+      "hull",
+      "visor",
+      "nacelle",
+      "emitter",
+      "arcOn",
+      "arcHot"
+    ],
+    "scaleRef": "hull",
+    "torsoDisplayH": 24,
+    "pixelRatio": 2,
+    "sets": [
+      {
+        "file": "shield_drone_rig",
+        "mode": "swap",
+        "cells": [
+          3
+        ],
+        "ids": [
+          "emitter"
+        ],
+        "holes": true
+      },
+      {
+        "file": "shield_drone_rig",
+        "mode": "swap",
+        "cells": [
+          4,
+          5
+        ],
+        "ids": [
+          "arcOn",
+          "arcHot"
+        ]
+      }
+    ]
+  },
+  "parts": [
+    {
+      "id": "hull",
+      "image": "hull",
+      "z": 1,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "offset": [
+        0,
+        -11
+      ]
+    },
+    {
+      "id": "visor",
+      "image": "visor",
+      "parent": "hull",
+      "attach": [
+        0.5,
+        0.5
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "z": 2,
+      "offset": [
+        3,
+        3
+      ]
+    },
+    {
+      "id": "nacelleL",
+      "image": "nacelle",
+      "parent": "hull",
+      "attach": [
+        0.5,
+        0.5
+      ],
+      "pivot": [
+        0.5,
+        0.2
+      ],
+      "z": 0,
+      "offset": [
+        -11,
+        9
+      ]
+    },
+    {
+      "id": "nacelleR",
+      "image": "nacelle",
+      "flipX": true,
+      "parent": "hull",
+      "attach": [
+        0.5,
+        0.5
+      ],
+      "pivot": [
+        0.5,
+        0.2
+      ],
+      "z": 0,
+      "offset": [
+        11,
+        9
+      ]
+    },
+    {
+      "id": "emitter",
+      "image": "emitter",
+      "parent": "hull",
+      "attach": [
+        0.5,
+        0.5
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "z": -1,
+      "offset": [
+        0,
+        12
+      ]
+    },
+    {
+      "id": "arc",
+      "image": "arcOn",
+      "variants": [
+        "arcOn",
+        "arcHot"
+      ],
+      "parent": "hull",
+      "attach": [
+        0.5,
+        0.5
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "z": 3,
+      "offset": [
+        0,
+        0
+      ]
+    }
+  ]
+}
