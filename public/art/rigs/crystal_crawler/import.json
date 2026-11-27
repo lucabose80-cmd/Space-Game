@@ -1,0 +1,48 @@
+{
+ "rig": "crystal_crawler",
+ "scale": 0.13027,
+ "resample": "lanczos",
+ "torsoDisplayH": 17,
+ "pixelRatio": 2,
+ "sheets": {
+  "crystal_crawler_rig.png": "43060113c8f96be6"
+ },
+ "parts": {
+  "torso": {
+   "w": 42,
+   "h": 34,
+   "srcW": 320,
+   "srcH": 261
+  },
+  "head": {
+   "w": 19,
+   "h": 18,
+   "srcW": 148,
+   "srcH": 137
+  },
+  "legA": {
+   "w": 15,
+   "h": 21,
+   "srcW": 116,
+   "srcH": 162
+  },
+  "legB": {
+   "w": 12,
+   "h": 21,
+   "srcW": 92,
+   "srcH": 165
+  },
+  "legC": {
+   "w": 21,
+   "h": 20,
+   "srcW": 161,
+   "srcH": 155
+  },
+  "crystal": {
+   "w": 12,
+   "h": 16,
+   "srcW": 90,
+   "srcH": 124
+  }
+ }
+}

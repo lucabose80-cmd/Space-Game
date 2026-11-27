@@ -184,6 +184,7 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | `P3-18` | [ ] | `art_source/rigs/core_warden_arms_R4.png` | L · 3×2 (`1536×1024`) | `core_warden_arms_R.png` + `core_warden_arms_R2.png` | `ART_BRIEF_M11.md` §4.2 *(Zusatz „Phase-1-Armschäden“)* | rechter Arm, Phase 1 **beschädigt**: Hauptposen Hängend · Ausholen · Schlag · Laser-Seite · Block · Stampfer, mit Rissen, verbogener Panzerung, Funken, Schulterkappe angeschlagen; Schulterring im Fadenkreuz |
 | `P3-19` | [ ] | `art_source/rigs/core_warden_arms_L4.png` | L · 3×2 (`1536×1024`) | `core_warden_arms_L.png` + `core_warden_arms_L2.png` | `ART_BRIEF_M11.md` §4.2 *(Zusatz „Phase-1-Armschäden“)* | linker Arm, gleiche Posen, nicht gespiegelt, Licht links-oben |
+| `P3-20` | [ ] | `art_source/rigs/crystal_crawler_fx.png` | Typ E (Effekt) · 3×2 (`1536×1024`) | `art_source/rigs/crystal_crawler_rig.png` *(Palette/Kristall)* | `ART_BRIEF_M11_ENEMIES.md` §4 *(Zusatz „Krabbler-Effekte“)* | Kristall-Krabbler: ersetzt die wiederverwendeten Rig-Teile beim Tod + Vorwarnung: Kristall-Splitter klein · mittel · groß (eisblau, Facetten) · glühender Rücken-Kristall (hell, Aura) · Panzerbruchstück (violett) · lila Funken-/Staubspur fürs Vorschnellen; je Zelle zentriert, `#FFFFFF`-Hintergrund. Bis dahin: Tod-Splitter aus Rig-Teilen (`crystal`/`head`/`legA–C`), Glühen per `drawGlow` |
 
 ---
 
