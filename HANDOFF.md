@@ -76,8 +76,8 @@ npm run verify                           # Build + Invarianten + Sprite-Check + 
 ## M11 Gegner-Rigs (`ART_BRIEF_M11_ENEMIES.md`, Typ G, je `art_source/rigs/<kind>_rig.png`)
 Nach und nach erzeugen, sobald Gemini-Volumen frei ist (Reihenfolge §5 im Brief). Abhaken, wenn per `art:check` geprüft und gepusht:
 - [x] **Pilot:** `turret_rig` (`min_margin ≥ 45 px`, `art:check` ok) + `turret_treads` (`min_margin ≥ 78 px`, `art:check` ok) · `phase_stalker_rig` (`min_margin ≥ 53 px`, `art:check` ok) → **P2-Gate vom Projektinhaber freigegeben**
-- [x] S1 (erledigt): `drone_rig` (`min_margin ≥ 71 px`, `art:check` ok)
-- [ ] S1 (offen): `shield_drone_rig` · `spore_spitter_rig` · `drone_arc_rig`
+- [x] S1 (erledigt): `drone_rig` (`min_margin ≥ 71 px`, `art:check` ok) · `shield_drone_rig` (`min_margin ≥ 80 px`, `art:check` ok; Emitter-Ring Zelle 4 `holes: true`)
+- [ ] S1 (offen): `spore_spitter_rig` · `drone_arc_rig`
 - [ ] S2: `crystal_crawler_rig` · `shard_sniper_rig` · `prism_drone_rig` · `void_crawler_rig` · `resonance_warden_rig`
 - [ ] S3: `magma_mortar_rig` · `slag_beetle_rig` · `ember_stalker_rig` · `forge_golem_rig` · `solar_drone_rig`
 - [ ] S4: `chrono_eye_rig` · `astral_scarab_rig` · `star_lancer_rig` · `void_wraith_rig` · `monolith_guard_rig`
@@ -86,7 +86,7 @@ Nach und nach erzeugen, sobald Gemini-Volumen frei ist (Reihenfolge §5 im Brief
 ## Gegner-Rigs (M11 Phase 7) — Stand
 - **Geschütz (`turret`) eingebunden:** `rigs.json` → `turret` (`sheet.srcFile: turret_rig`, Teile base/housing/barrel/muzzle/core), `src/dungeon/anim/enemyAnims.ts` (`turretPose`: Neigung zum Spieler, Rohr fährt in Vorwarnung aus, Mündung/Kern glühen, Rückstoß, Wippen beim Umsetzen), Renderer `tryDrawEnemyRig` (Blick zum Spieler = Rig gespiegelt). Fallback: altes `turret_0/1`.
 - **Geschütz komplett (P0-13 ✅ eingebunden):** Ketten `treadL/R` (4 Rollphasen aus zurückgelegter Strecke, rechte Kette gespiegelt + gegenläufig), Staubwolke beim Fahren, Bremsfunken beim Anhalten (`turretPose` in `enemyAnims.ts`).
-- **Noch ohne Code:** `phase_stalker_rig.png`, `drone_rig.png` liegen vor, werden als Nächstes eingebunden (gleiches Muster).
+- **Noch ohne Code:** `phase_stalker_rig.png`, `drone_rig.png`, `shield_drone_rig.png` liegen vor, werden als Nächstes eingebunden (gleiches Muster).
 
 ## Nächster Schritt
 - **Polish (Teile 1–3) abgenommen & erledigt:** Hintergrund-Pause, Wackeln/Vibration im Hilfe-Tab, Tür-Label · Kern-Wächter-Schritte, Hit-Stop (`heavyStop`), Telegraph-Blitz, Schadenszahlen-Merge · Dungeon-Code lädt nach (`__game.dungeonReady`, Chunk-Gruppe `dungeon` entfernt). Tests `t7`, `t7b`, `t8`.
@@ -94,8 +94,8 @@ Nach und nach erzeugen, sobald Gemini-Volumen frei ist (Reihenfolge §5 im Brief
 - **Claude Code (sofort startklar!):**
   1. ~~S6 Kern-Wächter~~ ✅ eingebunden (Abnahme im echten Kampf durch Projektinhaber offen).
   2. ~~Krall K-C (P0-06/07)~~ ✅ eingebunden: `clawR/L` Varianten 6–11 (`KARM.telS/telM/telL/snap/sog/hold`). **Alle restlichen Krall-P0-Sheets komplett im Repo (P0-08…12):** `krall_fx2.png` (Ringe mit `holes: true`), `krall_torsos2.png` (6 Phase-2-Rümpfe), `krall_legs_R2/L2.png` (Angriffsbeine K-B), `krall_torsos3.png` (6 Rumpf-Beschädigungsstufen) & `krall_arms_R3/L3.png` (beschädigte Arme K-E) in `rigs.json` importieren und in `bossAnims.ts`/`bossFx.ts` einbinden.
-  3. **Gegner-Rigs (S1):** `turret_rig.png` + `turret_treads.png` ✅ eingebunden (Muster: `rigs.json` + `enemyAnims.ts` + `tryDrawEnemyRig`); **als Nächstes** `phase_stalker_rig.png` und `drone_rig.png` (liegen bereit).
-- **Antigravity (als Nächstes):** **Alle P0-Aufträge komplett erledigt ✅!** Weiter in [`SPRITE_QUEUE.md`](SPRITE_QUEUE.md) via Skill `sprite-batch` mit **P2** ab **`P2-02`** (`shield_drone_rig.png`) & **`P2-03`** (`spore_spitter_rig.png`).
+  3. **Gegner-Rigs (S1):** `turret_rig.png` + `turret_treads.png` ✅ eingebunden (Muster: `rigs.json` + `enemyAnims.ts` + `tryDrawEnemyRig`); **als Nächstes** `phase_stalker_rig.png`, `drone_rig.png` und `shield_drone_rig.png` (liegen bereit).
+- **Antigravity (als Nächstes, nach Gemini-Quota-Reset):** Weiter in [`SPRITE_QUEUE.md`](SPRITE_QUEUE.md) via Skill `sprite-batch` mit **P2** ab **`P2-03`** (`spore_spitter_rig.png`) & **`P2-04`** (`drone_arc_rig.png`).
 - Ökonomie & Boss-Kampfgefühl im echten Spiel beobachten und in `src/data/balance.ts` nachjustieren (Berichte: `tests/out/economy.json`, `tests/out/ttk.json`).
 - Optionale M10/M10-C-Einzel-Sprites bei Bedarf ebenfalls per Antigravity erzeugen.
 

@@ -80,7 +80,7 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 | ID | Status | Zieldatei | Typ & Format | Referenz (`ImagePaths`) | Brief / Prompt | Notiz |
 | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
 | `P2-01` | [x] | `art_source/rigs/drone_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/drone.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S1) | ✅ Drohne (`min_margin ≥ 71 px`, `art:check` ok, bereit für Claude-Import) |
-| `P2-02` | [ ] | `art_source/rigs/shield_drone_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_shield_drone.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S1) | Schild-Drohne |
+| `P2-02` | [x] | `art_source/rigs/shield_drone_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_shield_drone.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S1) | ✅ Schild-Drohne (`min_margin ≥ 80 px`, `art:check` ok; Emitter-Ring Zelle 4 mit `holes: true` importieren) |
 | `P2-03` | [ ] | `art_source/rigs/spore_spitter_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_spore_spitter.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S1) | Sporenspucker |
 | `P2-04` | [ ] | `art_source/rigs/drone_arc_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_drone_arc.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S1) | Bogen-Drohne |
 
