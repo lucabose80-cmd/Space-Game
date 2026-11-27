@@ -46,6 +46,7 @@ import {
 import { DungeonEnemyAi } from '../dungeon/enemyAi';
 import { RoomMechanicsSystem } from '../dungeon/roomMechanics';
 import { NavGrid } from '../dungeon/navGrid';
+import { DungeonCamera } from '../dungeon/camera';
 import { BossFx } from '../dungeon/bosses/bossFx';
 import { BOSS_HP, ENEMY_SHIELDS, RIFT_SCALING } from '../data/balance';
 import { findFreeSpotSpiral } from '../dungeon/mechanicsGen';
@@ -85,6 +86,11 @@ export class DungeonScene {
   public currentFloor: 1 | 2 | 3 = 1;
   public currentRoom!: DungeonRoom;
   /** M12 (Phase A): Grenzen des aktuellen Raums (Standardraum = `ROOM_LEFT…`, Arena = `room.bounds`). */
+  /** M12 (Phase B): Kamera — im Standardraum immer (0, 0). */
+  public readonly camera = new DungeonCamera();
+  public get cameraTarget(): { playerX: number; playerY: number; roomBounds: DungeonRoom['bounds'] } {
+    return { playerX: this.playerX, playerY: this.playerY, roomBounds: this.currentRoom?.bounds };
+  }
   public get bounds(): Readonly<RoomBounds> {
     return roomBounds(this.currentRoom);
   }
@@ -586,6 +592,7 @@ export class DungeonScene {
     }
     this.lastSafeX = this.playerX;
     this.lastSafeY = this.playerY;
+    this.camera.snap(this.cameraTarget);
 
     if (!room.cleared) {
       for (const sp of room.spawns) {
@@ -1081,6 +1088,22 @@ export class DungeonScene {
 
   public update(dt: number, input: InputManager): void {
     if (this.finished) return;
+    // M12 (Phase B): während einer Kamerafahrt ist die Spieler-Eingabe gesperrt
+    if (this.camera.inputLocked) {
+      const prev = input.locked;
+      input.locked = true;
+      try {
+        this.updateFrame(dt, input);
+      } finally {
+        input.locked = prev;
+      }
+    } else {
+      this.updateFrame(dt, input);
+    }
+    if (!this.finished) this.camera.update(dt, this.cameraTarget);
+  }
+
+  private updateFrame(dt: number, input: InputManager): void {
     this.time += dt;
     this.runElapsedSec += dt;
     this.roomFade = Math.max(0, this.roomFade - dt);
@@ -1230,7 +1253,7 @@ export class DungeonScene {
   public getAimAngle(input: InputManager): number {
     if (input.isMouseActive()) {
       this.aimSmartActive = false;
-      const m = input.getMousePos();
+      const m = this.camera.toWorld(input.getMousePos().x, input.getMousePos().y); // M12: Bildschirm → Welt
       return Math.atan2(m.y - this.playerY, m.x - this.playerX);
     }
 
