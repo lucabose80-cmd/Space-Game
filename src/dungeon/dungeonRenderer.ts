@@ -18,6 +18,7 @@ import { getInfusionDef, RIFT_MUTATORS } from '../data/infusions';
 import { getItemDef } from '../data/items';
 import { VIRTUAL_HEIGHT, VIRTUAL_WIDTH, type InputManager } from '../engine/input';
 import { renderArenaFloor } from './arenaFloor';
+import { drawArenaBanner, drawLeviathanArena } from './bosses/leviathanArena';
 import { drawEdgeMarkers, offscreenMarkers } from './edgeIndicators';
 import {
   roomKey,
@@ -859,6 +860,7 @@ export class DungeonRenderer {
 
     this.renderMinimap(ctx);
     this.renderBossBar(ctx);
+    if (this.scene.arenaBanner) drawArenaBanner(ctx, this.scene.arenaBanner, VIRTUAL_WIDTH);
 
     if (this.scene.activePrompt) {
       this.renderPrompt(ctx, this.scene.activePrompt.label, this.scene.activePrompt.x - camX, this.scene.activePrompt.y - camY);
@@ -2740,6 +2742,7 @@ export class DungeonRenderer {
     // 2. Articulated Segmented Chain Arms + Massive Hydraulic Giant Gauntlets!
     if (e.levArms) {
       for (const arm of e.levArms) {
+        if (arm.dead) continue; // M12: zerstörter Kranarm
         const shX = cx + arm.side * 66;
         const shY = cy + 6;
         const grounded = arm.state === 'grounded';
@@ -2954,6 +2957,8 @@ export class DungeonRenderer {
     }
     if (e.kind === 'boss_leviathan') {
       this.renderLeviathanBoss(ctx, e);
+      // M12 Phase D: Ventile, Schwachstellen-Ringe, Kern-Linse (nur Arena)
+      if (e.levArena) drawLeviathanArena(ctx, this.scene, e);
       return;
     }
     if (e.kind === 'boss_quartz_golem') {
@@ -4006,7 +4011,8 @@ export class DungeonRenderer {
     };
     const baseName = baseNameMap[boss.kind] ?? 'SEKTOR-BOSS';
     const status = boss.bossStatusText ? ` · ${boss.bossStatusText}` : '';
-    const title = enraged ? `${baseName} [PHASE II]${status}` : `${baseName}${status}`;
+    // M12: Arena-Endboss nennt seine Phase selbst (I–III) im Status-Text
+    const title = enraged && !boss.levArena ? `${baseName} [PHASE II]${status}` : `${baseName}${status}`;
     ctx.fillStyle = enraged ? '#fda4af' : isS4Boss ? '#a5f3fc' : isS3Boss ? '#fed7aa' : isS2Boss ? '#f5d0fe' : '#fde047';
     ctx.font = 'bold 5.2px Silkscreen, monospace';
     ctx.textAlign = 'center';
