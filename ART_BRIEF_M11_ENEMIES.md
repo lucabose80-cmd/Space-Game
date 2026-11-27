@@ -107,3 +107,8 @@ Pro Sitzung lieber **wenige Sheets sauber** als viele schief. **Zusatz- oder Ers
 - Import-Modus `parts` in `npm run art:import` (jede Zelle ein Teil, Gelenk = Zellmitte, gemeinsamer Maßstab = Anzeigegröße des heutigen Sprites) und je Gegner ein Rig in `src/data/rigs/<rig-id>.json`.
 - `src/dungeon/anim/enemyAnims.ts`: Posen je Gegner-Zustand (gehen, zielen, ausholen, Schuss, Treffer), gezeichnet über dieselbe Rig-Weiche wie bei Bossen — fehlt das Sheet, bleibt das alte Sprite.
 - Spiellogik und Hitboxen bleiben unverändert (rein darstellend).
+
+### Zusatz Phasen-Jäger (`phase_stalker_fx.png` P1-08, `phase_stalker_arms_R.png` P1-09)
+Referenz: `public/art/sprites/enemy_phase_stalker.png` + `art_source/rigs/phase_stalker_rig.png`. Magenta/Rosa/Violett (Klingen `#f43f5e`/`#e879f9`), Licht von links oben.
+- **fx** (Typ E, Zellmitte = Mitte des Effekts): 1 Klingenschlag-Bogen groß (Halbmond, spitz zulaufend) · 2 Klingenschlag-Bogen klein (zweiter Hieb) · 3 Phasen-Riss (vertikaler Energieriss, Abgang) · 4 Ankunfts-Funkenring · 5 Nachbild-Schemen (volle Figur, einfarbig rosa-violett) · 6 Energiesplitter-Gruppe.
+- **arms_R** (Typ L): der vordere Arm samt Klinge in 6 Posen — Schulter exakt in der Zellmitte, gleicher Maßstab wie Zelle 3 von `phase_stalker_rig.png`: 1 hängend · 2 ausholen (zurück/hoch) · 3 Schlag nach vorn · 4 Schlag diagonal nach unten · 5 seitlich/Block · 6 Rückzug.
