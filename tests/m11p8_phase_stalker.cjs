@@ -52,4 +52,36 @@ module.exports = async ({ page }) => {
   assert.ok(r.legsWalk > 3 && r.legsStill === 1, 'Beine schreiten beim Gehen, stehen im Stand: ' + JSON.stringify(r));
   assert.ok(r.death[1] < r.death[0] && r.death[2] < 0.5 && r.death[5] === 1, 'Tod: Kopf fliegt ab, Rumpf blendet aus');
   assert.ok(r.death[3] === false && r.death[4] === true, 'Tod: Energiesplitter sichtbar, später weg');
+
+  // Integration im echten Renderer: Rig ≠ Fallback (G2), Nachbild beim Phasen-Sprung, Tod (G7), Prüfbilder (G9)
+  const g = await page.evaluate(async () => {
+    const { getHDArt } = await import('/src/assets/artLoader.ts');
+    const { DungeonScene } = await import('/src/scenes/DungeonScene.ts');
+    const { GameState } = await import('/src/systems/gameState.ts');
+    const { InputManager } = await import('/src/engine/input.ts');
+    const h = requestAnimationFrame(() => {}); for (let i = 1; i <= h + 20; i++) cancelAnimationFrame(i);
+    const dng = new DungeonScene(new GameState(), { onReturnToHub() {}, onToast() {}, onHudDirty() {} }); dng.startRun(1);
+    const room = dng.currentRoom; room.pods.forEach((p) => (p.broken = true)); room.chasms = []; room.obstacles = []; room.spawns = [];
+    const canvas = document.getElementById('game-canvas'); const ctx = canvas.getContext('2d'); ctx.setTransform(2, 0, 0, 2, 0, 0); ctx.imageSmoothingEnabled = false;
+    const input = new InputManager(canvas);
+    const hash = () => Array.from(ctx.getImageData(380, 180, 260, 220).data).reduce((a, v, i) => (a + v * ((i % 97) + 1)) % 1000003, 0);
+    const crop = () => { const c = document.createElement('canvas'); c.width = 520; c.height = 440; const q = c.getContext('2d'); q.imageSmoothingEnabled = false; q.drawImage(canvas, 380, 180, 260, 220, 0, 0, 520, 440); return c.toDataURL('image/png'); };
+    const place = (id) => { dng.enemies.length = 0; dng.bossFx.clear(); dng.playerX = 120; dng.playerY = 190; dng.invulnTimer = 999; dng.spawnEnemy('phase_stalker', 250, 130); const en = dng.enemies[0]; en.hp = en.maxHp = 1e6; en.id = id; return en; };
+    const art = getHDArt();
+    const frame = (t) => { dng.time = t; dng.roomFade = 0; dng.render(ctx, input); };
+    const en = place(5); frame(3); const withRig = hash(); const shotIdle = crop();
+    const keep = art.rigs.phase_stalker; art.rigs.phase_stalker = null; frame(3.02); const without = hash(); art.rigs.phase_stalker = keep;
+    en.telegraphTimer = 0.1; for (let i = 0; i < 20; i++) frame(4 + i * 0.016); const shotTele = crop();
+    // Phasen-Sprung: Position wechselt, Nachbild bleibt am Absprungpunkt
+    en.telegraphTimer = 0; en.chargeActive = 0.2; en.x = 300; en.y = 150; frame(4.4); const shotJump = crop(); const withGhost = hash();
+    frame(4.9); const noGhost = hash();
+    // Tod
+    const en2 = place(6); frame(6); en2.hp = 0; dng.onEnemyKilled(en2); frame(6.016); frame(6.25); const shotDeath = crop(); const debris = hash(); frame(7.2); const gone = hash();
+    return { withRig, without, withGhost, noGhost, debris, gone, shotIdle, shotTele, shotJump, shotDeath };
+  });
+  const fs = require('node:fs'), path = require('node:path');
+  for (const k of ['shotIdle', 'shotTele', 'shotJump', 'shotDeath']) fs.writeFileSync(path.join(__dirname, 'out', `phase_stalker_${k}.png`), Buffer.from(g[k].split(',')[1], 'base64'));
+  assert.notStrictEqual(g.withRig, g.without, 'Rig und Fallback-Sprite werden unterschiedlich gezeichnet (Rückfall läuft ohne Fehler)');
+  assert.notStrictEqual(g.withGhost, g.noGhost, 'Phasen-Sprung: Nachbild am Absprungpunkt, später weg');
+  assert.notStrictEqual(g.debris, g.gone, 'Tod: Teile fliegen ab und sind später weg');
 };

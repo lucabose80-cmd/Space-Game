@@ -2474,6 +2474,7 @@ export class DungeonRenderer {
   /** M11 Phasen-Jäger: Todes-Animation (Kopf/Arme fliegen ab, Beine knicken ein, Energiesplitter) — nur Darstellung. */
   private readonly stalkerSeen = new Map<Enemy, { x: number; y: number; f: number }>();
   private stalkerWrecks: { x: number; y: number; f: number; t0: number; id: number }[] = [];
+  private stalkerGhosts: { x: number; y: number; f: number; t0: number }[] = [];
   private renderStalkerWrecks(ctx: CanvasRenderingContext2D): void {
     const now = this.scene.time;
     for (const [e, s] of this.stalkerSeen) {
@@ -2483,6 +2484,19 @@ export class DungeonRenderer {
     }
     this.stalkerWrecks = this.stalkerWrecks.filter((w) => now - w.t0 < STALKER_DEATH_TIME && now >= w.t0);
     const images = getHDArt().rigs.phase_stalker;
+    this.stalkerGhosts = this.stalkerGhosts.filter((g) => now - g.t0 < 0.35 && now >= g.t0);
+    const ghostImg = images?.parts.fxGhost;
+    if (ghostImg) {
+      for (const g of this.stalkerGhosts) {
+        const k = 1 - (now - g.t0) / 0.35;
+        ctx.save();
+        ctx.globalAlpha = 0.6 * k; // normales Mischen (nicht additiv): bleibt auf jedem Biom-Boden lesbar
+        ctx.translate(g.x, g.y - 3);
+        if (g.f < 0) ctx.scale(-1, 1);
+        ctx.drawImage(ghostImg, -ghostImg.width / 4, -ghostImg.height / 4, ghostImg.width / 2, ghostImg.height / 2);
+        ctx.restore();
+      }
+    }
     if (!images) return;
     for (const w of this.stalkerWrecks) {
       const t = now - w.t0;
@@ -3212,6 +3226,8 @@ export class DungeonRenderer {
       const spr = e.flashTimer > 0 ? art.phaseStalkerFlash : art.phaseStalker;
       if (this.tryDrawEnemyRig(ctx, e, false)) {
         // M11: Rig (Rumpf, Kopf, Klingenarme, Beine) statt Einzelbild
+        const prevSeen = this.stalkerSeen.get(e);
+        if (prevSeen && Math.hypot(e.x - prevSeen.x, e.y - prevSeen.y) > 28 && e.telegraphTimer <= 0) this.stalkerGhosts.push({ x: prevSeen.x, y: prevSeen.y, f: prevSeen.f, t0: this.scene.time }); // Phasen-Sprung → Nachbild am Absprungpunkt
         this.stalkerSeen.set(e, { x: e.x, y: e.y, f: getRigFacing('phase_stalker', e, this.scene.playerX) });
         drawGlow(ctx, e.x, e.y - 2, e.chargeActive > 0 ? 22 : 16, e.chargeActive > 0 ? '#f43f5e' : '#e879f9', e.chargeActive > 0 ? 0.42 : 0.2);
         this.renderEnemyMiniHp(ctx, e);
