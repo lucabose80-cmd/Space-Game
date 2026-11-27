@@ -178,6 +178,15 @@ Alle optional mit prozeduralem Fallback (Regel 7). Stil: wie `hub_bg.png`/Dungeo
 - Inhalte mit festen Standard-Positionen (Belohnungs-/Extraktions-Pads, Loot-Drops, Heilstation, Geschütz-Startpunkte) nutzen jetzt `scene.bounds` (Standardraum identisch, Vorher/Nachher-Vergleich inkl. Boss-Sieg).
 - Nachweis: `m12p3` (Kachelplan gültig & erreichbar, `Math.random`-Aufrufe gleich, nur Bossraum ändert sich, Gate, Arena-Kampf ohne Fehler, Screenshots).
 
+### Phase D — Leviathan-Arena-Kampf (2026-11-27, umgesetzt, im Live-Spiel noch aus)
+- Eigene Datei `src/dungeon/bosses/leviathanArena.ts`; `enemyAi` ruft sie nur im Arena-Raum (`isLeviathanArena`), sonst bleibt der alte Leviathan (Standardraum identisch). Zustand `Enemy.levArena`.
+- **Schwachstellen über Trefferpunkte statt `Enemy.weakPoints`:** `getClosestEnemyHitPoint` liefert in der Arena den nächsten Punkt aus Linse/Körper/Armen/Ventilen (offene Schwachstellen bevorzugt) und merkt ihn sich; `damageEnemy` filtert direkt vor dem Abzug (`leviathanArenaDamage`). Schaden ohne Trefferpunkt im selben Frame (Brand, Ketten-Blitz) prallt am Panzer ab. Teil-HP: Arme 15 %, Ventile 4 %, Überschuss fließt nicht in den Pool; Linse ×1,25.
+- **Abweichungen:** Phase II auch, wenn beide Arme zerstört sind (sonst kein Schaden mehr möglich). Ohne intakte Ventile öffnet die Linse in Phase II nach Strahl/Trümmern 2,5 s (kein Weichlock). „Kamera zoomt heraus“ → Kamera-Fahrt + Beben (die Kamera hat keinen Zoom). Glut in Phase III als wandernde Bänder mit Lücke (A9). Auftritt lang, solange `sector1Cleared` falsch ist (statt eigenem Save-Feld). Kein eigenes Musik-Intro (Boss-Brüllen).
+- Platten-Bruch = `room.chasms` + `rebuildNav` über `bossFx`-`onFire` (1,2 s Vorwarnung); beim Sieg werden die Abgründe wieder entfernt (Loot/Teleporter liegen in der Hallenmitte).
+- Trümmer-Positionen über `mulberry32` je Boss/Zug; Zugfolge deterministisch (Test). Werte: `ENDBOSS_ARENA` in `balance.ts`.
+- Wochen-Prüfung: `trialHasArena(weekId)` = `ENDBOSS_ARENA_LIVE && weekId >= TRIAL_ARENA_FROM_WEEK` ('2026-W50'; beim Live-Schalten auf die Folgewoche setzen).
+- Nachweis: `m12p4` + Screenshots aller Phasen + Vorher/Nachher-Vergleich Standardraum.
+
 **Phase E (Belohnungen) — umgesetzt, vorerst am bestehenden Leviathan-Sieg (`sector1Cleared`), noch ohne Arena:**
 - `WEAPON_TYPE_GATES` in `balance.ts` (spear ← S1, discus ← S2, hammer ← S3); `GameState.getWeaponTypeLock()` / `canCraftWeapon()`; Schmiede zeigt „🔒 Bauplan: besiege …“. „Besiegt“ = `sectorNCleared` **oder** Rekord `bestSectorClearSec[n]` **oder** NG+ → keine neuen Save-Felder, Save bleibt v11; schon geschmiedete Waffen bleiben.
 - Relikt `trophy_leviathan` („A.E.G.I.S.-Herzlinse“, epic, maxStack 1, Wert 2400) fällt beim **Erstsieg** (nicht in der Wochen-Prüfung, nicht in NG+ erneut). Keine Credits.

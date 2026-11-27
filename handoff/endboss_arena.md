@@ -2,7 +2,13 @@
 > Eigenes Status-Blatt. Plan: [`MILESTONE_12_ARCHITECTURE.md`](../MILESTONE_12_ARCHITECTURE.md).
 
 ## Stand (2026-11-27)
-- **⚠ Phase A/B/C läuft** (gemeinsame Dateien!) — umgesetzt & gepusht, Abnahme durch Projektinhaber offen.
+- **⚠ Phase A–D läuft** (gemeinsame Dateien!) — umgesetzt & gepusht, Abnahme durch Projektinhaber offen.
+- **Phase D (Leviathan-Arena-Kampf) umgesetzt — weiterhin nur mit `?arena`** (`ENDBOSS_ARENA_LIVE = false`, Einschalten nach Abnahme im Spiel):
+  - `src/dungeon/bosses/leviathanArena.ts`: Auftritt (Kamera-Fahrt + Banner, 2,5 s bis zum ersten Sieg, danach 0,8 s; Eingabe gesperrt, kein Schaden) · Phase I Kran-Hammer (Arm steckt 1,6 s → angreifbar, eigene HP 15 %) / Kabel-Peitsche / Ventil-Dampf · Phase II (65 % oder beide Arme zerstört) Platten brechen (1,2 s Vorwarnung → Abgrund) / Zwillings-Strahl über die Halle / Trümmerfall / Kabel-Griff; Kühlventile (4 × 4 %) → Linse 3 s offen; ohne intakte Ventile öffnet die Linse nach großen Angriffen 2,5 s (kein Weichlock) · Phase III (30 %) Panzer fällt ab, Linse dauerhaft offen, Omega-Puls (Ringe mit Lücke), Glut-Wellen N→S (jedes Band mit Lücke), Letzter Griff (Sog); < 15 % kritisch (schneller) · Sieg: Abgrund schließt sich, Kamera zur Linse, Banner.
+  - Panzer (A3): Treffer außerhalb offener Schwachstellen → Funken + „GEPANZERT“, kein Schaden; Teil-Schaden gedeckelt auf Teil-HP (fließt in den Pool). Ziel-Hilfe zielt auf offene Schwachstellen.
+  - Werte in `balance.ts` → `ENDBOSS_ARENA` (HP ×1,35 = 9315). Wochen-Prüfung: `TRIAL_ARENA_FROM_WEEK = '2026-W50'` + nur wenn live (`trialHasArena`).
+  - Test `m12p4`; Screenshots aller Phasen angesehen; Standardraum (normaler Leviathan) vor/nach Phase D identisch.
+  - **A1–A10-Stand:** A1 ✅ · A2 ✅ (Körper in der Nordwand verankert, Wand-Fallback) · A3 ✅ · A4 ✅ (Platten brechen; Phase-III-Glut als Wellen statt dauerhafter Fläche) · A5 ✅ · A6 ✅ (eigenes Musik-Intro fehlt noch → Boss-Brüllen) · A7 ✅ (bossFx-Zonen; Trümmer `debrisDrops` ohne Rand-Pfeil) · A8 ⏳ Belohnung hängt an `sector1Cleared` (Phase E), Boss-Truhe statt Einzel-Drops offen · A9 🔶 Mobil-Test im echten Gerät offen · A10 ✅ (`m12p3`/`m12p4`).
 - **Phase C (Arena-Daten) umgesetzt — Arena ist im Live-Spiel noch AUS** (`ENDBOSS_ARENA_LIVE = false` in `balance.ts`, wird mit Phase D eingeschaltet). **Ansehen: Spiel-URL mit `?arena`** → Sektor 1, Ebene III, Bossraum = Reaktorhalle.
   - `src/data/arenas/` (`types.ts` ArenaDef, `leviathan.ts` Kachelplan 43×22, `index.ts`: `ARENAS`, `arenaEnabled()`, `arenaObstacles()`, `applyArena()`, `attachArenas()`); `DungeonRoom.arenaKind?`.
   - Anhängen in `DungeonScene.startFloor` nach `generateSectorFloor` (kein Math.random; nie in der Wochen-Prüfung, nie in der Endlos-Spirale). Nordtür → 3-Kachel-Durchgang im Boss-Sockel.
@@ -36,4 +42,5 @@
 
 ## Nächster Schritt
 1. Phase A/B abnehmen (Projektinhaber: Standardräume spielen/sehen sich unverändert) → Marker „Phase A/B läuft“ entfernen.
-2. Phase D (Leviathan-Arena-Kampf: 3 Phasen, Schwachstellen, Platten brechen `p`, Ventile `v`, Auftritt mit `camera.focus`, `TRIAL_ARENA_FROM_WEEK`) → danach `ENDBOSS_ARENA_LIVE = true`.
+2. **Abnahme Phase D im Spiel** (URL `?arena`, Sektor 1 Ebene III): Kampfgefühl, Lesbarkeit, Mobil (A9). Danach `ENDBOSS_ARENA_LIVE = true` und `TRIAL_ARENA_FROM_WEEK` auf die Woche nach dem Deploy setzen.
+3. Phase F: Kampfdauer messen (`m10cp8` um Arena erweitern, Ziel 150–210 s), Boss-Labor-Eintrag „Arena“, Boss-Truhe (A8).
