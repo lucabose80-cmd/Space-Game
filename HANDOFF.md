@@ -22,6 +22,7 @@ npm run verify                           # Build + Invarianten + Sprite-Check + 
 - Dev-Test-Hook `window.__game` gibt es nur im Vite-Dev-Server.
 
 ## ⚠ Fehlende Sprites (Fallbacks aktiv → neue PNGs gewünscht)
+> **Neu: `npm run art:gen`** (`scripts/art-gen.py`) — Claude-Chats erzeugen benötigte Sheets direkt über die Gemini-Bild-API (Standardmodell `gemini-nano-banana-2.1`, Key über Network Secret, Header `x-goog-api-key`; getestet 2026-11-27). Bestehende Liste → Antigravity; Claude nur für die eigene laufende Aufgabe (`AGENTS.md` Regel 15).
 > **Grundhaltung (Inhaber, 2026-11-27): Qualität vor Sparen.** Genug Gemini-Guthaben vorhanden — wenn etwas mit den vorhandenen Bildern nicht gut aussieht, nicht klappt oder nicht gefällt, wird ein neues bzw. ersetzendes Sheet bestellt (`AGENTS.md` Regel 14, `SPRITE_QUEUE.md` §0).
 `npm run check:sprites` listet die aktuelle Lage. Stand: **alle 12 optionalen M10-Sprites fehlen**
 (`prop_hub_*`, `prop_kael_memorial`, `prop_lyra_echo_sign`, `prop_nyx_free_lantern`, `prop_vex_*`, `npc_pilgrim`, `npc_foundry_worker`, `npc_elder_scholar`) **plus 5 Boss-Sprites (M10-C)**: `boss_scrap_collector` *(Krall hat inzwischen ein Rig → nur noch Rückfall, niedrige Priorität)*, `boss_slag_colossus`, `boss_forge_mistress`, `boss_chrono_warden`, `boss_monolith_colossus` (128×128, Prompts: Art-Guide §8).

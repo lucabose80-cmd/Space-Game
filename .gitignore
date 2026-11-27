@@ -31,3 +31,6 @@ tests/out
 __pycache__/
 *.pyc
 art_source/_check/
+
+# Rohbilder von npm run art:gen (nicht committen)
+art_source/_gen/

@@ -11,6 +11,7 @@
 ### 0. Grundhaltung: Qualität vor Sparen (Projektinhaber, 2026-11-27)
 - **Neue Sheets bestellen ist ausdrücklich erwünscht.** Der Projektinhaber hat genug Gemini-Guthaben — Bild-Credits sind **kein** Grund, eine Pose/Arena/Effekt mit Code zu verbiegen oder ein schwaches Sheet zu behalten (`AGENTS.md` Regel 14).
 - **Gefällt etwas nicht oder klappt es technisch nicht** (falscher Maßstab, Gelenk sitzt nicht, Pose wirkt puppenhaft, Stil passt nicht, Rückmeldung des Inhabers): **Ersatz-Sheet** eintragen — neue ID, Status `[ ]`, Notiz *„ersetzt `<datei>` — Grund: …“*, Referenz = altes Sheet + was anders werden soll. Ersatz-Einträge werden auch bei vorhandener Datei neu generiert (Ausnahme in Regel 2.2). Zusätzliche Posen/Zustände = **Zusatz-Sheet** (`<id>_<teil>N.png`).
+- **Wer generiert was:** Offene `[ ]`-Einträge der Liste → **Antigravity/Gemini** (Skill `sprite-batch`). Claude-Chats erzeugen nur Sheets, die ihre **laufende Aufgabe** braucht, direkt per `npm run art:gen` (`AGENTS.md` Regel 15): vorher eigene Zeile mit Status `[~]` und Notiz *„in Arbeit: <bereich>“* anlegen — Antigravity überspringt `[~]`, so entsteht keine Doppelarbeit.
 - Die STOP-GATES bleiben — sie sichern die **Qualität** (erst Pilot im Spiel prüfen, dann Serie), nicht das Budget. Der Inhaber kann Gates und den Sicherheits-Deckel (Regel 2.5) jederzeit lockern.
 
 ### 1. Einsortier-Pflicht (Claude Code, Feature-Agenten & Planung)
