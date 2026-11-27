@@ -111,3 +111,10 @@ export const BOSS_EXPECTED: Record<BalancedBossKind, { level: number; band: [num
 
 /** Grobe durchschnittliche Angriffsdauer (s) je Waffe für DPS-Schätzungen (Blaster: Cooldown aus den Stats). */
 export const WEAPON_AVG_COOLDOWN = { blade: 0.25, spear: 0.22, fists: 0.17, discus: 0.34, hammer: 0.44 } as const;
+
+/**
+ * M12: Endboss-Arenen (Großarena + Kamera) im normalen Spiel aktiv?
+ * `false`, solange der Arena-Kampf (Phase D) fehlt — bis dahin nur zum Ansehen per URL `?arena`.
+ * Wochen-Prüfung: nie vor `TRIAL_ARENA_FROM_WEEK` (Phase D).
+ */
+export const ENDBOSS_ARENA_LIVE = false;

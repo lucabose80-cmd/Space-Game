@@ -195,6 +195,8 @@ export interface DungeonRoom {
   riftSector?: number;
   /** M12 (Phase A): eigene Raumgrenzen (Arena-Räume). Fehlt = Standard `ROOM_LEFT…ROOM_BOTTOM`. */
   bounds?: RoomBoundsDef;
+  /** M12 (Phase C): Endboss-Arena dieses Raums (Kachelplan in `src/data/arenas/`). */
+  arenaKind?: EnemyKind;
 }
 
 /** M12: Raumgrenzen (logische Koordinaten, wie `ROOM_LEFT/RIGHT/TOP/BOTTOM`). */

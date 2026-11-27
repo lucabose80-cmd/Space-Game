@@ -76,6 +76,9 @@ export interface HDArtAssets {
   propVexBeacon: HTMLCanvasElement | null;
   propVexClassboard: HTMLCanvasElement | null;
   propTrophyLeviathan: HTMLCanvasElement | null;
+  /** M12 Phase C: Arena-Boden & Boss-Wand (optional, Fallback arenaFloor.ts) */
+  arenaLeviathanBg: HTMLCanvasElement | null;
+  arenaLeviathanWall: HTMLCanvasElement | null;
   npcPilgrim: HTMLCanvasElement | null;
   npcFoundryWorker: HTMLCanvasElement | null;
   npcElderScholar: HTMLCanvasElement | null;
@@ -238,6 +241,8 @@ const art: HDArtAssets = {
   propVexBeacon: null,
   propVexClassboard: null,
   propTrophyLeviathan: null,
+  arenaLeviathanBg: null,
+  arenaLeviathanWall: null,
   npcPilgrim: null,
   npcFoundryWorker: null,
   npcElderScholar: null,
@@ -379,6 +384,9 @@ export type M10SpriteKey = keyof typeof M10_OPTIONAL_SPRITES;
 /** Meilenstein 12: optionale Sprites der Endboss-Belohnungen. Fehlt die Datei → prozeduraler Fallback (hubEvolution.ts). */
 export const M12_OPTIONAL_SPRITES = {
   propTrophyLeviathan: 'prop_trophy_leviathan',
+  // Phase C: Endboss-Arena (SPRITE_QUEUE P1-03/P1-04) — Fallback: prozedural in src/dungeon/arenaFloor.ts
+  arenaLeviathanBg: 'arena_leviathan_bg',
+  arenaLeviathanWall: 'arena_leviathan_wall',
 } as const;
 
 export type M12SpriteKey = keyof typeof M12_OPTIONAL_SPRITES;
