@@ -2343,7 +2343,8 @@ export class DungeonRenderer {
     const dy = this.scene.playerY - e.y;
     const facing = getRigFacing(rigId, e, this.scene.playerX);
     const pose = getBossPose(rigId, e, this.scene.time, dx * facing, dy);
-    drawPixelShadow(ctx, e.x, e.y + 10, 11, 3.6, 0.45);
+    if (e.kind === 'drone') drawPixelShadow(ctx, e.x, e.y + 14, 8, 2.6, 0.28); // Flieger: kleiner, blasser Bodenschatten
+    else drawPixelShadow(ctx, e.x, e.y + 10, 11, 3.6, 0.45);
     drawRig(ctx, RIGS[rigId], images, e.x, e.y + 11, pose, { flash: e.flashTimer > 0, flipX: facing < 0 });
     return true;
   }
@@ -2933,7 +2934,9 @@ export class DungeonRenderer {
       const hover = Math.sin(this.scene.time * 6.5 + e.id) * 2.6;
       const bank = Math.max(-0.22, Math.min(0.22, e.vx * 0.0025));
       const spr = e.flashTimer > 0 ? art.droneFlash ?? atlas.droneFlash : art.drone ?? atlas.drone[0];
-      if (art.drone) {
+      if (this.tryDrawEnemyRig(ctx, e, false)) {
+        // M11: Rig (Rumpf + Visier + Gondeln + Flammen + Lade-Linse) statt Einzelbild; Schweben/Neigen macht die Pose
+      } else if (art.drone) {
         ctx.save();
         ctx.translate(e.x, e.y + hover);
         ctx.rotate(bank);
@@ -2987,6 +2990,12 @@ export class DungeonRenderer {
       }
       const hover = Math.sin(this.scene.time * 6 + e.id) * 1.4;
       const spr = e.flashTimer > 0 ? art.phaseStalkerFlash : art.phaseStalker;
+      if (this.tryDrawEnemyRig(ctx, e, false)) {
+        // M11: Rig (Rumpf, Kopf, Klingenarme, Beine) statt Einzelbild
+        drawGlow(ctx, e.x, e.y - 2, e.chargeActive > 0 ? 22 : 16, e.chargeActive > 0 ? '#f43f5e' : '#e879f9', e.chargeActive > 0 ? 0.42 : 0.2);
+        this.renderEnemyMiniHp(ctx, e);
+        return;
+      }
       if (spr) {
         ctx.save();
         if (e.telegraphTimer > 0) {

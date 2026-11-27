@@ -74,12 +74,15 @@ if (existsSync(queueUrl)) {
       }
       continue;
     }
-    const m = line.match(/^\|\s*`([^`]+)`\s*\|\s*\[( |x|~|!)\]\s*\|\s*`([^`]+)`\s*\|/);
+    const m = line.match(/^\|\s*`([^`]+)`\s*\|\s*\[( |x|~|!)\]\s*\|\s*`([^`]+)`([^|]*)\|/);
     if (!m) continue;
-    const [, id, status, relPath] = m;
+    const [, id, status, relPath, pathNote] = m;
+    const isReplace = /ersetzt|neu zeichnen|korrektur/i.test(pathNote);
     queueFiles.add(relPath);
     const present = existsSync(new URL(`../${relPath}`, import.meta.url));
-    if ((status === ' ' || status === '~') && present) {
+    if (status === ' ' && isReplace && !lockedGate) {
+      ready.push({ id, relPath: `${relPath} (ersetzt)` });
+    } else if ((status === ' ' || status === '~') && present && !isReplace) {
       syncHints.push(`  - ${id} (${relPath}) existiert bereits → in SPRITE_QUEUE.md auf [x] setzen`);
     } else if (status === 'x' && !present) {
       syncHints.push(`  - ⚠ ${id} (${relPath}) ist [x], aber Datei fehlt im Repo!`);

@@ -1,5 +1,7 @@
 # BOSS_ANIMATION_PLAN.md — Was ein Boss-Rig „fertig“ macht + offene Aufgaben (M11)
 
+> **Ablauf für jedes neue Wesen:** [`BOSS_ENEMY_PIPELINE.md`](BOSS_ENEMY_PIPELINE.md) (8 Stufen). Sektor-Endbosse (Ebene III) zusätzlich A1–A10 aus [`MILESTONE_12_ARCHITECTURE.md`](MILESTONE_12_ARCHITECTURE.md).
+
 > **Zweck:** Eine Arbeitsliste, die jedes Werkzeug (Claude Sonnet/Opus, Antigravity) ohne Vorwissen abarbeiten kann.
 > §1 ist die **Fertig-Definition für jeden Boss** (auch künftige). §2 ist der **konkrete Plan für den Kern-Wächter** (Pilot). §3 sagt, wie man die Liste auf andere Bosse überträgt.
 > Grundlagen: [`RIGGING_GUIDE.md`](RIGGING_GUIDE.md) (Technik, Dateien, Prüfwerkzeuge) · [`ART_BRIEF_M11.md`](ART_BRIEF_M11.md) (Sprite-Formate) · [`MILESTONE_11_ARCHITECTURE.md`](MILESTONE_11_ARCHITECTURE.md) (Gesamtplan).

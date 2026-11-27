@@ -193,6 +193,22 @@ export interface DungeonRoom {
   /** M10-C: Ebene der Rift-Kammer (1–3) und Sektor für die Skalierung */
   riftFloor?: number;
   riftSector?: number;
+  /** M12 (Phase A): eigene Raumgrenzen (Arena-Räume). Fehlt = Standard `ROOM_LEFT…ROOM_BOTTOM`. */
+  bounds?: RoomBoundsDef;
+}
+
+/** M12: Raumgrenzen (logische Koordinaten, wie `ROOM_LEFT/RIGHT/TOP/BOTTOM`). */
+export interface RoomBoundsDef {
+  l: number;
+  r: number;
+  t: number;
+  b: number;
+}
+
+/** M12: Raumgrenzen inkl. Mittelpunkt — Rückgabe von `roomBounds()`. */
+export interface RoomBounds extends RoomBoundsDef {
+  readonly cx: number;
+  readonly cy: number;
 }
 
 export interface DungeonFloor {
@@ -215,6 +231,35 @@ export const ROOM_TOP = 46;
 export const ROOM_BOTTOM = 222;
 export const ROOM_CENTER_X = (ROOM_LEFT + ROOM_RIGHT) / 2;
 export const ROOM_CENTER_Y = (ROOM_TOP + ROOM_BOTTOM) / 2;
+
+/** M12: Standard-Grenzen (exakt die Konstanten oben) — Standardräume verhalten sich damit unverändert. */
+export const DEFAULT_ROOM_BOUNDS: Readonly<RoomBounds> = Object.freeze({
+  l: ROOM_LEFT,
+  r: ROOM_RIGHT,
+  t: ROOM_TOP,
+  b: ROOM_BOTTOM,
+  cx: ROOM_CENTER_X,
+  cy: ROOM_CENTER_Y,
+});
+
+const boundsCache = new WeakMap<RoomBoundsDef, Readonly<RoomBounds>>();
+
+/** M12: Grenzen eines Raums (`room.bounds` oder Standard). Ergebnis ist gecacht und unveränderlich. */
+export function roomBounds(room?: Pick<DungeonRoom, 'bounds'> | null): Readonly<RoomBounds> {
+  const def = room?.bounds;
+  if (!def) return DEFAULT_ROOM_BOUNDS;
+  let rb = boundsCache.get(def);
+  if (!rb || rb.l !== def.l || rb.r !== def.r || rb.t !== def.t || rb.b !== def.b) {
+    rb = Object.freeze({ l: def.l, r: def.r, t: def.t, b: def.b, cx: (def.l + def.r) / 2, cy: (def.t + def.b) / 2 });
+    boundsCache.set(def, rb);
+  }
+  return rb;
+}
+
+/** M12: true, wenn der Raum eigene (Arena-)Grenzen hat. */
+export function hasCustomBounds(room?: Pick<DungeonRoom, 'bounds'> | null): boolean {
+  return !!room?.bounds;
+}
 
 export function roomKey(gx: number, gy: number): string {
   return `${gx},${gy}`;

@@ -19,10 +19,11 @@
     - `art_source/rigs/krall_arms_R2.png` (**P0-06 / K-C rechts**: Stoß teleskopiert kurz/mittel/voll · Zuschnappen · Sog mit Funken · Hagel mit Schrottbrocken, Schulterring im Fadenkreuz, `min_margin ≥ 40 px`)
     - `art_source/rigs/krall_arms_L2.png` (**P0-07 / K-C links**: gleiche 6 Angriffsposen für Schrott-Haken/Mini-Säge mit Licht links-oben, Schulterring im Fadenkreuz, `min_margin ≥ 35 px`)
     - `art_source/rigs/krall_fx2.png` (**P0-08 / K-D Effekte**: Stoß-Luftwelle · Magnet-Feldring rot/blau · Magnet-Blitzbogen · Staub-/Druckring · Aufschlag-Krater mit Schrottsplittern · Rostwolke, zentriert im Fadenkreuz, `min_margin ≥ 99 px`; Ringe Zelle 2/4 mit `holes: true` importieren)
-    - `art_source/rigs/krall_torsos2.png` (**P0-09 / K-A Phase-2-Rümpfe**: 6 Skelettrahmen-Posen passend zu `krall_torsos.png` Zelle 5: geduckt · aufgerichtet/Kern hell · vorgebeugt · Stampfer gestaucht · Wurf-Drehung · überhitzt mit Funken/Dampf, Kern im Fadenkreuz, `min_margin ≥ 56 px`)
+    - `art_source/rigs/krall_torsos2.png` (**P0-09 / P0-14 K-A2 Phase-2-Rümpfe**: 6 Skelettrahmen-Posen im exakten Panzer-Maßstab `269 px` → Import `84×100 px`, Kern im Fadenkreuz, `min_margin ≥ 35 px`, bereit für Re-Import & Entfernen von `t2k`)
     - `art_source/rigs/krall_torsos3.png` (**P0-11 / K-E Rumpf-Beschädigungsstufen**: P1 < 80/< 65/< 25 % · P2 < 35/< 25/kritisch < 15 %, Furnace-Kern im Fadenkreuz, `min_margin ≥ 35 px`)
     - `art_source/rigs/krall_legs_R2.png` (**P0-10 / K-B rechts**: Ausfall gestreckt · Bremsen · Stampfer-Landung gespreizt · Phase 2 beschädigt/humpelnd mit Funken · Magnet-Stemmen · Ruhe-Zittern, Hüftring im Fadenkreuz, `min_margin ≥ 38 px`)
     - `art_source/rigs/krall_arms_R3.png` (**P0-12 / K-E rechts**: beschädigte Greifzange verbogen + abgebrochener funkender Stumpf mit Kabeln, je hängend/ausholend/Stoß, `min_margin ≥ 34 px`)
     - `art_source/rigs/krall_arms_L3.png` (**P0-12 / K-E links**: beschädigter Haken/Mini-Säge verbogen + abgebrochener funkender Stumpf, Licht links-oben, `min_margin ≥ 77 px`)
     - `art_source/rigs/krall_legs_L2.png` (**P0-10 / K-B links**: gleiche 6 Angriffs-Beinposen eigenständig nach links mit Licht links-oben, Hüftring im Fadenkreuz, `min_margin ≥ 31 px`)
+    - `art_source/rigs/krall_arms_L4.png` (**P0-16 / K-F links**: Haken/Mini-Säge verbogen in den übrigen 6 Posen seitlich · Schild-Block · Stampfer · Sog mit Funken · Hagel/Schrott · Teleskop voll, Licht links-oben, Schulterring im Fadenkreuz, `min_margin ≥ 30 px`)
 
