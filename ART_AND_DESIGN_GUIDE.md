@@ -2,6 +2,9 @@
 
 > **Zweck:** Dieses Dokument hält exakt fest, wie alle HD-Pixel-Art-Sprites, Raum-Hintergründe und In-Game-UI-Elemente in *STARLIGHTER* generiert, freigestellt und integriert wurden — damit zukünftige Chats bei neuen Sektoren, NPCs, Relikten, Shops oder Props exakt dieselbe Qualität und visuelle Konsistenz erreichen.
 
+
+> **Sprites sind das Standardwerkzeug (`AGENTS.md` Regel 14/15):** Bei neuen Features, Umbauten und Verbesserungen immer prüfen, ob eigene Sprites das Ergebnis schöner machen — dann erzeugen (`npm run art:gen`, `scripts/gen-sheet.py`) oder in `SPRITE_QUEUE.md` bestellen. Prozedurale Zeichnung nur als Fallback. Nicht an Bild-Credits sparen.
+
 ---
 
 ## 1. Visuelle DNA (*Moonlighter 1* × Cozy Retro-Sci-Fi)
