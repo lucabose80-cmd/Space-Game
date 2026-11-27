@@ -1,3 +1,4 @@
+import type { LevArena } from './bosses/leviathanArena';
 import type { Direction, RunSummary } from '../types';
 import type { EnemyKind, RoomChest } from '../world/dungeonGen';
 
@@ -42,6 +43,10 @@ export interface LeviathanArm {
   state: 'idle' | 'tracking' | 'slamming' | 'grounded' | 'returning' | 'beam';
   timer: number;
   beamAngle: number;
+  /** M12 Arena: Arm zerstört (zeichnen/treffen entfällt) */
+  dead?: boolean;
+  /** M12 Arena: Schlagziel festgelegt (Boden-Vorwarnung angelegt) */
+  locked?: boolean;
 }
 
 export interface DebrisDrop {
@@ -132,6 +137,8 @@ export interface Enemy {
   bossAfterimageTick?: number;
   // Leviathan articulated giant gauntlets
   levArms?: [LeviathanArm, LeviathanArm];
+  /** M12 Phase D: Arena-Kampf des Leviathan (nur im Arena-Raum) */
+  levArena?: LevArena;
   levActiveSide?: 0 | 1;
   // Milestone 7: Elementar-Prägungen & Rift-Mutatoren
   burnTimer?: number;

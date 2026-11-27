@@ -118,3 +118,26 @@ export const WEAPON_AVG_COOLDOWN = { blade: 0.25, spear: 0.22, fists: 0.17, disc
  * Wochen-Prüfung: nie vor `TRIAL_ARENA_FROM_WEEK` (Phase D).
  */
 export const ENDBOSS_ARENA_LIVE = false;
+
+/** M12 Phase D: Arena-Endbosse — Werte (Start, Feinschliff in Phase F mit m10cp8). */
+export const ENDBOSS_ARENA = {
+  /** Auftritt: Kamerafahrt + Banner (erste Begegnung = noch nie besiegt) */
+  introSecFirst: 2.5,
+  introSecRepeat: 0.8,
+  leviathan: {
+    /** HP = heutiger Leviathan × 1,35 (größere Arena, längere Ausweichwege) */
+    hpMult: 1.35,
+    phase2At: 0.65,
+    phase3At: 0.3,
+    /** Arme: eigene HP je 15 % des Pools (fließen in den Pool) */
+    armHpShare: 0.15,
+    /** Kühlventile (4×): je 4 % */
+    ventHpShare: 0.04,
+    armStuckSec: 1.6,
+    lensOpenSec: 3,
+    /** Phase II ohne intakte Ventile: Linse öffnet nach großen Angriffen so lange (kein Weichlock) */
+    lensRecoverSec: 2.5,
+    lensDamageMult: 1.25,
+    plateWarnSec: 1.2,
+  },
+} as const;

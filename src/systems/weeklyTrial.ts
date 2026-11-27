@@ -1,4 +1,4 @@
-import { BOSS_EXPECTED, WEAPON_AVG_COOLDOWN } from '../data/balance';
+import { BOSS_EXPECTED, ENDBOSS_ARENA_LIVE, WEAPON_AVG_COOLDOWN } from '../data/balance';
 import { getPlayerCombatStats } from '../data/upgrades';
 /**
  * Meilenstein 9 — Wöchentliche „Galaktische Prüfung“ (reine Logik, keine UI/DOM).
@@ -81,6 +81,17 @@ export const TRIAL_MECHANICS_FROM_WEEK = '2026-W49';
 
 export function trialHasMechanics(weekId: string): boolean {
   return weekId >= TRIAL_MECHANICS_FROM_WEEK;
+}
+
+/**
+ * M12 Phase D: Endboss-Arenen in der Wochen-Prüfung erst AB dieser ISO-Woche (= Woche nach dem Live-Schalten),
+ * damit eine laufende Wertungswoche nicht kippt. Beim Setzen von `ENDBOSS_ARENA_LIVE = true` auf die Folgewoche
+ * des Deploys anpassen. Zusätzlich muss die Arena live sein (`ENDBOSS_ARENA_LIVE`).
+ */
+export const TRIAL_ARENA_FROM_WEEK = '2026-W50';
+
+export function trialHasArena(weekId: string): boolean {
+  return ENDBOSS_ARENA_LIVE && weekId >= TRIAL_ARENA_FROM_WEEK;
 }
 export const TRIAL_MAX_TIME_SEC = 10800;
 const BADGE_HISTORY_MAX = 52;
