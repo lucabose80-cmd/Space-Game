@@ -3006,7 +3006,11 @@ export class DungeonScene {
     const idx = this.enemies.indexOf(e);
     if (idx !== -1) this.enemies.splice(idx, 1);
     if (this.isBossKind(e.kind)) this.bossFx.clear(); // M10-C: Boss-Zonen/Strahlen enden mit dem Boss
-    if (e.kind === 'boss') this.decals.push({ x: e.x, y: e.y + 6, r: 16, color: 'rgba(0,0,0,0)', life: 30, maxLife: 30, fx: 'cw_remnant' }); // D15: Todes-Rückstand (biom-neutral, nur Optik)
+    if (e.kind === 'boss') {
+      // D15/D7: Todes-Sequenz + Rückstand je Boden-Biom (nur Optik)
+      this.decals.push({ x: e.x, y: e.y + 6, r: 16, color: 'rgba(0,0,0,0)', life: 1.3, maxLife: 1.3, fx: 'cw_death' });
+      this.decals.push({ x: e.x, y: e.y + 8, r: 16, color: 'rgba(0,0,0,0)', life: 40, maxLife: 40, fx: 'cw_remnant' });
+    }
     // Polish Teil 2: Hit-Stop bei Boss-Sieg / Elite-Kill (nur Darstellung, Logik pausiert kurz gleichmäßig)
     if (this.isBossKind(e.kind)) this.heavyStop = Math.max(this.heavyStop, 0.12);
     else if (e.elite) this.heavyStop = Math.max(this.heavyStop, 0.06);
