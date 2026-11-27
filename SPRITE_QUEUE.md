@@ -158,7 +158,7 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 
 | ID | Status | Zieldatei | Typ & Format | Referenz (`ImagePaths`) | Brief / Prompt | Notiz |
 | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
-| `P2-21` | [ ] | `art_source/rigs/crystal_crawler_ground.png` | Typ E · 3×2 · `1536×1024` | `art_source/rigs/crystal_crawler_fx.png` (Zelle `fxDust`), Bodenkacheln/Hintergründe S1–S5 | `BOSS_ENEMY_PIPELINE.md` §5 — Prompt: „the same small impact dust trail + scraped ground mark of a crystal crawler lunge, drawn 5 times on 5 different floor materials: rusty moss-covered metal plates (S1), violet-cyan crystal floor (S2), cracked lava rock with embers (S3), black obsidian with star dust (S4), glitching void-energy floor (S5); cell 6: small pile of shattered ice-blue crystal shards; pixel art, same style and scale as reference, white background, 3×2 grid, each effect centred“ | Kristall-Krabbler tritt als Elite in **S1-Riss-Kammern** und in der Omega-Anomalie auf |
+| `P2-21` | [x] | `art_source/rigs/crystal_crawler_ground.png` | Typ E · 3×2 · `1536×1024` | `art_source/rigs/crystal_crawler_fx.png` (Zelle `fxDust`), Bodenkacheln/Hintergründe S1–S5 | `BOSS_ENEMY_PIPELINE.md` §5 | ✅ Kristall-Krabbler Boden-Biom-Varianten via Gemini API (`gemini-nano-banana-2.1`, S1 Korvette · S2 Kristall · S3 Gießerei · S4 Monolith · S5 Omega · Zelle 6 Kristallsplitter-Haufen; alle zentriert, `min_margin ≥ 60 px`, `art:check` ok) |
 
 ---
 
@@ -170,33 +170,33 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 
 | ID | Status | Zieldatei | Typ & Format | Referenz (`ImagePaths`) | Brief / Prompt | Notiz |
 | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
-| `P3-01` | [ ] | `public/art/sprites/prop_vex_beacon.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` *(Stil/Palette)* | `ART_AND_DESIGN_GUIDE.md` §7 | Vex-Bake (schwächster Fallback) |
-| `P3-02` | [ ] | `public/art/sprites/prop_hub_cycle_holo.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | Zyklus-Hologramm |
-| `P3-03` | [ ] | `public/art/sprites/prop_hub_elder_obelisk.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | Ältesten-Obelisk |
-| `P3-04` | [ ] | `public/art/sprites/prop_vex_classboard.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | Vex-Klassentafel |
+| `P3-01` | [x] | `public/art/sprites/prop_vex_beacon.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` *(Stil/Palette)* | `ART_AND_DESIGN_GUIDE.md` §7 | ✅ Vex-Bake (`96×96` RGBA, Flood-Fill + Defringe + `NEAREST`, via `gemini-nano-banana-2.1`) |
+| `P3-02` | [x] | `public/art/sprites/prop_hub_cycle_holo.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | ✅ Zyklus-Hologramm (`96×96` RGBA, Flood-Fill + `NEAREST`, kein Text) |
+| `P3-03` | [x] | `public/art/sprites/prop_hub_elder_obelisk.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | ✅ Ältesten-Obelisk (`96×96` RGBA, Flood-Fill + Holo-Ring-Loch freigestellt + `NEAREST`) |
+| `P3-04` | [x] | `public/art/sprites/prop_vex_classboard.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | ✅ Vex-Klassentafel (`96×96` RGBA, Flood-Fill + `NEAREST`, kein Text) |
 
 ### P3b — Übrige Promenaden-Props & NPCs (M10-A)
 
 | ID | Status | Zieldatei | Typ & Format | Referenz (`ImagePaths`) | Brief / Prompt | Notiz |
 | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
-| `P3-05` | [ ] | `public/art/sprites/prop_hub_crystal_lantern.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | Kristall-Laterne |
-| `P3-06` | [ ] | `public/art/sprites/prop_hub_star_banner.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | Sternen-Banner |
-| `P3-07` | [ ] | `public/art/sprites/prop_kael_memorial.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | Kael-Gedenkamboss |
-| `P3-08` | [ ] | `public/art/sprites/prop_lyra_echo_sign.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | Lyra-Klinikschild |
-| `P3-09` | [ ] | `public/art/sprites/prop_nyx_free_lantern.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | Nyx-Laterne |
-| `P3-10` | [ ] | `public/art/sprites/npc_pilgrim.png` | Formel B · `96×96` RGBA | `public/art/sprites/npc_lyra.png` *(Proportion)* | `ART_AND_DESIGN_GUIDE.md` §7 | Pilger-NPC |
-| `P3-11` | [ ] | `public/art/sprites/npc_foundry_worker.png` | Formel B · `96×96` RGBA | `public/art/sprites/npc_kael.png` *(Proportion)* | `ART_AND_DESIGN_GUIDE.md` §7 | Gießerei-Arbeiter-NPC |
-| `P3-12` | [ ] | `public/art/sprites/npc_elder_scholar.png` | Formel B · `96×96` RGBA | `public/art/sprites/npc_vex.png` *(Proportion)* | `ART_AND_DESIGN_GUIDE.md` §7 | Ältesten-Gelehrter-NPC |
+| `P3-05` | [x] | `public/art/sprites/prop_hub_crystal_lantern.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | ✅ Kristall-Laterne (`96×96` RGBA, Flood-Fill + Defringe + `NEAREST`) |
+| `P3-06` | [x] | `public/art/sprites/prop_hub_star_banner.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | ✅ Sternen-Banner (`96×96` RGBA, Flood-Fill + Stangen-Zwischenraum freigestellt + `NEAREST`) |
+| `P3-07` | [x] | `public/art/sprites/prop_kael_memorial.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | ✅ Kael-Gedenkamboss (`96×96` RGBA, Flood-Fill + Defringe + `NEAREST`, via `gemini-nano-banana-2.1`) |
+| `P3-08` | [x] | `public/art/sprites/prop_lyra_echo_sign.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | ✅ Lyra-Klinikschild (`96×96` RGBA, Flood-Fill + Halterungs-Loch freigestellt + `NEAREST`, kein Text) |
+| `P3-09` | [x] | `public/art/sprites/prop_nyx_free_lantern.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | ✅ Nyx-Laterne (`96×96` RGBA, Flood-Fill + Defringe + `NEAREST`) |
+| `P3-10` | [x] | `public/art/sprites/npc_pilgrim.png` | Formel B · `96×96` RGBA | `public/art/sprites/npc_lyra.png` *(Proportion)* | `ART_AND_DESIGN_GUIDE.md` §7 | ✅ Pilger-NPC (`96×96` RGBA, Moonlighter-NPC-Proportion wie Lyra/Kael/Vex, Flood-Fill + `NEAREST`) |
+| `P3-11` | [x] | `public/art/sprites/npc_foundry_worker.png` | Formel B · `96×96` RGBA | `public/art/sprites/npc_kael.png` *(Proportion)* | `ART_AND_DESIGN_GUIDE.md` §7 | ✅ Gießerei-Arbeiter-NPC (`96×96` RGBA, Proportion wie Kael, Flood-Fill + `NEAREST`) |
+| `P3-12` | [x] | `public/art/sprites/npc_elder_scholar.png` | Formel B · `96×96` RGBA | `public/art/sprites/npc_vex.png` *(Proportion)* | `ART_AND_DESIGN_GUIDE.md` §7 | ✅ Ältesten-Gelehrter-NPC (`96×96` RGBA, Flood-Fill + `NEAREST`) |
 
 ### P3c — Fehlende M10-C Boss-Sprites (Fallback-Ersatz)
 
 | ID | Status | Zieldatei | Typ & Format | Referenz (`ImagePaths`) | Brief / Prompt | Notiz |
 | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
-| `P3-13` | [ ] | `public/art/sprites/boss_slag_colossus.png` | Formel B · `128×128` RGBA | `public/art/sprites/boss_vulkan_titan.png` *(Sektor-3-Stil)* | `ART_AND_DESIGN_GUIDE.md` §8 | S3 E1 Schlacken-Koloss |
-| `P3-14` | [ ] | `public/art/sprites/boss_forge_mistress.png` | Formel B · `128×128` RGBA | `public/art/sprites/boss_vulkan_titan.png` *(Sektor-3-Stil)* | `ART_AND_DESIGN_GUIDE.md` §8 | S3 E2 Gießerei-Meisterin |
-| `P3-15` | [ ] | `public/art/sprites/boss_chrono_warden.png` | Formel B · `128×128` RGBA | `public/art/sprites/boss_star_archon.png` *(Sektor-4-Stil)* | `ART_AND_DESIGN_GUIDE.md` §8 | S4 E1 Chrono-Wächter |
-| `P3-16` | [ ] | `public/art/sprites/boss_monolith_colossus.png` | Formel B · `128×128` RGBA | `public/art/sprites/boss_star_archon.png` *(Sektor-4-Stil)* | `ART_AND_DESIGN_GUIDE.md` §8 | S4 E2 Monolith-Koloss |
-| `P3-17` | [ ] | `public/art/sprites/boss_scrap_collector.png` | Formel B · `128×128` RGBA | `public/art/sprites/boss_breacher.png` | `ART_AND_DESIGN_GUIDE.md` §8 | Sehr niedrige Prio: Krall nutzt bereits sein M11-Rig |
+| `P3-13` | [x] | `public/art/sprites/boss_slag_colossus.png` | Formel B · `128×128` RGBA | `public/art/sprites/boss_vulkan_titan.png` *(Sektor-3-Stil)* | `ART_AND_DESIGN_GUIDE.md` §8 | ✅ S3 E1 Schlacken-Koloss (`128×128` RGBA, Flood-Fill + `NEAREST`, via `gemini-nano-banana-2.1`) |
+| `P3-14` | [x] | `public/art/sprites/boss_forge_mistress.png` | Formel B · `128×128` RGBA | `public/art/sprites/boss_vulkan_titan.png` *(Sektor-3-Stil)* | `ART_AND_DESIGN_GUIDE.md` §8 | ✅ S3 E2 Gießerei-Meisterin (`128×128` RGBA, Flood-Fill + `NEAREST`) |
+| `P3-15` | [x] | `public/art/sprites/boss_chrono_warden.png` | Formel B · `128×128` RGBA | `public/art/sprites/boss_star_archon.png` *(Sektor-4-Stil)* | `ART_AND_DESIGN_GUIDE.md` §8 | ✅ S4 E1 Chrono-Wächter (`128×128` RGBA, Flood-Fill + Ring-Löcher freigestellt + `NEAREST`) |
+| `P3-16` | [x] | `public/art/sprites/boss_monolith_colossus.png` | Formel B · `128×128` RGBA | `public/art/sprites/boss_star_archon.png` *(Sektor-4-Stil)* | `ART_AND_DESIGN_GUIDE.md` §8 | ✅ S4 E2 Monolith-Koloss (`128×128` RGBA, Flood-Fill + intakter heller Kern + `NEAREST`) |
+| `P3-17` | [x] | `public/art/sprites/boss_scrap_collector.png` | Formel B · `128×128` RGBA | `public/art/sprites/boss_breacher.png` | `ART_AND_DESIGN_GUIDE.md` §8 | ✅ S1 E1 Schrott-Sammler „Krall“ Rückfall-Sprite (`128×128` RGBA, Flood-Fill + `NEAREST`) |
 
 ### P3d — Kern-Wächter: Phase-1-Armschäden (D12-Lücke, niedrige Priorität)
 
@@ -218,13 +218,16 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 > **⛔ STOP-GATE (GESPERRT):** Zellenlisten pro Boss werden erst festgelegt (jede muss den **Mindeststandard D11–D14** abdecken: Angriffsgrafik, Beschädigungsstufen, Beine/Unterkörper je Angriff), wenn **Kern-Wächter** und **Krall** im echten Spiel abgenommen sind (damit die Serie auf einem abgenommenen Vorbild aufbaut — Qualität, nicht Budget; §0). Danach trägt Claude Code die konkreten Sheets je Boss hier als `P4-01 …` ein:
 > Quarz-Koloss · Sternen-Archon · Leviathan · Prisma-Weberin · Prisma-Archon · Schlacken-Koloss · Gießerei-Meisterin · Vulkan-Titan · Chrono-Wächter · Monolith-Koloss.
 
-### P4b — NG+ & ∞ Spirale: gemeinsamer Look (**PLAN `[~]` — wartet auf Freigabe des Projektinhabers, noch nicht generieren**)
-> Plan & offene Fragen: `BOSS_ENEMY_PIPELINE.md` §5b. Gemeinsame Overlays für alle Gegner/Bosse — keine Sheets pro Wesen. Erst nach Freigabe auf `[ ]` setzen.
+### P4b — NG+ & ∞ Spirale: gemeinsamer Look + Spiralen-Biom (**PLAN `[~]` — Entscheidungen liegen vor, wartet auf Startsignal des Projektinhabers, noch nicht generieren**)
+> Plan & Entscheidungen: `BOSS_ENEMY_PIPELINE.md` §5b. Gemeinsame Sheets für alle Wesen + eigenes Spiralen-Biom. Echo-Varianten (`P4-05` ff.) erst nach Pilot-Abnahme. Erst auf `[ ]`, wenn der Inhaber startet.
 
 | ID | Status | Zieldatei | Typ & Format | Referenz (`ImagePaths`) | Brief / Prompt | Notiz |
 | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
-| `P4-01` | [~] | `art_source/rigs/ngplus_aura.png` | Typ E · 3×2 · `1536×1024` | `art_source/rigs/spore_spitter_fx.png` (Effekt-Stil), `public/art/sprites/enemy_phase_stalker.png` (Größenvergleich) | `BOSS_ENEMY_PIPELINE.md` §5b.1 — Prompt: „6 pixel-art effect cells for a New Game Plus marker: pulsing cool white-cyan aura ring small / medium / large (hollow, transparent centre), spark wreath, soft ground glow ellipse, death spark burst; consistent style, centred, white background, 3×2 grid“ | Aura nach Gegnergröße skaliert; Ringe mit `holes: true` importieren |
-| `P4-02` | [~] | `art_source/rigs/spiral_overlay.png` | Typ E · 3×2 · `1536×1024` | `art_source/rigs/crystal_crawler_ground.png` (sobald vorhanden, sonst `crystal_crawler_fx.png`), Bodenkacheln S1–S4 | `BOSS_ENEMY_PIPELINE.md` §5b.2 — Prompt: „6 pixel-art floor overlay effects for an endless spiral dimension: small singularity crack, large singularity crack, echo shimmer patch, floating void dust cloud, impact ring (spiral), echo death residue; dark violet-white palette, semi-transparent look, centred, white background, 3×2 grid“ | gilt für alle Boden-Effekte der Spirale, kein `_ground`-Sheet pro Gegner nötig |
+| `P4-01` | [~] | `art_source/rigs/ngplus_aura.png` | Typ E · 3×2 · `1536×1024` | `art_source/rigs/spore_spitter_fx.png` (Effekt-Stil), `public/art/sprites/enemy_phase_stalker.png` (Größenvergleich) | `BOSS_ENEMY_PIPELINE.md` §5b.1 — Prompt: „6 pixel-art effect cells for a subtle New Game Plus marker: faint pulsing cool white-cyan aura ring small / medium / large (hollow, transparent centre, low contrast), a few sparks, spark wreath, soft ground glow ellipse; consistent style, centred, white background, 3×2 grid“ | dezent! Ringe mit `holes: true` importieren |
+| `P4-02` | [~] | `art_source/rigs/spiral_ground.png` | Typ E · 3×2 · `1536×1024` | `art_source/rigs/crystal_crawler_fx.png` (Effekt-Stil), `public/art/dungeon_bg_s4.png` (Palette-Anker) | `BOSS_ENEMY_PIPELINE.md` §5b.2 — Prompt: „6 pixel-art floor effects for an endless spiral dimension: small singularity crack, large singularity crack, echo shimmer patch, floating void dust cloud, impact ring, echo death residue; dark violet-white palette, centred, white background, 3×2 grid“ | gilt für alle Boden-Effekte in der Spirale (kein `_ground` pro Gegner nötig) |
+| `P4-03` | [~] | `public/art/dungeon_bg_spiral.png` | Raum-Hintergrund · `960×540` | `public/art/dungeon_bg_s4.png` (Format/Perspektive), `public/art/dungeon_bg_s2.png` (Kristall-Stil) | `ART_AND_DESIGN_GUIDE.md` (Dungeon-Hintergründe) + `BOSS_ENEMY_PIPELINE.md` §5b.2 — Prompt: „top-down 3/4 pixel art dungeon room floor and walls of an endless spiral dimension, dark violet and white, floating cracks of void light, subtle spiral pattern in the floor, same layout and perspective as the reference background, no characters, no UI“ | **Layout wie `dungeon_bg_s4.png`** (Türen/Wände an gleichen Stellen!) — Prüfung Boss-Labor Biom „Spirale“ |
+| `P4-04` | [~] | `art_source/rigs/spiral_props.png` | Typ P · 3×2 · `1536×1024` | `public/art/dungeon_bg_s4.png`, `P4-03` | `BOSS_ENEMY_PIPELINE.md` §5b.2 | 6 Hindernis-/Deko-Teile im Spiralen-Stil (Säule, Kristallsplitter, Riss-Pfosten, Echo-Kiste, schwebender Block, Spiralen-Obelisk) |
+| `P4-05` | [~] | *(Echo-Pilot, Zellenlisten erst nach Start)* `art_source/rigs/drone_echo_fx.png`, `art_source/rigs/phase_stalker_echo_fx.png` | Typ E · 3×2 · `1536×1024` | `art_source/rigs/drone_rig.png`, `art_source/rigs/phase_stalker_rig.png` | `BOSS_ENEMY_PIPELINE.md` §5b.3 | Echo-Elite-Pilot (neuer Zug je Variante); **STOP-GATE bis Pilot im Spiel abgenommen** |
 
 ---
 

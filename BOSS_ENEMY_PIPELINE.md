@@ -94,35 +94,42 @@ Neue Mischungen (neue Pools, Challenges, Events) → diese Tabelle ergänzen.
 
 **Pflicht in Stufe 3 (Sprite-Liste):** für jeden Gegner/Boss prüfen, ob er in der Tabelle oben vorkommt **und** Boden-Effekte hat (Aufschlag, Stampfer, Sturz, Tod am Boden, Spuren) → `<id>_ground.png` mit einplanen. Checklisten-Punkt **G10** (Gegner) bzw. **D15** (Bosse) in `BOSS_ANIMATION_PLAN.md`.
 
-## 5b. New Game+ & ∞ Spirale — eigener Look (PLAN, noch nicht freigegeben)
-> **Status: Plan (Wunsch des Projektinhabers 2026-11-27, Details offen — §5b.4).** Bis zur Freigabe wird **nichts** davon umgesetzt; die Sprites stehen in `SPRITE_QUEUE.md` als `[~]` (`P4-01`, `P4-02`).
+## 5b. New Game+ & ∞ Spirale — eigener Look & Echo-Varianten (PLAN, Entscheidungen 2026-11-27, noch nicht umgesetzt)
+> **Status: Plan mit beantworteten Fragen (§5b.4).** Umsetzung erst auf Startsignal des Projektinhabers; Sprites stehen in `SPRITE_QUEUE.md` P4b als `[~]` bis dahin.
 
-**Ausgangslage (Stand heute):** NG+ ändert nur **Werte** (Skalierung über `ngPlusLevel`), nicht das **Aussehen**. Die ∞ Spirale wechselt nur die vier Sektor-Biome (S1→S4, `visualSector`) und mischt Gegner/Bosse — ohne eigenen Spiralen-Look. Beides soll sich sichtbar nach „Mehr/Endgame“ anfühlen.
+**Ausgangslage (Stand heute):** NG+ ändert nur **Werte** (`ngPlusLevel`), nicht das **Aussehen**. Die ∞ Spirale wechselt nur die vier Sektor-Biome (S1→S4, `visualSector`) und mischt Gegner/Bosse — ohne eigenen Look. Beides soll sich sichtbar nach „Endgame“ anfühlen.
 
-**Leitidee: gemeinsame Overlays statt Sheets pro Gegner.** Der Look wird **einmal** gezeichnet und im Code über alle Gegner/Bosse gelegt — die Rig-Chats müssen **keine** eigenen NG+/Spiralen-Varianten pro Wesen erzeugen (spart Aufwand, bleibt konsistent).
+**Leitidee:** Was für alle Wesen gleich gilt (Aura, Boden-Effekte, Hintergrund), wird **einmal gemeinsam** gezeichnet; nur die **Echo-Varianten mit neuen Attacken** (§5b.3) brauchen eigene Sprites pro Wesen.
 
-### 5b.1 NG+-Look (Gegner & Bosse)
-- **Stufen-Marker nach `ngPlusLevel`:** NG+1–2 = Aura-Ring in kühlem Weiß-Cyan („Echo“, pulsierend) · NG+3–5 = Aura + Funkenkranz · NG+6+ = Aura + Funkenkranz + Namens-Zusatz „★“. Bewusst **nicht** golden (Gold = Elite-Rand, M10-C).
-- **Umsetzung:** Aura/Funken als **gemeinsames Effekt-Sheet** `art_source/rigs/ngplus_aura.png` (Typ E, 3×2: Aura-Ring klein/mittel/groß · Funkenkranz · Boden-Glimmer unter dem Gegner · Todes-Funkenstoß), skaliert nach Gegnergröße; zusätzlich leichte Tönung per Code. Rein optisch, keine Werte.
-- **Bosse:** gleicher Marker + Namens-Zusatz in der Boss-Leiste; kein eigenes Boss-Sheet nötig.
+### 5b.1 NG+-Look — dezente Aura (entschieden)
+- **Nur Aura, kein Namens-Zusatz.** Stufen nach `ngPlusLevel`: NG+1–2 = schwache, kühle weiß-cyan Aura („Echo“, langsam pulsierend) · NG+3–5 = etwas kräftiger + wenige Funken · NG+6+ = kräftig + Funkenkranz. Immer **dezent** (kein Verdecken des Gegners/Telegraphs). Bewusst **nicht** golden (Gold = Elite-Rand, M10-C).
+- **Umsetzung:** gemeinsames Effekt-Sheet `art_source/rigs/ngplus_aura.png` (`P4-01`), skaliert nach Gegnergröße, plus leichte Tönung per Code. Rein optisch. Bosse bekommen dieselbe Aura (größer).
 
-### 5b.2 Spiralen-Look (Räume, Boden-Effekte, Gegner)
-- **Spiralen-Überzug auf dem Raum-Biom:** Der Raum behält sein Sektor-Biom (S1–S4), bekommt aber ein **Spiralen-Overlay** (Singularitätsrisse, Echo-Schimmer, schwebender Leere-Staub). Gilt für Boden **und** für Boden-Effekte der Gegner (Regel 16): kein zusätzliches `_ground`-Sheet pro Gegner, sondern ein gemeinsames Overlay-Sheet.
-- **Sheet:** `art_source/rigs/spiral_overlay.png` (Typ E, 3×2: Singularitätsriss klein · groß · Echo-Schimmer-Fläche · Leere-Staubwolke · Einschlag-Ring (Spirale) · Todes-Rückstand „Echo“).
-- **Gegner in der Spirale:** leichte Echo-Tönung + Aura-Marker analog 5b.1 (Spiralen-Tiefe statt `ngPlusLevel`).
-- **Endbosse in der Spirale:** vorerst Standardraum (Entscheidung M12 §10.3); Spiralen-Variante der Arena-Effekte erst, wenn die Arena-Bosse stehen (M12 Phase D+).
+### 5b.2 Spiralen-Biom — eigenes Biom mit eigenem Hintergrund (entschieden)
+- Die ∞ Spirale bekommt ein **eigenes sechstes Biom „Spirale“** (Singularität · Echo-Dimension, dunkles Violett-Weiß mit Leere-Rissen und schwebenden Splittern) mit **eigenem Raum-Hintergrund** `public/art/dungeon_bg_spiral.png` (`960×540`, wie `dungeon_bg_s2–s4`), eigenen Bodenkacheln/Hindernissen und eigener Musik/Tönung (später). Die Spirale zeigt **nicht mehr** S1–S4 im Wechsel, sondern ihr eigenes Biom (die Sektor-Echos als Gegner-Pools bleiben).
+- **Boden-Effekte** (Regel 16): Gegner in der Spirale nutzen ein **gemeinsames** Spiralen-Boden-Effekt-Sheet `art_source/rigs/spiral_ground.png` (`P4-02`) — kein zusätzliches `_ground`-Sheet pro Gegner nötig. Das Biom „Spirale“ ist **Biom 6** der Auswahl (`riftSector` → `floor.visualSector` → `currentSector`; Spirale = eigener Wert `spiral`).
+- **Endbosse in der Spirale:** vorerst Standardraum im Spiralen-Biom (M12 §10.3); Arena-Variante erst nach den Arena-Bossen (M12 Phase D+).
+- **Neue Sprites (alle optional mit Fallback = Tönung von S4):** Hintergrund (`P4-03`), Hindernisse/Deko-Set (`P4-04`), Spiralen-Boden-Effekte (`P4-02`).
 
-### 5b.3 Biom-Wahl im Code (Erweiterung von §5)
-`Biom des Raums` bleibt wie in §5 (Riss-Kammer → `riftSector`, Spirale → `floor.visualSector`, sonst `currentSector`). **Neu (nach Freigabe):** `isSpiral` (Raum gehört zur ∞ Spirale) und `ngPlusLevel` als **zusätzliche Overlay-Schalter** — sie verändern **nicht** die Biom-Auswahl der Boden-Variante, nur die Überlagerung. Im Boss-Labor (`?bosslab`) kommen dafür zwei Schalter dazu: **NG+ 0–6** und **Spirale an/aus**. Alles rein optisch; keine Hitbox-/Wert-Änderung, kein globaler Zufall.
+### 5b.3 Echo-Varianten mit neuen Attacken (entschieden — als eigener Meilenstein, Pilot zuerst)
+- **Echo-Elite** = Variante eines vorhandenen Gegners mit **einem zusätzlichen Zug**, in NG+ (ab Stufe 1) und in der Spirale. Aussehen: Rig des Originals + Echo-Aura (§5b.1) + Echo-Tönung; der **neue Zug** bekommt eigene Posen und eine eigene Angriffsgrafik (Effekt-Sheet pro Variante, `<kind>_echo_fx.png`).
+- **Pilot (2 Stück, nach Abnahme Serie):** je ein Fernkämpfer und ein Nahkämpfer aus Sektor 1, damit das Format trägt (Vorschlag: Drohne — „Echo-Salve“ (Nachbild feuert versetzt), Phasen-Jäger — „Echo-Sprung“ (Doppelgänger-Spur)). **STOP-GATE:** erst nach Abnahme im Spiel weitere Varianten.
+- **Regeln:** neue Züge ≥ 0,4 s telegrafiert, deterministisch (kein globaler Zufall), Werte in `src/data/balance.ts` (separate, normierte Prüfungs-Werte für die feste Wochen-Herausforderung), Auftreten über deterministische Tabelle (nicht in jedem Raum), eigener Test, Checkliste G1–G10 gilt zusätzlich für den neuen Zug. **Enthalten in der festen Wochen-Herausforderung** (siehe 5b.4).
+- Eintrag im Steckbrief (§2) je Variante; Sprites in `SPRITE_QUEUE.md` P4b (`P4-05` ff., erst nach Pilot-Freigabe).
 
-### 5b.4 Offene Entscheidungen (Projektinhaber)
-1. Soll der NG+-Marker nur Aura (dezent) oder Aura + Namens-Zusatz sein?
-2. Spiralen-Look: Overlay auf den Sektor-Biomen (empfohlen) oder ein **eigenes Spiralen-Biom** mit eigenem Hintergrund (deutlich mehr Sprites)?
-3. Soll NG+ auch **neue Gegner-Varianten** (z. B. Echo-Elite mit Zusatzangriff) bekommen — oder bleibt es bei Optik?
-4. Gilt der Look auch für die Wochen-Prüfung? (Empfehlung: **nein**, Prüfung bleibt neutral und normiert.)
+### 5b.4 Entscheidungen (Projektinhaber, 2026-11-27)
+1. NG+-Marker: **dezente Aura**, kein Namens-Zusatz. ✅
+2. Spiralen-Look: **eigenes Spiralen-Biom mit eigenem Hintergrund.** ✅
+3. **Echo-Varianten mit neuen Attacken** (Gameplay-Neuerung) — ja. ✅
+4. **Wochen-Prüfung (Klarstellung des Inhabers):** Es gibt **eine feste Wochen-Herausforderung, die nicht wechselt und alles beinhaltet** — Arena-Boss, Spiralen-Biom/Look, NG+-Aura, Echo-Varianten mit neuen Attacken, Sektor-Mechaniken. Das **Rotieren** (wechselnder Sektor/Mutator je Kalenderwoche, `getCurrentWeeklyTrial` in `weeklyTrial.ts`) wird **später** wieder eingeschaltet, wenn der Inhaber alles testen kann. ✅
+   - **Umsetzung (nach Startsignal):** `getCurrentWeeklyTrial` bekommt einen Schalter `TRIAL_ROTATION_ENABLED` (Standard `false` in dieser Phase) und eine feste `FIXED_TRIAL`-Definition (Layout-Seed, Mutator, Inhalte). Solange `false`, liefert jede Woche dieselbe Herausforderung; die Wochen-ID bleibt für die Bestenliste (Rekorde je Woche) erhalten. Alles Neue hängt an einem Gate wie `TRIAL_ARENA_FROM_WEEK`, damit die **laufende Woche nicht kippt**.
+   - **Normierung bleibt:** feste Ausrüstungsstufen (`TRIAL_COMBAT_LEVELS`), kein Loot/Credits, keine Waffen-Sperren-Auswirkung — die Echo-Varianten/Arena-Werte werden dafür **mit eigenen Prüfungs-Werten** in `balance.ts` kalibriert (Messung `m10cp10`).
+   - **Später:** Rotation wieder an → die Inhalte werden zu einem Pool (z. B. Sektor-/Boss-/Biom-Auswahl je Woche); Vorbereitung: Inhalte als Daten (`TrialContentDef`), nicht fest im Code verdrahtet.
+   - Im Plan §5b.3 gilt damit **nicht mehr** „nicht in der Wochen-Prüfung“: Echo-Varianten sind **in** der festen Herausforderung enthalten.
 
-### 5b.5 Checkliste (ab Freigabe)
-Neue Punkte **G11** (Gegner) / **D16** (Bosse): *„Aura/Spiralen-Overlay sitzt sauber (Größe, Mittelpunkt) und verdeckt kein Telegraph; im Labor mit NG+/Spirale-Schaltern geprüft.“* — bis zur Freigabe **nicht** Pflicht.
+### 5b.5 Im Boss-Labor & in der Checkliste
+- Labor (`?bosslab`): Biom-Zeile bekommt **„Spirale“**, dazu Schalter **NG+ 0–6**; Echo-Varianten als eigene Einträge in der Gegnerliste. Alles optisch bzw. nur im Labor.
+- **G11/D16 (ab Umsetzung):** *„NG+-Aura/Spiralen-Optik sitzt sauber (Größe, Mittelpunkt), verdeckt kein Telegraph, im Labor mit NG+/Spirale geprüft.“* Bis zur Umsetzung nicht Pflicht.
 
 ## 6. Verknüpfte Dokumente
 [AGENTS.md](AGENTS.md) §3 Regeln 7, 11–13 · [BOSS_ANIMATION_PLAN.md](BOSS_ANIMATION_PLAN.md) · [MILESTONE_12_ARCHITECTURE.md](MILESTONE_12_ARCHITECTURE.md) · [RIGGING_GUIDE.md](RIGGING_GUIDE.md) · [ART_BRIEF_M11.md](ART_BRIEF_M11.md) · [ART_BRIEF_M11_ENEMIES.md](ART_BRIEF_M11_ENEMIES.md) · [SPRITE_QUEUE.md](SPRITE_QUEUE.md) · [PARALLEL_WORK.md](PARALLEL_WORK.md)

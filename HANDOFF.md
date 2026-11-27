@@ -22,16 +22,13 @@ npm run verify                           # Build + Invarianten + Sprite-Check + 
 - Dev-Test-Hook `window.__game` gibt es nur im Vite-Dev-Server.
 
 ## ⚠ Fehlende Sprites (Fallbacks aktiv → neue PNGs gewünscht)
-> **Plan (wartet auf Freigabe): NG+- & Spiralen-Look** als gemeinsame Overlays (`BOSS_ENEMY_PIPELINE.md` §5b, Sprites `P4-01/P4-02` als `[~]` in `SPRITE_QUEUE.md` P4b, offene Fragen §5b.4) — noch nichts umsetzen/generieren.
+> **Plan (Entscheidungen 2026-11-27, wartet auf Startsignal): NG+-Aura (dezent), eigenes Spiralen-Biom mit eigenem Hintergrund, Echo-Varianten mit neuen Attacken** (`BOSS_ENEMY_PIPELINE.md` §5b, Sprites `P4-01…P4-05` als `[~]` in `SPRITE_QUEUE.md` P4b) — noch nichts umsetzen/generieren. Wochen-Prüfung: **eine feste, nicht wechselnde Herausforderung mit allem** (Rotation kommt später, `TRIAL_ROTATION_ENABLED`, §5b.4).
 > **Neu: `npm run art:gen`** (`scripts/gen-sheet.py`, von Antigravity; Claude-Fallback + `--sheet-out` ergänzt) — Claude-Chats erzeugen benötigte Sheets direkt über die Gemini-Bild-API (Standardmodell `gemini-nano-banana-2.1`, Key über Network Secret, Header `x-goog-api-key`; getestet 2026-11-27). Bestehende Liste → Antigravity; Claude nur für die eigene laufende Aufgabe (`AGENTS.md` Regel 15).
 > **Grundhaltung (Inhaber, 2026-11-27): Qualität vor Sparen.** Genug Gemini-Guthaben vorhanden — wenn etwas mit den vorhandenen Bildern nicht gut aussieht, nicht klappt oder nicht gefällt, wird ein neues bzw. ersetzendes Sheet bestellt (`AGENTS.md` Regel 14, `SPRITE_QUEUE.md` §0).
-`npm run check:sprites` listet die aktuelle Lage. Stand: **alle 12 optionalen M10-Sprites fehlen**
-(`prop_hub_*`, `prop_kael_memorial`, `prop_lyra_echo_sign`, `prop_nyx_free_lantern`, `prop_vex_*`, `npc_pilgrim`, `npc_foundry_worker`, `npc_elder_scholar`) **plus 5 Boss-Sprites (M10-C)**: `boss_scrap_collector` *(Krall hat inzwischen ein Rig → nur noch Rückfall, niedrige Priorität)*, `boss_slag_colossus`, `boss_forge_mistress`, `boss_chrono_warden`, `boss_monolith_colossus` (128×128, Prompts: Art-Guide §8).
+`npm run check:sprites` listet die aktuelle Lage. Stand: **✔ Alle 17 optionalen M10-Promenaden- & M10-C-Boss-Sprites sind vorhanden** (`P3-01…P3-17` komplett ✅, alle 20 M11-Gegner-Rigs S1–S4 `P1-01…P2-19` + `P2-21` `crystal_crawler_ground.png` geliefert ✅).
 - Prompts & Maße: `ART_AND_DESIGN_GUIDE.md` §7–§8 · Ablage: `public/art/sprites/<datei>.png` (96×96 bzw. 128×128, kein Code nötig).
-- **M12 Arena-Sprites freigegeben (2026-11-27):** `P1-03…P1-06` Leviathan-Arena (Boden, Boss-Wand, Arm-Teile, Arena-Effekte) jetzt `[ ]` in `SPRITE_QUEUE.md` (STOP-GATE nach P1-03/04). Fallback aktiv (`arenaFloor.ts`), Ansicht mit `?arena`. Status-Blatt `handoff/endboss_arena.md`.
-- **Neu in der Queue (niedrige Prio):** `P3-18/19` Kern-Wächter-Phase-1-Armschäden (`core_warden_arms_R4/L4.png`, D12-Lücke).
-- Schwächster Fallback zuerst ersetzen: Vex-Bake, Zyklus-Hologramm, Obelisk, Klassentafel.
-- **Zentrale Warteschlange:** Alle offenen Sprites & M11-Sheets stehen priorisiert (`P0`–`P4`) in [`SPRITE_QUEUE.md`](SPRITE_QUEUE.md). **Wer einen Fallback/Platzhalter oder ein neues M11-Sheet anlegt, sortiert es dort sofort priorisiert ein** (`AGENTS.md` §3 Regel 7) und vermerkt es hier kurz.
+- **M12 Arena-Sprites freigegeben (2026-11-27):** `P1-03…P1-06` Leviathan-Arena (Boden, Boss-Wand, Arm-Teile, Arena-Effekte) jetzt `[ ]` in `SPRITE_QUEUE.md` (STOP-GATE nach P1-03/04). Fallback aktiv (`arenaFloor.ts`), Ansicht mit `?arena`. Status-Blatt `handoff/endboss_arena.md` (`P1-07` Trophäen-Sprites geliefert ✅).
+- **Zentrale Warteschlange:** Alle offenen Sprites & M11-Sheets stehen priorisiert (`P0`–`P4`) in [`SPRITE_QUEUE.md`](SPRITE_QUEUE.md). **Wer einen Fallback/Platzhalter oder ein neues M11-Sheet anlegt, sortiert es dort sofort priorisiert ein** (`AGENTS.md` §3 Regel 7) und vermerkt es hier kurz. Aktuell steht die Queue am **⛔ STOP-GATE (GESPERRT)** vor **P4** (weitere Boss-Rigs, wartet auf Abnahme von Kern-Wächter & Krall im Spiel).
 
 ## Arbeitsbereiche (paralleles Arbeiten in mehreren Chats)
 Jeder Bereich hat ein eigenes Status-Blatt in [`handoff/`](handoff/README.md) — **dort** pflegen, nicht hier. Regeln & Ablauf (`npm run ship`): [`PARALLEL_WORK.md`](PARALLEL_WORK.md).
@@ -49,16 +46,13 @@ Jeder Bereich hat ein eigenes Status-Blatt in [`handoff/`](handoff/README.md) �
 ## Nächster Schritt
 - **Polish (Teile 1–3) abgenommen & erledigt:** Hintergrund-Pause, Wackeln/Vibration im Hilfe-Tab, Tür-Label · Kern-Wächter-Schritte, Hit-Stop (`heavyStop`), Telegraph-Blitz, Schadenszahlen-Merge · Dungeon-Code lädt nach (`__game.dungeonReady`, Chunk-Gruppe `dungeon` entfernt). Tests `t7`, `t7b`, `t8`.
 - **Aufräumen erledigt** (Audit 2026-11-26, Blöcke C1–C6): Doku auf aktuellem Stand, „Kern-Wächter“ einheitlich, Repo-Hygiene, toter Code entfernt, gemeinsamer `EnemyKind`, `check:sprites` prüft Sheets/Imports, Pose-Sheet-Import (`art_source/poses`) entfernt, `npm run build:single` dokumentiert, Version 1.4.0. **Firebase-SDK lädt nach dem Start nach** (`src/services/firebaseSdk.ts` per `import()`, Service-API unverändert; Test `t6`) — Abweichung vom Plan: nicht der ganze Service, nur das SDK.
-- **Claude Code:** je Bereich siehe `handoff/*.md` (Krall: Einbinden P0-08…12 · Gegner: Drohne, Phasen-Jäger · Kern-Wächter: Prüfung D11–D14).
-- **Antigravity (als Nächstes, nach kurzem Quota-Reset ~35 min):** Weiter in [`SPRITE_QUEUE.md`](SPRITE_QUEUE.md) via Skill `sprite-batch`: **`P0-15`** (`krall_arms_R4.png`) + **`P0-17`** (`krall_arms_R5.png`) / **`P0-18`** (`krall_arms_L5.png`), danach **P2** ab `P2-06` (`shard_sniper_rig.png`); `P2-03` (Sporenspucker) ist eingebunden (`handoff/enemy_spore_spitter.md`). Neu: `P2-20` (optionale Sporenspucker-Effekte, niedrig).
+- **Claude Code:** je Bereich siehe `handoff/*.md` (Einbinden der gelieferten S2–S4 Gegner-Rigs + `crystal_crawler_ground.png`; M12-Arena-Plan-Freigabe).
+- **Antigravity:** Alle offenen `[ ]`-Einträge vor dem **P4-STOP-GATE** sind erledigt (`P0`–`P3` komplett ✅). Wartet auf Freigabe für M12 `P1-03…06` (`[~]`) oder P4-Boss-Rigs bzw. neue Zusatz-/Ersatz-Sheets.
 - Ökonomie & Boss-Kampfgefühl im echten Spiel beobachten und in `src/data/balance.ts` nachjustieren (Berichte: `tests/out/economy.json`, `tests/out/ttk.json`).
-- Optionale M10/M10-C-Einzel-Sprites bei Bedarf ebenfalls per Antigravity erzeugen.
 
 ## Offene Punkte
-- Bildgenerierung: läuft direkt in Antigravity per `generate_image` (wochenweise Credits; Gemini-API mit Abrechnung nicht eingerichtet).
+- Bildgenerierung: Dual-Backend in Antigravity (`generate_image` + direkter Gemini-API-Fallback via `scripts/gen-sheet.py`, Modell `gemini-nano-banana-2.1`, Key lokal außerhalb des Repos).
 - Ideen: siehe `GAME_DESIGN_DOCUMENT.md` §5.
-
-- **Neue Sprites (Krall, P0-14…18, `SPRITE_QUEUE.md`):** **`P0-14`** (`krall_torsos2.png` exakt im `84×100`-Panzer-Maßstab) & **`P0-16`** (`krall_arms_L4.png`) sind geliefert ✅ (bereit für Re-Import & Entfernen von `t2k`); noch offen: **`P0-15`** (`krall_arms_R4.png`), **`P0-17`** (`krall_arms_R5.png`), **`P0-18`** (`krall_arms_L5.png`).
 
 ## M12 Phase E (2026-11-27)
 Waffen-Arten-Sperre (`WEAPON_TYPE_GATES`), Trophäe „A.E.G.I.S.-Herzlinse“, Hub-Vitrine umgesetzt (am bestehenden Leviathan-Sieg). **Neue Sprites benötigt:** `P1-07` (`prop_trophy_leviathan.png`, `item_trophy_leviathan.png`) — Fallbacks aktiv. Status-Blatt: `handoff/endboss_arena.md`.

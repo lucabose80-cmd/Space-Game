@@ -14,16 +14,20 @@ module.exports = async ({ page, scratch }) => {
     const moving = (x, y) => new Proxy({}, { get: (t, k) => (k === 'getMoveVector' ? () => ({ x, y }) : () => false) });
     const out = {};
     out.artKeys = Object.keys(M10_OPTIONAL_SPRITES).length;
-    out.artNull = Object.keys(M10_OPTIONAL_SPRITES).every((k) => getHDArt()[k] === null); // keine PNGs vorhanden → Fallbacks
+    out.artValid = Object.keys(M10_OPTIONAL_SPRITES).every((k) => {
+      const v = getHDArt()[k];
+      return v === null || (v instanceof HTMLCanvasElement && v.width > 0);
+    });
     // --- Passanten-Plan je Kapitel (max 6)
     out.counts = [];
     for (let c = 0; c <= 6; c++) { gs.story.chapter = c; hub.onEnter('shop'); out.counts.push(hub.getStrollerKinds().length); }
-    // --- alle Flags + Kapitel 6: Render ohne Exception mit Fallback UND mit (fake) Sprites
+    // --- alle Flags + Kapitel 6: Render ohne Exception mit Fallback UND mit (echten/fake) Sprites
     gs.story.chapter = 6; gs.ngPlusLevel = 1; gs.story.flags = ['kael_memorial', 'kael_forward', 'lyra_clinic', 'nyx_redeemed', 'vex_spiral', 'vex_stays'];
     hub.onEnter('shop');
+    const art = getHDArt(); const saved = {}; for (const k of Object.keys(M10_OPTIONAL_SPRITES)) { saved[k] = art[k]; art[k] = null; }
     try { for (let i = 0; i < 20; i++) { hub.update(0.05, idle); hub.render(ctx); } out.fallbackRender = true; } catch (e) { out.fallbackRender = String(e); }
     const fake = document.createElement('canvas'); fake.width = 96; fake.height = 96; fake.getContext('2d').fillStyle = '#f0f'; fake.getContext('2d').fillRect(8, 8, 80, 80);
-    const art = getHDArt(); const saved = {}; for (const k of Object.keys(M10_OPTIONAL_SPRITES)) { saved[k] = art[k]; art[k] = fake; }
+    for (const k of Object.keys(M10_OPTIONAL_SPRITES)) art[k] = saved[k] || fake;
     try { for (let i = 0; i < 10; i++) { hub.update(0.05, idle); hub.render(ctx); } out.spriteRender = true; } catch (e) { out.spriteRender = String(e); }
     for (const k of Object.keys(saved)) art[k] = saved[k];
     // --- Obelisk: solide
@@ -61,7 +65,7 @@ module.exports = async ({ page, scratch }) => {
     return out;
   });
   console.log(JSON.stringify(r));
-  const ok = r.artKeys === 12 && r.artNull && r.counts.join() === '2,2,3,4,5,6,6' && r.fallbackRender === true && r.spriteRender === true &&
+  const ok = r.artKeys === 12 && r.artValid && r.counts.join() === '2,2,3,4,5,6,6' && r.fallbackRender === true && r.spriteRender === true &&
     r.obeliskBlock[0] > r.obeliskBlock[1].y + r.obeliskBlock[1].r - 1 && r.minStrollerDist >= r.colR - 0.5 &&
     r.chatterTriggered && r.chatterLen <= 68 && r.chatterLines.every((n) => n <= 34) && r.chatterLines.length <= 2 && r.poolOk && r.hasFlagLine && r.noWrongChapter && r.blockedByPrompt && r.blockedByProximity &&
     r.sparks > 10 && r.sparksLater < r.sparks && r.ch0 === 0 && r.ch6ids.includes('kael_memorial') && r.ch6ids.includes('vex_beacon') && !r.ch6ids.includes('vex_classboard');
