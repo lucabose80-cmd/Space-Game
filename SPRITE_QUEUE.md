@@ -160,6 +160,15 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 | `P3-16` | [ ] | `public/art/sprites/boss_monolith_colossus.png` | Formel B · `128×128` RGBA | `public/art/sprites/boss_star_archon.png` *(Sektor-4-Stil)* | `ART_AND_DESIGN_GUIDE.md` §8 | S4 E2 Monolith-Koloss |
 | `P3-17` | [ ] | `public/art/sprites/boss_scrap_collector.png` | Formel B · `128×128` RGBA | `public/art/sprites/boss_breacher.png` | `ART_AND_DESIGN_GUIDE.md` §8 | Sehr niedrige Prio: Krall nutzt bereits sein M11-Rig |
 
+### P3d — Kern-Wächter: Phase-1-Armschäden (D12-Lücke, niedrige Priorität)
+
+> Heute bleiben die Arme in Phase 1 bei < 80 % / < 65 % HP unversehrt (nur Helm/Rumpf zeigen Schäden). Kein Blocker für die Abnahme; dran, wenn Credits übrig sind. Nach dem Import als `armR_19…24` / `armL_19…24` hinten anhängen (Karte `BOSS_ANIMATION_PLAN.md` §2.1), Auswahl in `coreWardenSet` bei Phase 1 und HP < 65 %.
+
+| ID | Status | Zielpfad | Typ / Maß | Referenzbild | Prompt | Notiz |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `P3-18` | [ ] | `art_source/rigs/core_warden_arms_R4.png` | L · 3×2 (`1536×1024`) | `core_warden_arms_R.png` + `core_warden_arms_R2.png` | `ART_BRIEF_M11.md` §4.2 *(Zusatz „Phase-1-Armschäden“)* | rechter Arm, Phase 1 **beschädigt**: Hauptposen Hängend · Ausholen · Schlag · Laser-Seite · Block · Stampfer, mit Rissen, verbogener Panzerung, Funken, Schulterkappe angeschlagen; Schulterring im Fadenkreuz |
+| `P3-19` | [ ] | `art_source/rigs/core_warden_arms_L4.png` | L · 3×2 (`1536×1024`) | `core_warden_arms_L.png` + `core_warden_arms_L2.png` | `ART_BRIEF_M11.md` §4.2 *(Zusatz „Phase-1-Armschäden“)* | linker Arm, gleiche Posen, nicht gespiegelt, Licht links-oben |
+
 ---
 
 ## P4 — Weitere Boss-Rig-Sets (`ART_BRIEF_M11.md` §4.3)

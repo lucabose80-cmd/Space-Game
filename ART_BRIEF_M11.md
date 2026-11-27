@@ -116,6 +116,7 @@ Wichtig: **runde, große Schulterkappen** (das alte Modell wirkte runder) und F�
 | `core_warden_heads.png` | S | Helm mit Halo: neutral · Visier offen/brüllend · nach unten (zielend) · zurückgeworfen · Phase 2 (Augen rot glühend, Halo größer) · beschädigt (Halo flackernd, Riss) |
 | `core_warden_torsos.png` | S | Rumpf mit Reaktor: normal · geduckt (Sturm-Anlauf) · nach hinten gelehnt · nach vorn gebeugt · **Phase 2: Brustpanzer weg, Reaktorkern offen und glühend** · überhitzt (Kern weiß-gelb, Dampfrisse) |
 | `core_warden_parts.png` (vorhanden) | P | bleibt für die **wegfliegenden Brustplatten** (Phase 2) |
+| `core_warden_arms_R4.png` / `core_warden_arms_L4.png` *(Zusatz, `SPRITE_QUEUE.md` P3-18/19)* | L | **Phase-1-Armschäden (HP < 65 %)**: dieselben 6 Hauptposen wie `arms_R/L` (hängend · Ausholen · Schlag · seitlich · Block · Stampfer), aber **beschädigt**: Risse, verbogene/abgesprungene Panzerplatten, Funken, angeschlagene Schulterkappe; Faust bleibt vorhanden (Phase 2 hat eigene Faust-lose Sets); Schulterring im Fadenkreuz, links/rechts getrennt gezeichnet, Licht links-oben |
 
 ### 4.3 Danach: die übrigen Bosse (Kurzfassung)
 Für jeden Boss: **Arme L+R (Typ L)**, **Kopf/Rumpf (Typ S)**, ggf. Beine, Effekte. Individuelle Besonderheiten:
