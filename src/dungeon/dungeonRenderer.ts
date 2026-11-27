@@ -20,10 +20,6 @@ import { VIRTUAL_HEIGHT, VIRTUAL_WIDTH, type InputManager } from '../engine/inpu
 import { renderArenaFloor } from './arenaFloor';
 import { drawEdgeMarkers, offscreenMarkers } from './edgeIndicators';
 import {
-  ROOM_BOTTOM,
-  ROOM_CENTER_X,
-  ROOM_CENTER_Y,
-  ROOM_TOP,
   roomKey,
   type DungeonRoom,
 } from '../world/dungeonGen';
@@ -240,11 +236,11 @@ export class DungeonRenderer {
     this.renderDoors(ctx);
 
     if (this.scene.currentRoom.type === 'start') {
-      this.renderWarpPad(ctx, ROOM_CENTER_X, ROOM_CENTER_Y - 12, this.scene.currentSector === 2 ? '#c084fc' : '#38e8d4');
+      this.renderWarpPad(ctx, this.scene.bounds.cx, this.scene.bounds.cy - 12, this.scene.currentSector === 2 ? '#c084fc' : '#38e8d4');
       // Floor III Start Room Emergency Med-Station!
       if (this.scene.currentRoom.hasHealStation) {
-        const hx = ROOM_CENTER_X + 70;
-        const hy = ROOM_CENTER_Y - 12;
+        const hx = this.scene.bounds.cx + 70;
+        const hy = this.scene.bounds.cy - 12;
         const used = Boolean(this.scene.currentRoom.healStationUsed);
         drawPixelShadow(ctx, hx, hy + 10, 11, 4, 0.48);
         ctx.fillStyle = '#1e293b';
@@ -263,27 +259,27 @@ export class DungeonRenderer {
       }
     } else if (this.scene.currentRoom.type === 'boss' && this.scene.floorBossDefeated) {
       if (this.scene.isEndlessRift) {
-        const padY = ROOM_CENTER_Y + 6;
-        this.renderWarpPad(ctx, ROOM_CENTER_X - 48, padY, '#38e8d4');
-        this.renderWarpPad(ctx, ROOM_CENTER_X + 48, padY, '#c084fc');
+        const padY = this.scene.bounds.cy + 6;
+        this.renderWarpPad(ctx, this.scene.bounds.cx - 48, padY, '#38e8d4');
+        this.renderWarpPad(ctx, this.scene.bounds.cx + 48, padY, '#c084fc');
         ctx.font = 'bold 5px Silkscreen, monospace';
         ctx.textAlign = 'center';
         ctx.fillStyle = '#67e8f9';
-        ctx.fillText('EXTRAKTION', ROOM_CENTER_X - 48, padY + 22);
+        ctx.fillText('EXTRAKTION', this.scene.bounds.cx - 48, padY + 22);
         ctx.fillStyle = '#e879f9';
-        ctx.fillText(`∞ EBENE ${this.scene.riftDepth + 1}`, ROOM_CENTER_X + 48, padY + 22);
+        ctx.fillText(`∞ EBENE ${this.scene.riftDepth + 1}`, this.scene.bounds.cx + 48, padY + 22);
       } else if (this.scene.currentFloor < 3 && this.scene.currentSector !== 5) {
-        const padY = ROOM_CENTER_Y + 6;
-        this.renderWarpPad(ctx, ROOM_CENTER_X - 48, padY, '#38e8d4');
-        this.renderWarpPad(ctx, ROOM_CENTER_X + 48, padY, this.scene.currentSector === 2 ? '#e879f9' : '#fbbf24');
+        const padY = this.scene.bounds.cy + 6;
+        this.renderWarpPad(ctx, this.scene.bounds.cx - 48, padY, '#38e8d4');
+        this.renderWarpPad(ctx, this.scene.bounds.cx + 48, padY, this.scene.currentSector === 2 ? '#e879f9' : '#fbbf24');
         ctx.font = 'bold 5px Silkscreen, monospace';
         ctx.textAlign = 'center';
         ctx.fillStyle = '#67e8f9';
-        ctx.fillText('EXTRAKTION', ROOM_CENTER_X - 48, padY + 22);
+        ctx.fillText('EXTRAKTION', this.scene.bounds.cx - 48, padY + 22);
         ctx.fillStyle = this.scene.currentSector === 2 ? '#f0abfc' : '#fde047';
-        ctx.fillText(this.scene.currentFloor === 1 ? '▼ EBENE II' : '▼ EBENE III', ROOM_CENTER_X + 48, padY + 22);
+        ctx.fillText(this.scene.currentFloor === 1 ? '▼ EBENE II' : '▼ EBENE III', this.scene.bounds.cx + 48, padY + 22);
       } else {
-        const vy = ROOM_CENTER_Y + 12;
+        const vy = this.scene.bounds.cy + 12;
         const winColor =
           this.scene.currentSector === 5
             ? '#fde047'
@@ -294,7 +290,7 @@ export class DungeonRenderer {
                 : this.scene.currentSector === 2
                   ? '#e879f9'
                   : '#fde047';
-        this.renderWarpPad(ctx, ROOM_CENTER_X, vy, winColor);
+        this.renderWarpPad(ctx, this.scene.bounds.cx, vy, winColor);
         ctx.font = 'bold 5.2px Silkscreen, monospace';
         ctx.textAlign = 'center';
         ctx.fillStyle = winColor;
@@ -302,7 +298,7 @@ export class DungeonRenderer {
           this.scene.currentSector === 5
             ? '★ OMEGA-SIEG!'
             : `★ SEKTOR-${this.scene.currentSector} SIEG!`,
-          ROOM_CENTER_X,
+          this.scene.bounds.cx,
           vy + 22,
         );
       }
@@ -364,8 +360,8 @@ export class DungeonRenderer {
 
     // Milestone 7: Cleared Rift Anomaly Chamber return portal
     if (this.scene.currentRoom.isRiftChamber && this.scene.currentRoom.cleared) {
-      const rx = ROOM_CENTER_X;
-      const ry = ROOM_BOTTOM - 28;
+      const rx = this.scene.bounds.cx;
+      const ry = this.scene.bounds.b - 28;
       this.renderWarpPad(ctx, rx, ry, '#c084fc');
       ctx.font = 'bold 4.8px Silkscreen, monospace';
       ctx.textAlign = 'center';
@@ -374,6 +370,8 @@ export class DungeonRenderer {
     }
 
     for (const ob of this.scene.currentRoom.obstacles) {
+      // M12: Boss-Wand-Sockel der Arena zeichnet arenaFloor.ts (Wand-Sprite bzw. Fallback), nicht als Schott-Balken
+      if (arena && ob.kind === 'bulkhead_wall') continue;
       this.renderObstacle(ctx, ob);
     }
 
@@ -519,8 +517,8 @@ export class DungeonRenderer {
         ctx.fill();
         ctx.restore();
       } else if (e.kind === 'boss_prism_weaver' && e.bossState === 's2_blink_windup') {
-        const tx = e.bossTargetX ?? ROOM_CENTER_X;
-        const ty = e.bossTargetY ?? ROOM_CENTER_Y;
+        const tx = e.bossTargetX ?? this.scene.bounds.cx;
+        const ty = e.bossTargetY ?? this.scene.bounds.cy;
         const prog = 1 - Math.max(0, (e.bossStateTimer ?? 0) / Math.max(0.01, e.bossStateMax ?? 0.6));
         ctx.save();
         ctx.strokeStyle = `rgba(232, 121, 249, ${0.5 + prog * 0.45})`;
@@ -548,7 +546,7 @@ export class DungeonRenderer {
     for (const e of this.scene.enemies) {
       const sortY =
         e.kind === 'boss_leviathan'
-          ? ROOM_TOP + 20
+          ? this.scene.bounds.t + 20
           : e.kind === 'boss' && (e.bossHeight ?? 0) > 12
             ? 999
             : e.y;
@@ -1365,8 +1363,8 @@ export class DungeonRenderer {
     ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
 
     // Etched ancient floor sanctuary rune circle around the Secret Treasure Chest
-    const cx = ROOM_CENTER_X;
-    const cy = ROOM_CENTER_Y - 12;
+    const cx = this.scene.bounds.cx;
+    const cy = this.scene.bounds.cy - 12;
     ctx.strokeStyle = isS2
       ? `rgba(232, 121, 249, ${0.32 + pulse * 0.18})`
       : `rgba(253, 224, 71, ${0.32 + pulse * 0.18})`;
@@ -1380,8 +1378,8 @@ export class DungeonRenderer {
     drawGlow(ctx, cx, cy, 52, accent, 0.22 + pulse * 0.08);
 
     // Glowing Grav-Rope Return Pad & focused escape light shaft (cleanly below the chest!)
-    const rx = ROOM_CENTER_X;
-    const ry = ROOM_BOTTOM - 28;
+    const rx = this.scene.bounds.cx;
+    const ry = this.scene.bounds.b - 28;
     this.renderWarpPad(ctx, rx, ry, '#38e8d4');
     const shaftTop = ry - 36;
     const shaftGrad = ctx.createLinearGradient(rx, ry, rx, shaftTop);
@@ -1406,7 +1404,7 @@ export class DungeonRenderer {
     ctx.fillStyle = '#67e8f9';
     ctx.fillText('▲ GRAV-SEIL', rx, ry + 20);
     ctx.fillStyle = accent;
-    ctx.fillText('★ GEHEIME SCHATZKAMMER', cx, ROOM_TOP + 14);
+    ctx.fillText('★ GEHEIME SCHATZKAMMER', cx, this.scene.bounds.t + 14);
     ctx.restore();
   }
 

@@ -1,11 +1,13 @@
 // M12 Phase B: prozeduraler Boden für Räume mit eigenen Grenzen (Arena), solange kein Arena-Sprite existiert
 // (Phase C bringt `arena_*_bg.png` → SPRITE_QUEUE P1-03). Einmal pro Raum in ein Offscreen-Canvas
 // (2× Auflösung wie der HD-Puffer) vorgezeichnet, danach nur noch ein drawImage pro Frame. Kein globaler Zufall.
+import { getHDArt, type HDArtAssets } from '../assets/artLoader';
+import { ARENAS, ARENA_TILE, arenaTileAt, type ArenaDef } from '../data/arenas';
 import { mulberry32 } from '../systems/seededRng';
 import type { DungeonRoom } from '../world/dungeonGen';
 
 /** Wandbreite außerhalb der Grenzen (logisch) — entspricht etwa den Rändern im Standard-Hintergrund. */
-export const ARENA_WALL = 46;
+export const ARENA_WALL = 48;
 const TILE = 16;
 const SCALE = 2;
 
@@ -15,6 +17,61 @@ const PALETTES: Record<number, { base: string; tileA: string; tileB: string; sea
   3: { base: '#170a06', tileA: '#2a1610', tileB: '#2f1912', seam: '#1d0e09', wall: '#3a1f15', wallHi: '#5a3222', edge: '#fb923c' },
   4: { base: '#081019', tileA: '#14202e', tileB: '#172534', seam: '#0d1621', wall: '#1d2c3d', wallHi: '#2f4560', edge: '#a5b4fc' },
 };
+
+/** Prozedurale Boss-Wand (bis P1-04 geliefert ist): Reaktorkopf über die ganze Nordseite, Linse mittig, Kabel. */
+function drawWallFallback(
+  c: CanvasRenderingContext2D,
+  def: ArenaDef,
+  b: { l: number; r: number; t: number; b: number },
+  pal: { wall: string; wallHi: string; edge: string },
+): void {
+  const top = b.t + 48 - def.wallHeight;
+  const h = def.wallHeight;
+  const cx = (b.l + b.r) / 2;
+  c.fillStyle = '#141b27';
+  c.fillRect(b.l, top, b.r - b.l, h);
+  // Panzerplatten
+  for (let x = b.l; x < b.r; x += 32) {
+    c.fillStyle = pal.wall;
+    c.fillRect(x + 1, top + 6, 30, h - 14);
+    c.fillStyle = pal.wallHi;
+    c.fillRect(x + 1, top + 6, 30, 2);
+    c.fillStyle = '#0b1019';
+    c.fillRect(x + 4, top + h - 18, 24, 3);
+  }
+  // Kabelbündel
+  c.strokeStyle = '#334155';
+  c.lineWidth = 2;
+  for (const off of [-150, -90, 90, 150]) {
+    c.beginPath();
+    c.moveTo(cx + off, top + 8);
+    c.quadraticCurveTo(cx + off * 0.6, top + h * 0.6, cx + off * 0.3, top + h - 6);
+    c.stroke();
+  }
+  // Kran-Schultern
+  c.fillStyle = '#475569';
+  c.fillRect(cx - 120, top + h - 30, 22, 26);
+  c.fillRect(cx + 98, top + h - 30, 22, 26);
+  // Kern-Linse
+  c.fillStyle = '#1e293b';
+  c.beginPath();
+  c.arc(cx, top + h * 0.45, 24, 0, Math.PI * 2);
+  c.fill();
+  c.fillStyle = '#fb923c';
+  c.globalAlpha = 0.85;
+  c.beginPath();
+  c.arc(cx, top + h * 0.45, 13, 0, Math.PI * 2);
+  c.fill();
+  c.fillStyle = '#fde68a';
+  c.beginPath();
+  c.arc(cx, top + h * 0.45, 5, 0, Math.PI * 2);
+  c.fill();
+  c.globalAlpha = 1;
+  c.strokeStyle = pal.edge;
+  c.globalAlpha = 0.4;
+  c.strokeRect(b.l + 0.5, top + 0.5, b.r - b.l - 1, h - 1);
+  c.globalAlpha = 1;
+}
 
 interface CacheEntry {
   key: string;
@@ -51,20 +108,43 @@ function build(room: DungeonRoom, sector: number): CacheEntry | null {
     c.fillRect(wx, y + 4, 22, 3);
     c.fillRect(wx, b.b + 10, 22, 3);
   }
-  // Boden-Platten
+  // Boden-Platten (mit Kachelplan: `p` = Bodenplatte über dem Glut-Schacht, `W` = Boss-Sockel)
+  const def = room.arenaKind ? ARENAS[room.arenaKind] : undefined;
   c.fillStyle = pal.seam;
   c.fillRect(b.l, b.t, b.r - b.l, b.b - b.t);
   for (let ty = b.t; ty < b.b; ty += TILE) {
     for (let tx = b.l; tx < b.r; tx += TILE) {
       const v = rnd();
+      const ch = def ? arenaTileAt(def, Math.floor((tx - b.l) / ARENA_TILE), Math.floor((ty - b.t) / ARENA_TILE)) : '.';
+      const tw = Math.min(TILE, b.r - tx) - 1;
+      const th = Math.min(TILE, b.b - ty) - 1;
+      if (ch === 'W') {
+        c.fillStyle = pal.wall;
+        c.fillRect(tx, ty, TILE, TILE);
+        c.fillStyle = pal.wallHi;
+        c.fillRect(tx + 1, ty + 1, TILE - 2, 2);
+        continue;
+      }
+      if (ch === 'p') {
+        // Platte mit Glut-Fugen (Hinweis: diese Fläche bricht später weg)
+        c.fillStyle = '#3a1a10';
+        c.fillRect(tx, ty, TILE, TILE);
+        c.fillStyle = v < 0.5 ? pal.tileA : pal.tileB;
+        c.fillRect(tx + 1, ty + 1, tw - 1, th - 1);
+        c.fillStyle = 'rgba(251, 146, 60, 0.22)';
+        c.fillRect(tx, ty + TILE - 1, TILE, 1);
+        c.fillRect(tx + TILE - 1, ty, 1, TILE);
+        continue;
+      }
       c.fillStyle = v < 0.5 ? pal.tileA : pal.tileB;
-      c.fillRect(tx + 0.5, ty + 0.5, Math.min(TILE, b.r - tx) - 1, Math.min(TILE, b.b - ty) - 1);
+      c.fillRect(tx + 0.5, ty + 0.5, tw, th);
       if (v > 0.93) {
         c.fillStyle = pal.seam;
         c.fillRect(tx + 4, ty + 7, 8, 1); // Kratzer
       }
     }
   }
+  if (def) drawWallFallback(c, def, b, pal);
   // Leuchtende Kante an den Raumgrenzen
   c.strokeStyle = pal.edge;
   c.globalAlpha = 0.35;
@@ -84,4 +164,13 @@ export function renderArenaFloor(ctx: CanvasRenderingContext2D, room: DungeonRoo
   ctx.fillStyle = pal.base;
   ctx.fillRect(viewX, viewY, viewW, viewH);
   if (cache) ctx.drawImage(cache.canvas, cache.x, cache.y, cache.w, cache.h);
+  // Optionale Arena-Sprites (P1-03 Boden = genau die Spielfläche, P1-04 Wand = oberer Rand + Sockel)
+  const def = room.arenaKind ? ARENAS[room.arenaKind] : undefined;
+  if (def) {
+    const art = getHDArt();
+    const bg = def.bgSprite ? art[def.bgSprite as keyof HDArtAssets] : null;
+    if (bg instanceof HTMLCanvasElement) ctx.drawImage(bg, b.l, b.t, b.r - b.l, b.b - b.t);
+    const wall = def.wallSprite ? art[def.wallSprite as keyof HDArtAssets] : null;
+    if (wall instanceof HTMLCanvasElement) ctx.drawImage(wall, b.l, b.t + 48 - def.wallHeight, b.r - b.l, def.wallHeight);
+  }
 }

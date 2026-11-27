@@ -30,10 +30,8 @@ import {
   generateEndlessRiftFloor,
   generateSector1Floor,
   generateSectorFloor,
-  ROOM_BOTTOM,
   ROOM_CENTER_X,
   ROOM_CENTER_Y,
-  ROOM_TOP,
   roomBounds,
   roomKey,
   type ChasmRect,
@@ -47,6 +45,7 @@ import { DungeonEnemyAi } from '../dungeon/enemyAi';
 import { RoomMechanicsSystem } from '../dungeon/roomMechanics';
 import { NavGrid } from '../dungeon/navGrid';
 import { DungeonCamera } from '../dungeon/camera';
+import { arenaEnabled, attachArenas } from '../data/arenas';
 import { BossFx } from '../dungeon/bosses/bossFx';
 import { BOSS_HP, ENEMY_SHIELDS, RIFT_SCALING } from '../data/balance';
 import { findFreeSpotSpiral } from '../dungeon/mechanicsGen';
@@ -352,8 +351,8 @@ export class DungeonScene {
     if (!room) return;
     sound.playWarp();
     this.enterRoom(riftKey, null);
-    this.playerX = ROOM_CENTER_X;
-    this.playerY = ROOM_BOTTOM - 34;
+    this.playerX = this.bounds.cx;
+    this.playerY = this.bounds.b - 34;
     this.lastSafeX = this.playerX;
     this.lastSafeY = this.playerY;
     this.spawnBurst(this.playerX, this.playerY, '#c084fc', 24);
@@ -368,8 +367,8 @@ export class DungeonScene {
     // M10-C: Rückkehrpunkt = freier Platz unterhalb des Portals (nicht in Objekten)
     const rp = this.currentRoom.riftPortal;
     const back = rp ? findFreeSpotSpiral(this.currentRoom, rp.x, rp.y + 30, 8) : null;
-    this.playerX = back?.x ?? ROOM_CENTER_X;
-    this.playerY = back?.y ?? ROOM_CENTER_Y + 28;
+    this.playerX = back?.x ?? this.bounds.cx;
+    this.playerY = back?.y ?? this.bounds.cy + 28;
     this.lastSafeX = this.playerX;
     this.lastSafeY = this.playerY;
     this.spawnBurst(this.playerX, this.playerY, '#38e8d4', 18);
@@ -412,6 +411,9 @@ export class DungeonScene {
       }
     } else {
       this.floor = generateSectorFloor(sector, floorIndex);
+      // M12 (Phase C): Endboss-Arena an den Bossraum hängen — nach der Generierung, ohne Math.random.
+      // Wochen-Prüfung: nie vor TRIAL_ARENA_FROM_WEEK (kommt mit Phase D).
+      if (arenaEnabled()) attachArenas(this.floor);
     }
     this.floorBossDefeated = false;
     this.invulnTimer = 0.55;
@@ -654,8 +656,8 @@ export class DungeonScene {
     this.pitFallSecretRoomKey = null;
     this.roomFade = 0.28;
 
-    this.playerX = ROOM_CENTER_X;
-    this.playerY = ROOM_CENTER_Y + 26;
+    this.playerX = this.bounds.cx;
+    this.playerY = this.bounds.cy + 26;
     this.lastSafeX = this.playerX;
     this.lastSafeY = this.playerY;
     this.facing = 'up';
@@ -677,8 +679,8 @@ export class DungeonScene {
   public exitSecretRoom(): void {
     const parentKey = this.currentRoom.secretParentKey;
     if (!parentKey) return;
-    const rx = this.currentRoom.secretReturnX ?? ROOM_CENTER_X;
-    const ry = this.currentRoom.secretReturnY ?? ROOM_CENTER_Y;
+    const rx = this.currentRoom.secretReturnX ?? this.bounds.cx;
+    const ry = this.currentRoom.secretReturnY ?? this.bounds.cy;
     sound.playWarp();
     this.enterRoom(parentKey, null);
     this.playerX = rx;
@@ -1039,24 +1041,24 @@ export class DungeonScene {
       e.levArms = [
         {
           side: -1,
-          homeX: ROOM_CENTER_X - 78,
-          homeY: ROOM_TOP + 54,
-          x: ROOM_CENTER_X - 78,
-          y: ROOM_TOP + 54,
-          targetX: ROOM_CENTER_X - 78,
-          targetY: ROOM_TOP + 54,
+          homeX: this.bounds.cx - 78,
+          homeY: this.bounds.t + 54,
+          x: this.bounds.cx - 78,
+          y: this.bounds.t + 54,
+          targetX: this.bounds.cx - 78,
+          targetY: this.bounds.t + 54,
           state: 'idle',
           timer: 0,
           beamAngle: Math.PI / 2,
         },
         {
           side: 1,
-          homeX: ROOM_CENTER_X + 78,
-          homeY: ROOM_TOP + 54,
-          x: ROOM_CENTER_X + 78,
-          y: ROOM_TOP + 54,
-          targetX: ROOM_CENTER_X + 78,
-          targetY: ROOM_TOP + 54,
+          homeX: this.bounds.cx + 78,
+          homeY: this.bounds.t + 54,
+          x: this.bounds.cx + 78,
+          y: this.bounds.t + 54,
+          targetX: this.bounds.cx + 78,
+          targetY: this.bounds.t + 54,
           state: 'idle',
           timer: 0,
           beamAngle: Math.PI / 2,
@@ -3106,14 +3108,14 @@ export class DungeonScene {
       this.sector1ClearedInRun = true;
       this.state.recordSectorClear(1, this.runElapsedSec);
       // Drop Leviathan Omega Core + 4 rare/epic relics in center of arena!
-      const dropY = ROOM_CENTER_Y - 12;
-      this.spawnLootDrop(ROOM_CENTER_X, dropY, 'leviathan_core');
-      this.spawnLootDrop(ROOM_CENTER_X - 18, dropY + 4, 'aegis_plate');
+      const dropY = this.bounds.cy - 12;
+      this.spawnLootDrop(this.bounds.cx, dropY, 'leviathan_core');
+      this.spawnLootDrop(this.bounds.cx - 18, dropY + 4, 'aegis_plate');
       // M12 (E): Trophäen-Relikt beim Erstsieg (nie in der Wochen-Prüfung — die läuft über handleTrialBossKilled)
-      if (firstLeviathanWin) this.spawnLootDrop(ROOM_CENTER_X + 18, dropY + 4, 'trophy_leviathan');
+      if (firstLeviathanWin) this.spawnLootDrop(this.bounds.cx + 18, dropY + 4, 'trophy_leviathan');
       for (let k = 0; k < 3; k++) {
         this.spawnLootDrop(
-          ROOM_CENTER_X + (k - 1) * 16,
+          this.bounds.cx + (k - 1) * 16,
           dropY + 8,
           rollLootItem(3, true, nightBoost, luckBonus, 1),
         );
@@ -3191,12 +3193,12 @@ export class DungeonScene {
           this.enemies.splice(j, 1);
         }
       }
-      const dropY = ROOM_CENTER_Y - 10;
-      this.spawnLootDrop(ROOM_CENTER_X, dropY, 'archon_heart');
-      this.spawnLootDrop(ROOM_CENTER_X - 18, dropY + 4, 'prism_matrix');
+      const dropY = this.bounds.cy - 10;
+      this.spawnLootDrop(this.bounds.cx, dropY, 'archon_heart');
+      this.spawnLootDrop(this.bounds.cx - 18, dropY + 4, 'prism_matrix');
       for (let k = 0; k < 3; k++) {
         this.spawnLootDrop(
-          ROOM_CENTER_X + (k - 1) * 16,
+          this.bounds.cx + (k - 1) * 16,
           dropY + 8,
           rollLootItem(3, true, nightBoost, luckBonus, 2),
         );
@@ -3240,11 +3242,11 @@ export class DungeonScene {
       for (let j = this.enemies.length - 1; j >= 0; j--) {
         if (!this.isBossKind(this.enemies[j].kind)) this.enemies.splice(j, 1);
       }
-      const dropY = ROOM_CENTER_Y - 10;
-      this.spawnLootDrop(ROOM_CENTER_X, dropY, 'vulkan_heart');
-      this.spawnLootDrop(ROOM_CENTER_X - 18, dropY + 4, 'solar_core');
+      const dropY = this.bounds.cy - 10;
+      this.spawnLootDrop(this.bounds.cx, dropY, 'vulkan_heart');
+      this.spawnLootDrop(this.bounds.cx - 18, dropY + 4, 'solar_core');
       for (let k = 0; k < 3; k++) {
-        this.spawnLootDrop(ROOM_CENTER_X + (k - 1) * 16, dropY + 8, rollLootItem(3, true, nightBoost, luckBonus, 3));
+        this.spawnLootDrop(this.bounds.cx + (k - 1) * 16, dropY + 8, rollLootItem(3, true, nightBoost, luckBonus, 3));
       }
       this.callbacks.onToast(
         '🔥 SEKTOR 3 BEZWUNGEN! ★ VULKAN-TITAN zerstört! Sektor-4-Schlüssel (Dock IV), Siegel #3 & Vulkan-Gold-Anzug freigeschaltet!',
@@ -3285,11 +3287,11 @@ export class DungeonScene {
       for (let j = this.enemies.length - 1; j >= 0; j--) {
         if (!this.isBossKind(this.enemies[j].kind)) this.enemies.splice(j, 1);
       }
-      const dropY = ROOM_CENTER_Y - 10;
-      this.spawnLootDrop(ROOM_CENTER_X, dropY, 'archon_crown');
-      this.spawnLootDrop(ROOM_CENTER_X - 18, dropY + 4, 'celestial_matrix');
+      const dropY = this.bounds.cy - 10;
+      this.spawnLootDrop(this.bounds.cx, dropY, 'archon_crown');
+      this.spawnLootDrop(this.bounds.cx - 18, dropY + 4, 'celestial_matrix');
       for (let k = 0; k < 3; k++) {
-        this.spawnLootDrop(ROOM_CENTER_X + (k - 1) * 16, dropY + 8, rollLootItem(3, true, nightBoost, luckBonus, 4));
+        this.spawnLootDrop(this.bounds.cx + (k - 1) * 16, dropY + 8, rollLootItem(3, true, nightBoost, luckBonus, 4));
       }
       this.callbacks.onToast(
         '👑 SEKTOR 4 BEZWUNGEN! ★ DER STERNEN-ARCHON besiegt! ALLE 4 SIEGEL GLÜHEN — Das 5. Tiefenraum-Tor im Raumhafen steht offen!',
@@ -3310,11 +3312,11 @@ export class DungeonScene {
       for (let j = this.enemies.length - 1; j >= 0; j--) {
         if (!this.isBossKind(this.enemies[j].kind)) this.enemies.splice(j, 1);
       }
-      const dropY = ROOM_CENTER_Y - 10;
-      this.spawnLootDrop(ROOM_CENTER_X, dropY, 'archon_crown');
-      this.spawnLootDrop(ROOM_CENTER_X - 18, dropY + 4, 'vulkan_heart');
-      this.spawnLootDrop(ROOM_CENTER_X + 18, dropY + 4, 'archon_heart');
-      this.spawnLootDrop(ROOM_CENTER_X, dropY + 12, 'celestial_matrix');
+      const dropY = this.bounds.cy - 10;
+      this.spawnLootDrop(this.bounds.cx, dropY, 'archon_crown');
+      this.spawnLootDrop(this.bounds.cx - 18, dropY + 4, 'vulkan_heart');
+      this.spawnLootDrop(this.bounds.cx + 18, dropY + 4, 'archon_heart');
+      this.spawnLootDrop(this.bounds.cx, dropY + 12, 'celestial_matrix');
       this.callbacks.onToast(
         '🌌 OMEGA-ANOMALIE BEZWUNGEN! ★ STORY-FINALE VOLLENDET! Omega-Anzug & New Game+ im Logbuch freigeschaltet!',
         'good',
@@ -3432,8 +3434,8 @@ export class DungeonScene {
           : undefined;
         if (parentRoom?.riftPortal) parentRoom.riftPortal.cleared = true;
         this.state.recordRiftChamberCleared();
-        this.spawnLootDrop(ROOM_CENTER_X - 18, ROOM_CENTER_Y, 'rift_catalyst');
-        this.spawnLootDrop(ROOM_CENTER_X + 18, ROOM_CENTER_Y, rollRiftLootItem(Math.max(2, this.currentSector)));
+        this.spawnLootDrop(this.bounds.cx - 18, this.bounds.cy, 'rift_catalyst');
+        this.spawnLootDrop(this.bounds.cx + 18, this.bounds.cy, rollRiftLootItem(Math.max(2, this.currentSector)));
         this.state.save();
         this.callbacks.onToast(
           '🌀 RIFT STABILISIERT! Rift-Katalysator & Anomalie-Relikt erbeutet — öffne die Truhe & kehre zurück!',
@@ -3444,11 +3446,11 @@ export class DungeonScene {
         this.floorBossDefeated = true;
         const isRecord = this.state.recordRiftDepth(this.riftDepth);
         const bonusDrops = 1 + Math.floor(this.riftDepth / 3);
-        this.spawnLootDrop(ROOM_CENTER_X - 16, ROOM_CENTER_Y - 12, 'rift_catalyst');
+        this.spawnLootDrop(this.bounds.cx - 16, this.bounds.cy - 12, 'rift_catalyst');
         for (let k = 0; k < bonusDrops; k++) {
           this.spawnLootDrop(
-            ROOM_CENTER_X + (k - 0.5) * 20,
-            ROOM_CENTER_Y - 6,
+            this.bounds.cx + (k - 0.5) * 20,
+            this.bounds.cy - 6,
             rollRiftLootItem(this.riftDepth),
           );
         }
@@ -3459,8 +3461,8 @@ export class DungeonScene {
         );
       } else if (this.currentRoom.type === 'combat') {
         this.spawnLootDrop(
-          ROOM_CENTER_X,
-          ROOM_CENTER_Y,
+          this.bounds.cx,
+          this.bounds.cy,
           this.isEndlessRift
             ? Math.random() < 0.45
               ? rollRiftLootItem(this.riftDepth)
@@ -3952,8 +3954,8 @@ export class DungeonScene {
 
     // Milestone 7: Cleared Rift Anomaly Chamber return portal
     if (this.currentRoom.isRiftChamber && this.currentRoom.cleared) {
-      const rx = ROOM_CENTER_X;
-      const ry = ROOM_BOTTOM - 28;
+      const rx = this.bounds.cx;
+      const ry = this.bounds.b - 28;
       if (Math.hypot(this.playerX - rx, this.playerY - ry) < 28) {
         this.activePrompt = {
           label: '[E] 🌀 Rift-Ausgang: Zurück in den Sektor',
@@ -3988,8 +3990,8 @@ export class DungeonScene {
     }
 
     if (this.currentRoom.type === 'secret') {
-      const rx = ROOM_CENTER_X;
-      const ry = ROOM_BOTTOM - 28;
+      const rx = this.bounds.cx;
+      const ry = this.bounds.b - 28;
       if (Math.hypot(this.playerX - rx, this.playerY - ry) < 28) {
         this.activePrompt = {
           label: '[E] Grav-Seil: Zurück nach oben',
@@ -4021,13 +4023,13 @@ export class DungeonScene {
     }
 
     if (this.currentRoom.type === 'start') {
-      if (Math.hypot(this.playerX - ROOM_CENTER_X, this.playerY - (ROOM_CENTER_Y - 12)) < 28) {
+      if (Math.hypot(this.playerX - this.bounds.cx, this.playerY - (this.bounds.cy - 12)) < 28) {
         this.activePrompt = {
           label: this.isWeeklyTrial
             ? '[E] Prüfung abbrechen (zählt als Versuch)'
             : '[E] Extraktion: Raumhafen Port Solaris (Gratis)',
-          x: ROOM_CENTER_X,
-          y: ROOM_CENTER_Y - 32,
+          x: this.bounds.cx,
+          y: this.bounds.cy - 32,
         };
         if (input.interactPressed()) {
           this.triggerSafeWarp('warp');
@@ -4037,8 +4039,8 @@ export class DungeonScene {
 
       // Floor III Start Room: One-time Emergency Med-Terminal before Leviathan!
       if (this.currentRoom.hasHealStation && !this.currentRoom.healStationUsed) {
-        const hx = ROOM_CENTER_X + 70;
-        const hy = ROOM_CENTER_Y - 12;
+        const hx = this.bounds.cx + 70;
+        const hy = this.bounds.cy - 12;
         if (Math.hypot(this.playerX - hx, this.playerY - hy) < 28) {
           this.activePrompt = {
             label: '[E] Notfall-Medstation (+60 % HP & +1 Stimpack)',
@@ -4085,9 +4087,9 @@ export class DungeonScene {
     if (this.currentRoom.type === 'boss' && this.floorBossDefeated) {
       if (this.isEndlessRift) {
         // Endless Spiral Dual Risk-Reward Choice: Left = Extract with Loot, Right = Descend to Depth + 1!
-        const exX = ROOM_CENTER_X - 48;
-        const elX = ROOM_CENTER_X + 48;
-        const padY = ROOM_CENTER_Y + 6;
+        const exX = this.bounds.cx - 48;
+        const elX = this.bounds.cx + 48;
+        const padY = this.bounds.cy + 6;
         if (Math.hypot(this.playerX - exX, this.playerY - padY) < 28) {
           this.activePrompt = {
             label: '[E] ⇪ Sicher extrahieren (Beute behalten)',
@@ -4114,9 +4116,9 @@ export class DungeonScene {
         }
       } else if (this.currentFloor < 3 && this.currentSector !== 5) {
         // Dual Moonlighter Exit Choice: Left = Safe Extraction, Right = Descend Deeper!
-        const exX = ROOM_CENTER_X - 48;
-        const elX = ROOM_CENTER_X + 48;
-        const padY = ROOM_CENTER_Y + 6;
+        const exX = this.bounds.cx - 48;
+        const elX = this.bounds.cx + 48;
+        const padY = this.bounds.cy + 6;
         if (Math.hypot(this.playerX - exX, this.playerY - padY) < 28) {
           this.activePrompt = {
             label: this.isWeeklyTrial
@@ -4160,8 +4162,8 @@ export class DungeonScene {
           return;
         }
       } else {
-        const vx = ROOM_CENTER_X;
-        const vy = ROOM_CENTER_Y + 12;
+        const vx = this.bounds.cx;
+        const vy = this.bounds.cy + 12;
         if (Math.hypot(this.playerX - vx, this.playerY - vy) < 32) {
           this.activePrompt = {
             label: this.isWeeklyTrial
