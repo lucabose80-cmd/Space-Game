@@ -14,13 +14,14 @@
   "krall_effects.png": "7de5b99dca527a36",
   "krall_arms_R2.png": "3490bfdca5ca035b",
   "krall_arms_L2.png": "cb5601953cdb5cba",
-  "krall_torsos2.png": "f8a3653b900e21ac",
+  "krall_torsos2.png": "02492cad83e7d2bc",
   "krall_torsos3.png": "d1d6e84b7a7f6be9",
   "krall_legs_R2.png": "b53380299b4166cf",
   "krall_legs_L2.png": "f69f2d95a259c2df",
   "krall_arms_R3.png": "5c062b283af2d2db",
   "krall_arms_L3.png": "3a9306a7c6336b7c",
-  "krall_fx2.png": "d5a45c82a342530c"
+  "krall_fx2.png": "d5a45c82a342530c",
+  "krall_arms_L4.png": "6cfc9c48162f87b1"
  },
  "parts": {
   "torso": {
@@ -348,38 +349,38 @@
    "set": "krall_arms_L2"
   },
   "torso_7": {
-   "w": 76,
-   "h": 90,
+   "w": 84,
+   "h": 100,
    "mode": "swap",
    "set": "krall_torsos2"
   },
   "torso_8": {
-   "w": 76,
-   "h": 90,
+   "w": 84,
+   "h": 100,
    "mode": "swap",
    "set": "krall_torsos2"
   },
   "torso_9": {
-   "w": 76,
-   "h": 90,
+   "w": 84,
+   "h": 100,
    "mode": "swap",
    "set": "krall_torsos2"
   },
   "torso_10": {
-   "w": 76,
-   "h": 90,
+   "w": 84,
+   "h": 100,
    "mode": "swap",
    "set": "krall_torsos2"
   },
   "torso_11": {
-   "w": 76,
-   "h": 90,
+   "w": 84,
+   "h": 100,
    "mode": "swap",
    "set": "krall_torsos2"
   },
   "torso_12": {
-   "w": 76,
-   "h": 90,
+   "w": 84,
+   "h": 100,
    "mode": "swap",
    "set": "krall_torsos2"
   },
@@ -598,6 +599,42 @@
    "h": 40,
    "mode": "swap",
    "set": "krall_fx2"
+  },
+  "clawL_19": {
+   "w": 102,
+   "h": 80,
+   "mode": "limb",
+   "set": "krall_arms_L4"
+  },
+  "clawL_20": {
+   "w": 102,
+   "h": 80,
+   "mode": "limb",
+   "set": "krall_arms_L4"
+  },
+  "clawL_21": {
+   "w": 102,
+   "h": 80,
+   "mode": "limb",
+   "set": "krall_arms_L4"
+  },
+  "clawL_22": {
+   "w": 102,
+   "h": 80,
+   "mode": "limb",
+   "set": "krall_arms_L4"
+  },
+  "clawL_23": {
+   "w": 102,
+   "h": 80,
+   "mode": "limb",
+   "set": "krall_arms_L4"
+  },
+  "clawL_24": {
+   "w": 102,
+   "h": 80,
+   "mode": "limb",
+   "set": "krall_arms_L4"
   }
  }
 }
