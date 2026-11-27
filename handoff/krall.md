@@ -28,4 +28,5 @@
     - `art_source/rigs/krall_arms_L4.png` (**P0-16 / K-F links**: Haken/Mini-Säge verbogen in den übrigen 6 Posen seitlich · Schild-Block · Stampfer · Sog mit Funken · Hagel/Schrott · Teleskop voll, Licht links-oben, Schulterring im Fadenkreuz, `min_margin ≥ 30 px`)
     - `art_source/rigs/krall_arms_R4.png` (**P0-15 / K-F rechts**: Greifzange verbogen in den übrigen 6 Posen seitlich · Block · Stampfer · Sog mit Funken · Hagel/Schrott · Teleskop voll, Schulterring im Fadenkreuz, `min_margin ≥ 34 px`, bereit für Claude-Import)
     - `art_source/rigs/krall_arms_R5.png` (**P0-17 / K-F rechts Stumpf**: abgebrochener funkender Stumpf mit Kabeln, ohne Zange/Schrott, in denselben 6 Posen, Schulterring im Fadenkreuz, `min_margin ≥ 33 px`, bereit für Claude-Import)
+    - `art_source/rigs/krall_arms_L5.png` (**P0-18 / K-F links Stumpf**: linker abgebrochener funkender Stumpf mit Kabeln, ohne Haken/Säge/Schild/Schrott, Licht links-oben, nicht gespiegelt, Schulterring im Fadenkreuz, `min_margin ≥ 42 px`, bereit für Claude-Import — damit alle P0-Krall-Sheets komplett!)
 

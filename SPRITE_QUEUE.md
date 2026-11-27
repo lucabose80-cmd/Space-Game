@@ -49,7 +49,7 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 | `P0-15` | [x] | `art_source/rigs/krall_arms_R4.png` | Typ L · 3×2 · `1536×1024` | `art_source/rigs/krall_arms_R.png`, `krall_arms_R2.png`, `krall_arms_R3.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-F) | ✅ Rechte Greifzange VERBOGEN in den 6 übrigen Posen (seitlich · Block · Stampfer · Sog mit Funken · Hagel/Schrott · Teleskop voll; Schulterring im Fadenkreuz, `min_margin ≥ 34 px`, `art:check` ok) |
 | `P0-16` | [x] | `art_source/rigs/krall_arms_L4.png` | Typ L · 3×2 · `1536×1024` | `art_source/rigs/krall_arms_L.png`, `krall_arms_L2.png`, `krall_arms_L3.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-F) | ✅ Linker Haken/Mini-Säge VERBOGEN in den 6 übrigen Posen (seitlich · Schild-Block · Stampfer · Sog mit Funken · Hagel/Schrott · Teleskop voll; Licht links-oben, Schulterring im Fadenkreuz, `min_margin ≥ 30 px`, `art:check` ok) |
 | `P0-17` | [x] | `art_source/rigs/krall_arms_R5.png` | Typ L · 3×2 · `1536×1024` | `krall_arms_R3.png` (Zelle 4–6 = Stumpf), `krall_arms_R4.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-F) | ✅ Rechter abgebrochener funkender Stumpf (Kabel, ohne Zange/Schrott) in den 6 übrigen Posen (seitlich · Block · Stampfer · Sog mit Cyan/Orange-Funken · hochgereckter Stumpf · Teleskop-Stoß; Schulterring im Fadenkreuz, `min_margin ≥ 33 px`, `art:check` ok) |
-| `P0-18` | [ ] | `art_source/rigs/krall_arms_L5.png` | Typ L · 3×2 · `1536×1024` | `krall_arms_L3.png` (Zelle 4–6 = Stumpf), `krall_arms_L4.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-F) | Wie P0-17 für den **linken** Stumpf, Licht links-oben, nicht spiegeln. |
+| `P0-18` | [x] | `art_source/rigs/krall_arms_L5.png` | Typ L · 3×2 · `1536×1024` | `krall_arms_L3.png` (Zelle 4–6 = Stumpf), `krall_arms_L4.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-F) | ✅ Linker abgebrochener funkender Stumpf (Kabel, ohne Haken/Säge/Schild/Schrott) in den 6 übrigen Posen, Licht links-oben, nicht gespiegelt, Schulterring im Fadenkreuz (`min_margin ≥ 42 px`, `art:check` ok) |
 
 > **Neu (Krall-Nacharbeit):** `P0-14…P0-18` — Skalierung der Phase-2-Rümpfe und beschädigte Arme für alle Angriffsposen. Wenn geliefert: Claude Code importiert (`krall_arms_R4/L4` → `clawR/L_19…24`, `R5/L5` → `clawR/L_25…30`; `damagedArm()` in `krall.ts` erweitern, Test `m11p5_krall`).
 
@@ -93,7 +93,7 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 | `P1-04` | [~] | `public/art/sprites/arena_leviathan_wall.png` | Boss-Wand · `1376×192` | `public/art/sprites/item_leviathan_core.png` | `MILESTONE_12_ARCHITECTURE.md` §9 | Leviathan-Körper als Nordwand, Kern-Linse mittig |
 | `P1-05` | [~] | `art_source/rigs/leviathan_arena_parts.png` | Typ P · 3×2 · `1536×1024` | `P1-04` | `MILESTONE_12_ARCHITECTURE.md` §9 · `ART_BRIEF_M11.md` §2 | Kranarm ×2 · Hammer-Klaue · Kabel · Ventil intakt/zerstört |
 | `P1-06` | [~] | `art_source/rigs/leviathan_arena_fx.png` | Typ E · 3×2 · `1536×1024` | `P1-03` | `MILESTONE_12_ARCHITECTURE.md` §9 | Platte bricht (3 Stufen) · Trümmer · Dampf · Linse offen |
-| `P1-07` | [ ] | `public/art/sprites/prop_trophy_leviathan.png` + `public/art/sprites/item_trophy_leviathan.png` | `96×96` + `64×64` | `public/art/sprites/item_leviathan_core.png` | `MILESTONE_12_ARCHITECTURE.md` §9 · `ART_AND_DESIGN_GUIDE.md` §3/§7 | Hub-Vitrine + Item-Icon „A.E.G.I.S.-Herzlinse“ |
+| `P1-07` | [x] | `public/art/sprites/prop_trophy_leviathan.png` + `public/art/sprites/item_trophy_leviathan.png` | `96×96` + `64×64` | `public/art/sprites/item_leviathan_core.png` | `MILESTONE_12_ARCHITECTURE.md` §9 · `ART_AND_DESIGN_GUIDE.md` §3/§7 | ✅ Hub-Vitrine (`96×96` RGBA, Flood-Fill + `NEAREST`) + Item-Icon „A.E.G.I.S.-Herzlinse“ (`64×64` RGBA) |
 
 ---
 
@@ -105,14 +105,14 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
 | `P2-01` | [x] | `art_source/rigs/drone_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/drone.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S1) | ✅ Drohne (`min_margin ≥ 71 px`, `art:check` ok, bereit für Claude-Import) |
 | `P2-02` | [x] | `art_source/rigs/shield_drone_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_shield_drone.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S1) | ✅ Schild-Drohne (`min_margin ≥ 80 px`, `art:check` ok; Emitter-Ring Zelle 4 mit `holes: true` importieren) |
-| `P2-03` | [ ] | `art_source/rigs/spore_spitter_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_spore_spitter.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S1) | Sporenspucker |
-| `P2-04` | [ ] | `art_source/rigs/drone_arc_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_drone_arc.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S1) | Bogen-Drohne |
+| `P2-03` | [x] | `art_source/rigs/spore_spitter_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_spore_spitter.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S1) | ✅ Sporenspucker (Körper · Auge · Kapsel zu/offen · Spore · halb eingegraben; Gelenke im Fadenkreuz, `min_margin ≥ 85 px`, `art:check` ok) |
+| `P2-04` | [x] | `art_source/rigs/drone_arc_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_drone_arc.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S1) | ✅ Bogen-Drohne (Gold-Rumpf · Visier · linke Tesla-Spule · linke Düsen-Gondel · Funken klein/groß; Gelenke im Fadenkreuz, `min_margin ≥ 72 px`, `art:check` ok) |
 
 ### P2b — Sektor 2
 
 | ID | Status | Zieldatei | Typ & Format | Referenz (`ImagePaths`) | Brief / Prompt | Notiz |
 | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
-| `P2-05` | [ ] | `art_source/rigs/crystal_crawler_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_crystal_crawler.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S2) | Kristall-Krabbler |
+| `P2-05` | [x] | `art_source/rigs/crystal_crawler_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_crystal_crawler.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S2) | ✅ Kristall-Krabbler (Panzer-Körper · Kopf mit Mandibeln · 3 linke Beine · abbrechbarer Kristall-Stachel; Gelenke im Fadenkreuz, `min_margin ≥ 96 px`, `art:check` ok) |
 | `P2-06` | [ ] | `art_source/rigs/shard_sniper_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_shard_sniper.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S2) | Splitter-Scharfschütze |
 | `P2-07` | [ ] | `art_source/rigs/prism_drone_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_prism_drone.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S2) | Prisma-Drohne |
 | `P2-08` | [ ] | `art_source/rigs/void_crawler_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_void_crawler.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S2) | Leere-Krabbler |
