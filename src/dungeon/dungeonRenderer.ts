@@ -3011,6 +3011,19 @@ export class DungeonRenderer {
         e.chargeActive > 0 ? 0.52 : 0.28,
       );
     } else if (e.kind === 'shield_drone') {
+      if (this.tryDrawEnemyRig(ctx, e, false)) {
+        // M11: Rig (Rumpf + Düsen + Emitter + drehender Schildbogen) — Konter-Hinweis bei offenem Schild bleibt
+        if ((e.shieldDownTimer ?? 0) > 0) {
+          ctx.fillStyle = '#fde047';
+          ctx.font = 'bold 6px Silkscreen, monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('▼', e.x, e.y - e.radius - 6);
+        } else {
+          drawGlow(ctx, e.x, e.y, 17, '#38e8d4', 0.2);
+        }
+        this.renderEnemyMiniHp(ctx, e);
+        return;
+      }
       const hover = Math.sin(this.scene.time * 5.2 + e.id) * 2.2;
       const spr = e.flashTimer > 0 ? art.shieldDroneFlash : art.shieldDrone;
       if (spr) {
