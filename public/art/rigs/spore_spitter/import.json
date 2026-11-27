@@ -5,7 +5,8 @@
  "torsoDisplayH": 19,
  "pixelRatio": 2,
  "sheets": {
-  "spore_spitter_rig.png": "a1887ab7f5229966"
+  "spore_spitter_rig.png": "a1887ab7f5229966",
+  "spore_spitter_fx.png": "7229ae872c808124"
  },
  "parts": {
   "body": {
@@ -67,6 +68,42 @@
    "h": 36,
    "mode": "swap",
    "set": "spore_spitter_rig"
+  },
+  "dirt_s": {
+   "w": 44,
+   "h": 42,
+   "mode": "swap",
+   "set": "spore_spitter_fx"
+  },
+  "dirt_b": {
+   "w": 44,
+   "h": 42,
+   "mode": "swap",
+   "set": "spore_spitter_fx"
+  },
+  "puff": {
+   "w": 44,
+   "h": 42,
+   "mode": "swap",
+   "set": "spore_spitter_fx"
+  },
+  "splash": {
+   "w": 44,
+   "h": 42,
+   "mode": "swap",
+   "set": "spore_spitter_fx"
+  },
+  "dirt_ring": {
+   "w": 54,
+   "h": 48,
+   "mode": "swap",
+   "set": "spore_spitter_fx"
+  },
+  "burst_ring": {
+   "w": 54,
+   "h": 48,
+   "mode": "swap",
+   "set": "spore_spitter_fx"
   }
  }
 }

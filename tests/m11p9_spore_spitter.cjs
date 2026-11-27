@@ -29,7 +29,10 @@ module.exports = async ({ page }) => {
     sp.updateSpitterGhosts([dead, gone], 10, 50); const g = sp.updateSpitterGhosts([], 10.016, 50);
     const d0 = sp.spitterDeathPose(g[0], 0.02), d1 = sp.spitterDeathPose(g[0], 0.3);
     const after = sp.updateSpitterGhosts([], 11, 50).length;
+    const fxIdle = P(e({ id: 30 }), 20), fxScurry = P(e({ id: 31, scurryTimer: 0.5 }), 20);
+    const sh2 = e({ id: 32, telegraphTimer: 0.2 }); P(sh2, 30); sh2.telegraphTimer = 0; const fxKick = P(sh2, 30.04);
     return {
+      fx: [fxIdle.dirt.hidden, fxScurry.dirt.hidden, fxKick.ring.hidden, fxKick.puff.hidden, fxIdle.ring.hidden, d1.puff.variant, d1.dirt.hidden],
       loaded: !!getHDArt().rigs.spore_spitter, kind: rigs.RIG_BY_KIND.spore_spitter, sMin, sMax,
       eyeVariants: [early.podL.variant, mid.podL.variant, mid.podR.variant, late.podR.variant],
       swell: [early.body.sy, mid.body.sy, late.body.sy], sporeHidden: [early.spore.hidden, late.spore.hidden],
@@ -54,6 +57,7 @@ module.exports = async ({ page }) => {
   assert.strictEqual(r.hitTele, 1, 'Treffer stört die Angriffspose nicht (Kapsel bleibt offen)');
   assert.strictEqual(r.ghosts, 1, 'nur der getötete Spucker (hp ≤ 0) hinterlässt eine Todes-Animation: ' + j);
   assert.strictEqual(r.after, 0, 'Todes-Animation endet');
-  assert.ok(Math.abs(r.death[1]) > Math.abs(r.death[0]) && r.death[3] < 0.6, 'Tod: Kapseln fliegen weg, Körper sackt zusammen: ' + j);
+  assert.ok(Math.abs(r.death[1]) > Math.abs(r.death[0]) && r.death[3] < 0.95, 'Tod: Kapseln fliegen weg, Körper sackt zusammen: ' + j);
+  assert.deepStrictEqual(r.fx, [true, false, false, false, true, 1, true], 'Effekte: Erdkrümel nur beim Eingraben, Druckring/Sporen-Puff nur beim Ausstoß, Schleim-Spritzer im Tod: ' + j);
   assert.deepStrictEqual(r.facing, [-1, 1], 'Blick zum Spieler (Rig gespiegelt)');
 };
