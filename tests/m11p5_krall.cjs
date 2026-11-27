@@ -55,6 +55,7 @@ module.exports = async ({ page }) => {
       legBrace: P({ bossSub: 'recover', bossStatusText: 'MAGNET-ZUG', bossStateTimer: 0.8 }).legFL.variant,
       legLunge: P({ bossSub: 'recover', bossStatusText: 'GREIFARM-STOSS', bossStateTimer: 0.8, chargeDirX: 1, chargeDirY: 0 }).legFL.variant,
       armLSog: P({ hp: 40, bossSub: 'recover', bossStatusText: 'MAGNET-ZUG', bossStateTimer: 0.8 }).clawL.variant,
+      armsOther: [50, 30, 15].map((hp) => { const q = (x) => P(Object.assign({ hp, bossSub: 'recover', bossStatusText: 'MAGNET-ZUG', bossStateTimer: 0.8 }, x)); return [q({}).clawR.variant, q({}).clawL.variant]; }),
       legTremble: P({ bossPhase2: true }).legFL.variant,
     };
   });
@@ -62,6 +63,7 @@ module.exports = async ({ page }) => {
   assert.deepStrictEqual(dm.p2, [6, 15, 16, 17], 'Phase 2: Rahmen · leicht < 35 · schwer < 25 · kritisch < 15');
   assert.deepStrictEqual(dm.armsR, [0, 12, 15], 'Zange: intakt · verbogen < 65 % · Stumpf < 35 %');
   assert.strictEqual(dm.armLSog, 21, 'Haken verbogen (< 50 %) im Sog: krall_arms_L4');
+  assert.deepStrictEqual(dm.armsOther, [[21, 10], [27, 21], [27, 27]], 'Sog (50/30/15 % HP): Zange verbogen (R4) → Stumpf (R5) < 35 %, Haken verbogen (L4) → Stumpf (L5) < 20 %');
   assert.deepStrictEqual([dm.legBrace, dm.legLunge, dm.legTremble], [10, 6, 11], 'Beine: Magnet-Stemmen · Ausfall · Ruhe-Zittern (Phase 2)');
   assert.ok(r.krFx.p2duck && r.krFx.hit, 'Krall: Phase-2-Haltung über Verschiebung, Treffer zittert: ' + JSON.stringify(r.krFx));
 };
