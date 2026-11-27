@@ -19,7 +19,7 @@ Rig-Animationen und Rig-Daten werden **automatisch gefunden** (`import.meta.glob
 1. `git fetch origin && git merge origin/main` (oder `git pull --ff-only`), dann `handoff/<bereich>.md` und ggf. `SPRITE_QUEUE.md` lesen.
 2. Arbeiten, **kleine Commits**.
 3. Status in `handoff/<bereich>.md` aktualisieren (nicht in `HANDOFF.md`).
-4. **`npm run ship`** statt manuellem Push: holt `origin/main`, merged (Abbruch bei Konflikt), führt `verify` aus (bei Doku-/Asset-only: Invarianten + Sprite-Check), pusht **nur bei Erfolg** nach `main` und auf den Arbeits-Branch, wiederholt bis zu 3× falls jemand schneller war.
+4. **`npm run ship`** statt manuellem Push: holt `origin/main`, merged (Abbruch bei Konflikt), führt `verify` aus (bei Doku-/Asset-only: Invarianten + Sprite-Check), pusht **nur bei Erfolg** nach `main` und auf den Arbeits-Branch, wiederholt bis zu 5×, falls jemand schneller war. Ab dem 2. Versuch läuft statt des vollen `verify` (> 10 min) nur eine **Schnellprüfung** (Build + Invarianten + Sprite-Check + die vom neuen Merge geänderten Tests + `t5`), denn der eigene Stand war schon voll grün und die fremden Commits haben ihren `verify` vor ihrem Push bestanden — sonst gewinnt bei vielen parallelen Chats nie jemand das Rennen. Voller Lauf bei jedem Versuch: `SHIP_FULL_VERIFY=1 npm run ship`.
 5. Bei Merge-Konflikt: `git status`, Konflikt lösen (beide Seiten behalten — meist Status-Zeilen), `git add`, `git commit`, erneut `npm run ship`.
 
 ## 4. Regeln, die Konflikte vermeiden
