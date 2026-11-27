@@ -277,6 +277,47 @@
           "clawL_29",
           "clawL_30"
         ]
+      },
+      {
+        "file": "krall_ground",
+        "mode": "swap",
+        "ids": [
+          "gc_1",
+          "gc_2",
+          "gc_3",
+          "gc_4",
+          "gc_5",
+          "scrap_pile"
+        ]
+      },
+      {
+        "file": "krall_ground2",
+        "mode": "swap",
+        "cells": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "ids": [
+          "gd_1",
+          "gd_2",
+          "gd_3",
+          "gd_4",
+          "gd_5"
+        ],
+        "holes": true
+      },
+      {
+        "file": "krall_ground2",
+        "mode": "swap",
+        "cells": [
+          5
+        ],
+        "ids": [
+          "rust_puff"
+        ]
       }
     ]
   },
@@ -594,6 +635,18 @@
     "fx_crater",
     "fx_rust",
     "fx_field",
-    "fx_dust"
+    "fx_dust",
+    "gc_1",
+    "gc_2",
+    "gc_3",
+    "gc_4",
+    "gc_5",
+    "scrap_pile",
+    "gd_1",
+    "gd_2",
+    "gd_3",
+    "gd_4",
+    "gd_5",
+    "rust_puff"
   ]
 }

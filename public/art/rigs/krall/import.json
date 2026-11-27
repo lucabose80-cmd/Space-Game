@@ -24,7 +24,9 @@
   "krall_arms_L4.png": "6cfc9c48162f87b1",
   "krall_arms_R4.png": "d19e60002e72afcc",
   "krall_arms_R5.png": "4d72388ecd5d0501",
-  "krall_arms_L5.png": "49fa902ec8e19bac"
+  "krall_arms_L5.png": "49fa902ec8e19bac",
+  "krall_ground.png": "ebc669ad3e6ac933",
+  "krall_ground2.png": "5e0f8eed96c1c51a"
  },
  "parts": {
   "torso": {
@@ -746,6 +748,78 @@
    "h": 94,
    "mode": "limb",
    "set": "krall_arms_L5"
+  },
+  "gc_1": {
+   "w": 106,
+   "h": 88,
+   "mode": "swap",
+   "set": "krall_ground"
+  },
+  "gc_2": {
+   "w": 106,
+   "h": 88,
+   "mode": "swap",
+   "set": "krall_ground"
+  },
+  "gc_3": {
+   "w": 106,
+   "h": 88,
+   "mode": "swap",
+   "set": "krall_ground"
+  },
+  "gc_4": {
+   "w": 106,
+   "h": 88,
+   "mode": "swap",
+   "set": "krall_ground"
+  },
+  "gc_5": {
+   "w": 106,
+   "h": 88,
+   "mode": "swap",
+   "set": "krall_ground"
+  },
+  "scrap_pile": {
+   "w": 106,
+   "h": 88,
+   "mode": "swap",
+   "set": "krall_ground"
+  },
+  "gd_1": {
+   "w": 78,
+   "h": 52,
+   "mode": "swap",
+   "set": "krall_ground2"
+  },
+  "gd_2": {
+   "w": 78,
+   "h": 52,
+   "mode": "swap",
+   "set": "krall_ground2"
+  },
+  "gd_3": {
+   "w": 78,
+   "h": 52,
+   "mode": "swap",
+   "set": "krall_ground2"
+  },
+  "gd_4": {
+   "w": 78,
+   "h": 52,
+   "mode": "swap",
+   "set": "krall_ground2"
+  },
+  "gd_5": {
+   "w": 78,
+   "h": 52,
+   "mode": "swap",
+   "set": "krall_ground2"
+  },
+  "rust_puff": {
+   "w": 58,
+   "h": 54,
+   "mode": "swap",
+   "set": "krall_ground2"
   }
  }
 }

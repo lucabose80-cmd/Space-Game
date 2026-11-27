@@ -66,4 +66,44 @@ module.exports = async ({ page }) => {
   assert.deepStrictEqual(dm.armsOther, [[21, 10], [27, 21], [27, 27]], 'Sog (50/30/15 % HP): Zange verbogen (R4) → Stumpf (R5) < 35 %, Haken verbogen (L4) → Stumpf (L5) < 20 %');
   assert.deepStrictEqual([dm.legBrace, dm.legLunge, dm.legTremble], [10, 6, 11], 'Beine: Magnet-Stemmen · Ausfall · Ruhe-Zittern (Phase 2)');
   assert.ok(r.krFx.p2duck && r.krFx.hit, 'Krall: Phase-2-Haltung über Verschiebung, Treffer zittert: ' + JSON.stringify(r.krFx));
+  // D15 Boden-Effekte je Biom + D9 Rückfall
+  const g = await page.evaluate(async () => {
+    const { BossFx } = await import('/src/dungeon/bosses/bossFx.ts');
+    const { getHDArt } = await import('/src/assets/artLoader.ts');
+    const anim = await import('/src/dungeon/anim/bossAnims.ts');
+    const fx = new BossFx();
+    const biome = (sc) => { fx.update(Object.assign({ playerX: 0, playerY: 0, currentSector: 1, isEndlessRift: false, floor: {}, currentRoom: {} }, sc), 0.016); return fx.groundBiome; };
+    const parts = getHDArt().rigs.krall?.parts ?? {};
+    const keys = [1, 2, 3, 4, 5].every((i) => !!parts['gc_' + i] && !!parts['gd_' + i]);
+    // D9: fehlende Arm-Variante darf nichts zerstören — Pose bleibt berechenbar
+    const e = { id: 1, vx: 0, vy: 0, flashTimer: 0, kind: 'boss_breacher', bossPhase2: true, hp: 10, maxHp: 100, bossSub: 'recover', bossStatusText: 'MAGNET-ZUG', bossStateTimer: 0.8 };
+    // D9 echt: Variantenbild entfernen → Teil bleibt mit Basisbild sichtbar (Breite > 0)
+    const { layoutRig } = await import('/src/engine/rig.ts');
+    const { RIGS } = await import('/src/data/rigs.ts');
+    const rigImgs = getHDArt().rigs.krall;
+    const savedImg = rigImgs.parts.clawR_28;
+    delete rigImgs.parts.clawR_28;
+    let ok = true;
+    try {
+      const pose = anim.getBossPose('krall', e, 1);
+      const cr = layoutRig(RIGS.krall, rigImgs, pose).find((pl) => pl.def.id === 'clawR');
+      ok = !!cr && cr.w > 0;
+    } catch { ok = false; }
+    if (savedImg) rigImgs.parts.clawR_28 = savedImg;
+    return { keys, rift: biome({ currentRoom: { riftSector: 3 } }), spiral: biome({ isEndlessRift: true, currentSector: 5, floor: { visualSector: 2 } }), home: biome({ currentSector: 4 }), omega: biome({ currentSector: 5 }), ok };
+  });
+  assert.ok(g.keys, 'Boden-Effekt-Varianten gc_1…5 / gd_1…5 vorhanden');
+  assert.deepStrictEqual([g.rift, g.spiral, g.home, g.omega], [3, 2, 4, 5], 'Biom: Riss-Kammer · Spirale · Sektor · Omega');
+  assert.ok(g.ok, 'Pose ohne Absturz');
+  // D3: Übergang intakt → beschädigt läuft kurz über die ausholende Pose der Schadensklasse (kein harter Bildsprung)
+  const bt = await page.evaluate(async () => {
+    const anim = await import('/src/dungeon/anim/bossAnims.ts');
+    const e = { id: 77, vx: 0, vy: 0, flashTimer: 0, kind: 'boss_breacher', bossPhase2: false, hp: 100, maxHp: 100 };
+    anim.getBossPose('krall', e, 5);
+    e.hp = 60; // rechte Zange verbogen
+    const mid = anim.getBossPose('krall', e, 5.02).clawR.variant;
+    const end = anim.getBossPose('krall', e, 5.5).clawR.variant;
+    return { mid, end };
+  });
+  assert.deepStrictEqual([bt.mid, bt.end], [13, 12], 'Zange intakt → verbogen: erst ausholende Zwischenpose (13), dann hängend verbogen (12)');
 };
