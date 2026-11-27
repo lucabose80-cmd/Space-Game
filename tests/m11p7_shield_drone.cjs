@@ -24,7 +24,7 @@ module.exports = async ({ page }) => {
   assert.ok(!r.idle.hidden && r.idle.variant === 0 && r.idle.alpha > 0.9, 'Ruhe: cyan Bogen voll sichtbar');
   assert.ok(r.down.hidden || r.down.alpha < 0.3, 'Angriff: Schildbogen klappt ein (Konter-Fenster)');
   assert.strictEqual(r.hotVariant, 1, 'Hitze ≥ 70 %: orangener Bogen');
-  assert.strictEqual(r.overVariant, 1, 'Überhitzt: orangener, rissiger Bogen');
+  assert.strictEqual(r.overVariant, 2, 'Überhitzt: rissiger Bogen');
   assert.ok(!r.overHidden, 'Überhitzt: Bogen bleibt als flackernde Ruine sichtbar');
   assert.deepStrictEqual(r.facing, [1, -1], 'Rig blickt in Zielrichtung (gespiegelt bei Ziel links)');
   assert.ok(Math.abs(r.rotDiff - 1.0) < 0.05, 'Bogen dreht mit dem Zielwinkel: ' + r.rotDiff);

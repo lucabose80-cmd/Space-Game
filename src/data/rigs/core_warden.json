@@ -163,6 +163,30 @@
           "armL_17",
           "armL_18"
         ]
+      },
+      {
+        "file": "core_warden_arms_R4",
+        "mode": "limb",
+        "ids": [
+          "armR_19",
+          "armR_20",
+          "armR_21",
+          "armR_22",
+          "armR_23",
+          "armR_24"
+        ]
+      },
+      {
+        "file": "core_warden_arms_L4",
+        "mode": "limb",
+        "ids": [
+          "armL_19",
+          "armL_20",
+          "armL_21",
+          "armL_22",
+          "armL_23",
+          "armL_24"
+        ]
       }
     ]
   },
@@ -189,7 +213,13 @@
         "armL_15",
         "armL_16",
         "armL_17",
-        "armL_18"
+        "armL_18",
+        "armL_19",
+        "armL_20",
+        "armL_21",
+        "armL_22",
+        "armL_23",
+        "armL_24"
       ],
       "parent": "torso",
       "attach": [
@@ -228,7 +258,13 @@
         "armR_15",
         "armR_16",
         "armR_17",
-        "armR_18"
+        "armR_18",
+        "armR_19",
+        "armR_20",
+        "armR_21",
+        "armR_22",
+        "armR_23",
+        "armR_24"
       ],
       "parent": "torso",
       "attach": [

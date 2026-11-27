@@ -73,8 +73,8 @@ function dronePose(e: Enemy, time: number, lookDx: number, lookDy: number): Pose
     nacelleR: { rot: nR.rot, dy: nR.dy },
     flameL: fl,
     flameR: fr,
-    visor: { variant: tele || k > 0.3 ? 1 : 0, dx: aim * 0.6 + 0.6 * p, dy: aim * 1.6 },
-    lens: { hidden: !tele && k <= 0.02, alpha: tele ? 0.3 + 0.7 * p : k, sx: 0.4 + 0.6 * p + 0.3 * k, sy: 0.4 + 0.6 * p + 0.3 * k },
+    visor: { variant: tele || k > 0.3 ? 1 : 0, dx: aim * 0.6 + 0.6 * p, dy: aim * 1.6, sx: 0.68, sy: 0.68 },
+    lens: { hidden: !tele && k <= 0.02, alpha: tele ? 0.3 + 0.7 * p : k, sx: 0.3 + 0.4 * p + 0.2 * k, sy: 0.3 + 0.4 * p + 0.2 * k },
   };
 }
 
