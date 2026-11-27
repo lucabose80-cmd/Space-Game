@@ -137,7 +137,7 @@ Danach (eigene Tickets, erst nach Pilot-Abnahme): **Prisma-Archon** (Spiegel-Kat
 - Prüfung (Wochen-Trial) Ebene 3 enthält den Leviathan → Arena gilt auch dort; Par-Zeiten in `weeklyTrial.ts` ggf. anpassen (Mechanik-Gate wie `TRIAL_MECHANICS_FROM_WEEK`: `TRIAL_ARENA_FROM_WEEK`, damit laufende Wochen nicht kippen).
 - Leistung: Großarena = 4× Bodenfläche → Boden-Kacheln einmal in Offscreen-Canvas vorzeichnen.
 
-## 9. Benötigte Sprites (→ `SPRITE_QUEUE.md` P1-03 … P1-07, Status `[~]` bis Plan-Freigabe)
+## 9. Benötigte Sprites (→ `SPRITE_QUEUE.md` P1-03 … P1-07, freigegeben 2026-11-27)
 Alle optional mit prozeduralem Fallback (Regel 7). Stil: wie `hub_bg.png`/Dungeon-Kacheln, Palette Sektor 1 (Rost, Moos, Reaktor-Glut `#fb923c`/`#fbbf24`, Kühlblau `#38e8d4`).
 
 | ID | Zielpfad | Format | Inhalt | Prompt (Kurz) |
@@ -169,6 +169,14 @@ Alle optional mit prozeduralem Fallback (Regel 7). Stil: wie `hub_bg.png`/Dungeo
 - Neu (nicht im Plan): prozeduraler Arena-Boden `arenaFloor.ts` als Fallback, solange kein Arena-Hintergrund existiert (P1-03).
 - Rand-Pfeile (A7) nur für `bossFx`-Zonen; Boss-Strahlen (`bossBeam`) und Gegner außerhalb des Bildes bekommen noch keinen Pfeil (bei Bedarf Phase D).
 - Nachweis: `m12p2` (Logik + Screenshots) + einmaliger Pixel-Vergleich von 36 Frames im Standardraum vor/nach Phase B (identisch).
+
+### Phase C — Arena-Daten (2026-11-27, umgesetzt, im Live-Spiel noch aus)
+- `src/data/arenas/`: `ArenaDef` wie §4.3, aber **ohne** `phases`/`weakPoints`/`entry` (kommen mit Phase D); dafür `name`, `bgSprite`, `wallSprite`, `wallHeight`. Kachelzeichen: `.` Boden · `p` Bodenplatte (bricht in Phase II) · `W` Boss-Sockel · `#` Pfeiler · `v` Kühlventil. Feste Kacheln → wenige Rechtecke (`arenaObstacles`, Leviathan: ≤ 12).
+- Spielfläche liegt bei `ROOM_LEFT/ROOM_TOP` und wächst nach rechts/unten (`bounds` 68…756 × 46…398) → Kamera-Klemme aus Phase B passt ohne Sonderfall.
+- **Gate (Abweichung):** `ENDBOSS_ARENA_LIVE = false` in `balance.ts`, bis Phase D den Kampf liefert — sonst würde der heutige Leviathan in eine leere Großhalle deployt. Zum Ansehen: URL-Parameter `?arena`. Wochen-Prüfung & Endlos-Spirale hängen nie eine Arena an.
+- **Türen:** Die Tür-Seite des Bossraums bleibt vom Stockwerks-Grundriss bestimmt (kein Eingriff in die Generierung → Seeds unverändert). Hat der Bossraum eine Nordtür, bekommt der Boss-Sockel einen 3 Kacheln breiten Durchgang (Lösung für Phase D: Eingang per Tor-Sequenz trotzdem im Süden inszenieren oder Durchgang als Teil der Wand gestalten).
+- Inhalte mit festen Standard-Positionen (Belohnungs-/Extraktions-Pads, Loot-Drops, Heilstation, Geschütz-Startpunkte) nutzen jetzt `scene.bounds` (Standardraum identisch, Vorher/Nachher-Vergleich inkl. Boss-Sieg).
+- Nachweis: `m12p3` (Kachelplan gültig & erreichbar, `Math.random`-Aufrufe gleich, nur Bossraum ändert sich, Gate, Arena-Kampf ohne Fehler, Screenshots).
 
 **Phase E (Belohnungen) — umgesetzt, vorerst am bestehenden Leviathan-Sieg (`sector1Cleared`), noch ohne Arena:**
 - `WEAPON_TYPE_GATES` in `balance.ts` (spear ← S1, discus ← S2, hammer ← S3); `GameState.getWeaponTypeLock()` / `canCraftWeapon()`; Schmiede zeigt „🔒 Bauplan: besiege …“. „Besiegt“ = `sectorNCleared` **oder** Rekord `bestSectorClearSec[n]` **oder** NG+ → keine neuen Save-Felder, Save bleibt v11; schon geschmiedete Waffen bleiben.

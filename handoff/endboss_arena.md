@@ -2,7 +2,14 @@
 > Eigenes Status-Blatt. Plan: [`MILESTONE_12_ARCHITECTURE.md`](../MILESTONE_12_ARCHITECTURE.md).
 
 ## Stand (2026-11-27)
-- **⚠ Phase A/B läuft** (gemeinsame Dateien!) — beide umgesetzt & gepusht, Abnahme durch Projektinhaber offen.
+- **⚠ Phase A/B/C läuft** (gemeinsame Dateien!) — umgesetzt & gepusht, Abnahme durch Projektinhaber offen.
+- **Phase C (Arena-Daten) umgesetzt — Arena ist im Live-Spiel noch AUS** (`ENDBOSS_ARENA_LIVE = false` in `balance.ts`, wird mit Phase D eingeschaltet). **Ansehen: Spiel-URL mit `?arena`** → Sektor 1, Ebene III, Bossraum = Reaktorhalle.
+  - `src/data/arenas/` (`types.ts` ArenaDef, `leviathan.ts` Kachelplan 43×22, `index.ts`: `ARENAS`, `arenaEnabled()`, `arenaObstacles()`, `applyArena()`, `attachArenas()`); `DungeonRoom.arenaKind?`.
+  - Anhängen in `DungeonScene.startFloor` nach `generateSectorFloor` (kein Math.random; nie in der Wochen-Prüfung, nie in der Endlos-Spirale). Nordtür → 3-Kachel-Durchgang im Boss-Sockel.
+  - Belohnungs-/Extraktions-Pads, Loot-Drops, Geschütz-Startpunkte, Heilstation in `DungeonScene` + Renderer jetzt über `scene.bounds` (Standardraum identisch — Vorher/Nachher-Vergleich inkl. Boss-Sieg & Drops).
+  - `arenaFloor.ts` zeichnet den Kachelplan (Glut-Platten `p`, Boss-Wand-Fallback über `W`); Sprites `arena_leviathan_bg/wall` (P1-03/04) werden automatisch genutzt, sobald vorhanden (`M12_OPTIONAL_SPRITES`). Wand-Sockel wird nicht als Schott-Balken gezeichnet.
+  - Test `m12p3` + Screenshots `tests/out/m12p3_arena_north/south.png` (angesehen).
+- **Sprites P1-03…P1-06 freigegeben** (`SPRITE_QUEUE.md`, STOP-GATE nach P1-03/04 → Sichtprüfung mit `?arena`).
 - **Phase B (Kamera) umgesetzt:**
   - `src/dungeon/camera.ts` (`DungeonCamera`): Standardraum immer (0, 0); Arena: Totzone 40×24, Glättung τ 0,12 s, Klemme so, dass der Arena-Rand wie die Standard-Wand sitzt (`DungeonCamera.range`), kleiner Raum mittig, Rasterung auf HD-Pixel, `snap()` beim Raumwechsel, `focus(x, y, sec)` (max. 2,5 s, sperrt Spieler-Eingabe über `input.locked`), `toWorld/toScreen`.
   - `DungeonScene`: `scene.camera`, `update()` → `updateFrame()` + Kamera-Update; Maus-Zielen Bildschirm → Welt.
@@ -29,4 +36,4 @@
 
 ## Nächster Schritt
 1. Phase A/B abnehmen (Projektinhaber: Standardräume spielen/sehen sich unverändert) → Marker „Phase A/B läuft“ entfernen.
-2. Phase C (Arena-Daten `src/data/arenas/leviathan.ts`, Anhängen nach `generateSectorFloor`, Arena-Sprite P1-03 mit Fallback `arenaFloor.ts`; Belohnungs-Pads/Loot-Positionen auf `scene.bounds` umstellen). Kamera-Fahrten (`camera.focus`) für den Auftritt kommen mit Phase D.
+2. Phase D (Leviathan-Arena-Kampf: 3 Phasen, Schwachstellen, Platten brechen `p`, Ventile `v`, Auftritt mit `camera.focus`, `TRIAL_ARENA_FROM_WEEK`) → danach `ENDBOSS_ARENA_LIVE = true`.
