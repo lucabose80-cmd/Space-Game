@@ -28,7 +28,8 @@ module.exports = async ({ page }) => {
       big: [idle.sparkL.hidden, tele.sparkL.hidden, fire.sparkL.hidden],
       fireDx, idleDx: idle.body.dx, laterHidden: later.sparkL.hidden,
       hitDx: hit.body.dx,
-      death: [dw.coilL.dx, dw.body.alpha],
+      death: [dw.coilL.dx, dw.body.alpha, dw.body.variant],
+      visorV: [idle.visor.variant, tele.visor.variant, fire.visor.variant],
       facing: (() => { const f = e({ id: 20 }); return [anim.getRigFacing('drone_arc', f, 50), anim.getRigFacing('drone_arc', f, 103), anim.getRigFacing('drone_arc', f, 150)]; })(),
     };
   });
@@ -40,5 +41,7 @@ module.exports = async ({ page }) => {
   assert.strictEqual(r.laterHidden, true, 'Blitz klingt in der Erholung ab');
   assert.ok(r.hitDx < r.idleDx, 'Treffer-Zucken');
   assert.ok(r.death[0] < 0 && r.death[1] < 1, 'Wrack: Spule fliegt ab, Rumpf blendet aus');
+  assert.deepStrictEqual(r.visorV, [0, 1, 2], 'Visier: offen / halb zu beim Aufladen / Funkenblitz bei Entladung');
+  assert.strictEqual(r.death[2], 1, 'Wrack-Rumpf beim Tod');
   assert.deepStrictEqual(r.facing, [-1, -1, 1], 'Blick zum Spieler mit Totzone');
 };

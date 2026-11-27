@@ -97,7 +97,7 @@ function arcPose(e: Enemy, time: number, lookDx: number, lookDy: number): Pose {
     coilR: { rot: cr.rot, dy: cr.dy },
     nacelleL: { rot: nl.rot, dy: nl.dy },
     nacelleR: { rot: nr.rot, dy: nr.dy },
-    visor: { dx: aim * 0.6 + 0.6 * p, dy: aim * 1.6, sy: tele ? 1 - 0.3 * p : 1 - 0.25 * h },
+    visor: { variant: k > 0.4 ? 2 : tele && p > 0.25 ? 1 : 0, dx: aim * 0.6 + 0.6 * p, dy: aim * 1.6, sy: h > 0 ? 1 - 0.2 * h : 1 },
     sparkS: sparkS(),
     sparkL: {
       hidden: !(big > 0.05 || k > 0.05),
@@ -117,7 +117,7 @@ export function arcDeathPose(t: number, id: number): Pose {
   const a = clamp(1 - u * u, 0, 1);
   const spin = 1 + (id % 3) * 0.4;
   return {
-    body: { rot: u * 0.9 * spin, dy: fall * 0.5, alpha: a, sx: 1 - 0.15 * u, sy: 1 - 0.15 * u },
+    body: { variant: u > 0.2 ? 1 : 0, rot: u * 0.9 * spin, dy: fall * 0.5, alpha: a, sx: 1 - 0.15 * u, sy: 1 - 0.15 * u },
     coilL: { rot: -u * 3.2, dx: -u * 14, dy: -u * 8 + fall, alpha: a },
     coilR: { rot: u * 3.6, dx: u * 14, dy: -u * 9 + fall, alpha: a },
     nacelleL: { rot: -u * 2.4, dx: -u * 12, dy: fall * 1.2, alpha: a },
