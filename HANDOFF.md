@@ -24,6 +24,7 @@ npm run verify                           # Build + Invarianten + Sprite-Check + 
 `npm run check:sprites` listet die aktuelle Lage. Stand: **alle 12 optionalen M10-Sprites fehlen**
 (`prop_hub_*`, `prop_kael_memorial`, `prop_lyra_echo_sign`, `prop_nyx_free_lantern`, `prop_vex_*`, `npc_pilgrim`, `npc_foundry_worker`, `npc_elder_scholar`) **plus 5 Boss-Sprites (M10-C)**: `boss_scrap_collector` *(Krall hat inzwischen ein Rig → nur noch Rückfall, niedrige Priorität)*, `boss_slag_colossus`, `boss_forge_mistress`, `boss_chrono_warden`, `boss_monolith_colossus` (128×128, Prompts: Art-Guide §8).
 - Prompts & Maße: `ART_AND_DESIGN_GUIDE.md` §7–§8 · Ablage: `public/art/sprites/<datei>.png` (96×96 bzw. 128×128, kein Code nötig).
+- **Neu geplant (M12, wartet auf Plan-Freigabe):** `P1-03…P1-07` Leviathan-Endboss-Arena (Boden, Boss-Wand, Arm-Teile, Arena-Effekte, Hub-Trophäe) — Status `[~]`, Plan `MILESTONE_12_ARCHITECTURE.md`, Status-Blatt `handoff/endboss_arena.md`.
 - **Neu in der Queue (niedrige Prio):** `P3-18/19` Kern-Wächter-Phase-1-Armschäden (`core_warden_arms_R4/L4.png`, D12-Lücke).
 - Schwächster Fallback zuerst ersetzen: Vex-Bake, Zyklus-Hologramm, Obelisk, Klassentafel.
 - **Zentrale Warteschlange:** Alle offenen Sprites & M11-Sheets stehen priorisiert (`P0`–`P4`) in [`SPRITE_QUEUE.md`](SPRITE_QUEUE.md). **Wer einen Fallback/Platzhalter oder ein neues M11-Sheet anlegt, sortiert es dort sofort priorisiert ein** (`AGENTS.md` §3 Regel 7) und vermerkt es hier kurz.
@@ -45,7 +46,7 @@ Jeder Bereich hat ein eigenes Status-Blatt in [`handoff/`](handoff/README.md) �
 - **Polish (Teile 1–3) abgenommen & erledigt:** Hintergrund-Pause, Wackeln/Vibration im Hilfe-Tab, Tür-Label · Kern-Wächter-Schritte, Hit-Stop (`heavyStop`), Telegraph-Blitz, Schadenszahlen-Merge · Dungeon-Code lädt nach (`__game.dungeonReady`, Chunk-Gruppe `dungeon` entfernt). Tests `t7`, `t7b`, `t8`.
 - **Aufräumen erledigt** (Audit 2026-11-26, Blöcke C1–C6): Doku auf aktuellem Stand, „Kern-Wächter“ einheitlich, Repo-Hygiene, toter Code entfernt, gemeinsamer `EnemyKind`, `check:sprites` prüft Sheets/Imports, Pose-Sheet-Import (`art_source/poses`) entfernt, `npm run build:single` dokumentiert, Version 1.4.0. **Firebase-SDK lädt nach dem Start nach** (`src/services/firebaseSdk.ts` per `import()`, Service-API unverändert; Test `t6`) — Abweichung vom Plan: nicht der ganze Service, nur das SDK.
 - **Claude Code:** je Bereich siehe `handoff/*.md` (Krall: Einbinden P0-08…12 · Gegner: Drohne, Phasen-Jäger · Kern-Wächter: Prüfung D11–D14).
-- **Antigravity (als Nächstes):** Weiter in [`SPRITE_QUEUE.md`](SPRITE_QUEUE.md) via Skill `sprite-batch`: **P0 komplett ✅**, weiter mit **P2** ab `P2-03` (`shield_drone_rig.png`) & `P2-03` (`spore_spitter_rig.png`).
+- **Antigravity (als Nächstes, nach kurzem Quota-Reset ~35 min):** Weiter in [`SPRITE_QUEUE.md`](SPRITE_QUEUE.md) via Skill `sprite-batch`: **`P0-15`** (`krall_arms_R4.png`) + **`P0-17`** (`krall_arms_R5.png`) / **`P0-18`** (`krall_arms_L5.png`), danach **P2** ab `P2-03` (`spore_spitter_rig.png`).
 - Ökonomie & Boss-Kampfgefühl im echten Spiel beobachten und in `src/data/balance.ts` nachjustieren (Berichte: `tests/out/economy.json`, `tests/out/ttk.json`).
 - Optionale M10/M10-C-Einzel-Sprites bei Bedarf ebenfalls per Antigravity erzeugen.
 
@@ -53,4 +54,7 @@ Jeder Bereich hat ein eigenes Status-Blatt in [`handoff/`](handoff/README.md) �
 - Bildgenerierung: läuft direkt in Antigravity per `generate_image` (wochenweise Credits; Gemini-API mit Abrechnung nicht eingerichtet).
 - Ideen: siehe `GAME_DESIGN_DOCUMENT.md` §5.
 
-- **Neue Sprites benötigt (Krall, P0-14…18, `SPRITE_QUEUE.md`):** Phase-2-Rümpfe im Panzer-Maßstab neu (`krall_torsos2`) + beschädigte Arme (verbogen/Stumpf) für Block/Sog/Hagel/Stampfer/Teleskop (`krall_arms_R4/L4/R5/L5`). Übergang bis dahin: Rumpf ×1,1.
+- **Neue Sprites (Krall, P0-14…18, `SPRITE_QUEUE.md`):** **`P0-14`** (`krall_torsos2.png` exakt im `84×100`-Panzer-Maßstab) & **`P0-16`** (`krall_arms_L4.png`) sind geliefert ✅ (bereit für Re-Import & Entfernen von `t2k`); noch offen: **`P0-15`** (`krall_arms_R4.png`), **`P0-17`** (`krall_arms_R5.png`), **`P0-18`** (`krall_arms_L5.png`).
+
+## M12 Phase E (2026-11-27)
+Waffen-Arten-Sperre (`WEAPON_TYPE_GATES`), Trophäe „A.E.G.I.S.-Herzlinse“, Hub-Vitrine umgesetzt (am bestehenden Leviathan-Sieg). **Neue Sprites benötigt:** `P1-07` (`prop_trophy_leviathan.png`, `item_trophy_leviathan.png`) — Fallbacks aktiv. Status-Blatt: `handoff/endboss_arena.md`.

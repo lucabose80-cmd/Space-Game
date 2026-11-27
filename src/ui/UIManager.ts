@@ -1525,6 +1525,7 @@ export class UIManager {
         // Uncrafted Weapon Card (e.g. Ionen-Speer, Kinetik-Fäuste, Phasen-Diskus, Puls-Blaster or Grav-Hammer!)
         if (isLockedWeapon && wid && track.craftCost) {
           const canCraft = this.state.canCraftWeapon(wid);
+          const typeLock = this.state.getWeaponTypeLock(wid);
           const craftPrice = this.state.getForgeCreditCost(track.craftCost.creditCost, track.shop);
           const hasCr = this.state.credits >= craftPrice;
           const pinKey = `craft:${wid}`;
@@ -1554,6 +1555,7 @@ export class UIManager {
                     <span class="mat-pill ${hasCr ? 'ok' : 'missing'}">${craftPrice} Cr</span>
                     ${matsHtml}
                   </div>
+                  ${typeLock ? `<div class="weapon-type-lock" style="font-size:11px;color:#f87171;margin-top:4px">🔒 ${typeLock}</div>` : ''}
                 </div>
               </div>
               <div class="upgrade-actions">
