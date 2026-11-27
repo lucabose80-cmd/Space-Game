@@ -36,11 +36,13 @@ import {
   ROOM_LEFT,
   ROOM_RIGHT,
   ROOM_TOP,
+  roomBounds,
   roomKey,
   type ChasmRect,
   type DoorSide,
   type DungeonFloor,
   type DungeonRoom,
+  type RoomBounds,
 } from '../world/dungeonGen';
 
 import { DungeonEnemyAi } from '../dungeon/enemyAi';
@@ -84,6 +86,10 @@ export class DungeonScene {
   public currentSector: SectorId = 1;
   public currentFloor: 1 | 2 | 3 = 1;
   public currentRoom!: DungeonRoom;
+  /** M12 (Phase A): Grenzen des aktuellen Raums (Standardraum = `ROOM_LEFT…`, Arena = `room.bounds`). */
+  public get bounds(): Readonly<RoomBounds> {
+    return roomBounds(this.currentRoom);
+  }
 
   public playerX = ROOM_CENTER_X;
   public playerY = ROOM_CENTER_Y;
