@@ -6,7 +6,7 @@ import { ROOM_LEFT, ROOM_TOP } from '../../world/dungeonGen';
 import { LEVIATHAN_ARENA } from './leviathan';
 import { ARENA_TILE, type ArenaDef } from './types';
 
-export { ARENA_TILE, type ArenaDef } from './types';
+export { ARENA_TILE, type ArenaDef, type ArenaVaultDef } from './types';
 
 /** Arena je Endboss-`kind` (Pilot: nur Leviathan). */
 export const ARENAS: Partial<Record<EnemyKind, ArenaDef>> = {

@@ -43,4 +43,6 @@ export const LEVIATHAN_ARENA: ArenaDef = {
   // Boss-Körper (arena_leviathan_body.png, 300×167 logisch) ragt bis ~102 px über die Spielfläche
   viewAbove: 112,
   cameraBiasY: 40,
+  // Schatzkammer links neben dem Koloss (Wand-Abschnitt ohne Körper), Bild arena_leviathan_vault.png (P1-12, 176×112)
+  vault: { x: 8, y: -160, w: 176, h: 112, doorX: 80, doorW: 32, inset: { side: 14, top: 24, bottom: 12 } },
 };

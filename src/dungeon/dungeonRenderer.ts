@@ -69,7 +69,7 @@ export class DungeonRenderer {
             ? art.dungeonBgS2 ?? art.dungeonBg
             : art.dungeonBg;
     if (arena) {
-      renderArenaFloor(ctx, this.scene.currentRoom, visSec, camX, camY, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+      renderArenaFloor(ctx, this.scene.currentRoom, visSec, camX, camY, VIRTUAL_WIDTH, VIRTUAL_HEIGHT, this.scene.time);
     } else if (roomBg) {
       ctx.drawImage(roomBg, 0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
     } else {

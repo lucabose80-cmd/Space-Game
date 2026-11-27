@@ -4,6 +4,8 @@
 import { getHDArt, type HDArtAssets } from '../assets/artLoader';
 import { ARENAS, ARENA_TILE, arenaTileAt, type ArenaDef } from '../data/arenas';
 import { mulberry32 } from '../systems/seededRng';
+import { drawArenaVault } from './arenaVault';
+import { drawLeviathanBodyStatic } from './bosses/leviathanArena';
 import type { DungeonRoom } from '../world/dungeonGen';
 
 /** Wandbreite außerhalb der Grenzen (logisch) — entspricht etwa den Rändern im Standard-Hintergrund. */
@@ -84,7 +86,7 @@ interface CacheEntry {
 let cache: CacheEntry | null = null;
 
 function build(room: DungeonRoom, sector: number): CacheEntry | null {
-  const b = room.bounds;
+  const b = arenaRect(room);
   if (!b || typeof document === 'undefined') return null;
   const pal = PALETTES[Math.max(1, Math.min(4, sector))] ?? PALETTES[1];
   const x = b.l - ARENA_WALL;
@@ -154,6 +156,12 @@ function build(room: DungeonRoom, sector: number): CacheEntry | null {
   return { key: `${room.key}|${b.l},${b.r},${b.t},${b.b}|${sector}`, canvas, x, y, w, h };
 }
 
+/** Spielfläche der Arena (oberer Rand = ursprünglicher Rand, auch wenn die Schatzkammer die Grenzen nach Norden erweitert hat). */
+function arenaRect(room: DungeonRoom): { l: number; r: number; t: number; b: number } | undefined {
+  const b = room.bounds;
+  return b ? { l: b.l, r: b.r, t: room.arenaOriginT ?? b.t, b: b.b } : undefined;
+}
+
 let footTile: HTMLCanvasElement | null = null;
 let footFrom: HTMLCanvasElement | null = null;
 
@@ -190,8 +198,8 @@ function drawWallFoot(ctx: CanvasRenderingContext2D, art: HDArtAssets, l: number
 }
 
 /** Zeichnet den Arena-Boden in Weltkoordinaten (Kamera-Translation liegt schon auf ctx). */
-export function renderArenaFloor(ctx: CanvasRenderingContext2D, room: DungeonRoom, sector: number, viewX: number, viewY: number, viewW: number, viewH: number): void {
-  const b = room.bounds;
+export function renderArenaFloor(ctx: CanvasRenderingContext2D, room: DungeonRoom, sector: number, viewX: number, viewY: number, viewW: number, viewH: number, time = 0): void {
+  const b = arenaRect(room);
   if (!b) return;
   const key = `${room.key}|${b.l},${b.r},${b.t},${b.b}|${sector}`;
   if (!cache || cache.key !== key) cache = build(room, sector);
@@ -219,5 +227,8 @@ export function renderArenaFloor(ctx: CanvasRenderingContext2D, room: DungeonRoo
       ctx.fillRect(b.l - 60, top - 70, b.r - b.l + 120, 76);
       drawWallFoot(ctx, art, b.l, b.r, b.t + 48);
     }
+    // nach dem Sieg (Boss-Gegner entfernt): erloschener Körper bleibt in der Wand
+    if (room.cleared && room.arenaKind === 'boss_leviathan') drawLeviathanBodyStatic(ctx, room);
+    drawArenaVault(ctx, room, time); // Schatzkammer-Tür/Gang/Kammer (nach dem Sieg)
   }
 }

@@ -9,11 +9,13 @@
 // (≥ 0,4 s, Arena-Änderungen ≥ 0,8 s). Kein globaler Zufall (Trümmer-Positionen: mulberry32 je Boss/Zug).
 import { getHDArt } from '../../assets/artLoader';
 import { sound } from '../../engine/audio';
+import { startArenaVault } from '../arenaVault';
 import { ENDBOSS_ARENA } from '../../data/balance';
 import { ARENAS, ARENA_TILE, arenaTileRects } from '../../data/arenas';
 import { mulberry32 } from '../../systems/seededRng';
 import type { DungeonScene } from '../../scenes/DungeonScene';
 import type { DetachedPart } from '../anim/detached';
+import type { DungeonRoom } from '../../world/dungeonGen';
 import type { Enemy, LeviathanArm } from '../dungeonTypes';
 
 export type LevArenaMove = 'hammer' | 'whip' | 'steam' | 'beam' | 'debris' | 'grab' | 'pulse' | 'glow';
@@ -619,6 +621,7 @@ export function onLeviathanArenaDefeated(scene: DungeonScene, e: Enemy): void {
   }
   scene.camera.focus(e.x, e.y + 40, 1.5);
   scene.arenaBanner = { title: 'A.E.G.I.S. ABGESCHALTET', sub: 'Der Reaktorkern erlischt', t: 2.6, max: 2.6 };
+  startArenaVault(scene); // Schatzkammer hinter der Wand öffnet sich
 }
 
 // ---------------------------------------------------------------- Optik (rein darstellend)
@@ -798,6 +801,22 @@ export function drawLeviathanBody(ctx: CanvasRenderingContext2D, scene: DungeonS
   }
   ctx.restore();
   return true;
+}
+
+/** Nach dem Sieg (Boss entfernt): erloschener Körper bleibt Teil der Wand (Zustand P1-11 „besiegt“ bzw. abgedunkeltes Grundbild). */
+export function drawLeviathanBodyStatic(ctx: CanvasRenderingContext2D, room: DungeonRoom): void {
+  const art = getHDArt();
+  const base = art.arenaLeviathanBody;
+  const def = ARENAS.boss_leviathan;
+  if (!base || !def || !room.bounds) return;
+  const img = art.arenaLeviathanBodyDead ?? base;
+  const t = room.arenaOriginT ?? room.bounds.t;
+  const lx = room.bounds.l + def.bossAnchor.x;
+  const ly = t + def.bossAnchor.y + LENS_DY;
+  ctx.save();
+  if (!art.arenaLeviathanBodyDead) ctx.filter = 'brightness(0.55) saturate(0.6)';
+  ctx.drawImage(img, Math.round(lx - BODY_LENS_X), Math.round(ly - BODY_LENS_Y), BODY_W, BODY_H);
+  ctx.restore();
 }
 
 /** Titel-Banner (Bildschirmkoordinaten, ohne Kamera). */

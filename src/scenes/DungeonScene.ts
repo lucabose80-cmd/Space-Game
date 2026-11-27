@@ -45,6 +45,7 @@ import { DungeonEnemyAi } from '../dungeon/enemyAi';
 import { RoomMechanicsSystem } from '../dungeon/roomMechanics';
 import { NavGrid } from '../dungeon/navGrid';
 import { DungeonCamera } from '../dungeon/camera';
+import { updateArenaVault } from '../dungeon/arenaVault';
 import { ARENAS, arenaEnabled, attachArenas } from '../data/arenas';
 import {
   arenaAimPoint,
@@ -1205,6 +1206,7 @@ export class DungeonScene {
     this.enemyAi.updateHazardsAndDebris(dt);
     this.mechanicsClock += dt;
     this.mechanics.update(dt);
+    updateArenaVault(this, dt); // M12: Schatzkammer nach dem Arena-Sieg
     this.nav?.tick(dt, this.playerX, this.playerY);
     this.bossFx.beginFrame();
     this.syncSplitPools();
@@ -4246,7 +4248,7 @@ export class DungeonScene {
         const remaining = chest.slots
           ? chest.slots.reduce((acc, s) => acc + (s ? s.qty : 0), 0)
           : 0;
-        const chestTitle = chest.secret ? '★ Geheime Schatztruhe' : 'Relikt-Truhe';
+        const chestTitle = chest.boss ? '★ Boss-Truhe' : chest.secret ? '★ Geheime Schatztruhe' : 'Relikt-Truhe';
         this.activePrompt = {
           label: !chest.opened
             ? `[E] ${chestTitle} öffnen`

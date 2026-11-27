@@ -1,3 +1,4 @@
+import type { ArenaVaultState } from '../dungeon/arenaVault';
 import { applySectorMechanics, findFreeSpotSpiral, placeExtractBeacon } from '../dungeon/mechanicsGen';
 import type { ItemStack, SectorId } from '../types';
 
@@ -46,6 +47,8 @@ export interface RoomChest {
   opened: boolean;
   rare: boolean;
   secret?: boolean;
+  /** M12: Boss-Truhe in der Schatzkammer eines Arena-Endbosses */
+  boss?: boolean;
   slots?: Array<ItemStack | null>;
 }
 
@@ -197,6 +200,9 @@ export interface DungeonRoom {
   bounds?: RoomBoundsDef;
   /** M12 (Phase C): Endboss-Arena dieses Raums (Kachelplan in `src/data/arenas/`). */
   arenaKind?: EnemyKind;
+  /** M12: Schatzkammer nach dem Sieg (Öffnungs-Zustand) + ursprünglicher oberer Rand der Spielfläche */
+  arenaVault?: ArenaVaultState;
+  arenaOriginT?: number;
 }
 
 /** M12: Raumgrenzen (logische Koordinaten, wie `ROOM_LEFT/RIGHT/TOP/BOTTOM`). */

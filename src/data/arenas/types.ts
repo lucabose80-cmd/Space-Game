@@ -28,6 +28,21 @@ export interface ArenaDef {
   viewAbove?: number;
   /** Kamera hält den Spieler um so viel tiefer im Bild (Boss sichtbar) */
   cameraBiasY?: number;
+  /** Schatzkammer hinter der Nordwand, öffnet sich nach dem Sieg (relativ zur linken oberen Ecke der Spielfläche) */
+  vault?: ArenaVaultDef;
+}
+
+export interface ArenaVaultDef {
+  /** Kammer-Rechteck (y negativ = nördlich der Spielfläche); Bild `vaultSprite` deckt es genau ab */
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** Gang durch die Wand (Breite, linker Rand) — mündet unten mittig in die Kammer */
+  doorX: number;
+  doorW: number;
+  /** begehbarer Innenraum = Kammer minus Wände */
+  inset: { side: number; top: number; bottom: number };
 }
 
 export const ARENA_TILE = 16;
