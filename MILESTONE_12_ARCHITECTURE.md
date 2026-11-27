@@ -89,7 +89,7 @@ export interface ArenaDef {
 | **Hub-Trophäe** | Neuer Fall in `hubEvolution.ts`: Leviathan-Linse als leuchtende Vitrine auf der Promenade (Sprite optional + prozeduraler Fallback, `M10_OPTIONAL_SPRITES`). Interaktion = Codex-Eintrag mit Siegzeit | nach Erstsieg, dauerhaft |
 | Extra-Loot | Boss-Truhe mit 3 Relikten aus `rollLootItem(3, …)` + `aegis_plate` (statt Einzel-Drops) | jeder Sieg |
 
-### 5.1 Waffen-Arten-Sperre (Vorschlag Zuordnung — vom Inhaber zu bestätigen)
+### 5.1 Waffen-Arten-Sperre (Zuordnung vom Inhaber bestätigt, 2026-11-27)
 | Waffen-Art | frei ab | Begründung |
 | :--- | :--- | :--- |
 | `blade` Klinge | Start (wie heute) | Startwaffe |
