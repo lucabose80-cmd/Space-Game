@@ -20,7 +20,10 @@
   "core_warden_arms_R4.png": "64ff6ff5df9125fd",
   "core_warden_arms_L4.png": "348fb9fd6f28c520",
   "core_warden_fx.png": "83fae1947335ead7",
-  "core_warden_ground.png": "38a657fe11fc5dc0"
+  "core_warden_ground.png": "38a657fe11fc5dc0",
+  "core_warden_ground2.png": "86f9b5568d30afb7",
+  "core_warden_death.png": "cdab13a325c924a7",
+  "core_warden_ground3.png": "cea49b4daeb9b3b5"
  },
  "parts": {
   "torso": {
@@ -598,6 +601,114 @@
    "h": 66,
    "mode": "swap",
    "set": "core_warden_ground"
+  },
+  "fx_rem_s1": {
+   "w": 80,
+   "h": 66,
+   "mode": "swap",
+   "set": "core_warden_ground2"
+  },
+  "fx_rem_s2": {
+   "w": 80,
+   "h": 66,
+   "mode": "swap",
+   "set": "core_warden_ground2"
+  },
+  "fx_rem_s3": {
+   "w": 80,
+   "h": 66,
+   "mode": "swap",
+   "set": "core_warden_ground2"
+  },
+  "fx_rem_s4": {
+   "w": 80,
+   "h": 66,
+   "mode": "swap",
+   "set": "core_warden_ground2"
+  },
+  "fx_rem_s5": {
+   "w": 80,
+   "h": 66,
+   "mode": "swap",
+   "set": "core_warden_ground2"
+  },
+  "fx_scorch": {
+   "w": 80,
+   "h": 66,
+   "mode": "swap",
+   "set": "core_warden_ground2"
+  },
+  "fx_d_core": {
+   "w": 90,
+   "h": 78,
+   "mode": "swap",
+   "set": "core_warden_death"
+  },
+  "fx_d_flash": {
+   "w": 90,
+   "h": 78,
+   "mode": "swap",
+   "set": "core_warden_death"
+  },
+  "fx_d_fire": {
+   "w": 90,
+   "h": 78,
+   "mode": "swap",
+   "set": "core_warden_death"
+  },
+  "fx_d_smoke": {
+   "w": 90,
+   "h": 78,
+   "mode": "swap",
+   "set": "core_warden_death"
+  },
+  "fx_d_chunk": {
+   "w": 90,
+   "h": 78,
+   "mode": "swap",
+   "set": "core_warden_death"
+  },
+  "fx_d_limb": {
+   "w": 90,
+   "h": 78,
+   "mode": "swap",
+   "set": "core_warden_death"
+  },
+  "fx_dust_s1": {
+   "w": 86,
+   "h": 66,
+   "mode": "swap",
+   "set": "core_warden_ground3"
+  },
+  "fx_dust_s2": {
+   "w": 86,
+   "h": 66,
+   "mode": "swap",
+   "set": "core_warden_ground3"
+  },
+  "fx_dust_s3": {
+   "w": 86,
+   "h": 66,
+   "mode": "swap",
+   "set": "core_warden_ground3"
+  },
+  "fx_dust_s4": {
+   "w": 86,
+   "h": 66,
+   "mode": "swap",
+   "set": "core_warden_ground3"
+  },
+  "fx_dust_s5": {
+   "w": 86,
+   "h": 66,
+   "mode": "swap",
+   "set": "core_warden_ground3"
+  },
+  "fx_dust_n": {
+   "w": 86,
+   "h": 66,
+   "mode": "swap",
+   "set": "core_warden_ground3"
   }
  }
 }

@@ -271,7 +271,7 @@ export interface FloorDecal {
   life: number;
   maxLife: number;
   /** Sprite-Decal (D15): Boden-Variante nach Biom des Raums statt Farbfläche */
-  fx?: 'cw_crater' | 'cw_remnant';
+  fx?: 'cw_crater' | 'cw_remnant' | 'cw_death' | 'cw_dust';
 }
 
 export interface Afterimage {
