@@ -1,29 +1,41 @@
 // Navigations-Raster pro Raum (M10-C, B1): BFS-Fluss-Feld vom Spieler aus.
 // Reine Logik, kein Zufall, keine Abhängigkeit von Szene/Zeit (Zeit kommt als dt-Parameter).
-import { ROOM_BOTTOM, ROOM_LEFT, ROOM_RIGHT, ROOM_TOP } from '../world/dungeonGen';
+import { DEFAULT_ROOM_BOUNDS, type RoomBoundsDef } from '../world/dungeonGen';
 
 export type BlockedFn = (x: number, y: number, r: number) => boolean;
 
 const CELL = 8;
-const COLS = Math.ceil((ROOM_RIGHT - ROOM_LEFT) / CELL);
-const ROWS = Math.ceil((ROOM_BOTTOM - ROOM_TOP) / CELL);
 const NEIGHBORS: Array<[number, number]> = [
   [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1],
 ];
 
 export class NavGrid {
   public static readonly CELL = CELL;
-  private readonly free = new Uint8Array(COLS * ROWS);
-  private readonly dist = new Int16Array(COLS * ROWS);
-  private readonly queue = new Int32Array(COLS * ROWS);
+  // M12 (Phase A): Rastergröße je Raum aus seinen Grenzen (Standard = this.left…ROOM_BOTTOM, wie bisher)
+  public readonly cols: number;
+  public readonly rows: number;
+  private readonly left: number;
+  private readonly top: number;
+  private readonly free: Uint8Array;
+  private readonly dist: Int16Array;
+  private readonly queue: Int32Array;
   private targetCell = -1;
   private age = 0;
 
-  constructor(blocked: BlockedFn, inflate: number) {
+  constructor(blocked: BlockedFn, inflate: number, bounds: RoomBoundsDef = DEFAULT_ROOM_BOUNDS) {
+    this.left = bounds.l;
+    this.top = bounds.t;
+    this.cols = Math.ceil((bounds.r - bounds.l) / CELL);
+    this.rows = Math.ceil((bounds.b - bounds.t) / CELL);
+    const COLS = this.cols;
+    const ROWS = this.rows;
+    this.free = new Uint8Array(COLS * ROWS);
+    this.dist = new Int16Array(COLS * ROWS);
+    this.queue = new Int32Array(COLS * ROWS);
     for (let cy = 0; cy < ROWS; cy++) {
       for (let cx = 0; cx < COLS; cx++) {
-        const x = ROOM_LEFT + cx * CELL + CELL / 2;
-        const y = ROOM_TOP + cy * CELL + CELL / 2;
+        const x = this.left + cx * CELL + CELL / 2;
+        const y = this.top + cy * CELL + CELL / 2;
         this.free[cy * COLS + cx] = blocked(x, y, inflate) ? 0 : 1;
       }
     }
@@ -31,8 +43,10 @@ export class NavGrid {
   }
 
   private cellOf(x: number, y: number): number {
-    const cx = Math.max(0, Math.min(COLS - 1, Math.floor((x - ROOM_LEFT) / CELL)));
-    const cy = Math.max(0, Math.min(ROWS - 1, Math.floor((y - ROOM_TOP) / CELL)));
+    const COLS = this.cols;
+    const ROWS = this.rows;
+    const cx = Math.max(0, Math.min(COLS - 1, Math.floor((x - this.left) / CELL)));
+    const cy = Math.max(0, Math.min(ROWS - 1, Math.floor((y - this.top) / CELL)));
     return cy * COLS + cx;
   }
 
@@ -51,6 +65,8 @@ export class NavGrid {
   }
 
   private build(target: number): void {
+    const COLS = this.cols;
+    const ROWS = this.rows;
     this.targetCell = target;
     this.dist.fill(-1);
     // Liegt das Ziel in einer blockierten Zelle: nächste freie Zelle (BFS durch alle Zellen) als Start
@@ -101,6 +117,8 @@ export class NavGrid {
 
   /** Normierte Richtung zur besten Nachbarzelle Richtung Ziel; null wenn unerreichbar oder schon am Ziel. */
   public flowDir(x: number, y: number): { x: number; y: number } | null {
+    const COLS = this.cols;
+    const ROWS = this.rows;
     if (this.targetCell < 0) return null;
     const c = this.cellOf(x, y);
     const cx = c % COLS;
@@ -121,8 +139,8 @@ export class NavGrid {
     if (best < 0) return null;
     const bx = best % COLS;
     const by = (best - bx) / COLS;
-    const tx = ROOM_LEFT + bx * CELL + CELL / 2;
-    const ty = ROOM_TOP + by * CELL + CELL / 2;
+    const tx = this.left + bx * CELL + CELL / 2;
+    const ty = this.top + by * CELL + CELL / 2;
     const len = Math.hypot(tx - x, ty - y);
     if (len < 0.001) return null;
     return { x: (tx - x) / len, y: (ty - y) / len };

@@ -253,6 +253,18 @@ export const ITEMS: ItemDef[] = [
     dropWeight: 0,
     minDepth: 3,
   },
+  {
+    id: 'trophy_leviathan',
+    name: 'A.E.G.I.S.-Herzlinse',
+    rarity: 'epic',
+    baseValue: 2400,
+    maxStack: 1,
+    modifier: 'none',
+    description: 'Trophäe des Sektor-1-Endbosses: die gleißende Zentrallinse des A.E.G.I.S. Leviathan. Nur ein Sieg hinterlässt sie.',
+    glowColor: '#fde047',
+    dropWeight: 0,
+    minDepth: 3,
+  },
   // ==================== SEKTOR 2: KRISTALL-NEBEL RELIKTE ====================
   {
     id: 'quartz_shard',

@@ -1,4 +1,4 @@
-import { BOUNTY_REWARD_MULT, SELL_PRICE_MULT, scaledSellValue, WEAPON_TIER_GATES } from '../data/balance';
+import { BOUNTY_REWARD_MULT, SELL_PRICE_MULT, scaledSellValue, WEAPON_TIER_GATES, WEAPON_TYPE_GATES } from '../data/balance';
 import { COMPANION_ORDER, evaluateCompanionUnlock, SUIT_THEME_ORDER } from '../data/companions';
 import {
   ALCHEMY_BUFFS,
@@ -815,8 +815,31 @@ export class GameState {
     this.save();
   }
 
+  /** M12 (E): Sektor-Endboss je Sektor jemals besiegt? (alte Saves, NG+ und Rekorde zählen mit — keine neuen Save-Felder) */
+  public hasClearedSector(sector: number): boolean {
+    const flags = [false, this.sector1Cleared, this.sector2Cleared, this.sector3Cleared, this.sector4Cleared];
+    return (
+      Boolean(flags[sector]) ||
+      this.ngPlusLevel >= 1 ||
+      this.records.bestSectorClearSec[sector as SectorId] !== undefined
+    );
+  }
+
+  /** M12 (E): Sperrtext „Bauplan: besiege …“, solange die Waffen-Art noch gesperrt ist — sonst null. */
+  public getWeaponTypeLock(weaponId: WeaponId): string | null {
+    const gate = WEAPON_TYPE_GATES[weaponId];
+    if (!gate) return null;
+    return gate.check((s) => this.hasClearedSector(s)) ? null : `Bauplan: besiege ${gate.boss}`;
+  }
+
+  /** M12 (E): Hub-Vitrine „A.E.G.I.S.-Herzlinse“ — nach dem Erstsieg dauerhaft. */
+  public hasLeviathanTrophy(): boolean {
+    return this.hasClearedSector(1);
+  }
+
   public canCraftWeapon(weaponId: WeaponId): boolean {
     if (this.unlockedWeapons[weaponId]) return false;
+    if (this.getWeaponTypeLock(weaponId)) return false;
     const track = UPGRADE_TRACKS.find((t) => t.weaponId === weaponId);
     if (!track?.craftCost) return false;
     if (this.credits < this.getForgeCreditCost(track.craftCost.creditCost, track.shop)) return false;

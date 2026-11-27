@@ -1,6 +1,8 @@
 // Zentrale Stellschrauben für Balancing (Meilenstein 10-C).
 // Ökonomie ist iterativ: Werte hier ändern, nicht im Code verstreuen.
 
+import type { WeaponId } from '../types';
+
 /** Faktor auf den Basis-Verkaufswert aller Items (E7). */
 export const SELL_PRICE_MULT = 0.65;
 /** Faktor auf Kopfgeld-Belohnungen neu erzeugter Aufträge. */
@@ -50,6 +52,16 @@ export const WEAPON_TIER_GATES: Record<number, { text: string; check: (p: Weapon
   5: { text: 'Sektor 2 · Ebene II erreicht', check: (p) => p.deepestFloorS2 >= 2 || p.sector2Cleared },
   6: { text: 'Sektor 2 abgeschlossen', check: (p) => p.sector2Cleared },
   7: { text: 'Sektor 3 abgeschlossen', check: (p) => p.sector3Cleared },
+};
+
+/**
+ * M12 (Phase E, §5.1): Waffen-Arten-Sperre. Eine Waffen-Art ist in der Schmiede gesperrt, bis der Sektor-Endboss besiegt ist.
+ * Nicht eingetragene Arten (blade, blaster, fists) sind ab Start frei. Schon hergestellte Waffen bleiben (kein Entzug).
+ */
+export const WEAPON_TYPE_GATES: Partial<Record<WeaponId, { sector: 1 | 2 | 3; boss: string; check: (cleared: (sector: number) => boolean) => boolean }>> = {
+  spear: { sector: 1, boss: 'A.E.G.I.S. Leviathan', check: (c) => c(1) },
+  discus: { sector: 2, boss: 'Prisma-Archon', check: (c) => c(2) },
+  hammer: { sector: 3, boss: 'Vulkan-Titan', check: (c) => c(3) },
 };
 
 /** Flacht die Schadens-Stufen 1–3 ab (Stufen 0 und 4+ bleiben): neu = round(Stufe0 × EARLY_TIER_DAMAGE_STEPS[i]). */

@@ -75,6 +75,7 @@ export interface HDArtAssets {
   propNyxFreeLantern: HTMLCanvasElement | null;
   propVexBeacon: HTMLCanvasElement | null;
   propVexClassboard: HTMLCanvasElement | null;
+  propTrophyLeviathan: HTMLCanvasElement | null;
   npcPilgrim: HTMLCanvasElement | null;
   npcFoundryWorker: HTMLCanvasElement | null;
   npcElderScholar: HTMLCanvasElement | null;
@@ -236,6 +237,7 @@ const art: HDArtAssets = {
   propNyxFreeLantern: null,
   propVexBeacon: null,
   propVexClassboard: null,
+  propTrophyLeviathan: null,
   npcPilgrim: null,
   npcFoundryWorker: null,
   npcElderScholar: null,
@@ -312,6 +314,34 @@ function loadImage(src: string): Promise<HTMLImageElement | null> {
   });
 }
 
+/** Prozedurales 64×64-Icon der A.E.G.I.S.-Herzlinse (Fallback, solange item_trophy_leviathan.png fehlt). */
+function makeTrophyLensIcon(): HTMLCanvasElement {
+  const c = document.createElement('canvas');
+  c.width = 64;
+  c.height = 64;
+  const g = c.getContext('2d')!;
+  const glow = g.createRadialGradient(32, 32, 4, 32, 32, 30);
+  glow.addColorStop(0, 'rgba(253,224,71,0.55)');
+  glow.addColorStop(1, 'rgba(253,224,71,0)');
+  g.fillStyle = glow;
+  g.fillRect(0, 0, 64, 64);
+  g.fillStyle = '#1e293b';
+  g.beginPath();
+  g.arc(32, 32, 19, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = '#f59e0b';
+  g.beginPath();
+  g.arc(32, 32, 16, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = '#fde047';
+  g.beginPath();
+  g.arc(32, 32, 11, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = '#fffbeb';
+  g.fillRect(27, 27, 6, 6);
+  return c;
+}
+
 function imgToCanvas(img: HTMLImageElement | null): HTMLCanvasElement | null {
   if (!img) return null;
   const c = document.createElement('canvas');
@@ -345,6 +375,13 @@ export const M10_OPTIONAL_SPRITES = {
 } as const;
 
 export type M10SpriteKey = keyof typeof M10_OPTIONAL_SPRITES;
+
+/** Meilenstein 12: optionale Sprites der Endboss-Belohnungen. Fehlt die Datei → prozeduraler Fallback (hubEvolution.ts). */
+export const M12_OPTIONAL_SPRITES = {
+  propTrophyLeviathan: 'prop_trophy_leviathan',
+} as const;
+
+export type M12SpriteKey = keyof typeof M12_OPTIONAL_SPRITES;
 
 /** Meilenstein 10-C: optionale Boss-Sprites (128×128). Fehlt die Datei → eingefärbter Fallback + Merkmale (bossLooks.ts). */
 export const BOSS_OPTIONAL_SPRITES = {
@@ -648,12 +685,24 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
     const c = imgToCanvas(itemImgs[idx] ?? null);
     if (c) art.items[item.id] = c;
   });
+  // M12 (E): fehlt das Icon der Herzlinse (SPRITE_QUEUE P1-07), zeichnet ein prozeduraler Fallback Canvas + UI-Icon
+  if (!art.items['trophy_leviathan']) {
+    const fb = makeTrophyLensIcon();
+    art.items['trophy_leviathan'] = fb;
+    art.itemUrls['trophy_leviathan'] = fb.toDataURL('image/png');
+  }
 
   // Milestone 10-A: optionale Sprites separat laden — ein fehlendes PNG bleibt `null` (→ prozeduraler Fallback)
   const m10Keys = Object.keys(M10_OPTIONAL_SPRITES) as M10SpriteKey[];
   const m10Imgs = await Promise.all(m10Keys.map((k) => loadImage(`/art/sprites/${M10_OPTIONAL_SPRITES[k]}.png`)));
   m10Keys.forEach((k, i) => {
     art[k] = imgToCanvas(m10Imgs[i]);
+  });
+
+  const m12Keys = Object.keys(M12_OPTIONAL_SPRITES) as M12SpriteKey[];
+  const m12Imgs = await Promise.all(m12Keys.map((k) => loadImage(`/art/sprites/${M12_OPTIONAL_SPRITES[k]}.png`)));
+  m12Keys.forEach((k, i) => {
+    art[k] = imgToCanvas(m12Imgs[i]);
   });
 
   // Meilenstein 10-C: optionale Boss-Sprites (inkl. Treffer-Silhouette)
