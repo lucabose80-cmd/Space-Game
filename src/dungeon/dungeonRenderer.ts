@@ -398,8 +398,8 @@ export class DungeonRenderer {
     }
 
     for (const ob of this.scene.currentRoom.obstacles) {
-      // M12: Boss-Wand-Sockel der Arena zeichnet arenaFloor.ts (Wand-Sprite bzw. Fallback), nicht als Schott-Balken
-      if (arena && ob.kind === 'bulkhead_wall') continue;
+      // M12: Boss-Wand-Sockel & Kühlaggregate der Arena zeichnen arenaFloor.ts bzw. drawLeviathanArena
+      if (arena && (ob.kind === 'bulkhead_wall' || ob.kind === 'conduit')) continue; // Kühlaggregate: Boden-Sprite / drawLeviathanArena
       this.renderObstacle(ctx, ob);
     }
 

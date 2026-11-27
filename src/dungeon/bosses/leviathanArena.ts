@@ -7,9 +7,10 @@
 //                                   Schwachstelle: Kern-Linse dauerhaft offen; < 15 % kritisch (schnellere Züge).
 // Schaden nur an offenen Schwachstellen, sonst Funken + „GEPANZERT“ (A3). Alle Gefahren über bossFx/debrisDrops mit Vorwarnung
 // (≥ 0,4 s, Arena-Änderungen ≥ 0,8 s). Kein globaler Zufall (Trümmer-Positionen: mulberry32 je Boss/Zug).
+import { getHDArt } from '../../assets/artLoader';
 import { sound } from '../../engine/audio';
 import { ENDBOSS_ARENA } from '../../data/balance';
-import { ARENAS, ARENA_TILE } from '../../data/arenas';
+import { ARENAS, ARENA_TILE, arenaTileRects } from '../../data/arenas';
 import { mulberry32 } from '../../systems/seededRng';
 import type { DungeonScene } from '../../scenes/DungeonScene';
 import type { DetachedPart } from '../anim/detached';
@@ -510,25 +511,29 @@ function startPhase2(scene: DungeonScene, e: Enemy): void {
   scene.callbacks.onToast('🚨 PHASE II: ÜBERLAST — die Bodenplatten brechen! Zerstöre die Kühlventile!', 'warn');
   // Arena-Änderung (A4): Mittel-Platten brechen weg — 1,2 s Vorwarnung, dann Abgrund (Glut-Schacht)
   const def = ARENAS.boss_leviathan;
-  const plate = def ? plateRect(def.tiles, rb.l, rb.t) : null;
-  if (plate && !L.platesBroken) {
-    fx(scene).add({
-      shape: 'rect',
-      x: plate.x + plate.w / 2,
-      y: plate.y + plate.h / 2,
-      w: plate.w,
-      h: plate.h,
-      delay: ENDBOSS_ARENA.leviathan.plateWarnSec,
-      life: 0.2,
-      color: '#fb923c',
-      onFire: (s) => {
-        L.platesBroken = true;
-        s.currentRoom.chasms.push({ x: plate.x, y: plate.y, w: plate.w, h: plate.h });
-        s.rebuildNav();
-        s.triggerShake(0.5, 5);
-        sound.playBossSlam();
-        for (let i = 0; i < 6; i++) s.spawnBurst(plate.x + (plate.w * (i + 0.5)) / 6, plate.y + plate.h / 2, '#fb923c', 6);
-      },
+  const plates = def ? arenaTileRects(def, (ch) => ch === 'p', rb.l, rb.t) : [];
+  if (plates.length && !L.platesBroken) {
+    plates.forEach((plate, i) => {
+      fx(scene).add({
+        shape: 'rect',
+        x: plate.x + plate.w / 2,
+        y: plate.y + plate.h / 2,
+        w: plate.w,
+        h: plate.h,
+        delay: ENDBOSS_ARENA.leviathan.plateWarnSec,
+        life: 0.2,
+        color: '#fb923c',
+        onFire: (s) => {
+          L.platesBroken = true;
+          s.currentRoom.chasms.push({ x: plate.x, y: plate.y, w: plate.w, h: plate.h });
+          if (i === plates.length - 1) {
+            s.rebuildNav();
+            s.triggerShake(0.5, 5);
+            sound.playBossSlam();
+          }
+          s.spawnBurst(plate.x + plate.w / 2, plate.y + plate.h / 2, '#fb923c', 8);
+        },
+      });
     });
   }
 }
@@ -548,19 +553,6 @@ function startPhase3(scene: DungeonScene, e: Enemy): void {
   // Wand-Panzer fällt ab (rein optisch)
   spawnScrap(scene, e.x, e.y + 10, 5, 7);
   scene.callbacks.onToast('🔥 PHASE III: Der Panzer fällt — die Kern-Linse liegt frei!', 'warn');
-}
-
-/** Begrenzungsrechteck der `p`-Kacheln (Bodenplatten). */
-export function plateRect(tiles: string[], ox: number, oy: number): { x: number; y: number; w: number; h: number } | null {
-  let c0 = Infinity, c1 = -1, r0 = Infinity, r1 = -1;
-  tiles.forEach((row, r) => {
-    for (let c = 0; c < row.length; c++) {
-      if (row[c] !== 'p') continue;
-      c0 = Math.min(c0, c); c1 = Math.max(c1, c); r0 = Math.min(r0, r); r1 = Math.max(r1, r);
-    }
-  });
-  if (c1 < 0) return null;
-  return { x: ox + c0 * ARENA_TILE, y: oy + r0 * ARENA_TILE, w: (c1 - c0 + 1) * ARENA_TILE, h: (r1 - r0 + 1) * ARENA_TILE };
 }
 
 /** Kran-Arme: Schweben, Verfolgen, Zuschlagen, Feststecken (angreifbar), Zurückkehren. */
@@ -678,6 +670,7 @@ export function drawLeviathanArena(ctx: CanvasRenderingContext2D, scene: Dungeon
   if (!L) return;
   const t = scene.time;
   const pulse = 0.5 + 0.5 * Math.sin(t * 8);
+  const hasBg = !!getHDArt().arenaLeviathanBg;
   // Kühlventile
   for (const v of L.vents) {
     ctx.save();
@@ -690,10 +683,13 @@ export function drawLeviathanArena(ctx: CanvasRenderingContext2D, scene: Dungeon
       ctx.fill();
     } else {
       const weak = L.phase >= 2;
-      ctx.fillStyle = '#0d2536';
-      ctx.fillRect(v.x - 7, v.y - 9, 14, 18);
-      ctx.fillStyle = weak ? `rgba(56, 232, 212, ${0.6 + 0.4 * pulse})` : '#1e6f6a';
-      for (let k = -6; k <= 4; k += 4) ctx.fillRect(v.x - 5, v.y + k, 10, 2);
+      if (!hasBg) {
+        // Rückfall ohne Arena-Boden-Sprite: Ventil-Gitter selbst zeichnen
+        ctx.fillStyle = '#0d2536';
+        ctx.fillRect(v.x - 7, v.y - 9, 14, 18);
+        ctx.fillStyle = weak ? `rgba(56, 232, 212, ${0.6 + 0.4 * pulse})` : '#1e6f6a';
+        for (let k = -6; k <= 4; k += 4) ctx.fillRect(v.x - 5, v.y + k, 10, 2);
+      }
       if (weak) {
         ctx.strokeStyle = `rgba(253, 224, 71, ${0.5 + 0.5 * pulse})`;
         ctx.lineWidth = 1;

@@ -28,10 +28,16 @@ export function arenaTileAt(def: ArenaDef, col: number, row: number): string {
   return def.tiles[row]?.[col] ?? 'W';
 }
 
-const SOLID_KIND: Record<string, ObstacleRect['kind']> = { W: 'bulkhead_wall', '#': 'pillar', v: 'conduit' };
+const SOLID_KIND: Record<string, ObstacleRect['kind']> = { W: 'bulkhead_wall', '#': 'pillar', V: 'conduit', v: 'conduit' };
 
-/** Feste Kacheln → möglichst wenige Rechtecke (Zeilen-Läufe, dann gleiche Läufe senkrecht zusammenfassen). */
-export function arenaObstacles(def: ArenaDef, originX: number, originY: number, skip?: (col: number, row: number) => boolean): ObstacleRect[] {
+/** Kacheln mit `match(ch)` → möglichst wenige Rechtecke (Zeilen-Läufe gleichen Zeichens, dann gleiche Läufe senkrecht zusammenfassen). */
+export function arenaTileRects(
+  def: ArenaDef,
+  match: (ch: string) => boolean,
+  originX: number,
+  originY: number,
+  skip?: (col: number, row: number) => boolean,
+): Array<{ x: number; y: number; w: number; h: number; ch: string }> {
   type Run = { c0: number; c1: number; r0: number; r1: number; ch: string };
   const open: Run[] = [];
   const done: Run[] = [];
@@ -40,7 +46,7 @@ export function arenaObstacles(def: ArenaDef, originX: number, originY: number, 
     const runs: Run[] = [];
     for (let c = 0; c < row.length; ) {
       const ch = row[c];
-      if (!SOLID_KIND[ch] || skip?.(c, r)) { c++; continue; }
+      if (!match(ch) || skip?.(c, r)) { c++; continue; }
       let e = c;
       while (e + 1 < row.length && row[e + 1] === ch && !skip?.(e + 1, r)) e++;
       runs.push({ c0: c, c1: e, r0: r, r1: r, ch });
@@ -63,8 +69,13 @@ export function arenaObstacles(def: ArenaDef, originX: number, originY: number, 
     y: originY + o.r0 * ARENA_TILE,
     w: (o.c1 - o.c0 + 1) * ARENA_TILE,
     h: (o.r1 - o.r0 + 1) * ARENA_TILE,
-    kind: SOLID_KIND[o.ch],
+    ch: o.ch,
   }));
+}
+
+/** Feste Kacheln → Hindernis-Rechtecke. */
+export function arenaObstacles(def: ArenaDef, originX: number, originY: number, skip?: (col: number, row: number) => boolean): ObstacleRect[] {
+  return arenaTileRects(def, (ch) => !!SOLID_KIND[ch], originX, originY, skip).map((r) => ({ x: r.x, y: r.y, w: r.w, h: r.h, kind: SOLID_KIND[r.ch] }));
 }
 
 /** Breite des Durchgangs (Kacheln) durch den Boss-Sockel, falls der Bossraum eine Nordtür hat. */

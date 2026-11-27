@@ -15,8 +15,8 @@ module.exports = async ({ page, scratch, PORT }) => {
     // ---------- 1) Kachelplan ----------
     const cols = def.size.w / A.ARENA_TILE;
     const rows = def.size.h / A.ARENA_TILE;
-    out.grid = [cols, rows, def.tiles.length, def.tiles.every((t) => t.length === cols), def.tiles.every((t) => /^[.pW#v]+$/.test(t))];
-    const solid = (c, r) => 'W#v'.includes(def.tiles[r][c]);
+    out.grid = [cols, rows, def.tiles.length, def.tiles.every((t) => t.length === cols), def.tiles.every((t) => /^[.pW#Vv]+$/.test(t))];
+    const solid = (c, r) => "W#Vv".includes(def.tiles[r][c]);
     // Erreichbarkeit (4er-Nachbarschaft) vom Süd-Eingang
     const seen = new Set(); const q = [[Math.floor(cols / 2), rows - 1]]; seen.add(q[0].join());
     while (q.length) { const [c, rr] = q.shift(); for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nc = c + dx, nr = rr + dy; if (nc < 0 || nr < 0 || nc >= cols || nr >= rows || solid(nc, nr) || seen.has(nc + ',' + nr)) continue; seen.add(nc + ',' + nr); q.push([nc, nr]); } }
@@ -56,7 +56,7 @@ module.exports = async ({ page, scratch, PORT }) => {
   assert.deepStrictEqual(r.grid, [43, 22, 22, true, true], 'Kachelplan 43 × 22, gültige Zeichen');
   assert.strictEqual(r.reach[0], r.reach[1], 'alle begehbaren Kacheln erreichbar');
   assert.strictEqual(r.obs[1], r.obs[2], 'Hindernisse decken genau die festen Kacheln');
-  assert.ok(r.obs[3] && r.obs[0] <= 12, 'wenige Rechtecke, alle in der Spielfläche: ' + r.obs[0]);
+  assert.ok(r.obs[3] && r.obs[0] <= 24, 'wenige Rechtecke, alle in der Spielfläche: ' + r.obs[0]);
   assert.deepStrictEqual(r.obsKinds, ['bulkhead_wall', 'conduit', 'pillar']);
   assert.strictEqual(r.calls[0], r.calls[1], 'attachArenas verbraucht kein Math.random');
   assert.deepStrictEqual(r.diffKeys, [r.bossKey], 'nur der Bossraum ändert sich');

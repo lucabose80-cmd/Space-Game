@@ -154,7 +154,7 @@ module.exports = async ({ page, PORT }) => {
   assert.deepStrictEqual(r.armCap, [40, true], 'Teil-Schaden gedeckelt auf Teil-HP');
   assert.deepStrictEqual(r.p2, [2, 'transition', true], 'Phase II bei 65 %');
   assert.ok(r.plateWarn >= 0.8, 'Platten: Vorwarnung ≥ 0,8 s');
-  assert.deepStrictEqual(r.plates, [0, 1, true], 'Platten brechen → Abgrund');
+  assert.deepStrictEqual(r.plates, [0, 3, true], 'Platten brechen → Abgrund (3 Rechtecke = Glut-Gitter)');
   assert.deepStrictEqual(r.vent, [true, 3], 'Ventil zerstört → Linse 3 s offen');
   assert.ok(r.ventCap, 'Ventil: Überschuss-Schaden gedeckelt');
   assert.deepStrictEqual(r.aimPts, [2, 4, 5, 6], 'Ziel-Hilfe: intakte Ventile + offene Linse');

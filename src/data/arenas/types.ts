@@ -4,9 +4,10 @@ import type { EnemyKind } from '../../world/dungeonGen';
 /**
  * Kachelzeichen (16 × 16 logische px):
  * - `.` Boden · `p` Bodenplatte (begehbar; bricht in Phase II weg → Phase D)
- * - `W` Boss-Wand-Sockel (fest, Körper des Bosses) · `#` Deckungs-Pfeiler (fest) · `v` Kühlventil an der Wand (fest; Schwachstelle in Phase II → Phase D)
+ * - `W` Boss-Wand-Sockel (fest, Körper des Bosses) · `#` Deckungs-Pfeiler (fest) · `V` Kühlaggregat (fest)
+ * - `v` Kühlventil (fest; Schwachstelle ab Phase II)
  */
-export type ArenaTile = '.' | 'p' | 'W' | '#' | 'v';
+export type ArenaTile = '.' | 'p' | 'W' | '#' | 'V' | 'v';
 
 export interface ArenaDef {
   kind: EnemyKind;
