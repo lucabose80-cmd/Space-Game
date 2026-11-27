@@ -60,7 +60,7 @@ module.exports = async ({ page }) => {
       out.rendered[id] = withRig !== without;
     }
     // normale Gegner mit Bewegung rendern ohne Fehler
-    for (const k of ['drone', 'turret', 'slime', 'forge_golem']) { dng.enemies.length = 0; dng.spawnEnemy(k, 200, 140); dng.enemies[0].vx = 50; dng.enemies[0].telegraphTimer = 0.2; dng.render(ctx, new InputManager(canvas)); }
+    for (const k of ['drone', 'turret', 'phase_stalker', 'slime', 'forge_golem']) { dng.enemies.length = 0; dng.spawnEnemy(k, 200, 140); dng.enemies[0].vx = 50; dng.enemies[0].telegraphTimer = 0.2; dng.render(ctx, new InputManager(canvas)); }
     out.enemiesOk = true;
     return out;
   });
@@ -72,7 +72,7 @@ module.exports = async ({ page }) => {
   assert.deepStrictEqual(r.pixEye, [0, 0, 255, 255], 'z-Reihenfolge: Auge über dem Arm'); assert.strictEqual(r.hiddenArm[3], 0); assert.deepStrictEqual(r.flash, [255, 255, 255, 255]);
   assert.deepStrictEqual(r.blend, [0.5, 1.5, 2]);
   assert.ok(r.lean); assert.deepStrictEqual(r.windup, [true, true]); assert.deepStrictEqual(r.hit, [true, true]); assert.deepStrictEqual(r.wants, [true, false, false, false]);
-  assert.deepStrictEqual(r.loaded, [true, true, ['boss', 'boss_breacher', 'turret']]); assert.ok(r.legsMove);
+  assert.deepStrictEqual(r.loaded, [true, true, ['boss', 'boss_breacher', 'phase_stalker', 'turret']]); assert.ok(r.legsMove);
   assert.ok(r.rendered.krall && r.rendered.core_warden, 'Rig verändert das Bild gegenüber dem Fallback: ' + JSON.stringify(r.rendered)); assert.ok(r.enemiesOk);
   console.log('M11 PHASE1 OK');
 };
