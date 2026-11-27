@@ -94,5 +94,35 @@ Neue Mischungen (neue Pools, Challenges, Events) → diese Tabelle ergänzen.
 
 **Pflicht in Stufe 3 (Sprite-Liste):** für jeden Gegner/Boss prüfen, ob er in der Tabelle oben vorkommt **und** Boden-Effekte hat (Aufschlag, Stampfer, Sturz, Tod am Boden, Spuren) → `<id>_ground.png` mit einplanen. Checklisten-Punkt **G10** (Gegner) bzw. **D15** (Bosse) in `BOSS_ANIMATION_PLAN.md`.
 
+## 5b. New Game+ & ∞ Spirale — eigener Look (PLAN, noch nicht freigegeben)
+> **Status: Plan (Wunsch des Projektinhabers 2026-11-27, Details offen — §5b.4).** Bis zur Freigabe wird **nichts** davon umgesetzt; die Sprites stehen in `SPRITE_QUEUE.md` als `[~]` (`P4-01`, `P4-02`).
+
+**Ausgangslage (Stand heute):** NG+ ändert nur **Werte** (Skalierung über `ngPlusLevel`), nicht das **Aussehen**. Die ∞ Spirale wechselt nur die vier Sektor-Biome (S1→S4, `visualSector`) und mischt Gegner/Bosse — ohne eigenen Spiralen-Look. Beides soll sich sichtbar nach „Mehr/Endgame“ anfühlen.
+
+**Leitidee: gemeinsame Overlays statt Sheets pro Gegner.** Der Look wird **einmal** gezeichnet und im Code über alle Gegner/Bosse gelegt — die Rig-Chats müssen **keine** eigenen NG+/Spiralen-Varianten pro Wesen erzeugen (spart Aufwand, bleibt konsistent).
+
+### 5b.1 NG+-Look (Gegner & Bosse)
+- **Stufen-Marker nach `ngPlusLevel`:** NG+1–2 = Aura-Ring in kühlem Weiß-Cyan („Echo“, pulsierend) · NG+3–5 = Aura + Funkenkranz · NG+6+ = Aura + Funkenkranz + Namens-Zusatz „★“. Bewusst **nicht** golden (Gold = Elite-Rand, M10-C).
+- **Umsetzung:** Aura/Funken als **gemeinsames Effekt-Sheet** `art_source/rigs/ngplus_aura.png` (Typ E, 3×2: Aura-Ring klein/mittel/groß · Funkenkranz · Boden-Glimmer unter dem Gegner · Todes-Funkenstoß), skaliert nach Gegnergröße; zusätzlich leichte Tönung per Code. Rein optisch, keine Werte.
+- **Bosse:** gleicher Marker + Namens-Zusatz in der Boss-Leiste; kein eigenes Boss-Sheet nötig.
+
+### 5b.2 Spiralen-Look (Räume, Boden-Effekte, Gegner)
+- **Spiralen-Überzug auf dem Raum-Biom:** Der Raum behält sein Sektor-Biom (S1–S4), bekommt aber ein **Spiralen-Overlay** (Singularitätsrisse, Echo-Schimmer, schwebender Leere-Staub). Gilt für Boden **und** für Boden-Effekte der Gegner (Regel 16): kein zusätzliches `_ground`-Sheet pro Gegner, sondern ein gemeinsames Overlay-Sheet.
+- **Sheet:** `art_source/rigs/spiral_overlay.png` (Typ E, 3×2: Singularitätsriss klein · groß · Echo-Schimmer-Fläche · Leere-Staubwolke · Einschlag-Ring (Spirale) · Todes-Rückstand „Echo“).
+- **Gegner in der Spirale:** leichte Echo-Tönung + Aura-Marker analog 5b.1 (Spiralen-Tiefe statt `ngPlusLevel`).
+- **Endbosse in der Spirale:** vorerst Standardraum (Entscheidung M12 §10.3); Spiralen-Variante der Arena-Effekte erst, wenn die Arena-Bosse stehen (M12 Phase D+).
+
+### 5b.3 Biom-Wahl im Code (Erweiterung von §5)
+`Biom des Raums` bleibt wie in §5 (Riss-Kammer → `riftSector`, Spirale → `floor.visualSector`, sonst `currentSector`). **Neu (nach Freigabe):** `isSpiral` (Raum gehört zur ∞ Spirale) und `ngPlusLevel` als **zusätzliche Overlay-Schalter** — sie verändern **nicht** die Biom-Auswahl der Boden-Variante, nur die Überlagerung. Im Boss-Labor (`?bosslab`) kommen dafür zwei Schalter dazu: **NG+ 0–6** und **Spirale an/aus**. Alles rein optisch; keine Hitbox-/Wert-Änderung, kein globaler Zufall.
+
+### 5b.4 Offene Entscheidungen (Projektinhaber)
+1. Soll der NG+-Marker nur Aura (dezent) oder Aura + Namens-Zusatz sein?
+2. Spiralen-Look: Overlay auf den Sektor-Biomen (empfohlen) oder ein **eigenes Spiralen-Biom** mit eigenem Hintergrund (deutlich mehr Sprites)?
+3. Soll NG+ auch **neue Gegner-Varianten** (z. B. Echo-Elite mit Zusatzangriff) bekommen — oder bleibt es bei Optik?
+4. Gilt der Look auch für die Wochen-Prüfung? (Empfehlung: **nein**, Prüfung bleibt neutral und normiert.)
+
+### 5b.5 Checkliste (ab Freigabe)
+Neue Punkte **G11** (Gegner) / **D16** (Bosse): *„Aura/Spiralen-Overlay sitzt sauber (Größe, Mittelpunkt) und verdeckt kein Telegraph; im Labor mit NG+/Spirale-Schaltern geprüft.“* — bis zur Freigabe **nicht** Pflicht.
+
 ## 6. Verknüpfte Dokumente
 [AGENTS.md](AGENTS.md) §3 Regeln 7, 11–13 · [BOSS_ANIMATION_PLAN.md](BOSS_ANIMATION_PLAN.md) · [MILESTONE_12_ARCHITECTURE.md](MILESTONE_12_ARCHITECTURE.md) · [RIGGING_GUIDE.md](RIGGING_GUIDE.md) · [ART_BRIEF_M11.md](ART_BRIEF_M11.md) · [ART_BRIEF_M11_ENEMIES.md](ART_BRIEF_M11_ENEMIES.md) · [SPRITE_QUEUE.md](SPRITE_QUEUE.md) · [PARALLEL_WORK.md](PARALLEL_WORK.md)

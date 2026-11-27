@@ -22,6 +22,7 @@ npm run verify                           # Build + Invarianten + Sprite-Check + 
 - Dev-Test-Hook `window.__game` gibt es nur im Vite-Dev-Server.
 
 ## ⚠ Fehlende Sprites (Fallbacks aktiv → neue PNGs gewünscht)
+> **Plan (wartet auf Freigabe): NG+- & Spiralen-Look** als gemeinsame Overlays (`BOSS_ENEMY_PIPELINE.md` §5b, Sprites `P4-01/P4-02` als `[~]` in `SPRITE_QUEUE.md` P4b, offene Fragen §5b.4) — noch nichts umsetzen/generieren.
 > **Neu: `npm run art:gen`** (`scripts/gen-sheet.py`, von Antigravity; Claude-Fallback + `--sheet-out` ergänzt) — Claude-Chats erzeugen benötigte Sheets direkt über die Gemini-Bild-API (Standardmodell `gemini-nano-banana-2.1`, Key über Network Secret, Header `x-goog-api-key`; getestet 2026-11-27). Bestehende Liste → Antigravity; Claude nur für die eigene laufende Aufgabe (`AGENTS.md` Regel 15).
 > **Grundhaltung (Inhaber, 2026-11-27): Qualität vor Sparen.** Genug Gemini-Guthaben vorhanden — wenn etwas mit den vorhandenen Bildern nicht gut aussieht, nicht klappt oder nicht gefällt, wird ein neues bzw. ersetzendes Sheet bestellt (`AGENTS.md` Regel 14, `SPRITE_QUEUE.md` §0).
 `npm run check:sprites` listet die aktuelle Lage. Stand: **alle 12 optionalen M10-Sprites fehlen**

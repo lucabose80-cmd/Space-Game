@@ -218,6 +218,14 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 > **⛔ STOP-GATE (GESPERRT):** Zellenlisten pro Boss werden erst festgelegt (jede muss den **Mindeststandard D11–D14** abdecken: Angriffsgrafik, Beschädigungsstufen, Beine/Unterkörper je Angriff), wenn **Kern-Wächter** und **Krall** im echten Spiel abgenommen sind (damit die Serie auf einem abgenommenen Vorbild aufbaut — Qualität, nicht Budget; §0). Danach trägt Claude Code die konkreten Sheets je Boss hier als `P4-01 …` ein:
 > Quarz-Koloss · Sternen-Archon · Leviathan · Prisma-Weberin · Prisma-Archon · Schlacken-Koloss · Gießerei-Meisterin · Vulkan-Titan · Chrono-Wächter · Monolith-Koloss.
 
+### P4b — NG+ & ∞ Spirale: gemeinsamer Look (**PLAN `[~]` — wartet auf Freigabe des Projektinhabers, noch nicht generieren**)
+> Plan & offene Fragen: `BOSS_ENEMY_PIPELINE.md` §5b. Gemeinsame Overlays für alle Gegner/Bosse — keine Sheets pro Wesen. Erst nach Freigabe auf `[ ]` setzen.
+
+| ID | Status | Zieldatei | Typ & Format | Referenz (`ImagePaths`) | Brief / Prompt | Notiz |
+| :--- | :---: | :--- | :--- | :--- | :--- | :--- |
+| `P4-01` | [~] | `art_source/rigs/ngplus_aura.png` | Typ E · 3×2 · `1536×1024` | `art_source/rigs/spore_spitter_fx.png` (Effekt-Stil), `public/art/sprites/enemy_phase_stalker.png` (Größenvergleich) | `BOSS_ENEMY_PIPELINE.md` §5b.1 — Prompt: „6 pixel-art effect cells for a New Game Plus marker: pulsing cool white-cyan aura ring small / medium / large (hollow, transparent centre), spark wreath, soft ground glow ellipse, death spark burst; consistent style, centred, white background, 3×2 grid“ | Aura nach Gegnergröße skaliert; Ringe mit `holes: true` importieren |
+| `P4-02` | [~] | `art_source/rigs/spiral_overlay.png` | Typ E · 3×2 · `1536×1024` | `art_source/rigs/crystal_crawler_ground.png` (sobald vorhanden, sonst `crystal_crawler_fx.png`), Bodenkacheln S1–S4 | `BOSS_ENEMY_PIPELINE.md` §5b.2 — Prompt: „6 pixel-art floor overlay effects for an endless spiral dimension: small singularity crack, large singularity crack, echo shimmer patch, floating void dust cloud, impact ring (spiral), echo death residue; dark violet-white palette, semi-transparent look, centred, white background, 3×2 grid“ | gilt für alle Boden-Effekte der Spirale, kein `_ground`-Sheet pro Gegner nötig |
+
 ---
 
 ## Archiv — Bereits erledigte M11-Sheets (nicht neu generieren)
