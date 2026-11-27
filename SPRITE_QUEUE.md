@@ -15,15 +15,20 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 - sowie dem Prompt im zugehörigen Brief (`ART_BRIEF_M11*.md` / `ART_AND_DESIGN_GUIDE.md`) und – bei optionalen Sprites – der Registrierung in `artLoader.ts` (`*_OPTIONAL_SPRITES`).
 
 ### 2. Abarbeitungs-Regeln (Antigravity / Skill `sprite-batch`)
-1. **Sync zuerst:** Immer mit `git fetch origin && git pull --ff-only` starten.
-2. **Dateisystem-Abgleich:** Existiert die Zieldatei eines `[ ]`-Eintrags bereits im Repo (z. B. aus einem parallelen Chat), **nicht** neu generieren — nur auf `[x]` setzen.
+1. **Sync vor jeder Runde:** Immer mit `git fetch origin && git pull --ff-only` starten (bzw. vor jeder weiteren Schleifen-Runde erneut gegen `origin/main` abgleichen, damit zwischenzeitlich neu eingereihte P0-Aufträge von Claude Code sofort Vorrang bekommen).
+2. **Dateisystem-Abgleich (mit `ersetzt`-Ausnahme):** Existiert die Zieldatei eines `[ ]`-Eintrags bereits im Repo (z. B. aus einem parallelen Chat), **nicht** neu generieren — nur auf `[x]` setzen. **Ausnahme:** Steht beim `[ ]`-Eintrag ausdrücklich *„ersetzt“ / „neu zeichnen“ / „Korrektur“* (z. B. `P0-14`), dann **wird** die bestehende Datei gezielt neu generiert und überschrieben. Einträge mit Status `[~]` (wartet auf Plan-/Abnahme-Freigabe) **niemals** automatisch generieren.
 3. **Strikt von oben nach unten:** Immer die ersten offenen `[ ]`-Einträge aus der höchsten Prioritätsstufe (`P0` → `P4`) nehmen, **sofern der Projektinhaber nichts anderes vorgibt**.
 4. **STOP-GATES sind hart:** Steht über einem Abschnitt `⛔ STOP-GATE (GESPERRT)`, **niemals** automatisch dahinter weitergenerieren! Erst weitermachen, wenn der Projektinhaber das Gate nach Prüfung im Spiel freigegeben hat (`✅ STOP-GATE (FREIGEGEBEN)`).
-5. **Quota-Budget pro Lauf:** Standardmäßig **maximal 2 Sheets pro Batch** (bzw. gewünschte Stückzahl, höchstens 3 `generate_image`-Aufrufe pro Lauf) und **maximal 1 Retry** bei fehlerhaftem Bild. Tritt ein Quota-/Rate-Limit (`gemini-3.1-flash-image`) auf → **sofort sauber abbrechen**, bereits fertige & geprüfte Dateien committen und den Rest `[ ]` lassen.
-6. **Qualitätspflicht vor Commit:**
+5. **Auto-Continue-Schleife (Standard) & Quota-Schutz:**
+   - **Standard-Durchlauf („Nächsten Sprite-Batch“):** Arbeitet in **sauberen 2er-Micro-Batches** (je Runde 2 Sheets bzw. 1 gebündeltes P3-Sheet). Nach jeder sauber geprüften Runde wird sofort committet und per **`npm run ship`** gepusht (außer der Nutzer sagte „nur lokal / nicht pushen“), danach startet **automatisch die nächste 2er-Runde**, bis eine harte Stopp-Bedingung greift:
+     1. **Quota-/Rate-Limit** (`gemini-3.1-flash-image`) → sofort sauber abbrechen, bereits fertige & geprüfte Sheets der laufenden Runde noch committen & pushen, Rest `[ ]` lassen.
+     2. **STOP-GATE erreicht** oder keine offenen `[ ]`-Einträge mehr frei → sofort stoppen.
+     3. **Qualitäts-Notbremse:** Maximal **1 Retry** pro fehlerhaftem Sheet (sonst `[!]` markieren); bei **2 fehlgeschlagenen Sheets (`[!]`) in Folge** komplett stoppen, um keine Quota zu verbrennen.
+     4. **Sicherheits-Deckel:** Maximal **10 Sheets (5 Runden)** pro Anstoß (schützt Kontext & Wochenlimit; der Nutzer kann jederzeit explizit eine feste Stückzahl wie *„nur 2 Stück“* oder ein höheres Limit vorgeben).
+6. **Qualitätspflicht vor Commit (in jeder Runde):**
    - **M11-Sheets (`art_source/rigs/*.png`):** Verlustfreies `1536×1024`-PNG (`512×512`/Zelle, reines `#FFFFFF`, keine Rasterlinien/Text/Schatten), `npm run art:check -- <datei>`, Prüfbild in `art_source/_check/` per `view_file` kontrollieren (Gelenk/Kern exakt im roten Fadenkreuz, `min_margin ≥ 30 px`, keine ⚠-Warnung; sonst per PIL ohne Skalierung zentrieren).
    - **Einzel-Sprites (`public/art/sprites/*.png`):** Flood-Fill-Freistellung + `NEAREST` auf Zielgröße (`96×96` bzw. `128×128` RGBA) nach `ART_AND_DESIGN_GUIDE.md` §3, per `view_file` prüfen (keine weißen Fransen, innere Highlights intakt).
-   - Abschließend `npm run check:invariants && npm run check:sprites` laufen lassen, Status hier auf `[x]` setzen, `HANDOFF.md` kurz aktualisieren, committen (`art(m11): ...` bzw. `art(m10): ...`) und pushen (außer der Nutzer wünscht explizit „nur lokal“).
+   - Status hier auf `[x]` setzen, zugehöriges Status-Blatt in `handoff/` (z. B. `handoff/enemy_sheets.md` oder `handoff/krall.md`) aktualisieren, committen (`art(m11): ...` bzw. `art(m10): ...`) und per **`npm run ship`** (enthält Merge + `check:invariants` + `check:sprites` bzw. `verify` + Push) ausliefern.
 
 ### Status-Legende
 - `[ ]` offen (bereit für den nächsten Batch)
