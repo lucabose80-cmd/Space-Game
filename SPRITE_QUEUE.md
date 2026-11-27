@@ -105,14 +105,14 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
 | `P2-01` | [x] | `art_source/rigs/drone_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/drone.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S1) | ✅ Drohne (`min_margin ≥ 71 px`, `art:check` ok, bereit für Claude-Import) |
 | `P2-02` | [x] | `art_source/rigs/shield_drone_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_shield_drone.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S1) | ✅ Schild-Drohne (`min_margin ≥ 80 px`, `art:check` ok; Emitter-Ring Zelle 4 mit `holes: true` importieren) |
-| `P2-03` | [ ] | `art_source/rigs/spore_spitter_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_spore_spitter.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S1) | Sporenspucker |
-| `P2-04` | [ ] | `art_source/rigs/drone_arc_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_drone_arc.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S1) | Bogen-Drohne |
+| `P2-03` | [x] | `art_source/rigs/spore_spitter_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_spore_spitter.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S1) | ✅ Sporenspucker (Körper · Auge · Kapsel zu/offen · Spore · halb eingegraben; Gelenke im Fadenkreuz, `min_margin ≥ 85 px`, `art:check` ok) |
+| `P2-04` | [x] | `art_source/rigs/drone_arc_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_drone_arc.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S1) | ✅ Bogen-Drohne (Gold-Rumpf · Visier · linke Tesla-Spule · linke Düsen-Gondel · Funken klein/groß; Gelenke im Fadenkreuz, `min_margin ≥ 72 px`, `art:check` ok) |
 
 ### P2b — Sektor 2
 
 | ID | Status | Zieldatei | Typ & Format | Referenz (`ImagePaths`) | Brief / Prompt | Notiz |
 | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
-| `P2-05` | [ ] | `art_source/rigs/crystal_crawler_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_crystal_crawler.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S2) | Kristall-Krabbler |
+| `P2-05` | [x] | `art_source/rigs/crystal_crawler_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_crystal_crawler.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S2) | ✅ Kristall-Krabbler (Panzer-Körper · Kopf mit Mandibeln · 3 linke Beine · abbrechbarer Kristall-Stachel; Gelenke im Fadenkreuz, `min_margin ≥ 96 px`, `art:check` ok) |
 | `P2-06` | [ ] | `art_source/rigs/shard_sniper_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_shard_sniper.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S2) | Splitter-Scharfschütze |
 | `P2-07` | [ ] | `art_source/rigs/prism_drone_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_prism_drone.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S2) | Prisma-Drohne |
 | `P2-08` | [ ] | `art_source/rigs/void_crawler_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_void_crawler.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S2) | Leere-Krabbler |
