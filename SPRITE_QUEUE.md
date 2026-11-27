@@ -158,7 +158,7 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 
 | ID | Status | Zieldatei | Typ & Format | Referenz (`ImagePaths`) | Brief / Prompt | Notiz |
 | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
-| `P2-21` | [ ] | `art_source/rigs/crystal_crawler_ground.png` | Typ E · 3×2 · `1536×1024` | `art_source/rigs/crystal_crawler_fx.png` (Zelle `fxDust`), Bodenkacheln/Hintergründe S1–S5 | `BOSS_ENEMY_PIPELINE.md` §5 — Prompt: „the same small impact dust trail + scraped ground mark of a crystal crawler lunge, drawn 5 times on 5 different floor materials: rusty moss-covered metal plates (S1), violet-cyan crystal floor (S2), cracked lava rock with embers (S3), black obsidian with star dust (S4), glitching void-energy floor (S5); cell 6: small pile of shattered ice-blue crystal shards; pixel art, same style and scale as reference, white background, 3×2 grid, each effect centred“ | Kristall-Krabbler tritt als Elite in **S1-Riss-Kammern** und in der Omega-Anomalie auf |
+| `P2-21` | [x] | `art_source/rigs/crystal_crawler_ground.png` | Typ E · 3×2 · `1536×1024` | `art_source/rigs/crystal_crawler_fx.png` (Zelle `fxDust`), Bodenkacheln/Hintergründe S1–S5 | `BOSS_ENEMY_PIPELINE.md` §5 | ✅ Kristall-Krabbler Boden-Biom-Varianten via Gemini API (`gemini-nano-banana-2.1`, S1 Korvette · S2 Kristall · S3 Gießerei · S4 Monolith · S5 Omega · Zelle 6 Kristallsplitter-Haufen; alle zentriert, `min_margin ≥ 60 px`, `art:check` ok) |
 
 ---
 
@@ -170,17 +170,17 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 
 | ID | Status | Zieldatei | Typ & Format | Referenz (`ImagePaths`) | Brief / Prompt | Notiz |
 | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
-| `P3-01` | [ ] | `public/art/sprites/prop_vex_beacon.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` *(Stil/Palette)* | `ART_AND_DESIGN_GUIDE.md` §7 | Vex-Bake (schwächster Fallback) |
-| `P3-02` | [ ] | `public/art/sprites/prop_hub_cycle_holo.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | Zyklus-Hologramm |
-| `P3-03` | [ ] | `public/art/sprites/prop_hub_elder_obelisk.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | Ältesten-Obelisk |
-| `P3-04` | [ ] | `public/art/sprites/prop_vex_classboard.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | Vex-Klassentafel |
+| `P3-01` | [x] | `public/art/sprites/prop_vex_beacon.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` *(Stil/Palette)* | `ART_AND_DESIGN_GUIDE.md` §7 | ✅ Vex-Bake (`96×96` RGBA, Flood-Fill + Defringe + `NEAREST`, via `gemini-nano-banana-2.1`) |
+| `P3-02` | [x] | `public/art/sprites/prop_hub_cycle_holo.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | ✅ Zyklus-Hologramm (`96×96` RGBA, Flood-Fill + `NEAREST`, kein Text) |
+| `P3-03` | [x] | `public/art/sprites/prop_hub_elder_obelisk.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | ✅ Ältesten-Obelisk (`96×96` RGBA, Flood-Fill + Holo-Ring-Loch freigestellt + `NEAREST`) |
+| `P3-04` | [x] | `public/art/sprites/prop_vex_classboard.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | ✅ Vex-Klassentafel (`96×96` RGBA, Flood-Fill + `NEAREST`, kein Text) |
 
 ### P3b — Übrige Promenaden-Props & NPCs (M10-A)
 
 | ID | Status | Zieldatei | Typ & Format | Referenz (`ImagePaths`) | Brief / Prompt | Notiz |
 | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
-| `P3-05` | [ ] | `public/art/sprites/prop_hub_crystal_lantern.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | Kristall-Laterne |
-| `P3-06` | [ ] | `public/art/sprites/prop_hub_star_banner.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | Sternen-Banner |
+| `P3-05` | [x] | `public/art/sprites/prop_hub_crystal_lantern.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | ✅ Kristall-Laterne (`96×96` RGBA, Flood-Fill + Defringe + `NEAREST`) |
+| `P3-06` | [x] | `public/art/sprites/prop_hub_star_banner.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | ✅ Sternen-Banner (`96×96` RGBA, Flood-Fill + Stangen-Zwischenraum freigestellt + `NEAREST`) |
 | `P3-07` | [ ] | `public/art/sprites/prop_kael_memorial.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | Kael-Gedenkamboss |
 | `P3-08` | [ ] | `public/art/sprites/prop_lyra_echo_sign.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | Lyra-Klinikschild |
 | `P3-09` | [ ] | `public/art/sprites/prop_nyx_free_lantern.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | Nyx-Laterne |
