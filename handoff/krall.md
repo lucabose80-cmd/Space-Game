@@ -26,4 +26,6 @@
     - `art_source/rigs/krall_arms_L3.png` (**P0-12 / K-E links**: beschädigter Haken/Mini-Säge verbogen + abgebrochener funkender Stumpf, Licht links-oben, `min_margin ≥ 77 px`)
     - `art_source/rigs/krall_legs_L2.png` (**P0-10 / K-B links**: gleiche 6 Angriffs-Beinposen eigenständig nach links mit Licht links-oben, Hüftring im Fadenkreuz, `min_margin ≥ 31 px`)
     - `art_source/rigs/krall_arms_L4.png` (**P0-16 / K-F links**: Haken/Mini-Säge verbogen in den übrigen 6 Posen seitlich · Schild-Block · Stampfer · Sog mit Funken · Hagel/Schrott · Teleskop voll, Licht links-oben, Schulterring im Fadenkreuz, `min_margin ≥ 30 px`)
+    - `art_source/rigs/krall_arms_R4.png` (**P0-15 / K-F rechts**: Greifzange verbogen in den übrigen 6 Posen seitlich · Block · Stampfer · Sog mit Funken · Hagel/Schrott · Teleskop voll, Schulterring im Fadenkreuz, `min_margin ≥ 34 px`, bereit für Claude-Import)
+    - `art_source/rigs/krall_arms_R5.png` (**P0-17 / K-F rechts Stumpf**: abgebrochener funkender Stumpf mit Kabeln, ohne Zange/Schrott, in denselben 6 Posen, Schulterring im Fadenkreuz, `min_margin ≥ 33 px`, bereit für Claude-Import)
 
