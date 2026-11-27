@@ -7,10 +7,8 @@ const clamp = (v: number, a: number, b: number): number => Math.max(a, Math.min(
 
 /** Länge der Schuss-Vorwarnung des Geschützes (enemyAi: `telegraphTimer = 0.46`). */
 const TURRET_TELEGRAPH = 0.46;
-/** Ketten-Sprites sind 40×30 px; verkleinert sitzen sie seitlich am 44-px-Sockel statt weit darunter hervorzuragen. */
-const TREAD_SCALE = 0.62;
-/** Die Ketten sind in Schrägansicht gezeichnet (steigen nach außen); diese Drehung legt sie waagerecht unter den Sockel. */
-const TREAD_LEVEL = 0.34;
+/** Ketten-Sprites (P0-14, Seitenansicht, 42×20 px): leicht verkleinert, damit sie unter dem 44-px-Sockel sitzen. */
+const TREAD_SCALE = 0.8;
 /** Rückstoß-Dauer nach dem Schuss (s). */
 const TURRET_RECOIL = 0.22;
 
@@ -91,8 +89,8 @@ function turretPose(e: Enemy, time: number, aimDx: number, aimDy: number): Pose 
   const fl = st.flinch, cr = st.crouch;
   return {
     base: { dy: -bob * 0.5 + 1.0 * cr, rot: rock, sy: 1 - 0.07 * cr, sx: 1 + 0.04 * cr },
-    treadL: { variant: treadVar, rot: TREAD_LEVEL, dy: bob * 0.3, sx: TREAD_SCALE, sy: TREAD_SCALE },
-    treadR: { variant: (treadVar + 2) % 4, rot: -TREAD_LEVEL, dy: bob * 0.3, sx: TREAD_SCALE, sy: TREAD_SCALE }, // gegenläufige Phase wirkt weniger „synchron“
+    treadL: { variant: treadVar, dy: bob * 0.3, sx: TREAD_SCALE, sy: TREAD_SCALE },
+    treadR: { variant: (treadVar + 2) % 4, dy: bob * 0.3, sx: TREAD_SCALE, sy: TREAD_SCALE }, // gegenläufige Phase wirkt weniger „synchron“
     dust: { hidden: !rolling, alpha: 0.5 * moving * (0.6 + 0.4 * Math.sin(time * 18 + e.id)), dx: clamp(-e.vx * 0.12, -6, 6), dy: clamp(-e.vy * 0.05, -2, 2), sx: 0.7 + 0.3 * moving, sy: 0.7 + 0.3 * moving },
     brake: { hidden: st.brake <= 0, alpha: st.brake / 0.18, sx: 0.6 + 0.4 * (1 - st.brake / 0.18), sy: 0.6 + 0.4 * (1 - st.brake / 0.18) },
     housing: {
