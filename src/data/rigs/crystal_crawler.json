@@ -28,6 +28,18 @@
           "fxPlate",
           "fxDust"
         ]
+      },
+      {
+        "file": "crystal_crawler_ground",
+        "mode": "swap",
+        "ids": [
+          "fxDustS1",
+          "fxDustS2",
+          "fxDustS3",
+          "fxDustS4",
+          "fxDustS5",
+          "fxRemnant"
+        ]
       }
     ]
   },
@@ -196,6 +208,12 @@
     "fxShardL",
     "fxGlow",
     "fxPlate",
-    "fxDust"
+    "fxDust",
+    "fxDustS1",
+    "fxDustS2",
+    "fxDustS3",
+    "fxDustS4",
+    "fxDustS5",
+    "fxRemnant"
   ]
 }

@@ -6,7 +6,8 @@
  "pixelRatio": 2,
  "sheets": {
   "crystal_crawler_rig.png": "43060113c8f96be6",
-  "crystal_crawler_fx.png": "6cd90752d456624e"
+  "crystal_crawler_fx.png": "6cd90752d456624e",
+  "crystal_crawler_ground.png": "a9e3c31bd4fa9df3"
  },
  "parts": {
   "torso": {
@@ -80,6 +81,42 @@
    "h": 48,
    "mode": "swap",
    "set": "crystal_crawler_fx"
+  },
+  "fxDustS1": {
+   "w": 52,
+   "h": 44,
+   "mode": "swap",
+   "set": "crystal_crawler_ground"
+  },
+  "fxDustS2": {
+   "w": 52,
+   "h": 44,
+   "mode": "swap",
+   "set": "crystal_crawler_ground"
+  },
+  "fxDustS3": {
+   "w": 52,
+   "h": 44,
+   "mode": "swap",
+   "set": "crystal_crawler_ground"
+  },
+  "fxDustS4": {
+   "w": 52,
+   "h": 44,
+   "mode": "swap",
+   "set": "crystal_crawler_ground"
+  },
+  "fxDustS5": {
+   "w": 52,
+   "h": 44,
+   "mode": "swap",
+   "set": "crystal_crawler_ground"
+  },
+  "fxRemnant": {
+   "w": 52,
+   "h": 44,
+   "mode": "swap",
+   "set": "crystal_crawler_ground"
   }
  }
 }

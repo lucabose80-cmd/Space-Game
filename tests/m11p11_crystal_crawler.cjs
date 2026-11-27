@@ -85,14 +85,21 @@ module.exports = async ({ page }) => {
     // Vorwarnung (Glühen) und Vorschnellen (Funkenspur) als Prüfbilder
     dng.enemies.length = 0; dng.spawnEnemy('crystal_crawler', 250, 130); dng.enemies[0].hp = dng.enemies[0].maxHp = 1e6; dng.enemies[0].telegraphTimer = 0.2; dng.time = 6; dng.roomFade = 0; dng.render(ctx, input);
     const teleShot = crop();
-    dng.enemies[0].telegraphTimer = 0; dng.enemies[0].chargeActive = 0.2; dng.time = 6.05; dng.render(ctx, input);
+    dng.enemies[0].telegraphTimer = 0; dng.enemies[0].chargeActive = 0.2; dng.time = 6.05; dng.currentRoom.riftSector = 2; dng.render(ctx, input);
     const chargeShot = crop();
+    const chargeS2 = hash();
+    dng.currentRoom.riftSector = 1; dng.render(ctx, input);
+    const chargeS1 = hash();
+    dng.currentRoom.riftSector = undefined;
+    const groundLoaded = [1, 2, 3, 4, 5].every((s) => !!art.rigs.crystal_crawler?.parts?.[`fxDustS${s}`]) && !!art.rigs.crystal_crawler?.parts?.fxRemnant;
     dng.time = 5; dng.render(ctx, input); const after = hash();
-    return { withRig, without, before, debris, after, shot, teleShot, chargeShot, alive };
+    return { withRig, without, before, debris, after, shot, teleShot, chargeShot, alive, groundLoaded, chargeS1, chargeS2 };
   });
   require('node:fs').writeFileSync(require('node:path').join(__dirname, 'out', 'crystal_crawler_death.png'), Buffer.from(g.shot.split(',')[1], 'base64'));
   for (const k of ['teleShot', 'chargeShot']) require('node:fs').writeFileSync(require('node:path').join(__dirname, 'out', `crystal_crawler_${k}.png`), Buffer.from(g[k].split(',')[1], 'base64'));
   assert.notStrictEqual(g.withRig, g.without, 'Rig und Fallback-Sprite werden unterschiedlich gezeichnet (Rückfall läuft ohne Fehler)');
   assert.strictEqual(g.alive, 0);
   assert.notStrictEqual(g.debris, g.after, 'Tod: Kristall-Splitter fliegen ab und sind später weg');
+  assert.ok(g.groundLoaded, 'G10: Biom-Staubspuren S1–S5 und Todes-Rückstand geladen');
+  assert.notStrictEqual(g.chargeS1, g.chargeS2, 'G10: Vorschnell-Staubspur wechselt nach Raum-Biom (S1 ≠ S2)');
 };

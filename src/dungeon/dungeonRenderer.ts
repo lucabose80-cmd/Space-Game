@@ -2516,6 +2516,13 @@ export class DungeonRenderer {
             ctx.drawImage(img, (-img.width / 4) * k, (-img.height / 4) * k, (img.width / 2) * k, (img.height / 2) * k);
             ctx.restore();
           });
+          const rem = images.parts.fxRemnant;
+          if (rem && t > 0.15) {
+            ctx.save();
+            ctx.globalAlpha = Math.max(0, Math.min(1, (t - 0.15) / 0.2) * fade * 0.9);
+            ctx.drawImage(rem, d.x - rem.width / 4, d.y + floorDy - rem.height / 4, rem.width / 2, rem.height / 2);
+            ctx.restore();
+          }
           drawGlow(ctx, d.x, d.y - 2, 16 * (1 - t), '#67e8f9', 0.5 * (1 - t));
         },
       });
@@ -3184,14 +3191,15 @@ export class DungeonRenderer {
       const pulse = 0.5 + 0.5 * Math.sin(this.scene.time * 28);
       const fxImgs = getHDArt().rigs.crystal_crawler?.parts;
       const dir = this.scene.playerX < e.x - 2 ? -1 : 1;
-      // Vorschnellen: violette Funken-/Staubspur hinter dem Krabbler (Effekt-Sheet P3-21)
-      if (e.chargeActive > 0 && fxImgs?.fxDust) {
-        const d = fxImgs.fxDust;
+      // Vorschnellen: biom-passende Staub-/Funkenspur hinter dem Krabbler (P2-21 G10, Fallback: P3-21 fxDust)
+      const groundBiome = Math.min(5, Math.max(1, this.scene.currentRoom.riftSector ?? this.scene.floor.visualSector ?? this.scene.currentSector));
+      const dustSpr = fxImgs?.[`fxDustS${groundBiome}`] ?? fxImgs?.fxDust;
+      if (e.chargeActive > 0 && dustSpr) {
         ctx.save();
-        ctx.globalAlpha = 0.75;
+        ctx.globalAlpha = 0.78;
         ctx.translate(e.x - dir * 14, e.y + 5);
         ctx.scale(dir, 1);
-        ctx.drawImage(d, -d.width / 4, -d.height / 4, d.width / 2, d.height / 2);
+        ctx.drawImage(dustSpr, -dustSpr.width / 4, -dustSpr.height / 4, dustSpr.width / 2, dustSpr.height / 2);
         ctx.restore();
       }
       if (this.tryDrawEnemyRig(ctx, e, false)) {

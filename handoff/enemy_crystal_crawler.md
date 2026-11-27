@@ -6,7 +6,7 @@
 - **Rein optisch:** keine Änderung an `enemyAi.ts`/`DungeonScene.ts`, Hitbox, Schaden oder Zustandsdauern; kein Zufall. Tod-Erkennung im Renderer: zuletzt gesehene Position + `enemiesDefeated` gestiegen.
 - Fallback: altes `enemy_crystal_crawler.png` (Test schaltet das Rig ab und rendert).
 
-## Prüfung G1–G9
+## Prüfung G1–G10
 | # | Status | Nachweis |
 | :--- | :--- | :--- |
 | G1 | ✅ | alle 6 Sheet-Teile eingebunden, Gelenke sitzen — `tests/out/crystal_crawler_poses.png` (6×-Zoom), Test `loaded` |
@@ -15,10 +15,10 @@
 | G4 | ✅ | Vorwarnung (Ducken + Kristall glüht) / Vorschnellen (gestreckt) / Erholung (Rückfederung) je eigene Pose; füllt vorhandene 0,38 s — Test je Abschnitt |
 | G5 | ✅ | Blends `wind/atk/recover` + Glättung `tau 0.045` der Engine, kein Pose-Sprung (Pose-Bogen) |
 | G6 | ✅ | Treffer-Zucken ≤ 0,14 s, bei Angriffsposen auf 30 % gedämpft; Test „Zucken, danach wieder ruhig“ |
-| G7 | ✅ | Tod: Kristalle/Kopf/Beine fliegen ab + Aufblitzen — `tests/out/crystal_crawler_death.png`, Test „Splitter sichtbar, später weg“ |
+| G7 | ✅ | Tod: Kristalle/Kopf/Beine fliegen ab + Aufblitzen + Boden-Rückstand (`fxRemnant`) — `tests/out/crystal_crawler_death.png`, Test „Splitter sichtbar, später weg“ |
 | G8 | ✅ | nur `anim/rigs/crystal_crawler.ts`, Rig-JSON, Renderer-Zweig (+ eine Drawables-Zeile), Prüfbogen-Fall; kein `Math.random` |
-| G9 | ✅ | Test `m11p11_crystal_crawler`, dieses Blatt, `npm run verify` via `npm run ship` |
+| G9 | ✅ | Test `m11p11_crystal_crawler`, dieses Blatt, `npm run verify` |
+| G10 | ✅ | Biom-Boden-Effekte `P2-21` (`crystal_crawler_ground.png` → `fxDustS1…S5`, `fxRemnant`) importiert & nach Raum-Biom (`riftSector` → `visualSector` → `currentSector`) gewählt; Test `groundLoaded` & `chargeS1 !== chargeS2` |
 
-- **Effekt-Sheet P3-21 (Regel 14/15, selbst generiert):** `art_source/rigs/crystal_crawler_fx.png` → Pose-Set `fxShardS/M/L`, `fxGlow`, `fxPlate`, `fxDust` (in `crystal_crawler.json` `sheet.sets` + `extraImages`); Fallback ohne Effekt-Bilder: Rig-Teile + `drawGlow`. Prüfbilder `tests/out/crystal_crawler_{death,teleShot,chargeShot}.png`.
-- **Offen:** Abnahme im echten Kampf; optional Bein-Posen-Sheet (Typ L) fürs Ducken/Vorschnellen — nur bei Bedarf bestellen.
-- **Neu (Regel 16, G10):** Krabbler tritt in S1-Riss-Kammern (und ggf. Omega) auf → Boden-Effekte (Staubspur/Vorschnellen, Tod am Boden) brauchen Biom-Varianten: `SPRITE_QUEUE.md` `P2-21` (`crystal_crawler_ground.png`), Auswahl nach Raum-Biom (`BOSS_ENEMY_PIPELINE.md` §5).
+- **Effekt-Sheets:** `P3-21` (`crystal_crawler_fx.png`) + `P2-21` (`crystal_crawler_ground.png`) importiert und verdrahtet.
+- **Offen:** Abnahme im echten Kampf (Stufe 8).
