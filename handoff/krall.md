@@ -12,19 +12,19 @@
 | :--- | :---: | :--- |
 | D1 Rig vollständig | ✅ | Kontaktbogen `tests/out/rig_krall.png` (36 Zustände) |
 | D2 Posen je Abschnitt | ✅ | `krallSet()`, Test `m11p5_krall` |
-| D3 weiche Übergänge | ⬜ | Neue Arm-Varianten (12–29) wechseln hart. **Nächster Schritt:** `CLAW_BETWEEN` in `krall.ts` um Zwischenposen für Übergänge zu/von Varianten ≥ 12 ergänzen (z. B. verbogen↔intakt über Zwischenstufe `0>…`), Test `m11p5_krall` (Rotationssprung < 0,2 rad) |
+| D3 weiche Übergänge | ✅ | `dmgBetween()` in `krall.ts` (Zwischenpose ausholend), Test `m11p5_krall` (13 → 12) |
 | D4 Anlauf & Nachfedern | ✅ | `wp`/`k`/`damped` in `krallSet()` |
 | D5 Fortbewegung | ✅ | `stridePhase`, Humpeln, Ruhe-Zittern |
 | D6 Treffer-Reaktion | ✅ | `flashTimer`-Zittern/Arme federn |
 | D7 Phase-2-Verwandlung | ✅ | Panzer fällt ab (`m11p3`) |
 | D8 Lesbarkeit | ✅ | nur Visuals geändert |
-| D9 Rückfall | ⬜ | **Nächster Schritt:** Test in `m11p5_krall.cjs`: `getHDArt().rigs.krall` ohne einzelne Varianten (z. B. `clawR_25` entfernt) → kein Absturz, Rückfall aufs alte Sprite |
-| D10 Tests & Doku | ⬜ | `RIGGING_GUIDE.md` §5 (Krall-Block) um Rumpf-/Arm-/Bein-Varianten-Tabelle + `damagedArm()` ergänzen |
+| D9 Rückfall | ✅ | `rig.ts` `layoutRig`: fehlendes Variantenbild → Basisbild; Test `m11p5_krall` (clawR_28 entfernt, `clawR` bleibt sichtbar) |
+| D10 Tests & Doku | ✅ | `RIGGING_GUIDE.md` §5 Krall-Varianten-Tabelle, `m11p5_krall` erweitert |
 | D11 Angriffsgrafik | ✅ | `BossZone.fx` + `fx_*` Sprites |
 | D12 Beschädigungsstufen | ✅ | Rumpf 6 Stufen, Arme verbogen/Stumpf in allen Posen |
 | D13 Körper hängt zusammen | ✅ | Rahmen im Panzer-Maßstab, Magnet sitzt |
 | D14 Beine/Unterkörper | ✅ | `KLEG`/`KLEG2` je Zug/Phase |
-| D15 Boden-Effekte je Biom | ⬜ | Krall tritt in der ∞ Spirale fremd auf. Sheets `krall_ground.png` (Krater) + `krall_ground2.png` (Staub/Druckring) = Queue `P0-19/20` `[~]`; danach `fx_ground_*` importieren + Biom-Auswahl in `bossFx.ts` (`riftSector` → `floor.visualSector` → `currentSector`), Fallback = `fx_crater`/`fx_dust` + Tönung, Test |
+| D15 Boden-Effekte je Biom | ✅ | `krall_ground.png` (Krater S1–S5) + `krall_ground2.png` (Druckring S1–S5) selbst generiert (`art:gen`), importiert (`gc_1…5`, `gd_1…5`), Biom-Wahl `bossFx.groundBiome`, Test `m11p5_krall` (Riss-Kammer/Spirale/Sektor/Omega) |
 | Stufe 8 Abnahme | ⬜ | Projektinhaber: 1–2 echte Kämpfe (Phase 1 + 2) |
 
 - Abnahme im echten Kampf offen.
@@ -51,3 +51,5 @@
     - `art_source/rigs/krall_arms_R5.png` (**P0-17 / K-F rechts Stumpf**: abgebrochener funkender Stumpf mit Kabeln, ohne Zange/Schrott, in denselben 6 Posen, Schulterring im Fadenkreuz, `min_margin ≥ 33 px`, bereit für Claude-Import)
     - `art_source/rigs/krall_arms_L5.png` (**P0-18 / K-F links Stumpf**: linker abgebrochener funkender Stumpf mit Kabeln, ohne Haken/Säge/Schild/Schrott, Licht links-oben, nicht gespiegelt, Schulterring im Fadenkreuz, `min_margin ≥ 42 px`, bereit für Claude-Import — damit alle P0-Krall-Sheets komplett!)
 
+
+- **Stand:** D1–D15 alle ✅. Offen nur Stufe 8 (Abnahme im echten Kampf, auch in fremdem Biom: ∞ Spirale / Riss-Kammer).
