@@ -16,12 +16,12 @@
 - ✅ D7 Phase-2-Verwandlung — Platten fliegen (`detached.ts`), Test `m11p3`
 - ✅ D8 Lesbarkeit/keine Hitbox-Änderung — nur Renderer/`bossAnims`
 - ✅ D9 Rückfall — Rig-Schalter im Labor, Test `m11lab`
-- ⬜ D10 Tests & Doku — `RIGGING_GUIDE.md` §5 auf Stand bringen (Arme 19–24, Effekt-Sheet `fx_*`, `ground`)
+- ✅ D10 Tests & Doku — `m11p2` prüft alle neuen Bilder (`fx_*`, `fx_ground_s1…5`, Arme 19–24), `RIGGING_GUIDE.md` §5 ergänzt
 - ✅ D11 Angriffsgrafik — Audit unten; Laser/Orbit jetzt mit Sprite-Effekten (`core_warden_fx.png`, P3-20)
 - ✅ D12 Beschädigungsstufen — P1 <80/<65 % (Helm, Rumpf, **Arme `armX_19…24`**), P2 <35/<25 %, <15 % (Test `m11p2`)
 - ✅ D13 Körper hängt zusammen — `SHOULDER_ADJUST`, Kontaktbogen
 - ✅ D14 n. z. (schwebt)
-- ⬜ D15 Biom-Boden-Effekte — Slam-Krater (`enemyAi` `decals.push`, procedural dunkler Kreis), Sturm-Staubspur, Todes-Rückstand; Kern-Wächter tritt in Spirale/Riss-Kammern fremd auf → **nächster Schritt:** `art_source/rigs/core_warden_ground.png` (Zelle 1–5 Krater S1–S5, 6 Todes-Rückstand) per `art:gen`, Queue-Zeile `P3-21`, Auswahl nach Raum-Biom im Renderer
+- ✅ D15 Biom-Boden-Effekte — `core_warden_ground.png` (P3-21): Slam-Krater S1–S5 + Todes-Rückstand, Auswahl nach Raum-Biom (`dungeonRenderer` Decal-Schleife, `FloorDecal.fx`), Rückfall dunkler Kreis; Screenshots S1/S3 geprüft. Sturm-Staubspur ist Partikel-Optik (Körper-Effekt, kein Boden-Sheet nötig)
 - ⬜ Stufe 8 Abnahme im echten Kampf — **Projektinhaber** (Phase 1 + 2)
 
 ## Audit gegen den Boss-Mindeststandard D11–D14 (Stand 2026-11-27, Screenshots je Angriff, Phase 1 + 2)

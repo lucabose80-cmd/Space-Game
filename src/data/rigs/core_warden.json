@@ -216,6 +216,18 @@
           "fx_arc_b",
           "fx_burst"
         ]
+      },
+      {
+        "file": "core_warden_ground",
+        "mode": "swap",
+        "ids": [
+          "fx_ground_s1",
+          "fx_ground_s2",
+          "fx_ground_s3",
+          "fx_ground_s4",
+          "fx_ground_s5",
+          "fx_remnant"
+        ]
       }
     ]
   },
@@ -418,6 +430,12 @@
     "fx_orb",
     "fx_arc_a",
     "fx_arc_b",
-    "fx_burst"
+    "fx_burst",
+    "fx_ground_s1",
+    "fx_ground_s2",
+    "fx_ground_s3",
+    "fx_ground_s4",
+    "fx_ground_s5",
+    "fx_remnant"
   ]
 }

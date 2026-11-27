@@ -19,7 +19,8 @@
   "core_warden_arms_L3.png": "212a35f731b21274",
   "core_warden_arms_R4.png": "64ff6ff5df9125fd",
   "core_warden_arms_L4.png": "348fb9fd6f28c520",
-  "core_warden_fx.png": "83fae1947335ead7"
+  "core_warden_fx.png": "83fae1947335ead7",
+  "core_warden_ground.png": "38a657fe11fc5dc0"
  },
  "parts": {
   "torso": {
@@ -561,6 +562,42 @@
    "h": 78,
    "mode": "swap",
    "set": "core_warden_fx"
+  },
+  "fx_ground_s1": {
+   "w": 80,
+   "h": 66,
+   "mode": "swap",
+   "set": "core_warden_ground"
+  },
+  "fx_ground_s2": {
+   "w": 80,
+   "h": 66,
+   "mode": "swap",
+   "set": "core_warden_ground"
+  },
+  "fx_ground_s3": {
+   "w": 80,
+   "h": 66,
+   "mode": "swap",
+   "set": "core_warden_ground"
+  },
+  "fx_ground_s4": {
+   "w": 80,
+   "h": 66,
+   "mode": "swap",
+   "set": "core_warden_ground"
+  },
+  "fx_ground_s5": {
+   "w": 80,
+   "h": 66,
+   "mode": "swap",
+   "set": "core_warden_ground"
+  },
+  "fx_remnant": {
+   "w": 80,
+   "h": 66,
+   "mode": "swap",
+   "set": "core_warden_ground"
   }
  }
 }

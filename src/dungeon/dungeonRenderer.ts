@@ -143,7 +143,20 @@ export class DungeonRenderer {
     }
 
     // Floor slime & crater decals
+    // D15: Boden-Effekte des Kern-Wächters passen zum Boden des aktuellen Raums (Riss-Kammer → Wirts-Sektor, Spirale → visualSector)
+    const groundBiome = Math.min(5, Math.max(1, this.scene.currentRoom.riftSector ?? this.scene.floor.visualSector ?? this.scene.currentSector));
+    const cwParts = getHDArt().rigs.core_warden?.parts;
     for (const d of this.scene.decals) {
+      const gImg = d.fx === 'cw_crater' ? cwParts?.[`fx_ground_s${groundBiome}`] : d.fx === 'cw_remnant' ? cwParts?.fx_remnant : undefined;
+      if (gImg) {
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, (d.life / d.maxLife) * 2.5);
+        const w = d.r * 2.6;
+        const h = w * (gImg.height / gImg.width);
+        ctx.drawImage(gImg, d.x - w / 2, d.y - h / 2, w, h);
+        ctx.restore();
+        continue;
+      }
       ctx.save();
       ctx.globalAlpha = Math.max(0, d.life / d.maxLife);
       ctx.fillStyle = d.color;

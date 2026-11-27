@@ -2058,6 +2058,7 @@ export class DungeonEnemyAi {
           color: 'rgba(15, 23, 42, 0.55)',
           life: 6.0,
           maxLife: 6.0,
+          fx: 'cw_crater',
         });
         this.scene.shockwaves.push({
           x: e.x,

@@ -88,7 +88,7 @@ module.exports = async ({ page }) => {
     bb.bossState = 'charge_windup'; gg(10); gg(10.2); bb.bossState = 'charge_dash'; const v1 = gg(10.3); const v2 = gg(10.5); bb.bossState = 'stalk'; const v3 = gg(10.6); const v4 = gg(10.8);
     out.between = [v1, v2, v3, v4];
     // K6: Faust-Bild für kreisende Fäuste geladen
-    out.fistLoaded = ['fist_front', 'fist_charged', 'fist_angled', 'fist_trail', 'armR_nf', 'armL_nf'].every((n) => !!art.rigs.core_warden?.parts[n]);
+    out.fistLoaded = ['fist_front', 'fist_charged', 'fist_angled', 'fist_trail', 'armR_nf', 'armL_nf', 'fx_ring', 'fx_flare', 'fx_orb', 'fx_arc_a', 'fx_arc_b', 'fx_burst', 'fx_ground_s1', 'fx_ground_s2', 'fx_ground_s3', 'fx_ground_s4', 'fx_ground_s5', 'fx_remnant', 'armR_19', 'armL_24'].every((n) => !!art.rigs.core_warden?.parts[n]);
     // K5 verworfen: Platten bleiben im Laser unsichtbar
     out.laserPlates = fresh({ bossState: 'laser_sweep' }).plateL.hidden === true;
     return out;
