@@ -53,6 +53,8 @@ npm run verify                           # Build + Invarianten + Sprite-Check + 
     - `art_source/rigs/krall_effects.png` (3 Schrottklumpen · Magnet aktiv mit Blitzen · Magnet inaktiv · Funken-/Rost-Splitter, zentriert im Fadenkreuz, `min_margin ≥ 108 px`)
     - `art_source/rigs/krall_arms_R2.png` (**P0-06 / K-C rechts**: Stoß teleskopiert kurz/mittel/voll · Zuschnappen · Sog mit Funken · Hagel mit Schrottbrocken, Schulterring im Fadenkreuz, `min_margin ≥ 40 px`)
     - `art_source/rigs/krall_arms_L2.png` (**P0-07 / K-C links**: gleiche 6 Angriffsposen für Schrott-Haken/Mini-Säge mit Licht links-oben, Schulterring im Fadenkreuz, `min_margin ≥ 35 px`)
+    - `art_source/rigs/krall_fx2.png` (**P0-08 / K-D Effekte**: Stoß-Luftwelle · Magnet-Feldring rot/blau · Magnet-Blitzbogen · Staub-/Druckring · Aufschlag-Krater mit Schrottsplittern · Rostwolke, zentriert im Fadenkreuz, `min_margin ≥ 99 px`; Ringe Zelle 2/4 mit `holes: true` importieren)
+    - `art_source/rigs/krall_torsos2.png` (**P0-09 / K-A Phase-2-Rümpfe**: 6 Skelettrahmen-Posen passend zu `krall_torsos.png` Zelle 5: geduckt · aufgerichtet/Kern hell · vorgebeugt · Stampfer gestaucht · Wurf-Drehung · überhitzt mit Funken/Dampf, Kern im Fadenkreuz, `min_margin ≥ 56 px`)
 
 ## M11 Pose-Sets — Code (umgesetzt) · Handbuch: [`RIGGING_GUIDE.md`](RIGGING_GUIDE.md)
 - **Import (`npm run art:import`, `scripts/art-import.py`):** `sheet.sets` in `src/data/rigs.json` (`file`, `mode: limb|swap`, `ids[]`, optional `cells` zum Teilen eines Sheets in mehrere Sets). Zellmitte = Gelenk, je Set ein gemeinsamer zentrierter Ausschnitt + Rig-Maßstab → alle Posen eines Sets gleich groß, Pivot `[0.5, 0.5]`. Neue Sheets: Datei in `art_source/rigs/` legen, Set in `rigs.json` eintragen (Varianten **hinten anhängen**), `npm run art:import -- <rig> --force`. Bilder ohne Teil: `extraImages`.
@@ -86,9 +88,9 @@ Nach und nach erzeugen, sobald Gemini-Volumen frei ist (Reihenfolge §5 im Brief
 - **Aufräumen erledigt** (Audit 2026-11-26, Blöcke C1–C6): Doku auf aktuellem Stand, „Kern-Wächter“ einheitlich, Repo-Hygiene, toter Code entfernt, gemeinsamer `EnemyKind`, `check:sprites` prüft Sheets/Imports, Pose-Sheet-Import (`art_source/poses`) entfernt, `npm run build:single` dokumentiert, Version 1.4.0. **Firebase-SDK lädt nach dem Start nach** (`src/services/firebaseSdk.ts` per `import()`, Service-API unverändert; Test `t6`) — Abweichung vom Plan: nicht der ganze Service, nur das SDK.
 - **Claude Code (sofort startklar!):**
   1. ~~S6 Kern-Wächter~~ ✅ eingebunden (Abnahme im echten Kampf durch Projektinhaber offen).
-  2. ~~Krall K-C (P0-06/07)~~ ✅ eingebunden: `clawR/L` Varianten 6–11 (`KARM.telS/telM/telL/snap/sog/hold`): Stoß fährt den Arm zur Stoßseite teleskopartig aus, zeigt zum Ziel und schnappt zu; Sog mit Funken; Wurf/Hagel mit Schrott in der Hand.
-  3. **Gegner-Rigs (S1):** `turret_rig.png`, `phase_stalker_rig.png` und `drone_rig.png` sind im Repo! Import-Modus `parts`, Rigs in `rigs.json` und `anim/enemyAnims.ts` umsetzen.
-- **Antigravity (als Nächstes):** Weiter in [`SPRITE_QUEUE.md`](SPRITE_QUEUE.md) via Skill `sprite-batch`: **`P0-08`** (`krall_fx2.png`) & **`P0-09`** (`krall_torsos2.png`), danach `P0-10`–`P0-12` (Krall), dann ab `P2-02` (`shield_drone_rig.png`).
+  2. ~~Krall K-C (P0-06/07)~~ ✅ eingebunden: `clawR/L` Varianten 6–11 (`KARM.telS/telM/telL/snap/sog/hold`). **Neu bereit (P0-08/09):** `krall_fx2.png` (Ringe mit `holes: true`) & `krall_torsos2.png` (6 Phase-2-Rümpfe) in `rigs.json` importieren und in `bossAnims.ts`/`bossFx.ts` einbinden.
+  3. **Gegner-Rigs (S1):** `turret_rig.png` ✅ eingebunden; `phase_stalker_rig.png` und `drone_rig.png` sind im Repo und bereit für die Einbindung.
+- **Antigravity (als Nächstes):** Weiter in [`SPRITE_QUEUE.md`](SPRITE_QUEUE.md) via Skill `sprite-batch`: **`P0-10`** (`krall_legs_R2.png` + `krall_legs_L2.png`), danach `P0-11` (`krall_torsos3.png`), `P0-12` (`krall_arms_R3/L3.png`), `P0-13` (`turret_treads.png`), dann ab `P2-02` (`shield_drone_rig.png`).
 - Ökonomie & Boss-Kampfgefühl im echten Spiel beobachten und in `src/data/balance.ts` nachjustieren (Berichte: `tests/out/economy.json`, `tests/out/ttk.json`).
 - Optionale M10/M10-C-Einzel-Sprites bei Bedarf ebenfalls per Antigravity erzeugen.
 
