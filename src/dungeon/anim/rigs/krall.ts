@@ -24,6 +24,11 @@ const KARM_BENT = 12;
 const KARM_STUMP = 15;
 /** Arm-Pose (0 hängend · 1 ausholend · 2 Stoß, Teleskop/Schnappen zählen als Stoß) → beschädigte Variante je Seite und HP-Anteil */
 function damagedArm(v: number, hp: number, right: boolean): number {
+  // P0-16 (`krall_arms_L4`, Variante 18–23): linker Haken verbogen in seitlich · Block · Stampfer · Sog · Halten · Teleskop voll (Stumpf-Varianten folgen mit P0-18)
+  if (!right && hp >= 0.2 && hp < 0.5) {
+    const L4: Record<number, number> = { [KARM.side]: 18, [KARM.block]: 19, [KARM.stomp]: 20, [KARM.sog]: 21, [KARM.hold]: 22, [KARM.telL]: 23 };
+    if (L4[v] !== undefined) return L4[v];
+  }
   const base = v === 0 || v === 1 || v === 2 ? v : v >= KARM.telS && v <= KARM.snap ? 2 : -1;
   if (base < 0) return v;
   if (hp < (right ? 0.35 : 0.2)) return KARM_STUMP + base; // Zange bricht zuerst ab
@@ -116,7 +121,7 @@ function krallSet(e: Enemy, time: number): KrallSet {
   let dmg = -1;
   if (p2) dmg = hpPct < 0.15 ? KT3.p2Crit : hpPct < 0.25 ? KT3.p2Heavy : hpPct < 0.35 ? KT3.p2Light : -1;
   else dmg = hpPct < 0.25 ? KT3.p1Heavy : hpPct < 0.65 ? KT3.p1Mid : hpPct < 0.8 ? KT3.p1Light : -1;
-  if (p2) torso = posture === 'duck' ? KT2.duck : posture === 'upright' ? KT2.upright : posture === 'fwd' ? KT2.fwd : posture === 'stomp' ? KT2.stomp : posture === 'side' ? KT2.side : posture === 'hot' ? KT2.hot : KTORSO.p2; // Rahmen in Ruhe = Skelett-Rumpf aus krall_torsos
+  if (p2) torso = posture === 'duck' ? KT2.duck : posture === 'upright' ? KT2.upright : posture === 'fwd' ? KT2.fwd : posture === 'stomp' ? KT2.stomp : posture === 'side' ? KT2.side : posture === 'hot' ? KT2.hot : KT2.duck; // Rahmen in Ruhe = neutrale Pose aus krall_torsos2 (Panzer-Maßstab)
   else torso = KTORSO[posture === 'stomp' || posture === 'side' ? 'fwd' : posture === 'hot' ? 'upright' : posture];
   if (dmg >= 0) {
     // Beschädigung ersetzt das Haltungsbild — die Haltung zeigt dann Verschiebung/Stauchung
@@ -167,10 +172,8 @@ export const anim: RigAnim = {
     const ks = krallSet(e, time);
     const kf = ks.fx;
     const legIn = isFrameTorso(ks.torso) ? 1 : 0;
-    const t2k = ks.torso >= KT2.duck && ks.torso <= KT2.hot ? 1.1 : 1;
     return {
-      // krall_torsos2 ist 76×90 statt 84×100 gezeichnet (Panzer-Rumpf) → Übergangslösung: ×1,1 um den Kern, bis P0-14 neu geliefert ist
-      torso: { variant: ks.torso, dx: kf.torso.dx, rot: kf.torso.rot, sx: (kf.torso.sx ?? 1) * t2k, dy: (kf.torso.dy ?? 0) - Math.abs(s) * walk * 1.2 + breathe * 0.4, sy: (kf.torso.sy ?? 1) * t2k },
+      torso: { variant: ks.torso, dx: kf.torso.dx, rot: kf.torso.rot, sx: kf.torso.sx, dy: (kf.torso.dy ?? 0) - Math.abs(s) * walk * 1.2 + breathe * 0.4, sy: kf.torso.sy },
       // Phase-2-Rahmen ist schmaler als der Panzer-Rumpf: Hüften nach innen, damit die Beine am Körper sitzen
       legFL: { variant: legPose(ks, walk, s), rot: s * amp * 0.25, dx: legIn * 6.5 },
       legBR: { variant: legPose(ks, walk, -s), rot: -s * amp * 0.2, dx: -legIn * 7 },
