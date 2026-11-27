@@ -18,15 +18,23 @@
     "pixelRatio": 2,
     "sets": [
       {
-        "file": "shield_drone_rig",
+        "file": "shield_drone_arcs",
         "mode": "swap",
         "cells": [
+          0,
+          1,
+          2,
+          3,
           4,
           5
         ],
         "ids": [
           "arcOn",
-          "arcHot"
+          "arcHot",
+          "arcBroken",
+          "arcFlick",
+          "arcFlash",
+          "arcSmall"
         ]
       }
     ]
@@ -105,7 +113,11 @@
       "image": "arcOn",
       "variants": [
         "arcOn",
-        "arcHot"
+        "arcHot",
+        "arcBroken",
+        "arcFlick",
+        "arcFlash",
+        "arcSmall"
       ],
       "parent": "hull",
       "attach": [

@@ -14,12 +14,12 @@ const TELEGRAPH = 0.48;
 /** Rückstoß-Dauer nach der 3er-Salve (s). */
 const RECOIL = 0.22;
 /** Abstand des Bogens vom Rumpfmittelpunkt über den Bogenradius hinaus (px) und Lage des Kreismittelpunkts im Bogenbild (px unterhalb der Bildmitte → Bogen-Kreis mitten im Rumpf). */
-const ARC_PUSH = 5;
-const ARC_CENTER_DROP = 3.3;
-/** Das Bogenbild ist nicht symmetrisch (rechtes Ende höher): Bogenmitte liegt bei ≈ 62° (statt 90° = „genau nach unten“). */
-const ARC_MID_ANGLE = 1.09;
+const ARC_PUSH = 4;
+const ARC_CENTER_DROP = 8.3;
+/** Bogenbild (shield_drone_arcs.png) ist symmetrisch, Wölbung nach unten = +90°. */
+const ARC_MID_ANGLE = Math.PI / 2;
 /** Bogen-Grundgröße (Bild ist etwas größer als der Block-Radius 14). */
-const ARC_BASE = 0.8;
+const ARC_BASE = 0.95;
 
 interface DroneState {
   time: number;
@@ -29,12 +29,15 @@ interface DroneState {
   down: 'none' | 'attack' | 'overheat';
   wasTele: boolean;
   recoil: number;
+  /** letzte Hitze (Anstieg = geblockter Treffer → kurzer Blitz) und Blitz-Timer */
+  lastHeat: number;
+  flash: number;
 }
 const states = new WeakMap<Enemy, DroneState>();
 function stateOf(e: Enemy, time = -1): DroneState {
   let st = states.get(e);
   if (!st) {
-    st = { time, facing: Math.cos(e.aimAngle) < 0 ? -1 : 1, arcK: 1, down: 'none', wasTele: false, recoil: 0 };
+    st = { time, facing: Math.cos(e.aimAngle) < 0 ? -1 : 1, arcK: 1, down: 'none', wasTele: false, recoil: 0, lastHeat: e.shieldHeat ?? 0, flash: 0 };
     states.set(e, st);
   }
   return st;
@@ -69,7 +72,8 @@ function dronePose(e: Enemy, time: number): Pose {
   const cfg = ENEMY_SHIELDS.shield_drone;
   const heat = clamp((e.shieldHeat ?? 0) / cfg.maxHeat, 0, 1);
   const target = st.down === 'none' ? 1 : st.down === 'overheat' ? 0.6 : 0;
-  const rate = target > st.arcK ? 3.2 : 11;
+  const rising = target > st.arcK;
+  const rate = rising ? 3.2 : 11;
   st.arcK += clamp(target - st.arcK, -rate * dt, rate * dt);
 
   // Bogenwinkel im (ggf. gespiegelten) Rig-Rahmen; das Bogenbild ist unten offen-konvex gezeichnet (Wölbung zeigt nach unten = +90°).
@@ -77,12 +81,17 @@ function dronePose(e: Enemy, time: number): Pose {
   const rot = aLocal - ARC_MID_ANGLE;
   const arcS = ARC_BASE * (0.55 + 0.45 * st.arcK);
   const push = ARC_PUSH * st.arcK - 3 * (1 - st.arcK);
-  const hot = st.down === 'overheat' || heat >= 0.7;
+  const hh = e.shieldHeat ?? 0;
+  if (hh > st.lastHeat + 0.5) st.flash = 0.12; // Block → Treffer-Blitz
+  st.lastHeat = hh;
+  st.flash = Math.max(0, st.flash - dt);
+  // Bildvariante: 0 intakt · 1 heiß · 2 überhitzt/rissig · 3 flackert (fährt wieder aus) · 4 Block-Blitz · 5 klein (klappt ein)
+  const variant = st.down === 'overheat' ? 2 : st.flash > 0 ? 4 : st.down === 'attack' ? 5 : rising && st.arcK < 0.92 ? 3 : heat >= 0.7 ? 1 : 0;
   let arcAlpha = st.arcK;
   if (st.down === 'overheat') arcAlpha = 0.55 + 0.35 * Math.sin(time * 34 + e.id * 3) * Math.sin(time * 13); // sputtert
   else if (heat >= 0.7) arcAlpha = 0.85 + 0.15 * Math.sin(time * 20);
   else if (tele) arcAlpha = st.arcK;
-  const sag = st.down === 'overheat' ? 2.2 : 0; // überhitzter Bogen hängt durch
+  const sag = st.down === 'overheat' ? 3.5 : 0; // überhitzter Bogen hängt durch
 
   const hover = Math.sin(time * 5.2 + e.id) * 2.2;
   const speed = Math.hypot(e.vx, e.vy);
@@ -105,7 +114,7 @@ function dronePose(e: Enemy, time: number): Pose {
     nacelleL: { rot: -lean * 0.5 + 0.05 * Math.sin(time * 9 + e.id), sy: (0.9 + 0.15 * flare) * flick, sx: 0.95 + 0.05 * flare },
     nacelleR: { rot: -lean * 0.5 - 0.05 * Math.sin(time * 9 + e.id + 1.3), sy: 0.8 * (0.9 + 0.15 * flare) * flick, sx: 0.8 * (0.95 + 0.05 * flare) },
     arc: {
-      variant: hot ? 1 : 0,
+      variant,
       rot,
       dx: -Math.sin(rot) * ARC_CENTER_DROP * arcS + Math.cos(aLocal) * push + Math.cos(aLocal) * (tele ? -1.2 * p : 0),
       dy: Math.cos(rot) * ARC_CENTER_DROP * arcS + Math.sin(aLocal) * push + sag,

@@ -5,7 +5,8 @@
  "torsoDisplayH": 24,
  "pixelRatio": 2,
  "sheets": {
-  "shield_drone_rig.png": "6cdb5cb2a13b65fa"
+  "shield_drone_rig.png": "6cdb5cb2a13b65fa",
+  "shield_drone_arcs.png": "4d4fefd8bb053a44"
  },
  "parts": {
   "hull": {
@@ -27,16 +28,40 @@
    "srcH": 211
   },
   "arcOn": {
-   "w": 54,
-   "h": 42,
+   "w": 60,
+   "h": 40,
    "mode": "swap",
-   "set": "shield_drone_rig"
+   "set": "shield_drone_arcs"
   },
   "arcHot": {
-   "w": 54,
-   "h": 42,
+   "w": 60,
+   "h": 40,
    "mode": "swap",
-   "set": "shield_drone_rig"
+   "set": "shield_drone_arcs"
+  },
+  "arcBroken": {
+   "w": 60,
+   "h": 40,
+   "mode": "swap",
+   "set": "shield_drone_arcs"
+  },
+  "arcFlick": {
+   "w": 60,
+   "h": 40,
+   "mode": "swap",
+   "set": "shield_drone_arcs"
+  },
+  "arcFlash": {
+   "w": 60,
+   "h": 40,
+   "mode": "swap",
+   "set": "shield_drone_arcs"
+  },
+  "arcSmall": {
+   "w": 60,
+   "h": 40,
+   "mode": "swap",
+   "set": "shield_drone_arcs"
   }
  }
 }
