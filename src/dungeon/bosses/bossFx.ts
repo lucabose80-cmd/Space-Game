@@ -1,6 +1,5 @@
 // M10-C (G3): gemeinsames Boss-Effektsystem — Telegraphie-Zonen mit Verzögerung, Strahlen und Platten.
 // Eigene Klasse, damit DungeonScene schlank bleibt. Kein globaler Zufall.
-import { ROOM_BOTTOM, ROOM_LEFT, ROOM_RIGHT, ROOM_TOP } from '../../world/dungeonGen';
 import type { DungeonScene } from '../../scenes/DungeonScene';
 import { getHDArt } from '../../assets/artLoader';
 
@@ -162,8 +161,9 @@ export class BossFx {
           const nx = px + (dx / l) * z.pull * dt;
           const ny = py + (dy / l) * z.pull * dt;
           if (!scene.collidesRoomObstacle(nx, ny, PLAYER_R)) {
-            scene.playerX = Math.max(ROOM_LEFT + 8, Math.min(ROOM_RIGHT - 8, nx));
-            scene.playerY = Math.max(ROOM_TOP + 8, Math.min(ROOM_BOTTOM - 8, ny));
+            const rb = scene.bounds; // M12: Raumgrenzen
+            scene.playerX = Math.max(rb.l + 8, Math.min(rb.r - 8, nx));
+            scene.playerY = Math.max(rb.t + 8, Math.min(rb.b - 8, ny));
           }
         }
       }

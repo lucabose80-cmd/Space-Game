@@ -7,10 +7,6 @@
 import { sound } from '../engine/audio';
 import type { DungeonScene } from '../scenes/DungeonScene';
 import {
-  ROOM_BOTTOM,
-  ROOM_LEFT,
-  ROOM_RIGHT,
-  ROOM_TOP,
   type CrystalPrism,
   type FlameJet,
   type MagnetPlate,
@@ -297,7 +293,8 @@ export class RoomMechanicsSystem {
       const nx = e.x + (dx / d) * sign * PLATE_ENEMY_SPEED * dt;
       const ny = e.y + (dy / d) * sign * PLATE_ENEMY_SPEED * dt;
       const sc = this.scene;
-      const inside = nx > ROOM_LEFT + e.radius && nx < ROOM_RIGHT - e.radius && ny > ROOM_TOP + e.radius && ny < ROOM_BOTTOM - e.radius;
+      const rb = sc.bounds; // M12: Raumgrenzen
+      const inside = nx > rb.l + e.radius && nx < rb.r - e.radius && ny > rb.t + e.radius && ny < rb.b - e.radius;
       if (inside && !sc.collidesRoomObstacle(nx, ny, e.radius) && !sc.collidesRoomChasm(nx, ny, e.radius * 0.8)) {
         e.x = nx;
         e.y = ny;

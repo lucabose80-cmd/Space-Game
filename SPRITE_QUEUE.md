@@ -15,15 +15,20 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 - sowie dem Prompt im zugehörigen Brief (`ART_BRIEF_M11*.md` / `ART_AND_DESIGN_GUIDE.md`) und – bei optionalen Sprites – der Registrierung in `artLoader.ts` (`*_OPTIONAL_SPRITES`).
 
 ### 2. Abarbeitungs-Regeln (Antigravity / Skill `sprite-batch`)
-1. **Sync zuerst:** Immer mit `git fetch origin && git pull --ff-only` starten.
-2. **Dateisystem-Abgleich:** Existiert die Zieldatei eines `[ ]`-Eintrags bereits im Repo (z. B. aus einem parallelen Chat), **nicht** neu generieren — nur auf `[x]` setzen.
+1. **Sync vor jeder Runde:** Immer mit `git fetch origin && git pull --ff-only` starten (bzw. vor jeder weiteren Schleifen-Runde erneut gegen `origin/main` abgleichen, damit zwischenzeitlich neu eingereihte P0-Aufträge von Claude Code sofort Vorrang bekommen).
+2. **Dateisystem-Abgleich (mit `ersetzt`-Ausnahme):** Existiert die Zieldatei eines `[ ]`-Eintrags bereits im Repo (z. B. aus einem parallelen Chat), **nicht** neu generieren — nur auf `[x]` setzen. **Ausnahme:** Steht beim `[ ]`-Eintrag ausdrücklich *„ersetzt“ / „neu zeichnen“ / „Korrektur“* (z. B. `P0-14`), dann **wird** die bestehende Datei gezielt neu generiert und überschrieben. Einträge mit Status `[~]` (wartet auf Plan-/Abnahme-Freigabe) **niemals** automatisch generieren.
 3. **Strikt von oben nach unten:** Immer die ersten offenen `[ ]`-Einträge aus der höchsten Prioritätsstufe (`P0` → `P4`) nehmen, **sofern der Projektinhaber nichts anderes vorgibt**.
 4. **STOP-GATES sind hart:** Steht über einem Abschnitt `⛔ STOP-GATE (GESPERRT)`, **niemals** automatisch dahinter weitergenerieren! Erst weitermachen, wenn der Projektinhaber das Gate nach Prüfung im Spiel freigegeben hat (`✅ STOP-GATE (FREIGEGEBEN)`).
-5. **Quota-Budget pro Lauf:** Standardmäßig **maximal 2 Sheets pro Batch** (bzw. gewünschte Stückzahl, höchstens 3 `generate_image`-Aufrufe pro Lauf) und **maximal 1 Retry** bei fehlerhaftem Bild. Tritt ein Quota-/Rate-Limit (`gemini-3.1-flash-image`) auf → **sofort sauber abbrechen**, bereits fertige & geprüfte Dateien committen und den Rest `[ ]` lassen.
-6. **Qualitätspflicht vor Commit:**
+5. **Auto-Continue-Schleife (Standard) & Quota-Schutz:**
+   - **Standard-Durchlauf („Nächsten Sprite-Batch“):** Arbeitet in **sauberen 2er-Micro-Batches** (je Runde 2 Sheets bzw. 1 gebündeltes P3-Sheet). Nach jeder sauber geprüften Runde wird sofort committet und per **`npm run ship`** gepusht (außer der Nutzer sagte „nur lokal / nicht pushen“), danach startet **automatisch die nächste 2er-Runde**, bis eine harte Stopp-Bedingung greift:
+     1. **Quota-/Rate-Limit** (`gemini-3.1-flash-image`) → sofort sauber abbrechen, bereits fertige & geprüfte Sheets der laufenden Runde noch committen & pushen, Rest `[ ]` lassen.
+     2. **STOP-GATE erreicht** oder keine offenen `[ ]`-Einträge mehr frei → sofort stoppen.
+     3. **Qualitäts-Notbremse:** Maximal **1 Retry** pro fehlerhaftem Sheet (sonst `[!]` markieren); bei **2 fehlgeschlagenen Sheets (`[!]`) in Folge** komplett stoppen, um keine Quota zu verbrennen.
+     4. **Sicherheits-Deckel:** Maximal **10 Sheets (5 Runden)** pro Anstoß (schützt Kontext & Wochenlimit; der Nutzer kann jederzeit explizit eine feste Stückzahl wie *„nur 2 Stück“* oder ein höheres Limit vorgeben).
+6. **Qualitätspflicht vor Commit (in jeder Runde):**
    - **M11-Sheets (`art_source/rigs/*.png`):** Verlustfreies `1536×1024`-PNG (`512×512`/Zelle, reines `#FFFFFF`, keine Rasterlinien/Text/Schatten), `npm run art:check -- <datei>`, Prüfbild in `art_source/_check/` per `view_file` kontrollieren (Gelenk/Kern exakt im roten Fadenkreuz, `min_margin ≥ 30 px`, keine ⚠-Warnung; sonst per PIL ohne Skalierung zentrieren).
    - **Einzel-Sprites (`public/art/sprites/*.png`):** Flood-Fill-Freistellung + `NEAREST` auf Zielgröße (`96×96` bzw. `128×128` RGBA) nach `ART_AND_DESIGN_GUIDE.md` §3, per `view_file` prüfen (keine weißen Fransen, innere Highlights intakt).
-   - Abschließend `npm run check:invariants && npm run check:sprites` laufen lassen, Status hier auf `[x]` setzen, `HANDOFF.md` kurz aktualisieren, committen (`art(m11): ...` bzw. `art(m10): ...`) und pushen (außer der Nutzer wünscht explizit „nur lokal“).
+   - Status hier auf `[x]` setzen, zugehöriges Status-Blatt in `handoff/` (z. B. `handoff/enemy_sheets.md` oder `handoff/krall.md`) aktualisieren, committen (`art(m11): ...` bzw. `art(m10): ...`) und per **`npm run ship`** (enthält Merge + `check:invariants` + `check:sprites` bzw. `verify` + Push) ausliefern.
 
 ### Status-Legende
 - `[ ]` offen (bereit für den nächsten Batch)
@@ -40,9 +45,9 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 | ID | Status | Zieldatei | Typ & Format | Referenz (`ImagePaths`) | Brief / Prompt | Notiz |
 | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
 | `P0-13` | [x] | `art_source/rigs/turret_treads.png` | Typ G/E · 3×2 · `1536×1024` | `public/art/sprites/turret_0.png`, `art_source/rigs/turret_rig.png` | `ART_BRIEF_M11_ENEMIES.md` (Zusatz Geschütz-Antrieb) | ✅ 4 Rollphasen linke Raupenkette + Staubwolke + Bremsfunken (`min_margin ≥ 78 px`, `art:check` ok, bereit für Claude-Import) |
-| `P0-14` | [ ] | `art_source/rigs/krall_torsos2.png` *(ersetzt die gelieferte Version, gleicher Dateiname)* | Typ S · 3×2 · `1536×1024` | `art_source/rigs/krall_torsos.png` *(Zelle 1 = Panzer-Rumpf = Maßstab, Zelle 5 = Skelettrahmen)*, bisheriges `krall_torsos2.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-A2) | **Maßstab-Korrektur:** Die 6 Phase-2-Rahmen sind ~10 % kleiner gezeichnet als der Panzer-Rumpf (Spiel: 76×90 statt 84×100 px) → Körper wirkt in Phase 2 geschrumpft, Magnet schwebt darüber. Gleiche 6 Posen, aber Körperbreite/-höhe **wie der Panzer-Rumpf** (Kragen oben bündig mit Zelle 1 von `krall_torsos.png`, Kern im Fadenkreuz). Code hat bis dahin Übergangs-Skalierung ×1,1 (`t2k` in `krall.ts`) — nach Import entfernen. |
+| `P0-14` | [x] | `art_source/rigs/krall_torsos2.png` *(ersetzt die gelieferte Version, gleicher Dateiname)* | Typ S · 3×2 · `1536×1024` | `art_source/rigs/krall_torsos.png` *(Zelle 1 = Panzer-Rumpf = Maßstab, Zelle 5 = Skelettrahmen)*, bisheriges `krall_torsos2.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-A2) | ✅ **Maßstab-Korrektur geliefert:** exakt im Panzer-Maßstab (`269 px` breit → Import exakt `84×100 px` wie `torso_1…6`, Kern im Fadenkreuz, `min_margin ≥ 35 px`, `art:check` ok; `t2k`-Übergang in `krall.ts` nach Re-Import entfernen) |
 | `P0-15` | [ ] | `art_source/rigs/krall_arms_R4.png` | Typ L · 3×2 · `1536×1024` | `art_source/rigs/krall_arms_R.png`, `krall_arms_R2.png`, `krall_arms_R3.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-F) | **Rechte Zange VERBOGEN in den übrigen Posen:** seitlich · Block · Boden-Stampfer · Sog (Funken) · Hagel/Wurf-Halten mit Schrott · Teleskop voll ausgefahren. Gleiche Posen wie `krall_arms_R.png` Zellen 3–5 + `R2` Zellen 5–6/3, nur beschädigt wie `R3` Zelle 1–3. Schulterring im Fadenkreuz. Ziel: Zange bleibt in **allen** Angriffen sichtbar beschädigt. |
-| `P0-16` | [ ] | `art_source/rigs/krall_arms_L4.png` | Typ L · 3×2 · `1536×1024` | `art_source/rigs/krall_arms_L.png`, `krall_arms_L2.png`, `krall_arms_L3.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-F) | Wie P0-15 für den **linken** Haken/Mini-Säge (verbogen, 6 Posen), Licht links-oben, **nicht** spiegeln. |
+| `P0-16` | [x] | `art_source/rigs/krall_arms_L4.png` | Typ L · 3×2 · `1536×1024` | `art_source/rigs/krall_arms_L.png`, `krall_arms_L2.png`, `krall_arms_L3.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-F) | ✅ Linker Haken/Mini-Säge VERBOGEN in den 6 übrigen Posen (seitlich · Schild-Block · Stampfer · Sog mit Funken · Hagel/Schrott · Teleskop voll; Licht links-oben, Schulterring im Fadenkreuz, `min_margin ≥ 30 px`, `art:check` ok) |
 | `P0-17` | [ ] | `art_source/rigs/krall_arms_R5.png` | Typ L · 3×2 · `1536×1024` | `krall_arms_R3.png` (Zelle 4–6 = Stumpf), `krall_arms_R4.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-F) | Rechter **abgebrochener Stumpf** (funkend, Kabel) in denselben 6 Posen wie P0-15 (seitlich · Block · Stampfer · Sog · Halten · Teleskop-Stoß). Der Stumpf hält keinen Schrott/keine Zange mehr — Hagel/Halten zeigt hochgereckten Stumpf mit Funken. |
 | `P0-18` | [ ] | `art_source/rigs/krall_arms_L5.png` | Typ L · 3×2 · `1536×1024` | `krall_arms_L3.png` (Zelle 4–6 = Stumpf), `krall_arms_L4.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-F) | Wie P0-17 für den **linken** Stumpf, Licht links-oben, nicht spiegeln. |
 
@@ -78,6 +83,17 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 | `P1-02` | [x] | `art_source/rigs/phase_stalker_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_phase_stalker.png` | `ART_BRIEF_M11_ENEMIES.md` §3 & §4 (S1) | ✅ Pilot humanoid (`min_margin ≥ 53 px`, `art:check` ok, bereit für Claude-Import) |
 
 > **✅ STOP-GATE (FREIGEGEBEN):** Vom Projektinhaber am 2026-11-26 freigegeben — P2-Serie läuft (Parallel-Einbindung der Pilot-Sheets durch Claude Code).
+
+### P1b — M12 Endboss-Arena: Pilot A.E.G.I.S. Leviathan (`[~]` = wartet auf Plan-Freigabe — **noch nicht generieren**)
+> Plan: [`MILESTONE_12_ARCHITECTURE.md`](MILESTONE_12_ARCHITECTURE.md) §6 & §9 (Prompts dort). Erst generieren, wenn der Projektinhaber den Plan freigegeben hat und Claude Code den Status auf `[ ]` setzt. Alle mit prozeduralem Fallback.
+
+| ID | Status | Zieldatei | Typ & Format | Referenz (`ImagePaths`) | Brief / Prompt | Notiz |
+| :--- | :---: | :--- | :--- | :--- | :--- | :--- |
+| `P1-03` | [~] | `public/art/sprites/arena_leviathan_bg.png` | Arena-Boden · `1376×704` | `public/art/sprites/hub_bg.png` (Stil), Sektor-1-Dungeonkacheln | `MILESTONE_12_ARCHITECTURE.md` §9 | Reaktorhalle ohne Boss, 2×2 Bildschirme |
+| `P1-04` | [~] | `public/art/sprites/arena_leviathan_wall.png` | Boss-Wand · `1376×192` | `public/art/sprites/item_leviathan_core.png` | `MILESTONE_12_ARCHITECTURE.md` §9 | Leviathan-Körper als Nordwand, Kern-Linse mittig |
+| `P1-05` | [~] | `art_source/rigs/leviathan_arena_parts.png` | Typ P · 3×2 · `1536×1024` | `P1-04` | `MILESTONE_12_ARCHITECTURE.md` §9 · `ART_BRIEF_M11.md` §2 | Kranarm ×2 · Hammer-Klaue · Kabel · Ventil intakt/zerstört |
+| `P1-06` | [~] | `art_source/rigs/leviathan_arena_fx.png` | Typ E · 3×2 · `1536×1024` | `P1-03` | `MILESTONE_12_ARCHITECTURE.md` §9 | Platte bricht (3 Stufen) · Trümmer · Dampf · Linse offen |
+| `P1-07` | [ ] | `public/art/sprites/prop_trophy_leviathan.png` + `public/art/sprites/item_trophy_leviathan.png` | `96×96` + `64×64` | `public/art/sprites/item_leviathan_core.png` | `MILESTONE_12_ARCHITECTURE.md` §9 · `ART_AND_DESIGN_GUIDE.md` §3/§7 | Hub-Vitrine + Item-Icon „A.E.G.I.S.-Herzlinse“ |
 
 ---
 

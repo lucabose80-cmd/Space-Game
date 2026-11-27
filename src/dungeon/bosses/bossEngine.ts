@@ -1,7 +1,7 @@
 // M10-C (G3): kleine Zug-Engine für Bosse. Jeder Boss = BossDef (Idle-Bewegung + Züge); Zustände:
 // idle → windup (Telegraphie) → active (optional, z. B. Strahlen) → recover → idle … Phase 2 ab < 50 % HP.
 import { sound } from '../../engine/audio';
-import { ROOM_BOTTOM, ROOM_CENTER_X, ROOM_CENTER_Y, ROOM_LEFT, ROOM_RIGHT, ROOM_TOP } from '../../world/dungeonGen';
+import { DEFAULT_ROOM_BOUNDS, type RoomBounds } from '../../world/dungeonGen';
 import type { DungeonScene } from '../../scenes/DungeonScene';
 import type { Enemy } from '../dungeonTypes';
 
@@ -14,7 +14,34 @@ export interface BossCtx {
   dist: number;
   dt: number;
   p2: boolean;
+  /** M12 (Phase A): Grenzen des Bossraums (Standardraum = `ROOM`, Arena = `room.bounds`) */
+  room: BossRoom;
 }
+
+/** M12: Raumgrenzen in der Schreibweise der Boss-Züge (`ROOM.L …`). */
+export interface BossRoom {
+  readonly L: number;
+  readonly R: number;
+  readonly T: number;
+  readonly B: number;
+  readonly CX: number;
+  readonly CY: number;
+}
+
+const bossRoomCache = new WeakMap<Readonly<RoomBounds>, BossRoom>();
+
+/** M12: `scene.bounds` → `BossRoom` (gecacht; die Grenzen-Objekte sind unveränderlich). */
+export function bossRoom(rb: Readonly<RoomBounds>): BossRoom {
+  let r = bossRoomCache.get(rb);
+  if (!r) {
+    r = Object.freeze({ L: rb.l, R: rb.r, T: rb.t, B: rb.b, CX: rb.cx, CY: rb.cy });
+    bossRoomCache.set(rb, r);
+  }
+  return r;
+}
+
+/** Standardraum (exakt `ROOM_LEFT…`) */
+export const ROOM: BossRoom = bossRoom(DEFAULT_ROOM_BOUNDS);
 
 export interface BossMove {
   name: string;
@@ -72,20 +99,18 @@ export function bossBolt(
   });
 }
 
-export function clampToRoom(x: number, y: number, m = 18): { x: number; y: number } {
+export function clampToRoom(x: number, y: number, m = 18, room: BossRoom = ROOM): { x: number; y: number } {
   return {
-    x: Math.max(ROOM_LEFT + m, Math.min(ROOM_RIGHT - m, x)),
-    y: Math.max(ROOM_TOP + m, Math.min(ROOM_BOTTOM - m, y)),
+    x: Math.max(room.L + m, Math.min(room.R - m, x)),
+    y: Math.max(room.T + m, Math.min(room.B - m, y)),
   };
 }
 
 /** Deterministische Verteilung rund um den Spieler (kein Zufall): Schritt i von n, Radius r, Startwinkel a0. */
 export function around(c: BossCtx, i: number, n: number, r: number, a0 = 0): { x: number; y: number } {
   const a = a0 + (i / n) * Math.PI * 2;
-  return clampToRoom(c.scene.playerX + Math.cos(a) * r, c.scene.playerY + Math.sin(a) * r, 14);
+  return clampToRoom(c.scene.playerX + Math.cos(a) * r, c.scene.playerY + Math.sin(a) * r, 14, c.room);
 }
-
-export const ROOM = { L: ROOM_LEFT, R: ROOM_RIGHT, T: ROOM_TOP, B: ROOM_BOTTOM, CX: ROOM_CENTER_X, CY: ROOM_CENTER_Y };
 
 /** Gleiter: Boss zu einem Zielpunkt ziehen (weich, ohne Zufall). */
 export function glideTo(e: Enemy, tx: number, ty: number, gain = 2): void {

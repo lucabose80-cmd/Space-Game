@@ -1,0 +1,125 @@
+{
+  "kind": "drone",
+  "sheet": {
+    "file": "drone",
+    "srcFile": "drone_rig",
+    "cols": 3,
+    "rows": 2,
+    "order": [
+      "body",
+      "visor",
+      "nacelle",
+      "lens",
+      "flame",
+      "visorHalf"
+    ],
+    "scaleRef": "body",
+    "torsoDisplayH": 22,
+    "pixelRatio": 2
+  },
+  "parts": [
+    {
+      "id": "body",
+      "image": "body",
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "z": 0,
+      "offset": [
+        0,
+        -11
+      ]
+    },
+    {
+      "id": "nacelleL",
+      "image": "nacelle",
+      "parent": "body",
+      "attach": [
+        0.13,
+        0.5
+      ],
+      "pivot": [
+        0.95,
+        0.15
+      ],
+      "z": -1
+    },
+    {
+      "id": "nacelleR",
+      "image": "nacelle",
+      "flipX": true,
+      "parent": "body",
+      "attach": [
+        0.87,
+        0.5
+      ],
+      "pivot": [
+        0.95,
+        0.15
+      ],
+      "z": 1
+    },
+    {
+      "id": "flameL",
+      "image": "flame",
+      "parent": "nacelleL",
+      "attach": [
+        0.4,
+        0.85
+      ],
+      "pivot": [
+        0.8,
+        0.25
+      ],
+      "z": -0.5
+    },
+    {
+      "id": "flameR",
+      "image": "flame",
+      "flipX": true,
+      "parent": "nacelleR",
+      "attach": [
+        0.4,
+        0.85
+      ],
+      "pivot": [
+        0.8,
+        0.25
+      ],
+      "z": -0.5
+    },
+    {
+      "id": "visor",
+      "image": "visor",
+      "variants": [
+        "visor",
+        "visorHalf"
+      ],
+      "parent": "body",
+      "attach": [
+        0.64,
+        0.62
+      ],
+      "pivot": [
+        0.5,
+        0.55
+      ],
+      "z": 1
+    },
+    {
+      "id": "lens",
+      "image": "lens",
+      "parent": "body",
+      "attach": [
+        0.8,
+        0.62
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "z": 2
+    }
+  ]
+}

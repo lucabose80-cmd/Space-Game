@@ -1,0 +1,21 @@
+{
+  "kind": "phase_stalker",
+  "sheet": {
+    "file": "phase_stalker",
+    "srcFile": "phase_stalker_rig",
+    "cols": 3,
+    "rows": 2,
+    "order": ["torso", "head", "armR", "armL", "legR", "legL"],
+    "scaleRef": "torso",
+    "torsoDisplayH": 15,
+    "pixelRatio": 2
+  },
+  "parts": [
+    { "id": "torso", "image": "torso", "z": 1, "pivot": [0.68, 0.57], "offset": [0, -17] },
+    { "id": "head", "image": "head", "parent": "torso", "attach": [0.68, 0.42], "pivot": [0.48, 0.88], "z": 3, "offset": [0, 0] },
+    { "id": "armR", "image": "armR", "parent": "torso", "attach": [0.93, 0.52], "pivot": [0.32, 0.11], "z": 4, "offset": [0, 0] },
+    { "id": "armL", "image": "armL", "parent": "torso", "attach": [0.44, 0.52], "pivot": [0.16, 0.12], "z": 0.5, "offset": [0, 0] },
+    { "id": "legR", "image": "legR", "parent": "torso", "attach": [0.74, 0.9], "pivot": [0.38, 0.11], "z": 0, "offset": [0, 0] },
+    { "id": "legL", "image": "legL", "parent": "torso", "attach": [0.62, 0.9], "pivot": [0.33, 0.11], "z": -1, "offset": [0, 0] }
+  ]
+}
