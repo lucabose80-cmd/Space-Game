@@ -43,8 +43,8 @@ Jeder Bereich hat ein eigenes Status-Blatt in [`handoff/`](handoff/README.md) �
 ## Nächster Schritt
 - **Polish (Teile 1–3) abgenommen & erledigt:** Hintergrund-Pause, Wackeln/Vibration im Hilfe-Tab, Tür-Label · Kern-Wächter-Schritte, Hit-Stop (`heavyStop`), Telegraph-Blitz, Schadenszahlen-Merge · Dungeon-Code lädt nach (`__game.dungeonReady`, Chunk-Gruppe `dungeon` entfernt). Tests `t7`, `t7b`, `t8`.
 - **Aufräumen erledigt** (Audit 2026-11-26, Blöcke C1–C6): Doku auf aktuellem Stand, „Kern-Wächter“ einheitlich, Repo-Hygiene, toter Code entfernt, gemeinsamer `EnemyKind`, `check:sprites` prüft Sheets/Imports, Pose-Sheet-Import (`art_source/poses`) entfernt, `npm run build:single` dokumentiert, Version 1.4.0. **Firebase-SDK lädt nach dem Start nach** (`src/services/firebaseSdk.ts` per `import()`, Service-API unverändert; Test `t6`) — Abweichung vom Plan: nicht der ganze Service, nur das SDK.
-- **Claude Code:** je Bereich siehe `handoff/*.md` (Krall: Einbinden P0-08…11 · Gegner: Drohne, Phasen-Jäger · Kern-Wächter: Prüfung D11–D14).
-- **Antigravity (als Nächstes):** Weiter in [`SPRITE_QUEUE.md`](SPRITE_QUEUE.md) via Skill `sprite-batch`: **`P0-12`** (`krall_arms_R3.png` + `krall_arms_L3.png` — letztes offenes P0-Paar!), danach weiter mit **P2** ab `P2-02` (`shield_drone_rig.png`) & `P2-03` (`spore_spitter_rig.png`).
+- **Claude Code:** je Bereich siehe `handoff/*.md` (Krall: Einbinden P0-08…12 · Gegner: Drohne, Phasen-Jäger · Kern-Wächter: Prüfung D11–D14).
+- **Antigravity (als Nächstes):** Weiter in [`SPRITE_QUEUE.md`](SPRITE_QUEUE.md) via Skill `sprite-batch`: **P0 komplett ✅**, weiter mit **P2** ab `P2-03` (`shield_drone_rig.png`) & `P2-03` (`spore_spitter_rig.png`).
 - Ökonomie & Boss-Kampfgefühl im echten Spiel beobachten und in `src/data/balance.ts` nachjustieren (Berichte: `tests/out/economy.json`, `tests/out/ttk.json`).
 - Optionale M10/M10-C-Einzel-Sprites bei Bedarf ebenfalls per Antigravity erzeugen.
 

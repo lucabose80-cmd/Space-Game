@@ -9,6 +9,8 @@ Jeder Chat/Agent pflegt **nur die Datei seines Bereichs**. `HANDOFF.md` bleibt d
 | Geschütz | [`enemy_turret.md`](enemy_turret.md) | `anim/rigs/turret.ts` | `data/rigs/turret.json` | `m11p7_turret` |
 | Drohne | [`enemy_drone.md`](enemy_drone.md) | `anim/rigs/drone.ts` | `data/rigs/drone.json` | `m11p8_drone` |
 | Phasen-Jäger | [`enemy_phase_stalker.md`](enemy_phase_stalker.md) | `anim/rigs/phase_stalker.ts` | `data/rigs/phase_stalker.json` | `m11p9_phase_stalker` |
+| Schild-Drohne | [`enemy_shield_drone.md`](enemy_shield_drone.md) | `anim/rigs/shield_drone.ts` | `data/rigs/shield_drone.json` | `m11p…_shield_drone` |
+| Sheet-Lieferstatus aller Gegner | [`enemy_sheets.md`](enemy_sheets.md) (Antigravity) | — | — | — |
 | weitere Gegner/Bosse | neue Datei `enemy_<kind>.md` / `<boss>.md` anlegen | `anim/rigs/<rig-id>.ts` | `data/rigs/<rig-id>.json` | eigene `m11p…_<rig>.cjs` |
 
 Gemeinsame (heikle) Dateien — nur mit Absprache/kleinen Änderungen: `anim/bossAnims.ts` (Engine), `anim/animCommon.ts`, `anim/rigAnim.ts`, `engine/rig.ts`, `dungeonRenderer.ts`, `scripts/art-import.py`, `SPRITE_QUEUE.md` (nur eigene Zeilen/IDs ändern).
