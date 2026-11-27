@@ -21,3 +21,4 @@
 
 - **Effekt-Sheet P3-21 (Regel 14/15, selbst generiert):** `art_source/rigs/crystal_crawler_fx.png` → Pose-Set `fxShardS/M/L`, `fxGlow`, `fxPlate`, `fxDust` (in `crystal_crawler.json` `sheet.sets` + `extraImages`); Fallback ohne Effekt-Bilder: Rig-Teile + `drawGlow`. Prüfbilder `tests/out/crystal_crawler_{death,teleShot,chargeShot}.png`.
 - **Offen:** Abnahme im echten Kampf; optional Bein-Posen-Sheet (Typ L) fürs Ducken/Vorschnellen — nur bei Bedarf bestellen.
+- **Neu (Regel 16, G10):** Krabbler tritt in S1-Riss-Kammern (und ggf. Omega) auf → Boden-Effekte (Staubspur/Vorschnellen, Tod am Boden) brauchen Biom-Varianten: `SPRITE_QUEUE.md` `P2-21` (`crystal_crawler_ground.png`), Auswahl nach Raum-Biom (`BOSS_ENEMY_PIPELINE.md` §5).

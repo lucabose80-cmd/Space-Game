@@ -1,9 +1,9 @@
 # BOSS_ENEMY_PIPELINE.md — Wiederholbarer Ablauf für Bosse, Gegner & Bossräume (*STARLIGHTER*)
 
 > **Zweck:** Jeder neue oder überarbeitete Gegner, Boss oder Endboss-Raum soll **immer dieselbe Qualität** erreichen — egal welcher Chat oder welches Werkzeug (Claude Code, Antigravity) daran arbeitet. Diese Datei ist der **Ablauf**; die Messlatten stehen in den Checklisten:
-> - normale Gegner: **G1–G9** (`BOSS_ANIMATION_PLAN.md` §4)
-> - Bosse: **D1–D14** (`BOSS_ANIMATION_PLAN.md` §1)
-> - Sektor-Endbosse (Ebene III) mit Arena: **A1–A10** (`MILESTONE_12_ARCHITECTURE.md` §2) **zusätzlich** zu D1–D14
+> - normale Gegner: **G1–G10** (`BOSS_ANIMATION_PLAN.md` §4)
+> - Bosse: **D1–D15** (`BOSS_ANIMATION_PLAN.md` §1)
+> - Sektor-Endbosse (Ebene III) mit Arena: **A1–A10** (`MILESTONE_12_ARCHITECTURE.md` §2) **zusätzlich** zu D1–D15
 
 ---
 
@@ -32,7 +32,7 @@ Jede Stufe hat ein **Tor**: erst weiter, wenn das Tor erfüllt ist. Status je St
 | **4 Pilot-Sheet** | Antigravity — oder der Claude-Chat selbst per `npm run art:gen` (`AGENTS.md` Regel 15) | **ein** Sheet zuerst (meist Rumpf bzw. `<kind>_rig.png`) | `npm run art:check` ok, Maßstab passt zum alten Sprite, STOP-GATE bis Sichtprüfung |
 | **5 Import & Rig** | Claude Code | `src/data/rigs/<id>.json`, `npm run art:import -- <id> --force`, Kontaktbogen `node scripts/rig-sheet.cjs <id>` | Gelenke sitzen in jeder Pose, nichts schwebt (D1/D13 bzw. G1) |
 | **6 Posen & Bewegung** | Claude Code | `src/dungeon/anim/rigs/<id>.ts`: Zustand → Pose, Glättung/Impuls, Laufrhythmus aus Strecke, Treffer, Tod, Phase 2 | im Boss-Labor (`?bosslab`) bei 0,25× kein „Ploppen“; Hitbox/Schaden unverändert |
-| **7 Prüfung gegen Checkliste** | Claude Code | jede Zeile G1–G9 / D1–D14 / A1–A10 im Status-Blatt mit ✅ + Nachweis (Test, Screenshot, Labor-Stelle) | eigener Test `tests/m11p…_<id>.cjs` bzw. `m12p…`, `npm run verify` grün, Screenshots in `tests/out/` angesehen |
+| **7 Prüfung gegen Checkliste** | Claude Code | jede Zeile G1–G10 / D1–D15 / A1–A10 im Status-Blatt mit ✅ + Nachweis (Test, Screenshot, Labor-Stelle) | eigener Test `tests/m11p…_<id>.cjs` bzw. `m12p…`, `npm run verify` grün, Screenshots in `tests/out/` angesehen |
 | **8 Abnahme im Spiel** | Projektinhaber | 1–2 echte Kämpfe, Rückmeldung mit konkreten Stellen | Inhaber sagt „abgenommen“ → Status-Tabelle in `BOSS_ANIMATION_PLAN.md` §3 auf ✅ |
 
 **Fehlen in Stufe 5–7 Bilder oder überzeugen die gelieferten nicht:** nicht mit Code überbrücken, sondern zurück zu Stufe 3 (neue Queue-Zeile bzw. Ersatz-Sheet, Priorität P0 für laufende Bosse), Fallback bis dahin. **Rückmeldung des Inhabers „gefällt mir nicht“ in Stufe 8** → betroffene Sheets als Ersatz bestellen, nicht nur den Code nachjustieren.
@@ -67,5 +67,27 @@ Für jeden Ebene-III-Boss wird in `MILESTONE_12_ARCHITECTURE.md` ein §6-Block n
 - **Pilot zuerst:** neue Serie (neuer Gegner-Typ, neue Arena-Art) immer erst mit einem Exemplar bis Stufe 8, dann Serie.
 - **Push nur mit `npm run ship`.**
 
-## 5. Verknüpfte Dokumente
+## 5. Sektor-gebundene Effekte (Boden, Einschlag, Tod) — Biom-Varianten
+Gegner und Bosse tauchen **nicht nur in ihrem Heimat-Sektor** auf. Alles, was auf dem **Boden der aktuellen Map** liegt oder aus ihr herausbricht, muss zum Boden **dieses Raums** passen — nicht zum Heimat-Sektor des Gegners.
+
+**Wo Gegner/Bosse fremde Sektoren betreten (Stand 2026-11-27, `src/world/dungeonGen.ts`):**
+| Ort | Wer kommt fremd vor | Biom des Raums |
+| :--- | :--- | :--- |
+| **Riss-Kammern** (Rift, Ebene I–III jedes Sektors) | Elite-Wellen aus dem *nächsten* Sektor, z. B. `crystal_crawler`/`resonance_warden` (S2) in S1, `solar_drone`/`forge_golem` (S3) in S2, `void_wraith`/`monolith_guard` (S4) in S3 | Sektor des Wirts (`riftSector`) |
+| **∞ Unendliche Spirale** | gemischte Packs aus S1–S4 (`phase_stalker`, `prism_drone`, `ember_stalker`, `shard_sniper`, `forge_golem`, `void_wraith`, `resonance_warden`, `solar_drone`, `monolith_guard`, `star_lancer`, `magma_mortar`, `void_crawler`) **und** die vier Endbosse in wechselnden Biomen (z. B. Leviathan im S3-Biom, Vulkan-Titan im S1-Biom) | `floor.visualSector` (S1→S4 im Wechsel) |
+| **Omega-Anomalie** (5. Tor) | `monolith_guard`, `void_wraith`, `star_lancer`, `forge_golem`, `ember_stalker`, `resonance_warden`, `phase_stalker` | S5 (Omega) |
+| künftige Challenges/Prüfungen | alles, was dort gemischt wird | Biom des Raums |
+Neue Mischungen (neue Pools, Challenges, Events) → diese Tabelle ergänzen.
+
+**Einteilung der Effekte:**
+- **Körper-Effekte** (Funken, Sporen, Laser, Mündungsblitz, Kristallsplitter *des Gegners*, Rauch aus dem Körper): Farbe = Gegner → **ein** Sheet, gilt überall.
+- **Boden-Effekte** (Risse, Krater, Einschlagloch, Staub-/Dreckwolke, Brand-/Schmelzfleck, Trümmer aus dem Boden, Bodenwelle, Todes-Rückstand am Boden): Farbe/Material = **Boden des Raums** → **Biom-Varianten S1–S5**.
+
+**Sheet-Format Biom-Variante (Typ E, 3×2, `1536×1024`):** `art_source/rigs/<id>_ground.png` (bei mehreren Boden-Effekten `<id>_ground2.png` …) — Zelle 1–5 = **derselbe** Boden-Effekt im Material von S1 Verlassene Korvette (Rost-Metallplatten, Moos) · S2 Kristall-Nebel (violett-cyan Kristallboden) · S3 Solar-Gießerei (Lava-Gestein, Glut) · S4 Ältesten-Monolith (Obsidian, Sternenstaub) · S5 Omega-Anomalie; Zelle 6 = biom-neutraler Todes-Rückstand des Gegners (optional). Referenz: Effekt-Sheet des Gegners + Bodenkacheln/Hintergrund der fünf Sektoren.
+
+**Im Code:** Biom des aktuellen Raums = Riss-Kammer → `currentRoom.riftSector`, Spirale → `floor.visualSector`, sonst `currentSector` (S5 = Omega). Die Boden-Zelle wird nach diesem Biom gewählt; fehlt die Variante → Heimat-Variante + Tönung (Fallback, Sheet in `SPRITE_QUEUE.md` bestellen). Rein optisch, kein Zufall.
+
+**Pflicht in Stufe 3 (Sprite-Liste):** für jeden Gegner/Boss prüfen, ob er in der Tabelle oben vorkommt **und** Boden-Effekte hat (Aufschlag, Stampfer, Sturz, Tod am Boden, Spuren) → `<id>_ground.png` mit einplanen. Checklisten-Punkt **G10** (Gegner) bzw. **D15** (Bosse) in `BOSS_ANIMATION_PLAN.md`.
+
+## 6. Verknüpfte Dokumente
 [AGENTS.md](AGENTS.md) §3 Regeln 7, 11–13 · [BOSS_ANIMATION_PLAN.md](BOSS_ANIMATION_PLAN.md) · [MILESTONE_12_ARCHITECTURE.md](MILESTONE_12_ARCHITECTURE.md) · [RIGGING_GUIDE.md](RIGGING_GUIDE.md) · [ART_BRIEF_M11.md](ART_BRIEF_M11.md) · [ART_BRIEF_M11_ENEMIES.md](ART_BRIEF_M11_ENEMIES.md) · [SPRITE_QUEUE.md](SPRITE_QUEUE.md) · [PARALLEL_WORK.md](PARALLEL_WORK.md)

@@ -27,6 +27,7 @@
 | D12 | **Beschädigungsstufen (Mindeststandard):** über die **gesamte HP-Spanne** mindestens 4 sichtbare Stufen plus **kritisch < 15 %** (bei Phasenwechsel bei 50 %: Phase 1 z. B. < 80 % und < 65 %, Phase 2 < 35 % und < 25 %), über Rumpf-/Kopf-/Arm-Varianten (rissig, dampfend, verbogen, abgebrochen, Funken, zerbrochene Aufbauten). Referenz Kern-Wächter (`coreWardenSet`, Test `m11p2`) | Boss im Labor mit `hp` 70/45/20/10 % |
 | D13 | **Körper hängt zusammen:** kein Teil schwebt frei (Platten, Beine, Arme sitzen in jeder Variante/Phase an Gelenk oder Körper); Phase-2-Körper hat eigene Gelenk-Feinjustierung (wie `SHOULDER_ADJUST`) | Kontaktbogen Phase 1 + 2, Zoom 4× |
 | D14 | **Bewegung folgt dem Angriff:** auch Beine/Unterkörper reagieren je Zug und Phase (Ducken, Absprung, Stemmen, Landung), nicht nur Arme | Labor je Zug |
+| D15 | **Biom-passende Boden-Effekte:** Einschläge, Risse, Krater, Staub, Tod-Rückstände am Boden passen zum Boden des **aktuellen** Raums — auch wenn der Boss fremd auftritt (∞ Spirale, Challenges). Biom-Varianten `<id>_ground.png` (`BOSS_ENEMY_PIPELINE.md` §5) | Boss in fremdem Biom im Labor/Spirale |
 | D10 | **Tests & Doku:** Pose-Zuordnung im Test (`tests/m11p2.cjs` erweitern), `RIGGING_GUIDE.md` §5 aktualisiert | `npm run verify` |
 
 ---
@@ -153,7 +154,7 @@ Offen für Krall: Einbindung von `krall_legs_R/L` + `krall_effects`, Maßstab bl
 
 ---
 
-## 4. Fertig-Definition für normale Gegner (Mindeststandard G1–G9)
+## 4. Fertig-Definition für normale Gegner (Mindeststandard G1–G10)
 Abgespeckte Version von D1–D14: gilt für jeden normalen Gegner-Rig (Geschütz, Phasen-Jäger, Drohne …). Bosse bleiben bei §1. Vorlage: `handoff/enemy_turret.md`.
 
 | # | Punkt | Woran man es prüft |
@@ -166,6 +167,7 @@ Abgespeckte Version von D1–D14: gilt für jeden normalen Gegner-Rig (Geschütz
 | G6 | **Treffer-Reaktion:** kurz (≤ 0,15 s), stört keine Angriffspose | Spieler schlägt zu |
 | G7 | **Tod:** der Gegner verschwindet nicht abrupt (Zucken/Teile fallen ab/Aufblitzen), falls vorhanden Teile wiederverwenden | Gegner töten |
 | G8 | **Rein optisch:** keine Änderung an Hitbox, Schaden, Zustandsdauern, kein globaler Zufall; nur `anim/rigs/<id>.ts`, Rig-JSON und der Renderer-Zweig | Code-Review |
+| G10 | **Biom-passende Boden-Effekte (nur falls der Gegner fremd auftritt und Boden-Effekte hat):** Aufschlag/Staub/Krater/Tod am Boden passen zum Boden des aktuellen Raums (Riss-Kammer, Spirale, Omega) — Sheet `<kind>_ground.png` mit Biom-Varianten S1–S5 (`BOSS_ENEMY_PIPELINE.md` §5); reine Körper-Effekte (Funken, Sporen) brauchen keine Varianten | Gegner in fremdem Biom ansehen |
 | G9 | **Test & Handoff:** eigener Test `tests/m11p…_<rig>.cjs`, Status-Blatt `handoff/enemy_<kind>.md`, `npm run verify` grün, Screenshots in `tests/out/` geprüft | `npm run ship` |
 
 Bewusst **nicht** verlangt (nur Bosse): Beschädigungsstufen, Phase-2-Verwandlung, eigene Angriffsgrafik je Zug (D7, D11–D14). Fehlen für G1–G9 Sprites, gilt `AGENTS.md` §3 Regel 7 (sofort in `SPRITE_QUEUE.md` einsortieren).

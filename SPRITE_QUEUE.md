@@ -148,6 +148,13 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 | `P2-18` | [ ] | `art_source/rigs/void_wraith_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_void_wraith.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S4) | Leere-Phantom |
 | `P2-19` | [ ] | `art_source/rigs/monolith_guard_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_monolith_guard.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S4) | Monolith-Wächter |
 
+### P2e — Biom-Varianten für Boden-Effekte (`AGENTS.md` Regel 16, Format `BOSS_ENEMY_PIPELINE.md` §5)
+> Gegner, die außerhalb ihres Heimat-Sektors auftreten **und** schon ein Effekt-Sheet mit Boden-Effekten haben. Weitere Einträge legt jeder Rig-Chat in Stufe 3 an (neue fortlaufende ID). Zellen 1–5 = S1 Korvette · S2 Kristall · S3 Gießerei · S4 Monolith · S5 Omega; Zelle 6 = biom-neutraler Todes-Rückstand.
+
+| ID | Status | Zieldatei | Typ & Format | Referenz (`ImagePaths`) | Brief / Prompt | Notiz |
+| :--- | :---: | :--- | :--- | :--- | :--- | :--- |
+| `P2-21` | [ ] | `art_source/rigs/crystal_crawler_ground.png` | Typ E · 3×2 · `1536×1024` | `art_source/rigs/crystal_crawler_fx.png` (Zelle `fxDust`), Bodenkacheln/Hintergründe S1–S5 | `BOSS_ENEMY_PIPELINE.md` §5 — Prompt: „the same small impact dust trail + scraped ground mark of a crystal crawler lunge, drawn 5 times on 5 different floor materials: rusty moss-covered metal plates (S1), violet-cyan crystal floor (S2), cracked lava rock with embers (S3), black obsidian with star dust (S4), glitching void-energy floor (S5); cell 6: small pile of shattered ice-blue crystal shards; pixel art, same style and scale as reference, white background, 3×2 grid, each effect centred“ | Kristall-Krabbler tritt als Elite in **S1-Riss-Kammern** und in der Omega-Anomalie auf |
+
 ---
 
 ## P3 — Optionale M10 & M10-C Einzel-Sprites (Fallbacks ersetzen)
