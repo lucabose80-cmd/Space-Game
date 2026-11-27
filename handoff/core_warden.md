@@ -6,6 +6,24 @@
 - **Beschädigungsstufen (ohne neue Sprites):** P1 < 80 % Helm rissig · < 65 % Rumpf dampft · P2 < 35 % Arme zerfetzt · < 25 % Rumpf beschädigt · < 15 % Helm zerstört (Test `m11p2`).
 - Prüfung gegen D11–D14 ✅ durchgeführt (siehe unten); Abnahme im echten Kampf offen (§2.4 im Plan).
 
+## Checkliste D1–D15 (Stand 2026-11-27 — `BOSS_ENEMY_PIPELINE.md` §4b; von oben nach unten abarbeiten)
+- ✅ D1 Rig vollständig — Kontaktbogen `rig_core_warden.png`, 13+ Arm-/12 Kopf-/12 Rumpf-Varianten
+- ✅ D2 Eigene Posen je Angriffsabschnitt — `coreWardenSet`, Test `m11p2`
+- ✅ D3 Weiche Übergänge — `smoothPose`, Test `m11p2` (< 0,2 rad/Frame)
+- ✅ D4 Anlauf & Nachfedern — K2
+- ✅ D5 Fortbewegung — K3
+- ✅ D6 Treffer-Reaktion — K4
+- ✅ D7 Phase-2-Verwandlung — Platten fliegen (`detached.ts`), Test `m11p3`
+- ✅ D8 Lesbarkeit/keine Hitbox-Änderung — nur Renderer/`bossAnims`
+- ✅ D9 Rückfall — Rig-Schalter im Labor, Test `m11lab`
+- ⬜ D10 Tests & Doku — `RIGGING_GUIDE.md` §5 auf Stand bringen (Arme 19–24, Effekt-Sheet `fx_*`, `ground`)
+- ✅ D11 Angriffsgrafik — Audit unten; Laser/Orbit jetzt mit Sprite-Effekten (`core_warden_fx.png`, P3-20)
+- ✅ D12 Beschädigungsstufen — P1 <80/<65 % (Helm, Rumpf, **Arme `armX_19…24`**), P2 <35/<25 %, <15 % (Test `m11p2`)
+- ✅ D13 Körper hängt zusammen — `SHOULDER_ADJUST`, Kontaktbogen
+- ✅ D14 n. z. (schwebt)
+- ⬜ D15 Biom-Boden-Effekte — Slam-Krater (`enemyAi` `decals.push`, procedural dunkler Kreis), Sturm-Staubspur, Todes-Rückstand; Kern-Wächter tritt in Spirale/Riss-Kammern fremd auf → **nächster Schritt:** `art_source/rigs/core_warden_ground.png` (Zelle 1–5 Krater S1–S5, 6 Todes-Rückstand) per `art:gen`, Queue-Zeile `P3-21`, Auswahl nach Raum-Biom im Renderer
+- ⬜ Stufe 8 Abnahme im echten Kampf — **Projektinhaber** (Phase 1 + 2)
+
 ## Audit gegen den Boss-Mindeststandard D11–D14 (Stand 2026-11-27, Screenshots je Angriff, Phase 1 + 2)
 | Angriff | Vorwarnung | Ausführung | Aufschlag/Erholung | Urteil |
 | :--- | :--- | :--- | :--- | :--- |
