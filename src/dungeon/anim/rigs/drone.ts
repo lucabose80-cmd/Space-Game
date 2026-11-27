@@ -55,14 +55,13 @@ function dronePose(e: Enemy, time: number, lookDx: number, lookDy: number): Pose
   const hover = Math.sin(time * 6.5 + e.id) * 2.6;
   const bank = clamp(vx * 0.0025, -0.22, 0.22);
   const aim = clamp(Math.atan2(lookDy, Math.max(10, Math.abs(lookDx))), -0.35, 0.35);
-  const flick = 0.82 + 0.18 * Math.sin(time * 40 + e.id * 3);
   const flame = (side: number): { alpha: number; sx: number; sy: number; rot: number } => {
-    const s = (0.85 + 0.8 * speed + 0.35 * p) * flick * (1 + 0.15 * Math.sin(time * 31 + side));
-    return { alpha: 0.7 + 0.3 * speed, sx: s * 0.8, sy: s, rot: 0 };
+    const s = (0.5 + 0.55 * speed + 0.2 * p) * (0.88 + 0.12 * Math.sin(time * 38 + side * 2 + e.id));
+    return { alpha: 0.75 + 0.25 * speed, sx: 0.55 + 0.25 * speed, sy: s, rot: 0 };
   };
   const nacelle = (side: number): { rot: number; dy: number } => ({
-    rot: -bank * 1.4 + side * 0.06 * Math.sin(time * 5 + e.id) + (tele ? -side * 0.18 * p : 0) + (bursting ? side * 0.1 * k : 0),
-    dy: Math.sin(time * 6.5 + e.id + side) * 0.5,
+    rot: side * 0.04 * Math.sin(time * 5 + e.id) + (tele ? -side * 0.08 * p : 0) + (bursting ? side * 0.06 * k : 0),
+    dy: Math.sin(time * 6.5 + e.id + side) * 0.4,
   });
   const nL = nacelle(-1);
   const nR = nacelle(1);
