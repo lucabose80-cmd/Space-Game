@@ -698,7 +698,7 @@ export class DungeonScene {
 
   /** Navigations-Raster neu aufbauen (Raumwechsel; Tests nach Hindernis-Änderung). */
   public rebuildNav(): void {
-    this.nav = new NavGrid((x, y, r) => this.collidesRoomObstacle(x, y, r) || this.collidesRoomChasm(x, y, r), 7);
+    this.nav = new NavGrid((x, y, r) => this.collidesRoomObstacle(x, y, r) || this.collidesRoomChasm(x, y, r), 7, this.bounds);
   }
 
   public isBossKind(kind: Enemy['kind']): boolean {
