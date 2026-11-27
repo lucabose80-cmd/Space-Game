@@ -3,6 +3,7 @@ import { drawGlow, drawPixelShadow } from '../assets/pixelArt';
 import { drawBossLook } from './bosses/bossLooks';
 import { getBossPose, getRigFacing, smoothBossBody } from './anim/bossAnims';
 import { ARC_DEATH_TIME, arcDeathPose } from './anim/rigs/drone_arc';
+import { DRONE_DEATH_TIME, droneDeathPose } from './anim/rigs/drone';
 import { STALKER_DEATH_TIME, stalkerDeathPose } from './anim/rigs/phase_stalker';
 import { SHIELD_DRONE_DEATH_TIME, shieldDroneDeathPose } from './anim/rigs/shield_drone';
 import { drawDetached, spawnPhase2Parts } from './anim/detached';
@@ -636,6 +637,7 @@ export class DungeonRenderer {
     }
 
     this.renderDroneArcWrecks(ctx);
+    this.renderDroneWrecks(ctx);
     this.renderStalkerWrecks(ctx);
     this.renderShieldDroneWrecks(ctx);
 
@@ -2540,6 +2542,26 @@ export class DungeonRenderer {
     }
   }
 
+  /** M11 Drohne: Wrack-Animation beim Tod (Gondeln reißen ab, Rumpf kippt, Linsenblitz) — nur Darstellung. */
+  private readonly droneSeen = new Map<Enemy, { x: number; y: number; f: number }>();
+  private droneWrecks: { x: number; y: number; f: number; t0: number; id: number }[] = [];
+  private renderDroneWrecks(ctx: CanvasRenderingContext2D): void {
+    const now = this.scene.time;
+    for (const [e, s] of this.droneSeen) {
+      if (this.scene.enemies.includes(e)) continue;
+      if (e.hp <= 0) this.droneWrecks.push({ x: s.x, y: s.y, f: s.f, t0: now, id: e.id });
+      this.droneSeen.delete(e);
+    }
+    this.droneWrecks = this.droneWrecks.filter((w) => now - w.t0 < DRONE_DEATH_TIME && now >= w.t0);
+    const images = getHDArt().rigs.drone;
+    if (!images) return;
+    for (const w of this.droneWrecks) {
+      const t = now - w.t0;
+      drawRig(ctx, RIGS.drone, images, w.x, w.y + 11, droneDeathPose(t, w.id), { flipX: w.f < 0 });
+      drawGlow(ctx, w.x, w.y - 2, 16 * (1 - t / DRONE_DEATH_TIME), '#38e8d4', 0.45 * (1 - t / DRONE_DEATH_TIME));
+    }
+  }
+
   /** M11 Bogen-Drohne: Wrack-Animation beim Tod (Teile fliegen ab, Blitz) — nur Darstellung. */
   private readonly droneArcSeen = new Map<Enemy, { x: number; y: number; f: number }>();
   private droneArcWrecks: { x: number; y: number; f: number; t0: number; id: number }[] = [];
@@ -3202,6 +3224,7 @@ export class DungeonRenderer {
       const spr = e.flashTimer > 0 ? art.droneFlash ?? atlas.droneFlash : art.drone ?? atlas.drone[0];
       if (this.tryDrawEnemyRig(ctx, e, false)) {
         // M11: Rig (Rumpf + Visier + Gondeln + Flammen + Lade-Linse) statt Einzelbild; Schweben/Neigen macht die Pose
+        this.droneSeen.set(e, { x: e.x, y: e.y, f: getRigFacing('drone', e, this.scene.playerX) });
       } else if (art.drone) {
         ctx.save();
         ctx.translate(e.x, e.y + hover);
