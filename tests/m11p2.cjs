@@ -102,8 +102,8 @@ module.exports = async ({ page }) => {
   assert.strictEqual(r.laser, 9); // Laser-Ladung (S2)
   assert.strictEqual(r.stomp, 5);
   assert.strictEqual(r.plateP2, true);
-  // D12 Beschädigungsstufen Kern-Wächter: [Kopf, Rumpf, Arm]
-  assert.deepStrictEqual(r.dmg, [[0, 0, 0], [5, 0, 0], [5, 5, 0], [4, 4, 11], [4, 11, 11], [10, 5, 0]], 'Beschädigungsstufen Kern-Wächter');
+  // D12 Beschädigungsstufen Kern-Wächter: [Kopf, Rumpf, Arm] — P1 < 65 %: beschädigte Arme (19–24, P3-18/19)
+  assert.deepStrictEqual(r.dmg, [[0, 0, 0], [5, 0, 0], [5, 5, 19], [4, 4, 11], [4, 11, 11], [10, 5, 19]], 'Beschädigungsstufen Kern-Wächter');
   assert.strictEqual(r.smooth.variant, 6, 'S2: erst Zwischen-Pose „halb ausgeholt“'); assert.strictEqual(r.smooth.later, 1, 'danach Ausholen-Pose'); assert.ok(r.smooth.impulse, 'Stauch-Impuls beim Bildwechsel'); assert.ok(r.smooth.decayed, 'Impuls klingt ab, Drehung läuft: ' + JSON.stringify(r.smooth));
   assert.ok(r.maxRotStep < 0.2, 'Drehung springt nie > 0,2 rad pro Frame: ' + r.maxRotStep);
   for (const [k, v] of Object.entries(r.fxDiffer)) assert.ok(v, 'Pose-Effekt ' + k + ': ' + JSON.stringify(r.fxDiffer));
