@@ -5,7 +5,7 @@
 - **Animation (rein optisch):** Leerlauf = Atmen + Kapselwiegen · Vorwarnung (0,5 s) = Aufblähen, linke Kapsel öffnet bei 30 %, rechte bei 60 %, Spore wächst · Ausführung = Ausstoß mit Rückstoß/Stauchen, Spore fliegt zum Spieler · Erholung (0,3 s) = Körper federt zurück, Kapseln schließen · Umsetzen (`scurryTimer`) = kurzes Wegducken, Körper gräbt sich ein (halb eingegrabenes Bild), taucht danach weich wieder auf · Treffer = Zucken (Flanke `flashTimer`, ≤ 0,15 s, Richtung wechselt) · Blick/Spiegelung zum Spieler mit Totzone.
 - **Tod:** Der Gegner wird beim Töten sofort aus der Liste entfernt. Darum erkennt `updateSpitterGhosts` (aufgerufen in der Zeichenliste des Renderers) Spucker, die mit `hp ≤ 0` verschwinden, und zeichnet 0,5 s lang eine Todes-Pose (Körper sackt, Kapseln/Auge/Spore platzen weg). Keine Änderung an `DungeonScene`.
 - **Test:** `tests/m11p9_spore_spitter.cjs` · Kontaktbogen: `node scripts/rig-sheet.cjs spore_spitter` (Dev-Server nach JSON-Änderung neu starten).
-- **Offen:** Abnahme im echten Kampf; optionale Effekt-Sprites `P2-20` in `SPRITE_QUEUE.md` (Erdkrümel, Sporen-Puff, Schleim-Spritzer) — bis dahin Code-Glühen/Partikel.
+- **Offen:** Abnahme im echten Kampf; Effekt-Sheet `P2-20` (`art_source/rigs/spore_spitter_fx.png`, `min_margin = 67 px`, Zellen 3 & 6 mit `holes: true`) ist geliefert und bereit für den Claude-Import.
 
 ## G1–G9 (BOSS_ANIMATION_PLAN.md §4)
 | # | Status | Nachweis |

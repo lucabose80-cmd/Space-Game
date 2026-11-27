@@ -14,7 +14,7 @@
     "verify": "npm run build && npm run check:invariants && npm run check:sprites && npm test",
     "art:import": "python3 scripts/art-import.py",
     "art:check": "python3 scripts/art-check.py",
-    "art:gen": "python3 scripts/art-gen.py",
+    "art:gen": "python3 scripts/gen-sheet.py",
     "ship": "bash scripts/ship.sh"
   },
   "devDependencies": {

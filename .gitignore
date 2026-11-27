@@ -27,10 +27,11 @@ dist-single
 # Test-Ausgaben (Screenshots)
 tests/out
 
-# Python-Cache & Prüfbilder (npm run art:check)
+# Python-Cache, Prüfbilder (npm run art:check) & API-Rohbilder
 __pycache__/
 *.pyc
 art_source/_check/
-
-# Rohbilder von npm run art:gen (nicht committen)
-art_source/_gen/
+art_source/_raw/
+.env
+.env.*
+*.key
