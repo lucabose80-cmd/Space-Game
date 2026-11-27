@@ -2,6 +2,7 @@ import { getHDArt } from '../assets/artLoader';
 import { drawGlow, drawPixelShadow } from '../assets/pixelArt';
 import { drawBossLook } from './bosses/bossLooks';
 import { getBossPose, getRigFacing, smoothBossBody } from './anim/bossAnims';
+import { ARC_DEATH_TIME, arcDeathPose } from './anim/rigs/drone_arc';
 import { drawDetached, spawnPhase2Parts } from './anim/detached';
 import { spitterDeathPose, updateSpitterGhosts } from './anim/rigs/spore_spitter';
 import { enemyMotion, wantsMotion } from './anim/motion';
@@ -618,6 +619,8 @@ export class DungeonRenderer {
         this.renderPrismaArchonTwinBeams(ctx, e);
       }
     }
+
+    this.renderDroneArcWrecks(ctx);
 
     // Faceted 2.5D Hex-Aegis Kinetic Shield (animates smoothly on deploy & retract!)
     if (this.scene.shieldOpenAnim > 0.02) {
@@ -2413,6 +2416,24 @@ export class DungeonRenderer {
   }
 
   /** M11 Phase 7: Gegner-Rig (Teile-Sheet Typ G) zeichnen — Boden bei `e.y + 11`, Blickrichtung zum Spieler (Rig gespiegelt). */
+  /** M11 Bogen-Drohne: Wrack-Animation beim Tod (Teile fliegen ab, Blitz) — nur Darstellung. */
+  private readonly droneArcSeen = new Map<Enemy, { x: number; y: number; f: number }>();
+  private droneArcWrecks: { x: number; y: number; f: number; t0: number; id: number }[] = [];
+  private renderDroneArcWrecks(ctx: CanvasRenderingContext2D): void {
+    const now = this.scene.time;
+    for (const [e, s] of this.droneArcSeen) {
+      if (this.scene.enemies.includes(e)) continue;
+      if (e.hp <= 0) this.droneArcWrecks.push({ x: s.x, y: s.y, f: s.f, t0: now, id: e.id });
+      this.droneArcSeen.delete(e);
+    }
+    this.droneArcWrecks = this.droneArcWrecks.filter((w) => now - w.t0 < ARC_DEATH_TIME);
+    const images = getHDArt().rigs.drone_arc;
+    if (!images) return;
+    for (const w of this.droneArcWrecks) {
+      drawRig(ctx, RIGS.drone_arc, images, w.x, w.y + 11, arcDeathPose(now - w.t0, w.id), { flipX: w.f < 0 });
+    }
+  }
+
   private tryDrawEnemyRig(ctx: CanvasRenderingContext2D, e: Enemy, _moving: boolean): boolean {
     const rigId = RIG_BY_KIND[e.kind];
     if (!rigId) return false;
@@ -2422,7 +2443,7 @@ export class DungeonRenderer {
     const dy = this.scene.playerY - e.y;
     const facing = getRigFacing(rigId, e, this.scene.playerX);
     const pose = getBossPose(rigId, e, this.scene.time, dx * facing, dy);
-    if (e.kind === 'drone') drawPixelShadow(ctx, e.x, e.y + 14, 8, 2.6, 0.28); // Flieger: kleiner, blasser Bodenschatten
+    if (e.kind === 'drone' || e.kind === 'drone_arc') drawPixelShadow(ctx, e.x, e.y + 14, 8, 2.6, 0.28); // Flieger: kleiner, blasser Bodenschatten
     else drawPixelShadow(ctx, e.x, e.y + 10, 11, 3.6, 0.45);
     drawRig(ctx, RIGS[rigId], images, e.x, e.y + 11, pose, { flash: e.flashTimer > 0, flipX: facing < 0 });
     return true;
@@ -3048,7 +3069,10 @@ export class DungeonRenderer {
       const hover = Math.sin(this.scene.time * 7.2 + e.id) * 2.8;
       const bank = Math.max(-0.24, Math.min(0.24, e.vx * 0.0028));
       const spr = e.flashTimer > 0 ? art.droneArcFlash ?? art.droneFlash : art.droneArc ?? art.drone;
-      if (spr) {
+      if (this.tryDrawEnemyRig(ctx, e, false)) {
+        // M11: Rig (Rumpf + Visier + 2 Spulen + 2 Gondeln + Funken); Schweben/Neigen/Aufladen/Entladen macht die Pose
+        this.droneArcSeen.set(e, { x: e.x, y: e.y, f: getRigFacing('drone_arc', e, this.scene.playerX) });
+      } else if (spr) {
         ctx.save();
         ctx.translate(e.x, e.y + hover);
         ctx.rotate(bank);

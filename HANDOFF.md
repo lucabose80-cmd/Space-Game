@@ -4,7 +4,7 @@
 
 ## Stand
 - Meilensteine 1–10-C sind umgesetzt, `SAVE_VERSION = 11` (Vercel deployt bei Push auf `main`). **M11 (lebendige Gegner & Bosse) läuft:** Kern-Wächter animiert, Krall vollständig eingebunden (alle P0-Sheets verdrahtet, nur Abnahme im Kampf offen), Geschütz-Rig komplett, Teilen von Quarz-Koloss/Sternen-Archon fertig. **Status je Bereich: [`handoff/README.md`](handoff/README.md).** Übersicht: `MILESTONE_11_ARCHITECTURE.md` §11, `BOSS_ANIMATION_PLAN.md` (Statustabelle §3).
-- **Kristall-Krabbler-Rig (P2-05)** eingebunden (`handoff/enemy_crystal_crawler.md`); optionale Effekt-Sprites: `SPRITE_QUEUE.md` P3-20 (bis dahin Tod-Splitter aus Rig-Teilen).
+- **Kristall-Krabbler-Rig (P2-05)** eingebunden (`handoff/enemy_crystal_crawler.md`); optionale Effekt-Sprites: `SPRITE_QUEUE.md` P3-21 (bis dahin Tod-Splitter aus Rig-Teilen).
 - Doku: `GAME_DESIGN_DOCUMENT.md` (Status), `MILESTONE_10_ARCHITECTURE.md` §11 und `MILESTONE_10C_ARCHITECTURE.md` §9 (Umsetzungsnotizen, gemessene Werte, Abweichungen).
 
 ## Arbeitsablauf & Werkzeug-Sync (Antigravity ↔ Claude Code)
@@ -22,6 +22,7 @@ npm run verify                           # Build + Invarianten + Sprite-Check + 
 - Dev-Test-Hook `window.__game` gibt es nur im Vite-Dev-Server.
 
 ## ⚠ Fehlende Sprites (Fallbacks aktiv → neue PNGs gewünscht)
+> **Grundhaltung (Inhaber, 2026-11-27): Qualität vor Sparen.** Genug Gemini-Guthaben vorhanden — wenn etwas mit den vorhandenen Bildern nicht gut aussieht, nicht klappt oder nicht gefällt, wird ein neues bzw. ersetzendes Sheet bestellt (`AGENTS.md` Regel 14, `SPRITE_QUEUE.md` §0).
 `npm run check:sprites` listet die aktuelle Lage. Stand: **alle 12 optionalen M10-Sprites fehlen**
 (`prop_hub_*`, `prop_kael_memorial`, `prop_lyra_echo_sign`, `prop_nyx_free_lantern`, `prop_vex_*`, `npc_pilgrim`, `npc_foundry_worker`, `npc_elder_scholar`) **plus 5 Boss-Sprites (M10-C)**: `boss_scrap_collector` *(Krall hat inzwischen ein Rig → nur noch Rückfall, niedrige Priorität)*, `boss_slag_colossus`, `boss_forge_mistress`, `boss_chrono_warden`, `boss_monolith_colossus` (128×128, Prompts: Art-Guide §8).
 - Prompts & Maße: `ART_AND_DESIGN_GUIDE.md` §7–§8 · Ablage: `public/art/sprites/<datei>.png` (96×96 bzw. 128×128, kein Code nötig).

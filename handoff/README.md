@@ -8,6 +8,7 @@ Jeder Chat/Agent pflegt **nur die Datei seines Bereichs**. `HANDOFF.md` bleibt d
 | Kern-Wächter | [`core_warden.md`](core_warden.md) | `anim/rigs/core_warden.ts` | `data/rigs/core_warden.json` | `m11p6_core_warden` |
 | Geschütz | [`enemy_turret.md`](enemy_turret.md) | `anim/rigs/turret.ts` | `data/rigs/turret.json` | `m11p7_turret` |
 | Drohne | [`enemy_drone.md`](enemy_drone.md) | `anim/rigs/drone.ts` | `data/rigs/drone.json` | `m11p8_drone` |
+| Bogen-Drohne | [`enemy_drone_arc.md`](enemy_drone_arc.md) | `anim/rigs/drone_arc.ts` (+ Wrack-Block `renderDroneArcWrecks` in `dungeonRenderer.ts`) | `data/rigs/drone_arc.json` | `m11p10_drone_arc` |
 | Phasen-Jäger | [`enemy_phase_stalker.md`](enemy_phase_stalker.md) | `anim/rigs/phase_stalker.ts` | `data/rigs/phase_stalker.json` | `m11p9_phase_stalker` |
 | Kristall-Krabbler | [`enemy_crystal_crawler.md`](enemy_crystal_crawler.md) | `anim/rigs/crystal_crawler.ts` | `data/rigs/crystal_crawler.json` | `m11p11_crystal_crawler` |
 | Sporenspucker | [`enemy_spore_spitter.md`](enemy_spore_spitter.md) | `anim/rigs/spore_spitter.ts` (+ Renderer-Zweig `spore_spitter`, Todes-Animation) | `data/rigs/spore_spitter.json` | `m11p9_spore_spitter` |

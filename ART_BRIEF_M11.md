@@ -33,7 +33,7 @@
 5. **Gleiches Design wie das Referenzbild.** Das bestehende Sprite (`public/art/sprites/…`) und das Pilot-Sheet (`art_source/rigs/…_parts.png`) als Referenz mitgeben: *„keep exactly this character design, colors, outline and scale“*.
 6. **Sauberes Sheet:** reiner Hintergrund `#FFFFFF`, ≥ 30 px Weißrand, nichts berührt den Zellrand, **keine** Rasterlinien, **keine** Mittenmarkierung, kein Text, kein Bodenschatten.
 7. **Raster 3×2** (6 Zellen) bei `AspectRatio: '3:2'` (ideal 1536×1024), außer anders angegeben. Zellen-Reihenfolge ist fest (Zeile für Zeile, links → rechts).
-8. **Qualität vor Menge:** erst **1 Sheet pro Typ** erzeugen und prüfen lassen (Credits sparen), danach die übrigen.
+8. **Qualität vor Menge:** bei einer neuen Serie erst **1 Sheet pro Typ** erzeugen und prüfen lassen (Qualitäts-Check), danach die übrigen. **Nicht an Credits sparen:** gefällt ein Sheet nicht oder passt es technisch nicht, wird ein Ersatz bestellt (`SPRITE_QUEUE.md` §0, `AGENTS.md` Regel 14).
 
 ---
 
@@ -134,7 +134,7 @@ Für jeden Boss: **Arme L+R (Typ L)**, **Kopf/Rumpf (Typ S)**, ggf. Beine, Effek
 | Monolith-Koloss | Platten-Körper: 6 Platten-Anordnungen (Typ S: zusammen · weit auseinander · als Säulen) |
 | Sternen-/Omega-Archon | Flügel (Typ L), Arme beim „Sternbild zeichnen“, Körper **in zwei Hälften** (für Teilen) |
 
-*(Die genauen Zellenlisten legen wir erst fest, wenn Krall und Kern-Wächter im Spiel gut aussehen — spart Credits.)*
+*(Die genauen Zellenlisten legen wir erst fest, wenn Krall und Kern-Wächter im Spiel gut aussehen — damit die Serie auf einem abgenommenen Vorbild aufbaut. Zusätzliche Sheets je Boss sind erwünscht, siehe `BOSS_ENEMY_PIPELINE.md` §0.)*
 
 ### 4.4 Normale Gegner
 **Ersetzt durch [`ART_BRIEF_M11_ENEMIES.md`](ART_BRIEF_M11_ENEMIES.md):** normale Gegner werden wie Bosse als **Teile-Sheets (Typ G)** gerigged — mit Zellenliste, Gelenken und Prompt pro Gegner. Prozedurale Code-Beine wurden verworfen (passen nicht zum Pixel-Art-Stil); die frühere 2×2-Pose-Sheet-Idee ist damit ebenfalls überholt.

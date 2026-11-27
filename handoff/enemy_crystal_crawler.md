@@ -19,4 +19,4 @@
 | G8 | ✅ | nur `anim/rigs/crystal_crawler.ts`, Rig-JSON, Renderer-Zweig (+ eine Drawables-Zeile), Prüfbogen-Fall; kein `Math.random` |
 | G9 | ✅ | Test `m11p11_crystal_crawler`, dieses Blatt, `npm run verify` via `npm run ship` |
 
-- **Offen:** Abnahme im echten Kampf. **Neue Sprites benötigt (optional):** `SPRITE_QUEUE.md` **P3-20** (Effekt-Sheet Splitter/Glüh-Kristall/Funkenspur) — bis dahin Tod-Splitter aus Rig-Teilen.
+- **Offen:** Abnahme im echten Kampf. **Neue Sprites benötigt (optional):** `SPRITE_QUEUE.md` **P3-21** (Effekt-Sheet Splitter/Glüh-Kristall/Funkenspur) — bis dahin Tod-Splitter aus Rig-Teilen.

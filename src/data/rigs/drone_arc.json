@@ -1,0 +1,135 @@
+{
+  "kind": "drone_arc",
+  "sheet": {
+    "file": "drone_arc",
+    "srcFile": "drone_arc_rig",
+    "cols": 3,
+    "rows": 2,
+    "order": [
+      "body",
+      "visor",
+      "coil",
+      "nacelle",
+      "sparkS",
+      "sparkL"
+    ],
+    "scaleRef": "body",
+    "torsoDisplayH": 25,
+    "pixelRatio": 2
+  },
+  "parts": [
+    {
+      "id": "body",
+      "image": "body",
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "z": 0,
+      "offset": [
+        0,
+        -12
+      ]
+    },
+    {
+      "id": "coilL",
+      "image": "coil",
+      "parent": "body",
+      "attach": [
+        0.3,
+        0.1
+      ],
+      "pivot": [
+        0.73,
+        0.85
+      ],
+      "z": -0.5
+    },
+    {
+      "id": "coilR",
+      "image": "coil",
+      "flipX": true,
+      "parent": "body",
+      "attach": [
+        0.7,
+        0.1
+      ],
+      "pivot": [
+        0.73,
+        0.85
+      ],
+      "z": -0.5
+    },
+    {
+      "id": "nacelleL",
+      "image": "nacelle",
+      "parent": "body",
+      "attach": [
+        0.1,
+        0.62
+      ],
+      "pivot": [
+        0.97,
+        0.08
+      ],
+      "z": 1.5
+    },
+    {
+      "id": "nacelleR",
+      "image": "nacelle",
+      "flipX": true,
+      "parent": "body",
+      "attach": [
+        0.9,
+        0.62
+      ],
+      "pivot": [
+        0.97,
+        0.08
+      ],
+      "z": 1.5
+    },
+    {
+      "id": "visor",
+      "image": "visor",
+      "parent": "body",
+      "attach": [
+        0.62,
+        0.64
+      ],
+      "pivot": [
+        0.5,
+        0.55
+      ],
+      "z": 2
+    },
+    {
+      "id": "sparkS",
+      "image": "sparkS",
+      "parent": "body",
+      "attach": [
+        0.5,
+        0.0
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "z": 3
+    },
+    {
+      "id": "sparkL",
+      "image": "sparkL",
+      "parent": "body",
+      "attach": [
+        0.5,
+        0.0
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "z": 3.2
+    }
+  ]
+}

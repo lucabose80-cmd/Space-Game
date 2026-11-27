@@ -20,7 +20,7 @@
 4. **Gleiches Design wie das Referenzbild** (`public/art/sprites/<datei>.png` immer über `ImagePaths` mitgeben): *„keep exactly this character design, colors, dark outline and shading, light from the upper left“*. Nicht „neu interpretieren“.
 5. **Teile vollständig zeichnen** — auch die Stellen, die im Original verdeckt sind (z. B. die Oberseite eines Beins unter dem Panzer, die Rückseite des Rumpfes hinter dem Arm). Der Code schiebt Teile übereinander; Löcher würden sichtbar.
 6. **Teile freistehend**, ≥ 30 px Weißrand, nichts berührt den Zellrand, **keine** Rasterlinien, **keine** Mittenmarkierung, kein Text, kein Bodenschatten, keine Effekte außerhalb des eigenen Teils.
-7. **Symmetrische Insekten-/Spinnenbeine (Draufsicht):** nur die **linke** Seite zeichnen, der Code spiegelt (spart Credits — bei Gegnern dieser Größe sieht man den Unterschied nicht). **Humanoide** (Arme/Beine): links und rechts **getrennt** zeichnen (wie bei den Bossen).
+7. **Symmetrische Insekten-/Spinnenbeine (Draufsicht):** nur die **linke** Seite zeichnen, der Code spiegelt (bei Gegnern dieser Größe sieht man den Unterschied nicht; wirkt es im Spiel doch gespiegelt, rechte Seite als Zusatz-Sheet bestellen). **Humanoide** (Arme/Beine): links und rechts **getrennt** zeichnen (wie bei den Bossen).
 8. **Erst Pilot, dann Serie:** zuerst die 2 Pilot-Sheets aus §5 erzeugen, pushen, vom Projektinhaber im Spiel abnehmen lassen — erst dann weitere.
 
 ## 3. Prompt-Vorlage (Formel G)
@@ -50,6 +50,7 @@ Das Geschütz bewegt sich im Spiel (`scurry`), das Rig hat aber nur Sockel + Geh
 | **Geschütz** (`turret`) · `turret_0.png` + `turret_1.png` | 1 Sockel/Bodenplatte · 2 Geschützgehäuse (achteckig, ohne Rohr) · 3 Rohr **eingefahren** · 4 Rohr **ausgefahren** (Stand von `turret_1`) · 5 Mündungsring glühend · 6 Lade-Kern (orange Glut, rund) | 1 Mitte Sockel · 2 Drehbolzen des Gehäuses · 3/4 Rohransatz am Gehäuse · 5/6 Mitte | Gehäuse dreht zum Spieler, Rohr fährt beim Laden aus, Rückstoß beim Schuss, Kern pulsiert |
 | **Drohne** (`drone`) · `drone.png` | 1 Kugel-Rumpf ohne Düsen · 2 Visier/Auge (lila Glas) · 3 Düsen-Gondel links (die rechte spiegelt der Code) · 4 obere Klappe/Kappe · 5 Düsenflamme · 6 Visier halb geschlossen (blinzeln/zielen) | 1 Kugelmitte · 2 Visiermitte · 3 Gondel-Ansatz · 4 Scharnier · 5 Flammenansatz | Gondeln kippen in Flugrichtung, Klappe öffnet beim Schuss, Visier zielt/blinzelt |
 | **Bogen-Drohne** (`drone_arc`) · `enemy_drone_arc.png` | 1 Kugel-Rumpf (gold) · 2 Visier · 3 Tesla-Spule links (rechte gespiegelt) · 4 Düsen-Gondel links · 5 Lichtbogen-Funke (klein) · 6 Lichtbogen-Funke groß | 1 Mitte · 3 Spulenfuß · 4 Ansatz · 5/6 Mitte | Spulen laden sichtbar auf, Funken springen zwischen den Spulen |
+| *Zusatz (optional, `SPRITE_QUEUE.md` P3-20)* Bogen-Drohne · `drone_arc_extra.png` | 1 Visier halb zu · 2 Visier mit Funkenblitz · 3 Spule überladen · 4 Wrack Rumpf-Hälfte · 5 Spulen-Stummel · 6 Gondel-Trümmer | Mitte jeder Zelle | Ersetzt nur das Skalieren des Visiers (`sy`) bzw. die einfache Wrack-Animation; Prompt wie Hauptsheet, gleiche Palette (Gold/Violett/Cyan), weißer Hintergrund |
 | **Schild-Drohne** (`shield_drone`) · `enemy_shield_drone.png` | 1 Rumpf · 2 Visier · 3 Düsen-Gondel · 4 Schild-Emitter (Ring unten, ohne Energie) · 5 Schildbogen aktiv (cyan) · 6 Schildbogen überhitzt (orange, rissig) | 1 Mitte · 3 Ansatz · 4 Emitter-Mitte · 5/6 Bogenmitte | Schild dreht zum Spieler, überhitzt sichtbar (passt zu M10-C-Schilden) |
 | **Sporenspucker** (`spore_spitter`) · `enemy_spore_spitter.png` | 1 Körper ohne Sporenkapseln · 2 Auge · 3 Sporenkapsel geschlossen · 4 Sporenkapsel offen (leuchtend) · 5 Spore (Geschoss) · 6 Körper halb eingegraben (nur obere Hälfte) | 1 Körpermitte unten · 2 Augenmitte · 3/4 Stielansatz · 5 Mitte · 6 Körpermitte | Kapseln öffnen sich nacheinander, Körper gräbt sich ein/auf |
 | **Phasen-Jäger** (`phase_stalker`) · `enemy_phase_stalker.png` | 1 Rumpf mit Hüfte (ohne Arme/Beine/Kopf) · 2 Kopf mit rotem Visier · 3 rechter Arm inkl. Energieklinge (hängend) · 4 linker Arm inkl. Energieklinge (hängend) · 5 rechtes Bein · 6 linkes Bein | 1 Brustmitte · 2 Hals · 3/4 Schulter · 5/6 Hüfte | Gehen (Beine), Klingen holen aus und schlagen, Phasen-Sprung streckt den Körper |
@@ -84,7 +85,7 @@ Das Geschütz bewegt sich im Spiel (`scurry`), das Rig hat aber nur Sockel + Geh
 
 **Optional später (Typ L, wie bei Bossen):** Für Humanoide (`phase_stalker`, `ember_stalker`, `star_lancer`, `monolith_guard`) ein zweites Sheet `<kind>_arms_R.png` mit 6 Arm-Posen (hängend · ausholen · Schlag zur Kamera · seitlich · Block · Stoß). Erst wenn die Teile-Sheets im Spiel gut aussehen.
 
-## 5. Reihenfolge & Credit-Plan
+## 5. Reihenfolge (Qualität vor Sparen — `SPRITE_QUEUE.md` §0)
 | Schritt | Sheets | Warum |
 | :--- | :--- | :--- |
 | **Pilot** | `turret_rig.png`, `phase_stalker_rig.png` | ein mechanischer + ein humanoider Gegner aus Sektor 1 — zeigt, ob das Format für beide Typen trägt. **Danach Abnahme im Spiel.** |
@@ -94,7 +95,7 @@ Das Geschütz bewegt sich im Spiel (`scurry`), das Rig hat aber nur Sockel + Geh
 | 5 | `chrono_eye_rig.png`, `astral_scarab_rig.png`, `star_lancer_rig.png`, `void_wraith_rig.png`, `monolith_guard_rig.png` | Sektor 4 |
 | 6 | optionale Arm-Posen (Typ L) für Humanoide | Feinschliff |
 
-Pro Sitzung lieber **wenige Sheets sauber** als viele schief. Die Boss-Sheets aus `ART_BRIEF_M11.md` (restliche Krall-Sheets) haben Vorrang, wenn beides offen ist.
+Pro Sitzung lieber **wenige Sheets sauber** als viele schief. **Zusatz- oder Ersatz-Sheets sind jederzeit erlaubt** (z. B. Arm-Posen, Angriffs-/Tod-Effekte, ein neues Sheet, wenn eines nicht gefällt) — Credits sind kein Grund dagegen (`AGENTS.md` Regel 14). Die Boss-Sheets aus `ART_BRIEF_M11.md` (restliche Krall-Sheets) haben Vorrang, wenn beides offen ist.
 
 ## 6. Prüfen & Ablegen (Antigravity)
 1. Bild erzeugen (Referenz über `ImagePaths`, `AspectRatio: '3:2'`), als verlustfreies PNG nach `art_source/rigs/<kind>_rig.png` (1536×1024; bei abweichender Größe per PIL ohne Skalierungsverlust auf ein `#FFFFFF`-Raster mit 512×512-Zellen packen).
