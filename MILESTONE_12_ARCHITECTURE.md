@@ -154,7 +154,13 @@ Alle optional mit prozeduralem Fallback (Regel 7). Stil: wie `hub_bg.png`/Dungeo
 3. **Endless-Spirale:** Endbosse bleiben dort im Standardraum (Folgeticket nach dem Piloten).
 
 ## 11. Umsetzungsnotizen
-*(wird während der Umsetzung gefüllt: Abweichungen, gemessene Werte)*
+### Phase A — Raumgrenzen pro Raum (2026-11-27, umgesetzt, Abnahme offen)
+- `DungeonRoom.bounds?: RoomBoundsDef` (`{ l, r, t, b }`); `roomBounds(room)` liefert ein gecachtes, unveränderliches `RoomBounds` mit `cx/cy` — ohne `bounds` immer dasselbe `DEFAULT_ROOM_BOUNDS` (exakt `ROOM_LEFT…`). `scene.bounds` = Grenzen des aktuellen Raums.
+- Boss-Engine: statt `ctx.bounds` heißt das Feld `BossCtx.room` (Schreibweise `L/R/T/B/CX/CY` wie die alte `ROOM`-Konstante → Boss-Züge mechanisch `ROOM.` → `c.room.`). `ROOM` bleibt als Standardraum exportiert; `clampToRoom(x, y, m, room = ROOM)`. Gießerei-Ambosse sind jetzt `anvils(room)`.
+- Strahl-Raycasts (Rail-Schuss 360, Boss-Laser 320): `scene.rayLimit(std)` — Standardraum unverändert, Arena = Diagonale + 12.
+- `NavGrid(blocked, inflate, bounds = DEFAULT_ROOM_BOUNDS)`: Rastergröße je Instanz (`cols/rows`, Standard 43×22).
+- Noch auf Konstanten (Absicht): Renderer (Phase B), Belohnungs-/Loot-Positionen & Layouts (Phase C/D).
+- Nachweis „Standard identisch“: `m12p1` + einmaliger Vorher/Nachher-Vergleich von 9 deterministischen Kampf-Szenarien (bit-identisch).
 
 **Phase E (Belohnungen) — umgesetzt, vorerst am bestehenden Leviathan-Sieg (`sector1Cleared`), noch ohne Arena:**
 - `WEAPON_TYPE_GATES` in `balance.ts` (spear ← S1, discus ← S2, hammer ← S3); `GameState.getWeaponTypeLock()` / `canCraftWeapon()`; Schmiede zeigt „🔒 Bauplan: besiege …“. „Besiegt“ = `sectorNCleared` **oder** Rekord `bestSectorClearSec[n]` **oder** NG+ → keine neuen Save-Felder, Save bleibt v11; schon geschmiedete Waffen bleiben.

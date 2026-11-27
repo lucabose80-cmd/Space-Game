@@ -2,7 +2,7 @@
 // Alle Angriffe sind telegrafiert (Vorwarnung ≥ 0,4 s) und deterministisch (kein globaler Zufall).
 import { sound } from '../../engine/audio';
 import type { Enemy } from '../dungeonTypes';
-import { around, bossBolt, clampToRoom, glideTo, ROOM, type BossCtx, type BossDef } from './bossEngine';
+import { around, bossBolt, clampToRoom, glideTo, type BossCtx, type BossDef, type BossRoom } from './bossEngine';
 
 const fx = (c: BossCtx) => c.scene.bossFx;
 const TAU = Math.PI * 2;
@@ -18,7 +18,7 @@ function floatTop(e: Enemy, c: BossCtx, ax: number, ay: number, speed: number): 
   // M11 Teilen: die beiden Hälften schweben getrennt links/rechts
   const side = e.splitRole === undefined ? 0 : e.splitRole === 0 ? -85 : 85;
   const amp = e.splitRole === undefined ? ax : ax * 0.35;
-  glideTo(e, ROOM.CX + side + Math.sin(t * speed + (e.splitRole ?? 0) * Math.PI) * amp, ROOM.T + 58 + Math.sin(t * speed * 2) * ay, 2.2);
+  glideTo(e, c.room.CX + side + Math.sin(t * speed + (e.splitRole ?? 0) * Math.PI) * amp, c.room.T + 58 + Math.sin(t * speed * 2) * ay, 2.2);
 }
 
 // ---------------- S1 Ebene I: SCHROTT-SAMMLER „KRALL“ (kind boss_breacher) ----------------
@@ -133,10 +133,10 @@ const slag: BossDef = {
 };
 
 // ---------------- S3 Ebene II: GIESSEREI-MEISTERIN (boss_forge_warden) ----------------
-const ANVILS = [
-  { x: ROOM.L + 80, y: ROOM.B - 50 },
-  { x: ROOM.R - 80, y: ROOM.B - 50 },
-  { x: ROOM.CX, y: ROOM.T + 62 },
+const anvils = (room: BossRoom) => [
+  { x: room.L + 80, y: room.B - 50 },
+  { x: room.R - 80, y: room.B - 50 },
+  { x: room.CX, y: room.T + 62 },
 ];
 const forge: BossDef = {
   title: 'GIESSEREI-MEISTERIN',
@@ -149,7 +149,7 @@ const forge: BossDef = {
       windup: 0.8,
       start: (_e, c) => {
         for (const off of [-64, 0, 64]) {
-          const p = clampToRoom(c.scene.playerX + off, c.scene.playerY + (off === 0 ? 0 : 18), 24);
+          const p = clampToRoom(c.scene.playerX + off, c.scene.playerY + (off === 0 ? 0 : 18), 24, c.room);
           fx(c).add({ shape: 'rect', x: p.x, y: p.y, w: 42, h: 42, delay: 0.8, life: 0.3, burst: 22, color: '#fb923c' });
         }
       },
@@ -178,7 +178,8 @@ const forge: BossDef = {
       name: 'AMBOSS-SPRUNG',
       windup: 0.6,
       start: (e, c) => {
-        const a = ANVILS[(e.bossMoveIdx ?? 0) % ANVILS.length];
+        const an = anvils(c.room);
+        const a = an[(e.bossMoveIdx ?? 0) % an.length];
         e.bossTargetX = a.x;
         e.bossTargetY = a.y;
         fx(c).add({ shape: 'circle', x: a.x, y: a.y, r: 28, delay: 0.6, life: 0.3, burst: 20, color: '#f87171' });
@@ -196,8 +197,8 @@ const forge: BossDef = {
       windup: 0.6,
       start: (_e, c) => {
         for (const off of [-34, 34]) {
-          const y = clampToRoom(0, c.scene.playerY + off, 20).y;
-          fx(c).add({ shape: 'line', x: ROOM.L + 6, y, x2: ROOM.R - 6, y2: y, width: 12, delay: 0.9, life: 1.4, dps: 22, color: '#ef4444' });
+          const y = clampToRoom(0, c.scene.playerY + off, 20, c.room).y;
+          fx(c).add({ shape: 'line', x: c.room.L + 6, y, x2: c.room.R - 6, y2: y, width: 12, delay: 0.9, life: 1.4, dps: 22, color: '#ef4444' });
         }
       },
       recover: 1.5,
@@ -214,13 +215,13 @@ const vulkan: BossDef = {
   idleSec: [0.9, 0.65],
   idleMove: (e, c) => floatTop(e, c, 90, 16, 0.8),
   onPhase2: (_e, c) => {
-    const w = ROOM.R - ROOM.L;
-    const h = ROOM.B - ROOM.T;
+    const w = c.room.R - c.room.L;
+    const h = c.room.B - c.room.T;
     for (const z of [
-      { x: ROOM.CX, y: ROOM.T + 9, w, h: 18 },
-      { x: ROOM.CX, y: ROOM.B - 9, w, h: 18 },
-      { x: ROOM.L + 9, y: ROOM.CY, w: 18, h },
-      { x: ROOM.R - 9, y: ROOM.CY, w: 18, h },
+      { x: c.room.CX, y: c.room.T + 9, w, h: 18 },
+      { x: c.room.CX, y: c.room.B - 9, w, h: 18 },
+      { x: c.room.L + 9, y: c.room.CY, w: 18, h },
+      { x: c.room.R - 9, y: c.room.CY, w: 18, h },
     ]) {
       fx(c).add({ shape: 'rect', ...z, delay: 1.5, life: 9999, dps: 10, color: '#ef4444' });
     }
@@ -329,7 +330,7 @@ const monolith: BossDef = {
   idleMove: (e, c) => approach(e, c, 84, 46),
   onPhase2: (_e, c) => {
     const room = c.scene.currentRoom;
-    for (const [x, y] of [[ROOM.CX - 95, ROOM.CY - 32], [ROOM.CX + 95, ROOM.CY - 32], [ROOM.CX, ROOM.CY + 52]]) {
+    for (const [x, y] of [[c.room.CX - 95, c.room.CY - 32], [c.room.CX + 95, c.room.CY - 32], [c.room.CX, c.room.CY + 52]]) {
       const near = Math.hypot(c.scene.playerX - x, c.scene.playerY - y) < 40;
       room.obstacles.push({ x: x - 10 + (near ? 44 : 0), y: y - 10, w: 20, h: 20, kind: 'monolith_obelisk' });
     }
@@ -400,10 +401,10 @@ const star: BossDef = {
         const chains = c.p2 ? [{ r: 118, a0: 0 }, { r: 70, a0: 0.55 }] : [{ r: 118, a0: 0 }];
         for (const ch of chains) {
           const base = ch.a0 + (e.bossMoveIdx ?? 0) * 0.4;
-          const pts = [0, 1, 2, 3, 4].map((k) => ({ x: ROOM.CX + Math.cos(base + (k * 2 * TAU) / 5) * ch.r * 1.4, y: ROOM.CY + Math.sin(base + (k * 2 * TAU) / 5) * ch.r * 0.8 }));
+          const pts = [0, 1, 2, 3, 4].map((k) => ({ x: c.room.CX + Math.cos(base + (k * 2 * TAU) / 5) * ch.r * 1.4, y: c.room.CY + Math.sin(base + (k * 2 * TAU) / 5) * ch.r * 0.8 }));
           for (let k = 0; k < 5; k++) {
-            const a = clampToRoom(pts[k].x, pts[k].y, 14);
-            const b = clampToRoom(pts[(k + 1) % 5].x, pts[(k + 1) % 5].y, 14);
+            const a = clampToRoom(pts[k].x, pts[k].y, 14, c.room);
+            const b = clampToRoom(pts[(k + 1) % 5].x, pts[(k + 1) % 5].y, 14, c.room);
             fx(c).add({ shape: 'line', x: a.x, y: a.y, x2: b.x, y2: b.y, width: 10, delay: 0.9, life: 0.3, burst: 20, color: '#a5b4fc' });
           }
         }
@@ -414,10 +415,10 @@ const star: BossDef = {
       name: 'GRAVITATIONS-BRUNNEN',
       windup: 0.5,
       start: (_e, c) => {
-        const wells = c.p2 ? [ROOM.CX - 70, ROOM.CX + 70] : [ROOM.CX];
+        const wells = c.p2 ? [c.room.CX - 70, c.room.CX + 70] : [c.room.CX];
         for (const x of wells) {
-          fx(c).add({ shape: 'circle', x, y: ROOM.CY, r: 95, delay: 0.5, life: 2.4, pull: c.p2 ? 80 : 55, color: '#818cf8' });
-          fx(c).add({ shape: 'circle', x, y: ROOM.CY, r: 26, delay: 2.9, life: 0.3, burst: 22, color: '#f87171' });
+          fx(c).add({ shape: 'circle', x, y: c.room.CY, r: 95, delay: 0.5, life: 2.4, pull: c.p2 ? 80 : 55, color: '#818cf8' });
+          fx(c).add({ shape: 'circle', x, y: c.room.CY, r: 26, delay: 2.9, life: 0.3, burst: 22, color: '#f87171' });
         }
       },
       recover: 3.4,
