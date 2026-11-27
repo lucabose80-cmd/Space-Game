@@ -60,7 +60,7 @@ module.exports = async ({ page }) => {
       out.rendered[id] = withRig !== without;
     }
     // normale Gegner mit Bewegung rendern ohne Fehler
-    for (const k of ['drone', 'turret', 'slime', 'forge_golem']) { dng.enemies.length = 0; dng.spawnEnemy(k, 200, 140); dng.enemies[0].vx = 50; dng.enemies[0].telegraphTimer = 0.2; dng.render(ctx, new InputManager(canvas)); }
+    for (const k of ['drone', 'turret', 'phase_stalker', 'slime', 'forge_golem']) { dng.enemies.length = 0; dng.spawnEnemy(k, 200, 140); dng.enemies[0].vx = 50; dng.enemies[0].telegraphTimer = 0.2; dng.render(ctx, new InputManager(canvas)); }
     out.enemiesOk = true;
     return out;
   });
