@@ -26,12 +26,6 @@
    "srcW": 181,
    "srcH": 211
   },
-  "emitter": {
-   "w": 54,
-   "h": 40,
-   "mode": "swap",
-   "set": "shield_drone_rig"
-  },
   "arcOn": {
    "w": 54,
    "h": 42,

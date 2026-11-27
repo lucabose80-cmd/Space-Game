@@ -9,7 +9,7 @@
       "hull",
       "visor",
       "nacelle",
-      "emitter",
+      "",
       "arcOn",
       "arcHot"
     ],
@@ -17,17 +17,6 @@
     "torsoDisplayH": 24,
     "pixelRatio": 2,
     "sets": [
-      {
-        "file": "shield_drone_rig",
-        "mode": "swap",
-        "cells": [
-          3
-        ],
-        "ids": [
-          "emitter"
-        ],
-        "holes": true
-      },
       {
         "file": "shield_drone_rig",
         "mode": "swap",
@@ -83,13 +72,13 @@
         0.5
       ],
       "pivot": [
-        0.5,
-        0.2
+        0.85,
+        0.12
       ],
       "z": 0,
       "offset": [
-        -11,
-        9
+        -8,
+        2
       ]
     },
     {
@@ -102,31 +91,13 @@
         0.5
       ],
       "pivot": [
-        0.5,
-        0.2
+        0.85,
+        0.12
       ],
       "z": 0,
       "offset": [
-        11,
-        9
-      ]
-    },
-    {
-      "id": "emitter",
-      "image": "emitter",
-      "parent": "hull",
-      "attach": [
-        0.5,
-        0.5
-      ],
-      "pivot": [
-        0.5,
-        0.5
-      ],
-      "z": -1,
-      "offset": [
-        0,
-        12
+        8,
+        4
       ]
     },
     {

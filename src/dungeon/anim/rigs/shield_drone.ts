@@ -14,12 +14,12 @@ const TELEGRAPH = 0.48;
 /** Rückstoß-Dauer nach der 3er-Salve (s). */
 const RECOIL = 0.22;
 /** Abstand des Bogens vom Rumpfmittelpunkt über den Bogenradius hinaus (px) und Lage des Kreismittelpunkts im Bogenbild (px unterhalb der Bildmitte → Bogen-Kreis mitten im Rumpf). */
-const ARC_PUSH = 4.5;
+const ARC_PUSH = 5;
 const ARC_CENTER_DROP = 3.3;
 /** Das Bogenbild ist nicht symmetrisch (rechtes Ende höher): Bogenmitte liegt bei ≈ 62° (statt 90° = „genau nach unten“). */
 const ARC_MID_ANGLE = 1.09;
 /** Bogen-Grundgröße (Bild ist etwas größer als der Block-Radius 14). */
-const ARC_BASE = 0.95;
+const ARC_BASE = 0.8;
 
 interface DroneState {
   time: number;
@@ -102,14 +102,8 @@ function dronePose(e: Enemy, time: number): Pose {
     },
     // Lichtauge schaut zum Spieler und leuchtet in der Vorwarnung auf
     visor: { dx: Math.cos(aLocal) * 1.4, dy: Math.sin(aLocal) * 1.0, sx: 1 + 0.12 * p + 0.1 * rk, sy: 1 + 0.12 * p + 0.1 * rk },
-    nacelleL: { rot: -lean * 0.6 + 0.04 * Math.sin(time * 9 + e.id), sy: (0.88 + 0.2 * flare) * flick, sx: 0.95 + 0.05 * flare, dy: 1.2 * flare },
-    nacelleR: { rot: -lean * 0.6 - 0.04 * Math.sin(time * 9 + e.id + 1.3), sy: (0.88 + 0.2 * flare) * flick, sx: 0.95 + 0.05 * flare, dy: 1.2 * flare },
-    emitter: {
-      dy: hover * 0.35 + (st.down === 'overheat' ? 1.5 : 0),
-      sx: 1 + 0.04 * Math.sin(time * 5.2 + e.id),
-      sy: 1 - 0.05 * Math.sin(time * 5.2 + e.id),
-      alpha: st.down === 'overheat' ? 0.7 + 0.3 * Math.sin(time * 26) : 1,
-    },
+    nacelleL: { rot: -lean * 0.5 + 0.05 * Math.sin(time * 9 + e.id), sy: (0.9 + 0.15 * flare) * flick, sx: 0.95 + 0.05 * flare },
+    nacelleR: { rot: -lean * 0.5 - 0.05 * Math.sin(time * 9 + e.id + 1.3), sy: 0.8 * (0.9 + 0.15 * flare) * flick, sx: 0.8 * (0.95 + 0.05 * flare) },
     arc: {
       variant: hot ? 1 : 0,
       rot,
