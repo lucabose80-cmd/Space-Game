@@ -2,6 +2,11 @@
 > Eigenes Status-Blatt. Plan: [`MILESTONE_12_ARCHITECTURE.md`](../MILESTONE_12_ARCHITECTURE.md).
 
 ## Stand (2026-11-27)
+- **✅ Leviathan-Rework nach Spiel-Feedback umgesetzt (`m12p8_leviathan_rework`):**
+  - ✅ **Endlos-Absturz-Loop in Phase II behoben:** `DungeonScene.findSafeFloorPos()` validiert `lastSafeX/Y` beim Respawn & direkt nach dem Plattenbruch — kein Feststecken mehr im Mittel-Abgrund.
+  - ✅ **Körper-Modell überarbeitet (alle 4 Varianten `body`, `_p2`, `_p3`, `_dead`):** statische nach unten zeigende Arme entfernt, ersetzt durch saubere runde Schulter-Buchsen (`±84 / -11`), plus lebendiges Reaktor-Atmen & Angriffs-Rückstoß.
+  - ✅ **2-Segment-IK-Hydraulikarme & 5-stufige Fäuste:** dünnes gestretchtes Kabel ersetzt durch massive Hydraulik-Armglieder (`arm_seg`) + Schulter-/Ellbogen-Kugelgelenke (`arm_joint`); Fäuste wechseln sichtbar zwischen Intakt, Beschädigt (`< 55 %`, Funken), Kritisch (`< 25 %`, offene Spulen), Geöffnete Laser-Emitter-Handfläche (`beam`) und Im Boden (`grounded` + `crater`-Sprite); zerstörte Schulter zeigt `stump`-Sprite.
+  - ✅ **Alle Attacken am Boss/Arm/Ventil verankert & mit Sprites gerendert (`bossFx.ts`):** Zwillings-Strahl direkt aus den geöffneten Fäusten (bzw. Schulter-Buchsen) mit `beam` + `muzzle`-Sprites; Peitsche direkt vom Arm/Schulter mit `whip`-Sprite; Dampf nur noch aus intakten Ventilen mit dichten `steam`-Sprites; Glut-Welle mit `flame`-Sprites; Sog mit `vortex`-Sprite; Omega-Puls mit Kern-Mündungsblitz.
 - **✅ Pilot A.E.G.I.S. Leviathan — alle Sprites & erweiterten Sektor-Endboss-Standards (A1–A15) umgesetzt; bereit zur Abnahme im echten Spiel!**
   - ✅ **Erweiterte Sektor-Endboss-Standards `A11–A15`** in [`MILESTONE_12_ARCHITECTURE.md`](../MILESTONE_12_ARCHITECTURE.md) §2 & [`BOSS_ENEMY_PIPELINE.md`](../BOSS_ENEMY_PIPELINE.md) festgeschrieben.
   - ✅ **Alle 4 Körper-Zustände (A11, P1-10 & P1-11a/b/c):** Phase I (`arena_leviathan_body.png`), Phase II überhitzt (`_p2.png`, 97,7 % Deckung), Phase III Panzer abgesprengt (`_p3.png`, 96,2 % Deckung), Besiegt/erloschen (`_dead.png`, 94,6 % Deckung) + kritische Funken-Partikel unter 15 % HP. **0 fehlende M12-Sprites!**

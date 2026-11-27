@@ -2967,86 +2967,110 @@ export class DungeonRenderer {
     ctx.restore();
 
     }
-    // 2. Articulated Segmented Chain Arms + Massive Hydraulic Giant Gauntlets!
+    // 2. Articulated 2-Segment IK Hydraulic Arms + 5-State Armored Giant Gauntlets!
     if (e.levArms) {
       const art = getHDArt();
-      for (const arm of e.levArms) {
-        if (arm.dead) continue; // M12: zerstörter Kranarm
+      const L = e.levArena;
+      e.levArms.forEach((arm, armIdx) => {
+        if (arm.dead) return; // M12: zerstörter Kranarm
         const shX = spriteBody ? e.x + arm.side * BODY_SHOULDER_DX : cx + arm.side * 66;
         const shY = spriteBody ? e.y + 6 + BODY_SHOULDER_DY : cy + 6;
         const grounded = arm.state === 'grounded';
         const slamming = arm.state === 'slamming';
+        const beaming = arm.state === 'beam';
+        const armFrac = L ? L.armHp[armIdx] / Math.max(1, L.armMax) : 1;
 
-        // Segmented steel hydraulic chain joints from shoulder -> gauntlet
         ctx.save();
-        if (spriteBody && art.arenaLeviathanCable) {
-          const dx = arm.x - shX;
-          const dy = arm.y - shY;
-          const dist = Math.hypot(dx, dy);
-          const ang = Math.atan2(dy, dx);
-          const segLen = 22;
-          const steps = Math.max(1, Math.ceil(dist / segLen));
-          ctx.save();
-          ctx.translate(shX, shY);
-          ctx.rotate(ang);
-          for (let s = 0; s < steps; s++) {
-            const sx0 = (s / steps) * dist;
-            const sw = dist / steps + 2;
-            ctx.drawImage(art.arenaLeviathanCable, sx0, -6.5, sw, 13);
-          }
-          ctx.restore();
-          // Gelenk-Bolzen an Schulter und Mitte
-          for (let seg = 1; seg <= 2; seg++) {
-            const u = seg / 3;
-            const jx = shX + dx * u;
-            const jy = shY + dy * u;
-            ctx.fillStyle = '#1e293b';
-            ctx.beginPath();
-            ctx.arc(jx, jy, 4.2, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = enraged ? '#fb7185' : '#64748b';
-            ctx.lineWidth = 1;
-            ctx.stroke();
-          }
-        } else {
-          ctx.strokeStyle = '#64748b';
-          ctx.lineWidth = 5;
-          ctx.beginPath();
-          ctx.moveTo(shX, shY);
-          ctx.lineTo(arm.x, arm.y);
-          ctx.stroke();
-          ctx.strokeStyle = enraged ? '#fb7185' : '#38e8d4';
-          ctx.lineWidth = 1.2;
-          ctx.stroke();
+        // 2-Segment-IK: Schulter -> Ellbogen (winkelt realistisch nach außen ab) -> Faust
+        const dx = arm.x - shX;
+        const dy = arm.y - shY;
+        const dist = Math.max(1, Math.hypot(dx, dy));
+        const ux = dx / dist;
+        const uy = dy / dist;
+        // Normalenvektor nach außen (links: -1, rechts: +1)
+        const nx = arm.side < 0 ? -uy : uy;
+        const ny = arm.side < 0 ? ux : -ux;
+        const maxReach = 140;
+        const bend = Math.max(8, Math.sqrt(Math.max(0, 1 - Math.min(1, dist / maxReach) ** 2)) * 42);
+        const elbX = (shX + arm.x) * 0.5 + nx * bend;
+        const elbY = (shY + arm.y) * 0.5 + ny * bend;
 
-          for (let seg = 1; seg <= 3; seg++) {
-            const u = seg / 4;
-            const jx = shX + (arm.x - shX) * u;
-            const jy = shY + (arm.y - shY) * u;
-            ctx.fillStyle = '#1e293b';
+        const drawHydraulicLimb = (ax: number, ay: number, bx: number, by: number, thickness: number): void => {
+          const ldx = bx - ax;
+          const ldy = by - ay;
+          const ldist = Math.hypot(ldx, ldy);
+          if (ldist < 2) return;
+          const ang = Math.atan2(ldy, ldx);
+          const segImg = art.arenaLeviathanArmSeg ?? art.arenaLeviathanCable;
+          if (spriteBody && segImg) {
+            const segLen = 34;
+            const steps = Math.max(1, Math.ceil(ldist / segLen));
+            ctx.save();
+            ctx.translate(ax, ay);
+            ctx.rotate(ang);
+            for (let s = 0; s < steps; s++) {
+              const sx0 = (s / steps) * ldist;
+              const sw = ldist / steps + 3;
+              ctx.drawImage(segImg, sx0 - 1, -thickness / 2, sw, thickness);
+            }
+            ctx.restore();
+          } else {
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 6;
             ctx.beginPath();
-            ctx.arc(jx, jy, 4.2, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = '#94a3b8';
-            ctx.lineWidth = 0.9;
+            ctx.moveTo(ax, ay);
+            ctx.lineTo(bx, by);
+            ctx.stroke();
+            ctx.strokeStyle = enraged ? '#fb7185' : '#38e8d4';
+            ctx.lineWidth = 1.4;
             ctx.stroke();
           }
+        };
+
+        // Oberarm (Schulter -> Ellbogen) + Unterarm (Ellbogen -> Faust)
+        drawHydraulicLimb(shX, shY, elbX, elbY, 22);
+        drawHydraulicLimb(elbX, elbY, arm.x, arm.y, 19);
+
+        // Schulter- & Ellbogen-Kugelgelenke
+        const drawJoint = (jx: number, jy: number, sz: number): void => {
+          if (spriteBody && art.arenaLeviathanArmJoint) {
+            ctx.drawImage(art.arenaLeviathanArmJoint, jx - sz / 2, jy - sz / 2, sz, sz);
+          } else {
+            ctx.fillStyle = '#1e293b';
+            ctx.beginPath();
+            ctx.arc(jx, jy, sz * 0.35, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = enraged ? '#fb7185' : '#94a3b8';
+            ctx.lineWidth = 1.2;
+            ctx.stroke();
+          }
+        };
+        drawJoint(shX, shY, 26);
+        drawJoint(elbX, elbY, 22);
+
+        // Ground shadow & Einschlagskrater unter der Faust
+        if (grounded && spriteBody && art.arenaLeviathanCrater) {
+          ctx.drawImage(art.arenaLeviathanCrater, arm.x - 32, arm.y - 10, 64, 46);
         }
-
-        // Ground shadow under gauntlet
         drawPixelShadow(ctx, arm.x, arm.y + 18, grounded ? 21 : 15, grounded ? 7 : 4.5, grounded ? 0.58 : 0.35);
 
-        // Massive Armored Gauntlet Fist / Crane Hammer Sprite (P1-05)
+        // Massive Armored Gauntlet Fist — 5 Zustände (Laser / Im Boden / Kritisch / Beschädigt / Intakt)
         const hammerSpr = spriteBody
-          ? grounded
-            ? (art.arenaLeviathanHammerGrounded ?? art.arenaLeviathanHammer)
-            : art.arenaLeviathanHammer
+          ? beaming
+            ? (art.arenaLeviathanHammerLaser ?? art.arenaLeviathanHammer)
+            : grounded
+              ? (art.arenaLeviathanHammerGrounded ?? art.arenaLeviathanHammer)
+              : armFrac < 0.25
+                ? (art.arenaLeviathanHammerCrit ?? art.arenaLeviathanHammerDmg ?? art.arenaLeviathanHammer)
+                : armFrac < 0.55
+                  ? (art.arenaLeviathanHammerDmg ?? art.arenaLeviathanHammer)
+                  : art.arenaLeviathanHammer
           : null;
         if (hammerSpr) {
           ctx.translate(arm.x, arm.y);
           if (arm.side > 0) ctx.scale(-1, 1);
           if (flash) ctx.filter = 'brightness(2.0)';
-          const sz = 44;
+          const sz = beaming ? 48 : 44;
           ctx.drawImage(hammerSpr, -sz / 2, -sz / 2, sz, sz);
           ctx.filter = 'none';
         } else {
@@ -3057,7 +3081,6 @@ export class DungeonRenderer {
           ctx.strokeStyle = slamming || enraged ? '#fb7185' : grounded ? '#fde047' : '#38e8d4';
           ctx.lineWidth = grounded ? 1.8 : 1.2;
           ctx.strokeRect(-15, -13, 30, 26);
-          // Knuckle plates & glowing plasma core emitter inside fist
           ctx.fillStyle = '#1e293b';
           ctx.fillRect(-12, 7, 6, 7);
           ctx.fillRect(-3, 8, 6, 7);
@@ -3075,11 +3098,11 @@ export class DungeonRenderer {
           ctx,
           arm.x,
           arm.y,
-          grounded ? 26 : 18,
-          grounded ? '#fde047' : enraged ? '#fb7185' : '#38e8d4',
-          grounded ? 0.45 : 0.25,
+          beaming ? 30 : grounded ? 26 : 18,
+          beaming ? '#fb7185' : grounded ? '#fde047' : enraged ? '#fb7185' : '#38e8d4',
+          beaming ? 0.55 : grounded ? 0.45 : 0.25,
         );
-      }
+      });
     }
   }
 

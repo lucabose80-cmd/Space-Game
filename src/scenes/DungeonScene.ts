@@ -1416,8 +1416,11 @@ export class DungeonScene {
           this.triggerShake(0.24, 3.6);
           sound.playPlayerHurt();
           haptic(35);
-          this.playerX = this.lastSafeX;
-          this.playerY = this.lastSafeY;
+          const safePos = this.findSafeFloorPos(this.lastSafeX, this.lastSafeY);
+          this.lastSafeX = safePos.x;
+          this.lastSafeY = safePos.y;
+          this.playerX = safePos.x;
+          this.playerY = safePos.y;
           this.spawnBurst(this.playerX, this.playerY, '#fb7185', 12);
           this.floats.push({
             x: this.playerX,
@@ -2808,6 +2811,37 @@ export class DungeonScene {
 
   public collidesRoomChasm(x: number, y: number, r: number): boolean {
     return this.getChasmAt(x, y, r) !== null;
+  }
+
+  /** Sucht den nächsten sicheren Bodenpunkt (nicht im Abgrund, nicht in Hindernissen, innerhalb der Raumgrenzen). */
+  public findSafeFloorPos(x: number, y: number): { x: number; y: number } {
+    const rb = this.bounds;
+    const isSafe = (px: number, py: number): boolean =>
+      px >= rb.l + 14 &&
+      px <= rb.r - 14 &&
+      py >= rb.t + 14 &&
+      py <= rb.b - 14 &&
+      !this.getChasmAt(px, py + 4, 8) &&
+      !this.collidesRoomObstacle(px, py, 6);
+    if (isSafe(x, y)) return { x, y };
+    for (let rad = 16; rad <= 260; rad += 16) {
+      for (let i = 0; i < 16; i++) {
+        const a = (i / 16) * Math.PI * 2;
+        const cx = x + Math.cos(a) * rad;
+        const cy = y + Math.sin(a) * rad;
+        if (isSafe(cx, cy)) return { x: cx, y: cy };
+      }
+    }
+    const fallbacks = [
+      { x: rb.cx, y: rb.b - 28 },
+      { x: rb.l + 32, y: rb.cy },
+      { x: rb.r - 32, y: rb.cy },
+      { x: rb.cx, y: rb.t + 70 },
+    ];
+    for (const fb of fallbacks) {
+      if (isSafe(fb.x, fb.y)) return fb;
+    }
+    return { x: rb.cx, y: rb.b - 28 };
   }
 
   public checkDoorTransition(): void {

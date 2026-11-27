@@ -411,41 +411,90 @@ function startMove(scene: DungeonScene, e: Enemy, move: LevArenaMove, rb: Dungeo
       break;
     }
     case 'whip': {
-      // Kabel-Peitsche: fegt quer über die halbe Halle (Linie), von der Seite des Spielers
+      // Kabel-Peitsche: schwingt direkt vom jeweiligen Leviathan-Arm / der Schulter-Buchse quer durch die Halle Richtung Spieler
       const left = px < rb.cx;
-      const y = Math.max(rb.t + 60, Math.min(rb.b - 14, py));
-      const x0 = left ? rb.l + 4 : rb.r - 4;
-      fx(scene).add({ shape: 'line', x: x0, y, x2: rb.cx + (left ? 24 : -24), y2: y, width: 16, delay: 0.85 * k, life: 0.22, burst: 18, color: '#a855f7', fx: 'dash' });
+      const sideIdx: 0 | 1 = left ? 0 : 1;
+      const arm = e.levArms?.[sideIdx];
+      const shX = e.x + (left ? -BODY_SHOULDER_DX : BODY_SHOULDER_DX);
+      const shY = e.y + LENS_DY + BODY_SHOULDER_DY;
+      const ox = arm && !arm.dead ? arm.x : shX;
+      const oy = arm && !arm.dead ? arm.y : shY;
+      const tx = Math.max(rb.l + 18, Math.min(rb.r - 18, px + (left ? 36 : -36)));
+      const ty = Math.max(rb.t + 76, Math.min(rb.b - 14, py));
+      fx(scene).add({ shape: 'line', x: ox, y: oy, x2: tx, y2: ty, width: 16, delay: 0.85 * k, life: 0.28, burst: 18, color: '#a855f7', fx: 'whip' });
       if (L.phase === 3) {
-        const y2 = Math.max(rb.t + 60, Math.min(rb.b - 14, y + (y > rb.cy ? -64 : 64)));
-        fx(scene).add({ shape: 'line', x: left ? rb.r - 4 : rb.l + 4, y: y2, x2: rb.cx + (left ? -24 : 24), y2, width: 16, delay: 1.1 * k, life: 0.22, burst: 18, color: '#a855f7', fx: 'dash' });
+        const otherIdx: 0 | 1 = left ? 1 : 0;
+        const arm2 = e.levArms?.[otherIdx];
+        const ox2 = arm2 && !arm2.dead ? arm2.x : e.x + (left ? BODY_SHOULDER_DX : -BODY_SHOULDER_DX);
+        const oy2 = arm2 && !arm2.dead ? arm2.y : shY;
+        const tx2 = Math.max(rb.l + 18, Math.min(rb.r - 18, px + (left ? -42 : 42)));
+        const ty2 = Math.max(rb.t + 76, Math.min(rb.b - 14, ty + (ty > rb.cy ? -54 : 54)));
+        fx(scene).add({ shape: 'line', x: ox2, y: oy2, x2: tx2, y2: ty2, width: 16, delay: 1.12 * k, life: 0.28, burst: 18, color: '#a855f7', fx: 'whip' });
       }
-      L.timer = 1.4 * k;
+      L.timer = 1.45 * k;
       e.bossStatusText = 'KABEL-PEITSCHE!';
       sound.playBossCharge();
       break;
     }
     case 'steam': {
-      // Ventil-Dampf: Seitenventile stoßen Dampf-Reihen in die Halle (oben- oder unten-Paar im Wechsel)
+      // Ventil-Dampf: nur intakte Seitenventile stoßen Dampf-Reihen in die Halle (oben- oder unten-Paar im Wechsel)
       const top = L.moveIdx % 2 === 0;
       for (const v of L.vents) {
+        if (v.broken) continue;
         if ((v.y < rb.cy) !== top) continue;
         const fromLeft = v.x < rb.cx;
         const w = 170;
-        fx(scene).add({ shape: 'rect', x: fromLeft ? v.x + 8 + w / 2 : v.x - 8 - w / 2, y: v.y, w, h: 30, delay: 0.9 * k, life: 1.1, dps: 16, color: '#e2e8f0' });
+        fx(scene).add({
+          shape: 'rect',
+          x: fromLeft ? v.x + 8 + w / 2 : v.x - 8 - w / 2,
+          y: v.y,
+          w,
+          h: 30,
+          delay: 0.9 * k,
+          life: 1.1,
+          dps: 16,
+          color: '#e2e8f0',
+          fx: 'steam',
+          variant: fromLeft ? 1 : -1,
+        });
       }
       L.timer = 2.1 * k;
       e.bossStatusText = 'VENTIL-DAMPF!';
       break;
     }
     case 'beam': {
-      // Zwillings-Strahl: drei Strahlen fegen nacheinander von den Kran-Schultern über die ganze Halle
-      const len = scene.rayLimit(320);
-      const sx = [rb.cx - 120, rb.cx + 120];
-      const angs = [[0.35, 0.75, 1.15], [Math.PI - 0.35, Math.PI - 0.75, Math.PI - 1.15]];
+      // Zwillings-Strahl: Fäuste öffnen sich zur Laser-Emitter-Pose (bzw. Schulter-Buchse falls Arm zerstört) und feuern über die Halle
+      const len = scene.rayLimit(340);
+      const angs = [[0.42, 0.82, 1.22], [Math.PI - 0.42, Math.PI - 0.82, Math.PI - 1.22]];
       for (let s = 0; s < 2; s++) {
+        const arm = e.levArms?.[s];
+        const side = s === 0 ? -1 : 1;
+        let ox = e.x + side * BODY_SHOULDER_DX;
+        let oy = e.y + LENS_DY + BODY_SHOULDER_DY;
+        if (arm && !arm.dead) {
+          arm.state = 'beam';
+          arm.timer = 2.4 * k;
+          arm.targetX = arm.homeX;
+          arm.targetY = arm.homeY + 14;
+          arm.x = arm.targetX;
+          arm.y = arm.targetY;
+          ox = arm.x;
+          oy = arm.y;
+        }
         angs[s].forEach((a, j) => {
-          fx(scene).add({ shape: 'line', x: sx[s], y: rb.t + 66, x2: sx[s] + Math.cos(a) * len, y2: rb.t + 66 + Math.sin(a) * len, width: 12, delay: (0.8 + j * 0.45) * k, life: 0.35, burst: 18, color: '#fb7185' });
+          fx(scene).add({
+            shape: 'line',
+            x: ox,
+            y: oy,
+            x2: ox + Math.cos(a) * len,
+            y2: oy + Math.sin(a) * len,
+            width: 12,
+            delay: (0.8 + j * 0.45) * k,
+            life: 0.38,
+            burst: 18,
+            color: '#fb7185',
+            fx: 'beam',
+          });
         });
       }
       L.timer = 2.6 * k;
@@ -468,20 +517,20 @@ function startMove(scene: DungeonScene, e: Enemy, move: LevArenaMove, rb: Dungeo
       break;
     }
     case 'grab': {
-      // Kabel-Griff / Letzter Griff: Kabel ziehen am Spieler (Sog), dann schlägt der Kern zu
+      // Kabel-Griff / Letzter Griff: Gravitations-Wirbel vor der Kern-Linse zieht am Spieler, dann Kern-Stoß
       const cx = e.x;
-      const cy = e.y + 60;
-      fx(scene).add({ shape: 'circle', x: cx, y: cy, r: 190, delay: 0.6, life: 2.0, pull: L.phase === 3 ? 62 : 52, color: '#818cf8', fx: 'pull' });
+      const cy = e.y + 58;
+      fx(scene).add({ shape: 'circle', x: cx, y: cy, r: 190, delay: 0.6, life: 2.0, pull: L.phase === 3 ? 62 : 52, color: '#818cf8', fx: 'vortex' });
       fx(scene).add({ shape: 'circle', x: cx, y: cy - 10, r: 40, delay: 2.4 * k, life: 0.3, burst: 22, color: '#f87171', fx: 'blast' });
       L.timer = 3.0 * k;
       e.bossStatusText = L.phase === 3 ? 'LETZTER GRIFF!' : 'KABEL-GRIFF!';
       break;
     }
     case 'pulse': {
-      // Omega-Puls: drei Ringwellen aus dem Kern, jede mit Lücke (Lücke wandert)
+      // Omega-Puls: Ringwellen aus dem Reaktorkern, jede mit Lücke (Lücke wandert)
       const base = Math.atan2(py - (e.y + LENS_DY), px - e.x);
       [[30, 62, 0.8], [92, 124, 1.15], [154, 186, 1.5], [216, 248, 1.85]].forEach(([r0, r, d], j) => {
-        fx(scene).add({ shape: 'ring', x: e.x, y: e.y + LENS_DY, r0, r, gapA: base + (j % 2 === 0 ? 0.9 : -0.9), gapHalf: 0.42, delay: d * k, life: 0.25, burst: 20, color: '#f43f5e' });
+        fx(scene).add({ shape: 'ring', x: e.x, y: e.y + LENS_DY, r0, r, gapA: base + (j % 2 === 0 ? 0.9 : -0.9), gapHalf: 0.42, delay: d * k, life: 0.28, burst: 20, color: '#f43f5e', fx: 'pulse' });
       });
       L.timer = 2.3 * k;
       e.bossStatusText = 'OMEGA-PULS!';
@@ -489,7 +538,7 @@ function startMove(scene: DungeonScene, e: Enemy, move: LevArenaMove, rb: Dungeo
       break;
     }
     case 'glow': {
-      // Glut-Wellen: Bänder wandern von Norden nach Süden, jedes mit einer Lücke (immer ein Ausweichweg)
+      // Glut-Wellen: Flammenwände wandern von Norden nach Süden, jede mit einer Lücke (immer ein Ausweichweg)
       const rnd = rngFor(e, 1000 + L.moveIdx);
       const bands = 6;
       const span = (rb.b - rb.t - 76) / bands;
@@ -500,8 +549,8 @@ function startMove(scene: DungeonScene, e: Enemy, move: LevArenaMove, rb: Dungeo
         const leftW = gx - rb.l;
         const rightW = rb.r - (gx + gapW);
         const delay = (0.9 + i * 0.38) * k;
-        if (leftW > 4) fx(scene).add({ shape: 'rect', x: rb.l + leftW / 2, y, w: leftW, h: span * 0.8, delay, life: 0.32, burst: 16, color: '#fb923c' });
-        if (rightW > 4) fx(scene).add({ shape: 'rect', x: gx + gapW + rightW / 2, y, w: rightW, h: span * 0.8, delay, life: 0.32, burst: 16, color: '#fb923c' });
+        if (leftW > 4) fx(scene).add({ shape: 'rect', x: rb.l + leftW / 2, y, w: leftW, h: span * 0.8, delay, life: 0.36, burst: 16, color: '#fb923c', fx: 'flame' });
+        if (rightW > 4) fx(scene).add({ shape: 'rect', x: gx + gapW + rightW / 2, y, w: rightW, h: span * 0.8, delay, life: 0.36, burst: 16, color: '#fb923c', fx: 'flame' });
       }
       L.timer = (1.4 + bands * 0.38) * k;
       e.bossStatusText = 'GLUT-WELLE!';
@@ -543,6 +592,9 @@ function startPhase2(scene: DungeonScene, e: Enemy): void {
           s.currentRoom.chasms.push({ x: plate.x, y: plate.y, w: plate.w, h: plate.h });
           if (i === plates.length - 1) {
             s.rebuildNav();
+            const safe = s.findSafeFloorPos(s.lastSafeX, s.lastSafeY);
+            s.lastSafeX = safe.x;
+            s.lastSafeY = safe.y;
             s.triggerShake(0.5, 5);
             sound.playBossSlam();
           }
@@ -570,12 +622,29 @@ function startPhase3(scene: DungeonScene, e: Enemy): void {
   scene.callbacks.onToast('🔥 PHASE III: Der Panzer fällt — die Kern-Linse liegt frei!', 'warn');
 }
 
-/** Kran-Arme: Schweben, Verfolgen, Zuschlagen, Feststecken (angreifbar), Zurückkehren. */
+/** Kran-Arme: Schweben, Verfolgen, Zuschlagen, Feststecken (angreifbar), Laser-Schuss, Zurückkehren. */
 function updateArms(scene: DungeonScene, e: Enemy, dt: number): void {
   const L = e.levArena!;
-  for (const arm of e.levArms ?? []) {
-    if (arm.dead) continue;
-    if (arm.state === 'idle' || arm.state === 'returning' || arm.state === 'beam') {
+  (e.levArms ?? []).forEach((arm, idx) => {
+    if (arm.dead) return;
+    // Beschädigungs-Funken an angeschlagenen Fäusten (< 55 % HP)
+    const armFrac = L.armHp[idx] / Math.max(1, L.armMax);
+    if (armFrac < 0.55) {
+      const rate = armFrac < 0.25 ? 6 : 2.5;
+      const pTick = Math.floor((scene.time - dt) * rate);
+      const cTick = Math.floor(scene.time * rate);
+      if (cTick !== pTick) {
+        scene.spawnBurst(arm.x + ((cTick % 3) - 1) * 6, arm.y - 4, armFrac < 0.25 ? '#fb923c' : '#fde047', 2);
+      }
+    }
+    if (arm.state === 'beam') {
+      arm.timer -= dt;
+      const aimX = arm.homeX;
+      const aimY = arm.homeY + 14 + Math.sin(scene.time * 28 + arm.side) * 2;
+      arm.x += (aimX - arm.x) * Math.min(1, dt * 10);
+      arm.y += (aimY - arm.y) * Math.min(1, dt * 10);
+      if (arm.timer <= 0) arm.state = 'returning';
+    } else if (arm.state === 'idle' || arm.state === 'returning') {
       const hoverY = arm.homeY + Math.sin(scene.time * 3.0 + arm.side) * 4;
       arm.x += (arm.homeX - arm.x) * Math.min(1, dt * 6);
       arm.y += (hoverY - arm.y) * Math.min(1, dt * 6);
@@ -617,8 +686,7 @@ function updateArms(scene: DungeonScene, e: Enemy, dt: number): void {
       arm.timer -= dt;
       if (arm.timer <= 0) arm.state = 'returning';
     }
-  }
-  void L;
+  });
 }
 
 /** Sieg: Glut sinkt (Abgrund schließt sich), Kamera schwenkt zur Linse. */
@@ -708,30 +776,6 @@ export function drawLeviathanArena(ctx: CanvasRenderingContext2D, scene: Dungeon
       ctx.restore();
     }
   }
-  // A12: Hochdruck-Dampfwolken beim Ventil-Dampf-Zug (P1-06)
-  if (L.state === 'move' && L.move === 'steam' && art.arenaLeviathanSteam && L.timer < 1.35) {
-    const top = L.moveIdx % 2 === 0;
-    const rb = scene.bounds;
-    const steamProg = 1 - Math.max(0, L.timer / 1.35);
-    ctx.save();
-    for (const v of L.vents) {
-      if ((v.y < rb.cy) !== top) continue;
-      const dir = v.x < rb.cx ? 1 : -1;
-      for (let k = 0; k < 4; k++) {
-        const u = (steamProg * 1.4 + k * 0.25) % 1;
-        const sx = v.x + dir * (16 + u * 155);
-        const sy = v.y + Math.sin(t * 9 + k * 2) * 5;
-        const sz = 18 + u * 16;
-        ctx.save();
-        ctx.globalAlpha = (1 - u) * 0.82;
-        ctx.translate(sx, sy);
-        if (dir < 0) ctx.scale(-1, 1);
-        ctx.drawImage(art.arenaLeviathanSteam, -sz / 2, -sz / 2, sz, sz);
-        ctx.restore();
-      }
-    }
-    ctx.restore();
-  }
   // Kühlventile
   for (const v of L.vents) {
     ctx.save();
@@ -774,43 +818,52 @@ export function drawLeviathanArena(ctx: CanvasRenderingContext2D, scene: Dungeon
     }
     ctx.restore();
   }
-  // Arme: A13 zerstörter Arm = funkender Schulterstumpf; angreifbarer Arm = pulsierender Ring + HP-Leiste
+  // Arme: A13 zerstörter Arm = abgerissener Schulter-Stumpf-Sprite; angreifbarer/beschädigter Arm = Ring + HP-Leiste
   (e.levArms ?? []).forEach((arm, idx) => {
     if (arm.dead) {
       const shX = e.x + arm.side * BODY_SHOULDER_DX;
       const shY = e.y + LENS_DY + BODY_SHOULDER_DY;
       ctx.save();
-      ctx.fillStyle = '#0f172a';
-      ctx.beginPath();
-      ctx.arc(shX, shY, 7, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#475569';
-      ctx.lineWidth = 1.2;
-      ctx.stroke();
+      if (art.arenaLeviathanStump) {
+        ctx.translate(shX, shY + 2);
+        if (arm.side > 0) ctx.scale(-1, 1);
+        ctx.drawImage(art.arenaLeviathanStump, -18, -16, 36, 36);
+      } else {
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.arc(shX, shY, 7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#475569';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+      }
       // funkende abgerissene Kabelenden
       ctx.strokeStyle = pulse > 0.5 ? '#fde047' : '#38e8d4';
       ctx.lineWidth = 1;
       for (let k = -1; k <= 1; k++) {
         ctx.beginPath();
-        ctx.moveTo(shX + k * 2, shY + 2);
-        ctx.lineTo(shX + k * 5 + Math.sin(t * 14 + k) * 2, shY + 11 + (k === 0 ? 3 : 0));
+        ctx.moveTo(shX + k * 2, shY + 4);
+        ctx.lineTo(shX + k * 5 + Math.sin(t * 14 + k) * 2, shY + 13 + (k === 0 ? 3 : 0));
         ctx.stroke();
       }
       ctx.restore();
       return;
     }
-    if (!armWeak(L, arm)) return;
-    ctx.save();
-    ctx.strokeStyle = `rgba(253, 224, 71, ${0.55 + 0.45 * pulse})`;
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.arc(arm.x, arm.y, ARM_R + 4 + pulse * 2, 0, Math.PI * 2);
-    ctx.stroke();
-    // Arm-HP-Leiste (A13)
+    const weak = armWeak(L, arm);
     const frac = Math.max(0, Math.min(1, L.armHp[idx] / Math.max(1, L.armMax)));
+    if (!weak && frac >= 0.99) return;
+    ctx.save();
+    if (weak) {
+      ctx.strokeStyle = `rgba(253, 224, 71, ${0.55 + 0.45 * pulse})`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(arm.x, arm.y, ARM_R + 4 + pulse * 2, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    // Arm-HP-Leiste (A13): sichtbar wenn angreifbar ODER bereits beschädigt
     ctx.fillStyle = '#0b1019';
     ctx.fillRect(arm.x - 13, arm.y + 21, 26, 3.5);
-    ctx.fillStyle = '#fbbf24';
+    ctx.fillStyle = frac < 0.25 ? '#fb7185' : frac < 0.55 ? '#fb923c' : '#fbbf24';
     ctx.fillRect(arm.x - 12.5, arm.y + 21.5, 25 * frac, 2.5);
     ctx.restore();
   });
@@ -865,17 +918,17 @@ export function drawLeviathanArena(ctx: CanvasRenderingContext2D, scene: Dungeon
   ctx.restore();
 }
 
-/** Boss-Körper-Sprite (P1-10, 300×167 logisch): Kern-Linse bei (150 | 111,5) im Bild. */
+/** Boss-Körper-Sprite (P1-10 v2, 300×167 logisch): Kern-Linse bei (150 | 111,5) im Bild, runde Schulter-Buchsen links/rechts bei ±84 / -11. */
 export const BODY_W = 300;
 export const BODY_H = 167;
 const BODY_LENS_X = 150;
 const BODY_LENS_Y = 111.5;
-/** Schulter-Sockel der Kran-Arme relativ zur Linse (Sprite) */
-export const BODY_SHOULDER_DX = 70;
-export const BODY_SHOULDER_DY = -42;
+/** Schulter-Sockel der Hydraulik-Arme relativ zur Linse (exakt Mitte der runden Buchsen im neuen Body-Sprite) */
+export const BODY_SHOULDER_DX = 84;
+export const BODY_SHOULDER_DY = -11;
 
 /**
- * Zeichnet den Boss-Körper als Sprite (Zustand je Phase; fehlt ein Zustands-Bild → Grundbild + Tönung).
+ * Zeichnet den Boss-Körper als Sprite (Zustand je Phase + lebendiges Reaktor-Atmen & Angriffs-Rückstoß).
  * Rückgabe false = kein Sprite vorhanden → Renderer zeichnet den alten prozeduralen Körper.
  */
 export function drawLeviathanBody(ctx: CanvasRenderingContext2D, scene: DungeonScene, e: Enemy): boolean {
@@ -886,9 +939,13 @@ export function drawLeviathanBody(ctx: CanvasRenderingContext2D, scene: DungeonS
   const dead = L.state === 'dead' || e.hp <= 0;
   const variant = dead ? art.arenaLeviathanBodyDead : L.phase === 3 ? art.arenaLeviathanBodyP3 : L.phase === 2 ? art.arenaLeviathanBodyP2 : null;
   const img = variant ?? base;
-  const x = Math.round(e.x - BODY_LENS_X);
-  const y = Math.round(e.y + LENS_DY - BODY_LENS_Y);
   const t = scene.time;
+  const attacking = !dead && L.state === 'move' && (L.move === 'beam' || L.move === 'pulse' || L.move === 'glow' || L.move === 'grab');
+  const breathY = dead ? 0 : Math.sin(t * (L.critical ? 7.5 : L.phase === 3 ? 5.0 : 2.6)) * (L.critical ? 2.2 : 1.3);
+  const vibX = attacking ? Math.sin(t * 48) * 1.4 : L.critical && !dead ? Math.sin(t * 36) * 0.9 : 0;
+  const recoilY = attacking ? Math.sin(t * 14) * 1.6 : 0;
+  const x = Math.round(e.x - BODY_LENS_X + vibX);
+  const y = Math.round(e.y + LENS_DY - BODY_LENS_Y + breathY + recoilY);
   ctx.save();
   if (e.flashTimer > 0) ctx.filter = 'brightness(1.9)';
   else if (dead && !variant) ctx.filter = 'brightness(0.55) saturate(0.6)';

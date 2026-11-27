@@ -24,8 +24,8 @@ export interface BossZone {
   slow?: number; // Tempo-Faktor des Spielers im aktiven Feld
   color: string;
   onFire?: (scene: DungeonScene) => void;
-  /** M11-Optik (kein Einfluss auf Schaden): 'pull' Sog-Ringe + Schrott strömt nach innen · 'dash' Stoß-Streifen mit Pfeilen · 'blast' Druckwelle · 'drop' fallender Schrottklumpen mit Aufschlag */
-  fx?: 'pull' | 'dash' | 'blast' | 'drop';
+  /** M11/M12-Optik (kein Einfluss auf Schaden): Krall-FX ('pull'|'dash'|'blast'|'drop') & Leviathan-Sprite-FX ('beam'|'whip'|'flame'|'vortex'|'steam'|'pulse') */
+  fx?: 'pull' | 'dash' | 'blast' | 'drop' | 'beam' | 'whip' | 'flame' | 'vortex' | 'steam' | 'pulse';
   /** fx 'drop': Schrottklumpen-Bild 0–2 (scrap_a/b/c) */
   variant?: number;
   // Laufzeit
@@ -199,13 +199,14 @@ export class BossFx {
       const warn = !z.active;
       const prog = warn ? 1 - Math.max(0, z.delay) / Math.max(0.01, z.maxDelay ?? 1) : 1;
       const pulse = 0.5 + 0.5 * Math.sin(time * 14);
+      const spriteBacked = !warn && (z.fx === 'beam' || z.fx === 'whip' || z.fx === 'flame' || z.fx === 'vortex' || z.fx === 'steam');
       ctx.fillStyle = z.color;
       ctx.strokeStyle = z.color;
       ctx.lineWidth = warn ? 1.2 : 1.6;
-      ctx.globalAlpha = warn ? 0.1 + 0.2 * prog : 0.38 + 0.12 * pulse;
+      ctx.globalAlpha = warn ? 0.1 + 0.2 * prog : spriteBacked ? 0.08 : 0.38 + 0.12 * pulse;
       this.path(ctx, z);
       ctx.fill();
-      ctx.globalAlpha = warn ? 0.4 + 0.4 * pulse : 0.85;
+      ctx.globalAlpha = warn ? 0.4 + 0.4 * pulse : spriteBacked ? 0.18 : 0.85;
       this.path(ctx, z);
       ctx.stroke();
       if (z.fx) this.renderFx(ctx, z, time, warn, prog);
@@ -455,6 +456,202 @@ export class BossFx {
           ctx.drawImage(spark, x2 - sz / 2, y2 - sz / 2, sz, sz);
         }
       }
+    } else if (z.fx === 'beam') {
+      const art = getHDArt();
+      const x2 = z.x2 ?? z.x;
+      const y2 = z.y2 ?? z.y;
+      const len = Math.hypot(x2 - z.x, y2 - z.y) || 1;
+      const ang = Math.atan2(y2 - z.y, x2 - z.x);
+      const bw = Math.max(16, (z.width ?? 12) * 1.9);
+      if (warn) {
+        // Auflade-Mündungsblitz direkt an der Faust/Schulter + pulsierender Zielstrahl
+        if (art.arenaLeviathanMuzzle) {
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.globalAlpha = 0.35 + 0.65 * prog;
+          sprite(art.arenaLeviathanMuzzle, z.x, z.y, 14 + 22 * prog, time * 5);
+          ctx.restore();
+        }
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = '#fda4af';
+        ctx.lineWidth = 1.2 + prog * 1.5;
+        ctx.globalAlpha = 0.35 + 0.45 * prog;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        ctx.moveTo(z.x, z.y);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        ctx.restore();
+      } else {
+        const a = Math.min(1, (1 - kAct) * 2.5);
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = a;
+        if (art.arenaLeviathanBeam) {
+          ctx.save();
+          ctx.translate(z.x, z.y);
+          ctx.rotate(ang);
+          const segW = 48;
+          const scroll = (time * 180) % segW;
+          for (let sx = -scroll; sx < len; sx += segW) {
+            const x0 = Math.max(0, sx);
+            const x1 = Math.min(len, sx + segW);
+            const w = x1 - x0;
+            if (w <= 0.5) continue;
+            ctx.drawImage(art.arenaLeviathanBeam, x0, -bw / 2, w + 1, bw);
+          }
+          ctx.restore();
+        } else {
+          ctx.strokeStyle = z.color;
+          ctx.lineWidth = z.width ?? 12;
+          ctx.beginPath();
+          ctx.moveTo(z.x, z.y);
+          ctx.lineTo(x2, y2);
+          ctx.stroke();
+        }
+        if (art.arenaLeviathanMuzzle) {
+          sprite(art.arenaLeviathanMuzzle, z.x, z.y, 38 + 10 * Math.sin(time * 40), time * 9);
+        }
+        ctx.restore();
+      }
+    } else if (z.fx === 'whip') {
+      const art = getHDArt();
+      const x2 = z.x2 ?? z.x;
+      const y2 = z.y2 ?? z.y;
+      const len = Math.hypot(x2 - z.x, y2 - z.y) || 1;
+      const ang = Math.atan2(y2 - z.y, x2 - z.x);
+      const bw = Math.max(16, (z.width ?? 16) * 1.35);
+      if (warn) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = '#c084fc';
+        ctx.lineWidth = 1.5 + prog * 1.4;
+        ctx.globalAlpha = 0.4 + 0.5 * prog;
+        ctx.beginPath();
+        ctx.moveTo(z.x, z.y);
+        for (let i = 1; i <= 8; i++) {
+          const u = i / 8;
+          const wx = z.x + (x2 - z.x) * u;
+          const wy = z.y + (y2 - z.y) * u + Math.sin(time * 24 + i * 1.3) * 4 * prog;
+          ctx.lineTo(wx, wy);
+        }
+        ctx.stroke();
+        ctx.restore();
+      } else if (art.arenaLeviathanWhip) {
+        const a = Math.min(1, (1 - kAct) * 2.2);
+        ctx.save();
+        ctx.globalAlpha = a;
+        ctx.translate(z.x, z.y);
+        ctx.rotate(ang);
+        const segW = 44;
+        const steps = Math.max(1, Math.ceil(len / segW));
+        for (let i = 0; i < steps; i++) {
+          const x0 = (i / steps) * len;
+          const w = len / steps + 2;
+          const wave = Math.sin(time * 36 + i * 1.4) * 3.5;
+          ctx.drawImage(art.arenaLeviathanWhip, x0, -bw / 2 + wave, w, bw);
+        }
+        ctx.restore();
+      }
+    } else if (z.fx === 'flame') {
+      const art = getHDArt();
+      const w = z.w ?? 120;
+      const h = z.h ?? 28;
+      if (!warn && art.arenaLeviathanFlame) {
+        const a = Math.min(1, (1 - kAct) * 2.2);
+        ctx.save();
+        ctx.globalAlpha = a;
+        const tileW = 48;
+        const x0 = z.x - w / 2;
+        for (let tx = 0; tx < w; tx += tileW) {
+          const tw = Math.min(tileW, w - tx);
+          const bob = Math.sin(time * 22 + tx * 0.1) * 2;
+          ctx.drawImage(art.arenaLeviathanFlame, x0 + tx, z.y - h * 0.65 + bob, tw + 1, h * 1.3);
+        }
+        ctx.restore();
+      }
+    } else if (z.fx === 'vortex') {
+      const art = getHDArt();
+      const R = z.r ?? 140;
+      ctx.save();
+      if (art.arenaLeviathanVortex) {
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = warn ? 0.25 + 0.45 * prog : 0.72 + 0.15 * Math.sin(time * 12);
+        sprite(art.arenaLeviathanVortex, z.x, z.y, warn ? R * (0.45 + 0.35 * prog) : R * 0.95, -time * 4.5);
+        ctx.globalAlpha = warn ? 0.15 + 0.25 * prog : 0.45;
+        sprite(art.arenaLeviathanVortex, z.x, z.y, R * 0.55, time * 7.5);
+      }
+      // Nach innen strömende Energie-Linien
+      ctx.strokeStyle = '#a5b4fc';
+      ctx.lineWidth = 1.2;
+      for (let i = 0; i < 8; i++) {
+        const t = (time * 0.9 + i / 8) % 1;
+        const ang = (i / 8) * Math.PI * 2 + t * 1.8;
+        const r1 = R * (1 - t * 0.82);
+        const r2 = Math.max(8, r1 - 22);
+        ctx.globalAlpha = (warn ? 0.3 * prog : 0.65) * Math.sin(t * Math.PI);
+        ctx.beginPath();
+        ctx.moveTo(z.x + Math.cos(ang) * r1, z.y + Math.sin(ang) * r1);
+        ctx.lineTo(z.x + Math.cos(ang + 0.2) * r2, z.y + Math.sin(ang + 0.2) * r2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    } else if (z.fx === 'steam') {
+      const art = getHDArt();
+      const w = z.w ?? 160;
+      const h = z.h ?? 28;
+      if (!warn && art.arenaLeviathanSteam) {
+        ctx.save();
+        const dir = (z.variant ?? 1) >= 0 ? 1 : -1;
+        const startX = dir > 0 ? z.x - w / 2 : z.x + w / 2;
+        for (let k = 0; k < 6; k++) {
+          const u = ((time * 1.6 + k / 6) % 1);
+          const sx = startX + dir * (10 + u * (w - 14));
+          const sy = z.y + Math.sin(time * 10 + k * 2.1) * (h * 0.22);
+          const sz = 18 + u * 18;
+          ctx.save();
+          ctx.globalAlpha = Math.sin(u * Math.PI) * 0.88;
+          ctx.translate(sx, sy);
+          if (dir < 0) ctx.scale(-1, 1);
+          ctx.drawImage(art.arenaLeviathanSteam, -sz / 2, -sz / 2, sz, sz);
+          ctx.restore();
+        }
+        ctx.restore();
+      }
+    } else if (z.fx === 'pulse') {
+      const art = getHDArt();
+      const r = z.r ?? 80;
+      const r0 = z.r0 ?? 48;
+      const a0 = z.gapA !== undefined && z.gapHalf !== undefined ? z.gapA + z.gapHalf : 0;
+      const a1 = z.gapA !== undefined && z.gapHalf !== undefined ? z.gapA - z.gapHalf + Math.PI * 2 : Math.PI * 2;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      if (warn) {
+        if (art.arenaLeviathanMuzzle && r0 < 50) {
+          ctx.globalAlpha = 0.25 + 0.55 * prog;
+          sprite(art.arenaLeviathanMuzzle, z.x, z.y, 18 + 20 * prog, time * 4);
+        }
+      } else {
+        const a = Math.max(0, 1 - kAct);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = Math.max(2, (r - r0) * 0.35 * a);
+        ctx.globalAlpha = 0.85 * a;
+        ctx.beginPath();
+        ctx.arc(z.x, z.y, (r + r0) / 2, a0, a1);
+        ctx.stroke();
+        ctx.strokeStyle = '#fb7185';
+        ctx.lineWidth = (r - r0) * 0.78 * a;
+        ctx.globalAlpha = 0.55 * a;
+        ctx.beginPath();
+        ctx.arc(z.x, z.y, (r + r0) / 2, a0, a1);
+        ctx.stroke();
+        if (art.arenaLeviathanMuzzle && r0 < 50) {
+          ctx.globalAlpha = a;
+          sprite(art.arenaLeviathanMuzzle, z.x, z.y, 46, time * 10);
+        }
+      }
+      ctx.restore();
     }
     ctx.restore();
   }

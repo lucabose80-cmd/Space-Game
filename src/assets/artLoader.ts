@@ -94,6 +94,18 @@ export interface HDArtAssets {
   arenaLeviathanDebris: HTMLCanvasElement | null;
   arenaLeviathanSteam: HTMLCanvasElement | null;
   arenaLeviathanLensFlare: HTMLCanvasElement | null;
+  arenaLeviathanArmSeg: HTMLCanvasElement | null;
+  arenaLeviathanArmJoint: HTMLCanvasElement | null;
+  arenaLeviathanHammerDmg: HTMLCanvasElement | null;
+  arenaLeviathanHammerCrit: HTMLCanvasElement | null;
+  arenaLeviathanHammerLaser: HTMLCanvasElement | null;
+  arenaLeviathanStump: HTMLCanvasElement | null;
+  arenaLeviathanBeam: HTMLCanvasElement | null;
+  arenaLeviathanMuzzle: HTMLCanvasElement | null;
+  arenaLeviathanWhip: HTMLCanvasElement | null;
+  arenaLeviathanFlame: HTMLCanvasElement | null;
+  arenaLeviathanVortex: HTMLCanvasElement | null;
+  arenaLeviathanCrater: HTMLCanvasElement | null;
   npcPilgrim: HTMLCanvasElement | null;
   npcFoundryWorker: HTMLCanvasElement | null;
   npcElderScholar: HTMLCanvasElement | null;
@@ -273,6 +285,18 @@ const art: HDArtAssets = {
   arenaLeviathanDebris: null,
   arenaLeviathanSteam: null,
   arenaLeviathanLensFlare: null,
+  arenaLeviathanArmSeg: null,
+  arenaLeviathanArmJoint: null,
+  arenaLeviathanHammerDmg: null,
+  arenaLeviathanHammerCrit: null,
+  arenaLeviathanHammerLaser: null,
+  arenaLeviathanStump: null,
+  arenaLeviathanBeam: null,
+  arenaLeviathanMuzzle: null,
+  arenaLeviathanWhip: null,
+  arenaLeviathanFlame: null,
+  arenaLeviathanVortex: null,
+  arenaLeviathanCrater: null,
   npcPilgrim: null,
   npcFoundryWorker: null,
   npcElderScholar: null,
@@ -435,6 +459,19 @@ export const M12_OPTIONAL_SPRITES = {
   arenaLeviathanDebris: 'arena_leviathan_debris',
   arenaLeviathanSteam: 'arena_leviathan_steam',
   arenaLeviathanLensFlare: 'arena_leviathan_lens_flare',
+  // Hydraulik-Arm, Faust-Schadensstufen & Laser-Pose + Attacken-FX (Leviathan Rework)
+  arenaLeviathanArmSeg: 'arena_leviathan_arm_seg',
+  arenaLeviathanArmJoint: 'arena_leviathan_arm_joint',
+  arenaLeviathanHammerDmg: 'arena_leviathan_hammer_dmg',
+  arenaLeviathanHammerCrit: 'arena_leviathan_hammer_crit',
+  arenaLeviathanHammerLaser: 'arena_leviathan_hammer_laser',
+  arenaLeviathanStump: 'arena_leviathan_stump',
+  arenaLeviathanBeam: 'arena_leviathan_beam',
+  arenaLeviathanMuzzle: 'arena_leviathan_muzzle',
+  arenaLeviathanWhip: 'arena_leviathan_whip',
+  arenaLeviathanFlame: 'arena_leviathan_flame',
+  arenaLeviathanVortex: 'arena_leviathan_vortex',
+  arenaLeviathanCrater: 'arena_leviathan_crater',
 } as const;
 
 export type M12SpriteKey = keyof typeof M12_OPTIONAL_SPRITES;
