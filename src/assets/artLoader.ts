@@ -88,6 +88,12 @@ export interface HDArtAssets {
   arenaLeviathanHammerGrounded: HTMLCanvasElement | null;
   arenaLeviathanCable: HTMLCanvasElement | null;
   arenaLeviathanVentBroken: HTMLCanvasElement | null;
+  arenaLeviathanPlate1: HTMLCanvasElement | null;
+  arenaLeviathanPlate2: HTMLCanvasElement | null;
+  arenaLeviathanPlate3: HTMLCanvasElement | null;
+  arenaLeviathanDebris: HTMLCanvasElement | null;
+  arenaLeviathanSteam: HTMLCanvasElement | null;
+  arenaLeviathanLensFlare: HTMLCanvasElement | null;
   npcPilgrim: HTMLCanvasElement | null;
   npcFoundryWorker: HTMLCanvasElement | null;
   npcElderScholar: HTMLCanvasElement | null;
@@ -261,6 +267,12 @@ const art: HDArtAssets = {
   arenaLeviathanHammerGrounded: null,
   arenaLeviathanCable: null,
   arenaLeviathanVentBroken: null,
+  arenaLeviathanPlate1: null,
+  arenaLeviathanPlate2: null,
+  arenaLeviathanPlate3: null,
+  arenaLeviathanDebris: null,
+  arenaLeviathanSteam: null,
+  arenaLeviathanLensFlare: null,
   npcPilgrim: null,
   npcFoundryWorker: null,
   npcElderScholar: null,
@@ -416,6 +428,13 @@ export const M12_OPTIONAL_SPRITES = {
   arenaLeviathanHammerGrounded: 'arena_leviathan_hammer_grounded',
   arenaLeviathanCable: 'arena_leviathan_cable',
   arenaLeviathanVentBroken: 'arena_leviathan_vent_broken',
+  // Arena-Angriffs- & Umwelt-Effekte (P1-06, A12) — Fallback: prozedural in leviathanArena.ts / dungeonRenderer.ts
+  arenaLeviathanPlate1: 'arena_leviathan_plate_1',
+  arenaLeviathanPlate2: 'arena_leviathan_plate_2',
+  arenaLeviathanPlate3: 'arena_leviathan_plate_3',
+  arenaLeviathanDebris: 'arena_leviathan_debris',
+  arenaLeviathanSteam: 'arena_leviathan_steam',
+  arenaLeviathanLensFlare: 'arena_leviathan_lens_flare',
 } as const;
 
 export type M12SpriteKey = keyof typeof M12_OPTIONAL_SPRITES;

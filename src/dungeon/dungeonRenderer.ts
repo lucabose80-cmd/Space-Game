@@ -503,10 +503,18 @@ export class DungeonRenderer {
       // Falling glowing hull chunk descending into reticle
       if (prog > 0.35) {
         const dropH = (1 - prog) * 140;
-        ctx.fillStyle = '#475569';
-        ctx.fillRect(dr.x - 6, dr.y - dropH - 6, 12, 10);
-        ctx.fillStyle = '#fb923c';
-        ctx.fillRect(dr.x - 4, dr.y - dropH - 4, 8, 4);
+        const debSpr = this.scene.currentRoom.arenaKind === 'boss_leviathan' ? getHDArt().arenaLeviathanDebris : null;
+        if (debSpr) {
+          const sz = 24 + prog * 8;
+          ctx.translate(dr.x, dr.y - dropH);
+          ctx.rotate((dr.x + dr.y) * 0.05 + prog * 1.4);
+          ctx.drawImage(debSpr, -sz / 2, -sz / 2, sz, sz);
+        } else {
+          ctx.fillStyle = '#475569';
+          ctx.fillRect(dr.x - 6, dr.y - dropH - 6, 12, 10);
+          ctx.fillStyle = '#fb923c';
+          ctx.fillRect(dr.x - 4, dr.y - dropH - 4, 8, 4);
+        }
       }
       ctx.restore();
     }

@@ -3,7 +3,7 @@
 > **Zweck:** Jeder neue oder überarbeitete Gegner, Boss oder Endboss-Raum soll **immer dieselbe Qualität** erreichen — egal welcher Chat oder welches Werkzeug (Claude Code, Antigravity) daran arbeitet. Diese Datei ist der **Ablauf**; die Messlatten stehen in den Checklisten:
 > - normale Gegner: **G1–G10** (`BOSS_ANIMATION_PLAN.md` §4)
 > - Bosse: **D1–D15** (`BOSS_ANIMATION_PLAN.md` §1)
-> - Sektor-Endbosse (Ebene III) mit Arena: **A1–A10** (`MILESTONE_12_ARCHITECTURE.md` §2) **zusätzlich** zu D1–D15
+> - Sektor-Endbosse (Ebene III) mit Arena: **A1–A15** (`MILESTONE_12_ARCHITECTURE.md` §2, inkl. erweiterter Endboss-Standards A11–A15: 4 Körper-Phasen-Sprites, eigene Arena-Effekt-Sprites, zerstörbare Teile mit Wrack-Feedback, Schatzkammer, Audio/TTK) **zusätzlich** zu D1–D15
 
 ---
 

@@ -43,6 +43,8 @@ export interface LevArena {
   lensOpen: number;
   critical: boolean;
   platesBroken: boolean;
+  /** Fortschritt (s) des 3-stufigen Plattenbruchs während der Phase-II-Vorwarnung */
+  plateCrackT: number;
   /** zuletzt getroffener Trefferpunkt (gesetzt von getClosestEnemyHitPoint), gilt nur im selben Frame */
   lastHit: { id: string; weak: boolean; time: number } | null;
   armorMsgCd: number;
@@ -95,6 +97,7 @@ export function createLeviathanArena(scene: DungeonScene, e: Enemy): void {
     lensOpen: 0,
     critical: false,
     platesBroken: false,
+    plateCrackT: 0,
     lastHit: null,
     armorMsgCd: 0,
     seq: 0,
@@ -295,6 +298,15 @@ export function updateLeviathanArena(scene: DungeonScene, e: Enemy, dt: number):
   const rb = scene.bounds;
   L.armorMsgCd = Math.max(0, L.armorMsgCd - dt);
   if (L.phase === 2) L.lensOpen = Math.max(0, L.lensOpen - dt);
+  if (L.plateCrackT > 0 && !L.platesBroken) L.plateCrackT += dt;
+  if (L.critical && L.state !== 'dead') {
+    const prevTick = Math.floor((scene.time - dt) * 5);
+    const curTick = Math.floor(scene.time * 5);
+    if (curTick !== prevTick) {
+      const side = curTick % 2 === 0 ? -1 : 1;
+      scene.spawnBurst(e.x + side * (28 + (curTick % 3) * 18), e.y - 14 + (curTick % 4) * 8, curTick % 3 === 0 ? '#fb923c' : '#fde047', 3);
+    }
+  }
   e.vx = 0;
   e.vy = 0;
   updateArms(scene, e, dt);
@@ -515,6 +527,7 @@ function startPhase2(scene: DungeonScene, e: Enemy): void {
   const def = ARENAS.boss_leviathan;
   const plates = def ? arenaTileRects(def, (ch) => ch === 'p', rb.l, rb.t) : [];
   if (plates.length && !L.platesBroken) {
+    L.plateCrackT = 0.01;
     plates.forEach((plate, i) => {
       fx(scene).add({
         shape: 'rect',
@@ -675,6 +688,50 @@ export function drawLeviathanArena(ctx: CanvasRenderingContext2D, scene: Dungeon
   const pulse = 0.5 + 0.5 * Math.sin(t * 8);
   const art = getHDArt();
   const hasBg = !!art.arenaLeviathanBg;
+  // A12: 3-stufiger Plattenbruch während der Phase-II-Vorwarnung (P1-06)
+  if (L.plateCrackT > 0 && !L.platesBroken) {
+    const def = ARENAS.boss_leviathan;
+    const rb = scene.bounds;
+    const frac = Math.min(1, L.plateCrackT / ENDBOSS_ARENA.leviathan.plateWarnSec);
+    const plateSpr = frac < 0.35 ? art.arenaLeviathanPlate1 : frac < 0.7 ? art.arenaLeviathanPlate2 : art.arenaLeviathanPlate3;
+    if (def && plateSpr) {
+      const plates = arenaTileRects(def, (ch) => ch === 'p', rb.l, rb.t);
+      ctx.save();
+      ctx.globalAlpha = 0.85 + 0.15 * pulse;
+      for (const pl of plates) {
+        for (let py = pl.y; py < pl.y + pl.h; py += ARENA_TILE) {
+          for (let px = pl.x; px < pl.x + pl.w; px += ARENA_TILE) {
+            ctx.drawImage(plateSpr, px, py, ARENA_TILE, ARENA_TILE);
+          }
+        }
+      }
+      ctx.restore();
+    }
+  }
+  // A12: Hochdruck-Dampfwolken beim Ventil-Dampf-Zug (P1-06)
+  if (L.state === 'move' && L.move === 'steam' && art.arenaLeviathanSteam && L.timer < 1.35) {
+    const top = L.moveIdx % 2 === 0;
+    const rb = scene.bounds;
+    const steamProg = 1 - Math.max(0, L.timer / 1.35);
+    ctx.save();
+    for (const v of L.vents) {
+      if ((v.y < rb.cy) !== top) continue;
+      const dir = v.x < rb.cx ? 1 : -1;
+      for (let k = 0; k < 4; k++) {
+        const u = (steamProg * 1.4 + k * 0.25) % 1;
+        const sx = v.x + dir * (16 + u * 155);
+        const sy = v.y + Math.sin(t * 9 + k * 2) * 5;
+        const sz = 18 + u * 16;
+        ctx.save();
+        ctx.globalAlpha = (1 - u) * 0.82;
+        ctx.translate(sx, sy);
+        if (dir < 0) ctx.scale(-1, 1);
+        ctx.drawImage(art.arenaLeviathanSteam, -sz / 2, -sz / 2, sz, sz);
+        ctx.restore();
+      }
+    }
+    ctx.restore();
+  }
   // Kühlventile
   for (const v of L.vents) {
     ctx.save();
@@ -717,17 +774,46 @@ export function drawLeviathanArena(ctx: CanvasRenderingContext2D, scene: Dungeon
     }
     ctx.restore();
   }
-  // Arme: angreifbar → pulsierender Ring
-  for (const arm of e.levArms ?? []) {
-    if (!armWeak(L, arm)) continue;
+  // Arme: A13 zerstörter Arm = funkender Schulterstumpf; angreifbarer Arm = pulsierender Ring + HP-Leiste
+  (e.levArms ?? []).forEach((arm, idx) => {
+    if (arm.dead) {
+      const shX = e.x + arm.side * BODY_SHOULDER_DX;
+      const shY = e.y + LENS_DY + BODY_SHOULDER_DY;
+      ctx.save();
+      ctx.fillStyle = '#0f172a';
+      ctx.beginPath();
+      ctx.arc(shX, shY, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      // funkende abgerissene Kabelenden
+      ctx.strokeStyle = pulse > 0.5 ? '#fde047' : '#38e8d4';
+      ctx.lineWidth = 1;
+      for (let k = -1; k <= 1; k++) {
+        ctx.beginPath();
+        ctx.moveTo(shX + k * 2, shY + 2);
+        ctx.lineTo(shX + k * 5 + Math.sin(t * 14 + k) * 2, shY + 11 + (k === 0 ? 3 : 0));
+        ctx.stroke();
+      }
+      ctx.restore();
+      return;
+    }
+    if (!armWeak(L, arm)) return;
     ctx.save();
     ctx.strokeStyle = `rgba(253, 224, 71, ${0.55 + 0.45 * pulse})`;
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.arc(arm.x, arm.y, ARM_R + 4 + pulse * 2, 0, Math.PI * 2);
     ctx.stroke();
+    // Arm-HP-Leiste (A13)
+    const frac = Math.max(0, Math.min(1, L.armHp[idx] / Math.max(1, L.armMax)));
+    ctx.fillStyle = '#0b1019';
+    ctx.fillRect(arm.x - 13, arm.y + 21, 26, 3.5);
+    ctx.fillStyle = '#fbbf24';
+    ctx.fillRect(arm.x - 12.5, arm.y + 21.5, 25 * frac, 2.5);
     ctx.restore();
-  }
+  });
   // Kern-Linse
   const lx = e.x;
   const ly = e.y + LENS_DY;
@@ -735,10 +821,20 @@ export function drawLeviathanArena(ctx: CanvasRenderingContext2D, scene: Dungeon
   if (lensIsOpen(L)) {
     const flicker = L.critical ? 0.6 + 0.4 * Math.sin(t * 30) : 1;
     ctx.globalAlpha = flicker;
-    ctx.fillStyle = 'rgba(251, 146, 60, 0.35)';
-    ctx.beginPath();
-    ctx.arc(lx, ly, LENS_R + 8 + pulse * 3, 0, Math.PI * 2);
-    ctx.fill();
+    if (art.arenaLeviathanLensFlare) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.translate(lx, ly);
+      ctx.rotate(t * 0.8);
+      const fsz = 46 + pulse * 8;
+      ctx.drawImage(art.arenaLeviathanLensFlare, -fsz / 2, -fsz / 2, fsz, fsz);
+      ctx.restore();
+    } else {
+      ctx.fillStyle = 'rgba(251, 146, 60, 0.35)';
+      ctx.beginPath();
+      ctx.arc(lx, ly, LENS_R + 8 + pulse * 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
     ctx.strokeStyle = `rgba(253, 224, 71, ${0.6 + 0.4 * pulse})`;
     ctx.lineWidth = 1.5;
     ctx.beginPath();

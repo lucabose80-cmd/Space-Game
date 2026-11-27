@@ -29,6 +29,11 @@ module.exports = async ({ page, PORT, scratch }) => {
     boss.levArms[1].state = 'idle'; boss.levArms[1].x = d.bounds.cx + 95; boss.levArms[1].y = t0 + 100;
     d.camera.snap({ x: boss.x, y: t0 + 120 });
     out.shotHammer = shot();
+    // Phase II: überhitzter Körper (P1-11a), 3-stufig brechende Bodenplatten (P1-06) & zerstörter Arm-Stumpf (A13)
+    boss.levArms[0].dead = true;
+    boss.hp = boss.maxHp * 0.55; step(0.6);
+    d.camera.snap({ x: boss.x, y: t0 + 125 });
+    out.shotP2 = shot();
     boss.hp = boss.maxHp * 0.25; step(2.5);
     boss.levArena.vents[0].broken = true;
     d.camera.snap({ x: boss.x, y: t0 + 90 });
@@ -84,10 +89,11 @@ module.exports = async ({ page, PORT, scratch }) => {
     return out;
   });
   fs.writeFileSync(`${scratch}/m12p7_hammer.png`, Buffer.from(r.shotHammer.split(',')[1], 'base64'));
+  fs.writeFileSync(`${scratch}/m12p7_p2.png`, Buffer.from(r.shotP2.split(',')[1], 'base64'));
   fs.writeFileSync(`${scratch}/m12p7_p3.png`, Buffer.from(r.shotP3.split(',')[1], 'base64'));
   fs.writeFileSync(`${scratch}/m12p7_opening.png`, Buffer.from(r.shotOpening.split(',')[1], 'base64'));
   fs.writeFileSync(`${scratch}/m12p7_vault.png`, Buffer.from(r.shotVault.split(',')[1], 'base64'));
-  delete r.shotHammer; delete r.shotP3; delete r.shotOpening; delete r.shotVault;
+  delete r.shotHammer; delete r.shotP2; delete r.shotP3; delete r.shotOpening; delete r.shotVault;
   console.log(JSON.stringify(r));
   assert.deepStrictEqual(r.before, [false, null], 'vor dem Sieg: keine Kammer, keine Truhe');
   assert.strictEqual(r.arenaFloorDrops, 0, 'Arena-Sieg: Beute geht in die Boss-Truhe, nicht auf den Boden');

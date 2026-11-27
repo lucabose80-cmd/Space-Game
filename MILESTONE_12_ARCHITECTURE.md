@@ -21,8 +21,8 @@
 
 Alle Bossräume sind gleich groß, es gibt **keine Kamera**, und die Raumgrenzen sind als Konstanten (`ROOM_LEFT/RIGHT/TOP/BOTTOM`, `ROOM.*`) an ~380 Stellen fest verdrahtet (`dungeonGen.ts` 127, `DungeonScene.ts` 106, `enemyAi.ts` 42, `dungeonRenderer.ts` 40, `mechanicsGen.ts` 27, `defs.ts` 16 …). Ein Endboss fühlt sich dadurch wie ein normaler Boss mit mehr HP an.
 
-## 2. Ziel — was ein Arena-Endboss ist (Fertig-Definition A1–A10)
-Gilt zusätzlich zu D1–D14 (`BOSS_ANIMATION_PLAN.md` §1).
+## 2. Ziel — was ein Arena-Endboss ist (Fertig-Definition A1–A15)
+Gilt zusätzlich zu D1–D15 (`BOSS_ANIMATION_PLAN.md` §1). **A11–A15** sind die erweiterten Sektor-Endboss-Standards (Ebene III = Höhepunkt eines Sektors, deutlich aufwändiger als normale Bosse).
 
 | # | Punkt | Woran man es prüft |
 | :--- | :--- | :--- |
@@ -36,6 +36,11 @@ Gilt zusätzlich zu D1–D14 (`BOSS_ANIMATION_PLAN.md` §1).
 | A8 | **Belohnung:** Trophäen-Relikt (einzigartig), Freischaltung beim Erstsieg, Hub-Trophäe (§5) — **keine Credits** | Erstsieg + Wiederholung |
 | A9 | **Fairness/Mobil:** Touch-HUD bleibt am Bildschirm (nicht in der Welt), Zielhilfe funktioniert mit Kamera, kein Gefahrenbereich ohne Ausweichweg | Mobil-Test |
 | A10 | **Determinismus:** Arena ist handgebautes Datenlayout (kein Zufall) — Wochen-Prüfung, Seeds und `generateSectorFloor` bleiben bit-identisch bis auf den Bossraum-Inhalt | Seed-Test |
+| A11 | **Vollständige Körper-Phasen-Sprites (kein Tönungs-Ersatz):** min. 4 deckungsgleiche Körper-Sprites (≥ 95 % Silhouetten-Deckung): Phase I intakt · Phase II überhitzt/beschädigt · Phase III Panzer ab/Kern frei · Besiegt (erloschen in der Wand) + kritische Rauch-/Funken-Partikel (< 15 % HP) | Screenshots aller 4 Zustände |
+| A12 | **Eigene Pixel-Art-Effekt-Sprites je Arena-Attacke & Umweltänderung:** brechende Bodenplatten (3 Bruchstufen), fallende Trümmer, Dampf-/Energie-Ströme, offene Kern-Aura — statt nackter Rechtecke/Kreise | Labor je Zug + Übergang |
+| A13 | **Zerstörbare Arena-Teile mit Schadens- & Wrack-Feedback:** jede zerstörbare Schwachstelle (Arme, Ventile) zeigt HP-Balken + Beschädigung + dauerhaften Wrack-Zustand (z. B. funkender Schulterstumpf, zertrümmertes Ventil) statt spurlosem Verschwinden | Teil zerstören im Kampf |
+| A14 | **Moonlighter-Schatzkammer & Sieg-Inszenierung:** erloschener Boss bleibt Teil der Wand; dahinter öffnet sich ohne Ladeübergang eine Schatzkammer mit gezielter Boss-Truhe (Erstsieg = Trophäen-Relikt + Waffen-Art-Freischaltung, Wiederholung = Kern-Materialien + 3 Relikte, keine Credits) | Sieg + Gang + Truhe (`m12p7_vault`) |
+| A15 | **Audio-Signatur, Balance-Messung & Boss-Labor:** eigene Audio-Cues (Auftritt, Phasenwechsel, Bruch, Tür, Schatzkammer), gemessene Arena-TTK im Zielband 150–210 s (`m10cp8`), direkt testbar in `?bosslab` → ARENEN | `m10cp8` + `m12p6_lab` |
 
 ## 3. Invarianten (gelten in jeder Phase)
 1. **Regel 1:** kein `state.credits +=` in `DungeonScene.ts` / `src/dungeon/`. Belohnungen = Items, Flags, Freischaltungen.
