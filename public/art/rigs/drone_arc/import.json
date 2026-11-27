@@ -5,7 +5,8 @@
  "torsoDisplayH": 25,
  "pixelRatio": 2,
  "sheets": {
-  "drone_arc_rig.png": "8526675486d0c653"
+  "drone_arc_rig.png": "8526675486d0c653",
+  "drone_arc_extra.png": "304f4ab6c2dd0705"
  },
  "parts": {
   "body": {
@@ -43,6 +44,24 @@
    "h": 44,
    "srcW": 273,
    "srcH": 268
+  },
+  "visorHalf": {
+   "w": 52,
+   "h": 68,
+   "mode": "swap",
+   "set": "drone_arc_extra"
+  },
+  "visorFlare": {
+   "w": 52,
+   "h": 68,
+   "mode": "swap",
+   "set": "drone_arc_extra"
+  },
+  "bodyWreck": {
+   "w": 52,
+   "h": 68,
+   "mode": "swap",
+   "set": "drone_arc_extra"
   }
  }
 }
