@@ -162,6 +162,14 @@ Alle optional mit prozeduralem Fallback (Regel 7). Stil: wie `hub_bg.png`/Dungeo
 - Noch auf Konstanten (Absicht): Renderer (Phase B), Belohnungs-/Loot-Positionen & Layouts (Phase C/D).
 - Nachweis „Standard identisch“: `m12p1` + einmaliger Vorher/Nachher-Vergleich von 9 deterministischen Kampf-Szenarien (bit-identisch).
 
+### Phase B — Kamera (2026-11-27, umgesetzt, Abnahme offen)
+- `DungeonCamera` in `src/dungeon/camera.ts` wie §4.2 (Totzone 40×24, τ 0,12 s). **Klemm-Bereich:** Kamera-x ∈ [`b.l − ROOM_LEFT`, `b.r − ROOM_RIGHT`], -y analog → der Arena-Rand liegt am Bildschirmrand genau dort, wo im Standardraum die Wand liegt; für den Standardraum ergibt das exakt (0, 0). Kleinere Räume werden mittig gezeigt. Darstellung auf halbe logische Pixel gerastert (HD-Puffer 2×).
+- Eingabesperre bei `focus()`: `DungeonScene.update()` setzt für den Frame `input.locked = true` und stellt den alten Wert danach wieder her (Hauptlogik jetzt in `updateFrame()`).
+- Bildschirm-Wackeln bleibt ein zusätzlicher Versatz vor der Kamera-Translation (wie bisher zufällig je Frame, rein optisch).
+- Neu (nicht im Plan): prozeduraler Arena-Boden `arenaFloor.ts` als Fallback, solange kein Arena-Hintergrund existiert (P1-03).
+- Rand-Pfeile (A7) nur für `bossFx`-Zonen; Boss-Strahlen (`bossBeam`) und Gegner außerhalb des Bildes bekommen noch keinen Pfeil (bei Bedarf Phase D).
+- Nachweis: `m12p2` (Logik + Screenshots) + einmaliger Pixel-Vergleich von 36 Frames im Standardraum vor/nach Phase B (identisch).
+
 **Phase E (Belohnungen) — umgesetzt, vorerst am bestehenden Leviathan-Sieg (`sector1Cleared`), noch ohne Arena:**
 - `WEAPON_TYPE_GATES` in `balance.ts` (spear ← S1, discus ← S2, hammer ← S3); `GameState.getWeaponTypeLock()` / `canCraftWeapon()`; Schmiede zeigt „🔒 Bauplan: besiege …“. „Besiegt“ = `sectorNCleared` **oder** Rekord `bestSectorClearSec[n]` **oder** NG+ → keine neuen Save-Felder, Save bleibt v11; schon geschmiedete Waffen bleiben.
 - Relikt `trophy_leviathan` („A.E.G.I.S.-Herzlinse“, epic, maxStack 1, Wert 2400) fällt beim **Erstsieg** (nicht in der Wochen-Prüfung, nicht in NG+ erneut). Keine Credits.
