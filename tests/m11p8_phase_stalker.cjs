@@ -6,9 +6,10 @@ module.exports = async ({ page }) => {
     const { getHDArt } = await import('/src/assets/artLoader.ts');
     await new Promise((res) => setTimeout(res, 300));
     const e = (x) => Object.assign({ id: 7, x: 100, vx: 0, vy: 0, flashTimer: 0, telegraphTimer: 0, chargeActive: 0, kind: 'phase_stalker', hp: 10, maxHp: 10 }, x);
-    const idle = anim.getBossPose('phase_stalker', e({}), 1, 50, 0);
-    const tele = anim.getBossPose('phase_stalker', e({ id: 8, telegraphTimer: 0.2 }), 1, 50, 0);
-    const charge = anim.getBossPose('phase_stalker', e({ id: 9, chargeActive: 0.2 }), 1, 50, 0);
+    const run = (en) => { let pz; for (let i = 0; i < 40; i++) pz = anim.getBossPose('phase_stalker', en, 1 + i * 0.016, 50, 0); return pz; };
+    const idle = run(e({}));
+    const tele = run(e({ id: 8, telegraphTimer: 0.2 }));
+    const charge = run(e({ id: 9, chargeActive: 0.2 }));
     const walker = e({ id: 10, vx: 48 });
     let legs = new Set();
     for (let i = 0; i < 80; i++) legs.add(Math.round((anim.getBossPose('phase_stalker', walker, 2 + i * 0.016, 50, 0).legR.rot ?? 0) * 10));
