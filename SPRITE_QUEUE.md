@@ -40,6 +40,14 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 | ID | Status | Zieldatei | Typ & Format | Referenz (`ImagePaths`) | Brief / Prompt | Notiz |
 | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
 | `P0-13` | [x] | `art_source/rigs/turret_treads.png` | Typ G/E · 3×2 · `1536×1024` | `public/art/sprites/turret_0.png`, `art_source/rigs/turret_rig.png` | `ART_BRIEF_M11_ENEMIES.md` (Zusatz Geschütz-Antrieb) | ✅ 4 Rollphasen linke Raupenkette + Staubwolke + Bremsfunken (`min_margin ≥ 78 px`, `art:check` ok, bereit für Claude-Import) |
+| `P0-14` | [ ] | `art_source/rigs/krall_torsos2.png` *(ersetzt die gelieferte Version, gleicher Dateiname)* | Typ S · 3×2 · `1536×1024` | `art_source/rigs/krall_torsos.png` *(Zelle 1 = Panzer-Rumpf = Maßstab, Zelle 5 = Skelettrahmen)*, bisheriges `krall_torsos2.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-A2) | **Maßstab-Korrektur:** Die 6 Phase-2-Rahmen sind ~10 % kleiner gezeichnet als der Panzer-Rumpf (Spiel: 76×90 statt 84×100 px) → Körper wirkt in Phase 2 geschrumpft, Magnet schwebt darüber. Gleiche 6 Posen, aber Körperbreite/-höhe **wie der Panzer-Rumpf** (Kragen oben bündig mit Zelle 1 von `krall_torsos.png`, Kern im Fadenkreuz). Code hat bis dahin Übergangs-Skalierung ×1,1 (`t2k` in `krall.ts`) — nach Import entfernen. |
+| `P0-15` | [ ] | `art_source/rigs/krall_arms_R4.png` | Typ L · 3×2 · `1536×1024` | `art_source/rigs/krall_arms_R.png`, `krall_arms_R2.png`, `krall_arms_R3.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-F) | **Rechte Zange VERBOGEN in den übrigen Posen:** seitlich · Block · Boden-Stampfer · Sog (Funken) · Hagel/Wurf-Halten mit Schrott · Teleskop voll ausgefahren. Gleiche Posen wie `krall_arms_R.png` Zellen 3–5 + `R2` Zellen 5–6/3, nur beschädigt wie `R3` Zelle 1–3. Schulterring im Fadenkreuz. Ziel: Zange bleibt in **allen** Angriffen sichtbar beschädigt. |
+| `P0-16` | [ ] | `art_source/rigs/krall_arms_L4.png` | Typ L · 3×2 · `1536×1024` | `art_source/rigs/krall_arms_L.png`, `krall_arms_L2.png`, `krall_arms_L3.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-F) | Wie P0-15 für den **linken** Haken/Mini-Säge (verbogen, 6 Posen), Licht links-oben, **nicht** spiegeln. |
+| `P0-17` | [ ] | `art_source/rigs/krall_arms_R5.png` | Typ L · 3×2 · `1536×1024` | `krall_arms_R3.png` (Zelle 4–6 = Stumpf), `krall_arms_R4.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-F) | Rechter **abgebrochener Stumpf** (funkend, Kabel) in denselben 6 Posen wie P0-15 (seitlich · Block · Stampfer · Sog · Halten · Teleskop-Stoß). Der Stumpf hält keinen Schrott/keine Zange mehr — Hagel/Halten zeigt hochgereckten Stumpf mit Funken. |
+| `P0-18` | [ ] | `art_source/rigs/krall_arms_L5.png` | Typ L · 3×2 · `1536×1024` | `krall_arms_L3.png` (Zelle 4–6 = Stumpf), `krall_arms_L4.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-F) | Wie P0-17 für den **linken** Stumpf, Licht links-oben, nicht spiegeln. |
+
+> **Neu (Krall-Nacharbeit):** `P0-14…P0-18` — Skalierung der Phase-2-Rümpfe und beschädigte Arme für alle Angriffsposen. Wenn geliefert: Claude Code importiert (`krall_arms_R4/L4` → `clawR/L_19…24`, `R5/L5` → `clawR/L_25…30`; `damagedArm()` in `krall.ts` erweitern, Test `m11p5_krall`).
+
 | `P0-06` | [x] | `art_source/rigs/krall_arms_R2.png` | Typ L · 3×2 · `1536×1024` | `art_source/rigs/krall_arms_R.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-C) | ✅ Rechte Greifzange Angriffsposen (`min_margin ≥ 40 px`, `art:check` ok, bereit für Claude-Import) |
 | `P0-07` | [x] | `art_source/rigs/krall_arms_L2.png` | Typ L · 3×2 · `1536×1024` | `art_source/rigs/krall_arms_L.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-C) | ✅ Linker Haken/Säge Angriffsposen (`min_margin ≥ 35 px`, `art:check` ok, Licht links-oben, bereit für Claude-Import) |
 | `P0-08` | [x] | `art_source/rigs/krall_fx2.png` | Typ E · 3×2 · `1536×1024` | `art_source/rigs/krall_effects.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-D) | ✅ Angriffs-Effekte K-D (`min_margin ≥ 99 px`, `art:check` ok; Ringe Zelle 2/4 mit `holes: true` importieren) |
@@ -151,6 +159,15 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 | `P3-15` | [ ] | `public/art/sprites/boss_chrono_warden.png` | Formel B · `128×128` RGBA | `public/art/sprites/boss_star_archon.png` *(Sektor-4-Stil)* | `ART_AND_DESIGN_GUIDE.md` §8 | S4 E1 Chrono-Wächter |
 | `P3-16` | [ ] | `public/art/sprites/boss_monolith_colossus.png` | Formel B · `128×128` RGBA | `public/art/sprites/boss_star_archon.png` *(Sektor-4-Stil)* | `ART_AND_DESIGN_GUIDE.md` §8 | S4 E2 Monolith-Koloss |
 | `P3-17` | [ ] | `public/art/sprites/boss_scrap_collector.png` | Formel B · `128×128` RGBA | `public/art/sprites/boss_breacher.png` | `ART_AND_DESIGN_GUIDE.md` §8 | Sehr niedrige Prio: Krall nutzt bereits sein M11-Rig |
+
+### P3d — Kern-Wächter: Phase-1-Armschäden (D12-Lücke, niedrige Priorität)
+
+> Heute bleiben die Arme in Phase 1 bei < 80 % / < 65 % HP unversehrt (nur Helm/Rumpf zeigen Schäden). Kein Blocker für die Abnahme; dran, wenn Credits übrig sind. Nach dem Import als `armR_19…24` / `armL_19…24` hinten anhängen (Karte `BOSS_ANIMATION_PLAN.md` §2.1), Auswahl in `coreWardenSet` bei Phase 1 und HP < 65 %.
+
+| ID | Status | Zielpfad | Typ / Maß | Referenzbild | Prompt | Notiz |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `P3-18` | [ ] | `art_source/rigs/core_warden_arms_R4.png` | L · 3×2 (`1536×1024`) | `core_warden_arms_R.png` + `core_warden_arms_R2.png` | `ART_BRIEF_M11.md` §4.2 *(Zusatz „Phase-1-Armschäden“)* | rechter Arm, Phase 1 **beschädigt**: Hauptposen Hängend · Ausholen · Schlag · Laser-Seite · Block · Stampfer, mit Rissen, verbogener Panzerung, Funken, Schulterkappe angeschlagen; Schulterring im Fadenkreuz |
+| `P3-19` | [ ] | `art_source/rigs/core_warden_arms_L4.png` | L · 3×2 (`1536×1024`) | `core_warden_arms_L.png` + `core_warden_arms_L2.png` | `ART_BRIEF_M11.md` §4.2 *(Zusatz „Phase-1-Armschäden“)* | linker Arm, gleiche Posen, nicht gespiegelt, Licht links-oben |
 
 ---
 

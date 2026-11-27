@@ -11,8 +11,8 @@
 | :--- | :--- | :--- | :--- | :--- |
 | Sturm (`charge`) | rote Bahn + wandernde Pfeile, Duck-Pose | Raketen-Flamme + Staubspur | Betäubt: Funken, Rückprall | ✅ D11 |
 | Sprung-Schlag (`slam`) | Zielkreis + Fadenkreuz, Schatten wächst | Flug-Pose gestreckt | Druckwelle (goldener Ring) + Landung gestaucht | ✅ D11 |
-| Kern-Laser (`laser`) | **nur dünne gestrichelte Linie** + Brust öffnet | dicker Strahl, heller Ursprung am Visier | Nachglühen kurz | 🟡 Aufladen schwach |
-| Orbit-Salve (`pylon`) P1 | Pylone sammeln sich | Energie-Schüsse | — | 🟡 schlicht (Pylone = Rauten) |
+| Kern-Laser (`laser`) | konvergierende Ringe am Visier + wachsende Strahl-Vorschau + Brust öffnet | dicker Strahl, heller Ursprung am Visier | Nachglühen kurz | ✅ D11 (Aufladen verbessert 2026-11-27) |
+| Orbit-Salve (`pylon`) P1 | Pylone sammeln sich + flackernde Energiebögen zwischen den Pylonen | Energie-Schüsse | — | ✅ D11 (Bögen 2026-11-27) |
 | Faust-Salve P2 | Fäuste kreisen + Flammen | Fäuste fliegen (eigene Faust-/Schweif-Sprites) | lösen sich mit Funken auf | ✅ D11 |
 | Phase-2-Verwandlung | Brüllen | Platten fliegen ab, Funken-Stern | — | ✅ D7 |
 
@@ -20,7 +20,7 @@
 - **D13 Körper hängt zusammen:** ✅ (Arme an Schultern mit `SHOULDER_ADJUST`, Platten fliegen erst in Phase 2 ab).
 - **D14:** nicht zutreffend (schwebt; Triebwerks-Kristalle unten sind Code-Optik).
 - **Vergleich mit Krall:** Krall hatte *mehr Code-Effekte pro Angriff* bekommen, um Lücken zu schließen; der Kern-Wächter hat dafür **eigene Sprite-Effekte** (Faust, Schweif, Flamme). In D11 liegt der Kern-Wächter gleichauf bzw. vorn — Krall zieht erst mit dem Einbinden von `krall_fx2`, Rümpfen und Beinen gleich.
-- **Offene Verbesserungen ohne neue Sprites:** (1) Laser-Aufladung: konvergierende Ringe am Visier + pulsierende Strahl-Vorschau statt nur gestrichelter Linie; (2) Orbit-Salve P1: Pylone mit Energiebögen/Ladeleuchten; (3) optional: Phase-1-Armschäden (benötigt Sprites, niedrige Priorität).
+- **Erledigt (rein Optik, `renderBossFloorTelegraph`/`renderAnimatedBoss`):** Laser-Aufladung (Ringe, wachsende Vorschau) und Orbit-Salve-P1-Energiebögen. **Offen:** optional: Phase-1-Armschäden (benötigt Sprites, niedrige Priorität).
 
 ## Art-Sheets (`art_source/rigs/`)
   - **§4.2 Kern-Wächter — komplett (4/4 neue Sheets fertig):**
@@ -35,3 +35,5 @@
     - `art_source/rigs/core_warden_heads2.png` (**S5**: Visier-Laser, Blick links/rechts, brüllend Phase 2, stark beschädigt < 15 % HP mit zerbrochenem Halo, Blinzeln/Visier zu; Halsgelenk im Fadenkreuz, `min_margin ≥ 36 px`)
     - `art_source/rigs/core_warden_arms_R3.png` (**S6 rechts**: Phase-2-Angriffsposen ohne Faust mit leuchtender Manschette, Schulterring im Fadenkreuz, `min_margin ≥ 64 px`)
     - `art_source/rigs/core_warden_arms_L3.png` (**S6 links**: Phase-2-Angriffsposen ohne Faust mit Licht links-oben, Schulterring im Fadenkreuz, `min_margin ≥ 63 px`)
+
+- Phase-1-Armschäden: in `SPRITE_QUEUE.md` als `P3-18/19` eingetragen (niedrige Prio).

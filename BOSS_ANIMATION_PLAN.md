@@ -147,4 +147,23 @@ Offen für Krall: Einbindung von `krall_legs_R/L` + `krall_effects`, Maßstab bl
 | Quarz-Koloss | – | – | – | ✅ Logik (Hälften gleich aussehend, 85 %) | Teile-Sheets (`ART_BRIEF_M11.md` §4.3) |
 | Sternen-Archon | – | – | – | ✅ Logik | Teile-Sheets |
 | übrige Bosse | – | – | – | – | Teile-Sheets |
-| normale Gegner | – | – | – | – | `ART_BRIEF_M11_ENEMIES.md` (Pilot: Geschütz, Phasen-Jäger) |
+| normale Gegner | Geschütz ✅ · Phasen-Jäger/Drohne/Schild-Drohne: Sheets da, nicht eingebunden | – | – | – | Mindeststandard **G1–G9** (§4) · `ART_BRIEF_M11_ENEMIES.md` |
+
+---
+
+## 4. Fertig-Definition für normale Gegner (Mindeststandard G1–G9)
+Abgespeckte Version von D1–D14: gilt für jeden normalen Gegner-Rig (Geschütz, Phasen-Jäger, Drohne …). Bosse bleiben bei §1. Vorlage: `handoff/enemy_turret.md`.
+
+| # | Punkt | Woran man es prüft |
+| :--- | :--- | :--- |
+| G1 | **Rig vollständig:** alle Teile aus `<kind>_rig.png` eingebunden, Gelenke sitzen, kein Teil schwebt | Kontaktbogen / Zoom 4× |
+| G2 | **Rückfall sicher:** fehlt ein Bild oder ist das Rig aus, zeigt der Gegner sein altes Sprite (kein Absturz) | Rig-Schalter aus/an |
+| G3 | **Eigene Fortbewegung:** Gehen/Schweben mit eigenem Rhythmus (Wippen, Beine/Arme aus Strecke, nicht aus Zufall) | Gegner laufen lassen, 1× |
+| G4 | **Angriff in drei Abschnitten:** Vorwarnung → Ausführung → Erholung haben je eine eigene Pose; das Ausholen füllt die vorhandene Vorwarnzeit, verlängert sie nicht | Labor 0,25× |
+| G5 | **Weiche Übergänge:** kein sichtbares „Ploppen“ beim Pose-Wechsel (Glättung/Impuls wie `bossAnims.ts`) | Labor 0,25× |
+| G6 | **Treffer-Reaktion:** kurz (≤ 0,15 s), stört keine Angriffspose | Spieler schlägt zu |
+| G7 | **Tod:** der Gegner verschwindet nicht abrupt (Zucken/Teile fallen ab/Aufblitzen), falls vorhanden Teile wiederverwenden | Gegner töten |
+| G8 | **Rein optisch:** keine Änderung an Hitbox, Schaden, Zustandsdauern, kein globaler Zufall; nur `anim/rigs/<id>.ts`, Rig-JSON und der Renderer-Zweig | Code-Review |
+| G9 | **Test & Handoff:** eigener Test `tests/m11p…_<rig>.cjs`, Status-Blatt `handoff/enemy_<kind>.md`, `npm run verify` grün, Screenshots in `tests/out/` geprüft | `npm run ship` |
+
+Bewusst **nicht** verlangt (nur Bosse): Beschädigungsstufen, Phase-2-Verwandlung, eigene Angriffsgrafik je Zug (D7, D11–D14). Fehlen für G1–G9 Sprites, gilt `AGENTS.md` §3 Regel 7 (sofort in `SPRITE_QUEUE.md` einsortieren).

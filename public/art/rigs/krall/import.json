@@ -13,7 +13,14 @@
   "krall_legs_L.png": "98caeb295159c7cc",
   "krall_effects.png": "7de5b99dca527a36",
   "krall_arms_R2.png": "3490bfdca5ca035b",
-  "krall_arms_L2.png": "cb5601953cdb5cba"
+  "krall_arms_L2.png": "cb5601953cdb5cba",
+  "krall_torsos2.png": "f8a3653b900e21ac",
+  "krall_torsos3.png": "d1d6e84b7a7f6be9",
+  "krall_legs_R2.png": "b53380299b4166cf",
+  "krall_legs_L2.png": "f69f2d95a259c2df",
+  "krall_arms_R3.png": "5c062b283af2d2db",
+  "krall_arms_L3.png": "3a9306a7c6336b7c",
+  "krall_fx2.png": "d5a45c82a342530c"
  },
  "parts": {
   "torso": {
@@ -339,6 +346,258 @@
    "h": 72,
    "mode": "limb",
    "set": "krall_arms_L2"
+  },
+  "torso_7": {
+   "w": 76,
+   "h": 90,
+   "mode": "swap",
+   "set": "krall_torsos2"
+  },
+  "torso_8": {
+   "w": 76,
+   "h": 90,
+   "mode": "swap",
+   "set": "krall_torsos2"
+  },
+  "torso_9": {
+   "w": 76,
+   "h": 90,
+   "mode": "swap",
+   "set": "krall_torsos2"
+  },
+  "torso_10": {
+   "w": 76,
+   "h": 90,
+   "mode": "swap",
+   "set": "krall_torsos2"
+  },
+  "torso_11": {
+   "w": 76,
+   "h": 90,
+   "mode": "swap",
+   "set": "krall_torsos2"
+  },
+  "torso_12": {
+   "w": 76,
+   "h": 90,
+   "mode": "swap",
+   "set": "krall_torsos2"
+  },
+  "torso_13": {
+   "w": 88,
+   "h": 100,
+   "mode": "swap",
+   "set": "krall_torsos3"
+  },
+  "torso_14": {
+   "w": 88,
+   "h": 100,
+   "mode": "swap",
+   "set": "krall_torsos3"
+  },
+  "torso_15": {
+   "w": 88,
+   "h": 100,
+   "mode": "swap",
+   "set": "krall_torsos3"
+  },
+  "torso_16": {
+   "w": 88,
+   "h": 100,
+   "mode": "swap",
+   "set": "krall_torsos3"
+  },
+  "torso_17": {
+   "w": 88,
+   "h": 100,
+   "mode": "swap",
+   "set": "krall_torsos3"
+  },
+  "torso_18": {
+   "w": 88,
+   "h": 100,
+   "mode": "swap",
+   "set": "krall_torsos3"
+  },
+  "legR_7": {
+   "w": 98,
+   "h": 70,
+   "mode": "limb",
+   "set": "krall_legs_R2"
+  },
+  "legR_8": {
+   "w": 98,
+   "h": 70,
+   "mode": "limb",
+   "set": "krall_legs_R2"
+  },
+  "legR_9": {
+   "w": 98,
+   "h": 70,
+   "mode": "limb",
+   "set": "krall_legs_R2"
+  },
+  "legR_10": {
+   "w": 98,
+   "h": 70,
+   "mode": "limb",
+   "set": "krall_legs_R2"
+  },
+  "legR_11": {
+   "w": 98,
+   "h": 70,
+   "mode": "limb",
+   "set": "krall_legs_R2"
+  },
+  "legR_12": {
+   "w": 98,
+   "h": 70,
+   "mode": "limb",
+   "set": "krall_legs_R2"
+  },
+  "legL_7": {
+   "w": 102,
+   "h": 72,
+   "mode": "limb",
+   "set": "krall_legs_L2"
+  },
+  "legL_8": {
+   "w": 102,
+   "h": 72,
+   "mode": "limb",
+   "set": "krall_legs_L2"
+  },
+  "legL_9": {
+   "w": 102,
+   "h": 72,
+   "mode": "limb",
+   "set": "krall_legs_L2"
+  },
+  "legL_10": {
+   "w": 102,
+   "h": 72,
+   "mode": "limb",
+   "set": "krall_legs_L2"
+  },
+  "legL_11": {
+   "w": 102,
+   "h": 72,
+   "mode": "limb",
+   "set": "krall_legs_L2"
+  },
+  "legL_12": {
+   "w": 102,
+   "h": 72,
+   "mode": "limb",
+   "set": "krall_legs_L2"
+  },
+  "clawR_13": {
+   "w": 84,
+   "h": 100,
+   "mode": "limb",
+   "set": "krall_arms_R3"
+  },
+  "clawR_14": {
+   "w": 84,
+   "h": 100,
+   "mode": "limb",
+   "set": "krall_arms_R3"
+  },
+  "clawR_15": {
+   "w": 84,
+   "h": 100,
+   "mode": "limb",
+   "set": "krall_arms_R3"
+  },
+  "clawR_16": {
+   "w": 84,
+   "h": 100,
+   "mode": "limb",
+   "set": "krall_arms_R3"
+  },
+  "clawR_17": {
+   "w": 84,
+   "h": 100,
+   "mode": "limb",
+   "set": "krall_arms_R3"
+  },
+  "clawR_18": {
+   "w": 84,
+   "h": 100,
+   "mode": "limb",
+   "set": "krall_arms_R3"
+  },
+  "clawL_13": {
+   "w": 82,
+   "h": 72,
+   "mode": "limb",
+   "set": "krall_arms_L3"
+  },
+  "clawL_14": {
+   "w": 82,
+   "h": 72,
+   "mode": "limb",
+   "set": "krall_arms_L3"
+  },
+  "clawL_15": {
+   "w": 82,
+   "h": 72,
+   "mode": "limb",
+   "set": "krall_arms_L3"
+  },
+  "clawL_16": {
+   "w": 82,
+   "h": 72,
+   "mode": "limb",
+   "set": "krall_arms_L3"
+  },
+  "clawL_17": {
+   "w": 82,
+   "h": 72,
+   "mode": "limb",
+   "set": "krall_arms_L3"
+  },
+  "clawL_18": {
+   "w": 82,
+   "h": 72,
+   "mode": "limb",
+   "set": "krall_arms_L3"
+  },
+  "fx_wave": {
+   "w": 68,
+   "h": 54,
+   "mode": "swap",
+   "set": "krall_fx2"
+  },
+  "fx_arc": {
+   "w": 68,
+   "h": 54,
+   "mode": "swap",
+   "set": "krall_fx2"
+  },
+  "fx_crater": {
+   "w": 68,
+   "h": 54,
+   "mode": "swap",
+   "set": "krall_fx2"
+  },
+  "fx_rust": {
+   "w": 68,
+   "h": 54,
+   "mode": "swap",
+   "set": "krall_fx2"
+  },
+  "fx_field": {
+   "w": 72,
+   "h": 40,
+   "mode": "swap",
+   "set": "krall_fx2"
+  },
+  "fx_dust": {
+   "w": 72,
+   "h": 40,
+   "mode": "swap",
+   "set": "krall_fx2"
   }
  }
 }

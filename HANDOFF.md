@@ -3,7 +3,7 @@
 > **Zweck:** Jedes Werkzeug (und jede neue Sitzung) soll hier in 1 Minute wissen, wo das Projekt steht. **Am Ende jeder Arbeitssitzung aktualisieren** (kurz halten, veraltete Punkte löschen).
 
 ## Stand
-- Meilensteine 1–10-C sind umgesetzt, `SAVE_VERSION = 11` (Vercel deployt bei Push auf `main`). **M11 (lebendige Gegner & Bosse) läuft:** Kern-Wächter animiert, Krall weitgehend eingebunden (Rest wartet auf Import), Geschütz-Rig komplett, Teilen von Quarz-Koloss/Sternen-Archon fertig. **Status je Bereich: [`handoff/README.md`](handoff/README.md).** Übersicht: `MILESTONE_11_ARCHITECTURE.md` §11, `BOSS_ANIMATION_PLAN.md` (Statustabelle §3).
+- Meilensteine 1–10-C sind umgesetzt, `SAVE_VERSION = 11` (Vercel deployt bei Push auf `main`). **M11 (lebendige Gegner & Bosse) läuft:** Kern-Wächter animiert, Krall vollständig eingebunden (alle P0-Sheets verdrahtet, nur Abnahme im Kampf offen), Geschütz-Rig komplett, Teilen von Quarz-Koloss/Sternen-Archon fertig. **Status je Bereich: [`handoff/README.md`](handoff/README.md).** Übersicht: `MILESTONE_11_ARCHITECTURE.md` §11, `BOSS_ANIMATION_PLAN.md` (Statustabelle §3).
 - Doku: `GAME_DESIGN_DOCUMENT.md` (Status), `MILESTONE_10_ARCHITECTURE.md` §11 und `MILESTONE_10C_ARCHITECTURE.md` §9 (Umsetzungsnotizen, gemessene Werte, Abweichungen).
 
 ## Arbeitsablauf & Werkzeug-Sync (Antigravity ↔ Claude Code)
@@ -24,6 +24,7 @@ npm run verify                           # Build + Invarianten + Sprite-Check + 
 `npm run check:sprites` listet die aktuelle Lage. Stand: **alle 12 optionalen M10-Sprites fehlen**
 (`prop_hub_*`, `prop_kael_memorial`, `prop_lyra_echo_sign`, `prop_nyx_free_lantern`, `prop_vex_*`, `npc_pilgrim`, `npc_foundry_worker`, `npc_elder_scholar`) **plus 5 Boss-Sprites (M10-C)**: `boss_scrap_collector` *(Krall hat inzwischen ein Rig → nur noch Rückfall, niedrige Priorität)*, `boss_slag_colossus`, `boss_forge_mistress`, `boss_chrono_warden`, `boss_monolith_colossus` (128×128, Prompts: Art-Guide §8).
 - Prompts & Maße: `ART_AND_DESIGN_GUIDE.md` §7–§8 · Ablage: `public/art/sprites/<datei>.png` (96×96 bzw. 128×128, kein Code nötig).
+- **Neu in der Queue (niedrige Prio):** `P3-18/19` Kern-Wächter-Phase-1-Armschäden (`core_warden_arms_R4/L4.png`, D12-Lücke).
 - Schwächster Fallback zuerst ersetzen: Vex-Bake, Zyklus-Hologramm, Obelisk, Klassentafel.
 - **Zentrale Warteschlange:** Alle offenen Sprites & M11-Sheets stehen priorisiert (`P0`–`P4`) in [`SPRITE_QUEUE.md`](SPRITE_QUEUE.md). **Wer einen Fallback/Platzhalter oder ein neues M11-Sheet anlegt, sortiert es dort sofort priorisiert ein** (`AGENTS.md` §3 Regel 7) und vermerkt es hier kurz.
 
@@ -51,3 +52,5 @@ Jeder Bereich hat ein eigenes Status-Blatt in [`handoff/`](handoff/README.md) �
 ## Offene Punkte
 - Bildgenerierung: läuft direkt in Antigravity per `generate_image` (wochenweise Credits; Gemini-API mit Abrechnung nicht eingerichtet).
 - Ideen: siehe `GAME_DESIGN_DOCUMENT.md` §5.
+
+- **Neue Sprites benötigt (Krall, P0-14…18, `SPRITE_QUEUE.md`):** Phase-2-Rümpfe im Panzer-Maßstab neu (`krall_torsos2`) + beschädigte Arme (verbogen/Stumpf) für Block/Sog/Hagel/Stampfer/Teleskop (`krall_arms_R4/L4/R5/L5`). Übergang bis dahin: Rumpf ×1,1.
