@@ -1,6 +1,7 @@
 import { sound } from '../engine/audio';
 import { ENEMY_SHIELDS, SHIELD_HEAT_DECAY_SEC } from '../data/balance';
 import { bossRoom, runBoss } from './bosses/bossEngine';
+import { isLeviathanArena, updateLeviathanArena } from './bosses/leviathanArena';
 import { BOSS_DEFS } from './bosses/defs';
 import type { DungeonScene } from '../scenes/DungeonScene';
 import type { BossState, Enemy } from './dungeonTypes';
@@ -976,7 +977,9 @@ export class DungeonEnemyAi {
       } else if (e.kind === 'boss') {
         this.updateBossAI(e, dt, dx, dy, nx, ny);
       } else if (e.kind === 'boss_leviathan') {
-        this.updateLeviathanAI(e, dt);
+        // M12 Phase D: in der Reaktorhalle eigener Arena-Kampf (bosses/leviathanArena.ts)
+        if (e.levArena && isLeviathanArena(this.scene, e)) updateLeviathanArena(this.scene, e, dt);
+        else this.updateLeviathanAI(e, dt);
       }
 
       const prevX = e.x;
