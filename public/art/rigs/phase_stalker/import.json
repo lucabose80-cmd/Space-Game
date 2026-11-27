@@ -1,0 +1,48 @@
+{
+ "rig": "phase_stalker",
+ "scale": 0.12766,
+ "resample": "lanczos",
+ "torsoDisplayH": 15,
+ "pixelRatio": 2,
+ "sheets": {
+  "phase_stalker_rig.png": "9a1e77135cf430d2"
+ },
+ "parts": {
+  "torso": {
+   "w": 22,
+   "h": 30,
+   "srcW": 175,
+   "srcH": 235
+  },
+  "head": {
+   "w": 12,
+   "h": 16,
+   "srcW": 96,
+   "srcH": 128
+  },
+  "armR": {
+   "w": 16,
+   "h": 29,
+   "srcW": 129,
+   "srcH": 228
+  },
+  "armL": {
+   "w": 20,
+   "h": 28,
+   "srcW": 159,
+   "srcH": 220
+  },
+  "legR": {
+   "w": 11,
+   "h": 24,
+   "srcW": 83,
+   "srcH": 186
+  },
+  "legL": {
+   "w": 9,
+   "h": 24,
+   "srcW": 74,
+   "srcH": 188
+  }
+ }
+}
