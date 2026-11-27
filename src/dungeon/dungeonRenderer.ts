@@ -2987,6 +2987,12 @@ export class DungeonRenderer {
       }
       const hover = Math.sin(this.scene.time * 6 + e.id) * 1.4;
       const spr = e.flashTimer > 0 ? art.phaseStalkerFlash : art.phaseStalker;
+      if (this.tryDrawEnemyRig(ctx, e, false)) {
+        // M11: Rig (Rumpf, Kopf, Klingenarme, Beine) statt Einzelbild
+        drawGlow(ctx, e.x, e.y - 2, e.chargeActive > 0 ? 22 : 16, e.chargeActive > 0 ? '#f43f5e' : '#e879f9', e.chargeActive > 0 ? 0.42 : 0.2);
+        this.renderEnemyMiniHp(ctx, e);
+        return;
+      }
       if (spr) {
         ctx.save();
         if (e.telegraphTimer > 0) {
