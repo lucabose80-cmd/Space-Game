@@ -103,7 +103,7 @@ npm run check:sprites  # listet fehlende optionale Sprites (Fallbacks aktiv)
 npm run art:check -- art_source/rigs/<sheet>.png   # Prüfbild Gelenk/Zellrand (M11)
 npm run art:gen -- --ref <ref.png> --prompt-file <p.txt> --out art_source/_raw/<id>.png --sheet-out art_source/rigs/<id>.png  # Sheet über Gemini (Regel 15)
 npm run art:import -- <rig-id> --force            # Sheets → public/art/rigs/<rig-id>/ (M11)
-node scripts/rig-sheet.cjs core_warden            # Kontaktbogen aller Boss-Zustände (Dev-Server nötig)
+node scripts/rig-sheet.cjs core_warden            # Kontaktbogen aller Boss-Zustände (startet Vite bei Bedarf selbst)
 npm run dev        # Local Vite dev server (use --host 127.0.0.1 --strictPort in Headless Chrome tests)
 ```
 

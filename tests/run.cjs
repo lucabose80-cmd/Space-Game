@@ -54,28 +54,44 @@ console.warn = (...args) => {
   const results = new Array(names.length);
   let nextIdx = 0;
 
-  async function worker() {
-    while (true) {
-      const idx = nextIdx++;
-      if (idx >= names.length) return;
-      const n = names[idx];
-      const file = path.join(__dirname, n + '.cjs');
-      const res = await runTestInBrowser(browser, file, { port: PORT, scratch: SCRATCH, logStore });
-      results[idx] = { n, ...res };
+  async function worker(initialContext = null) {
+    let ctx = initialContext;
+    try {
+      while (true) {
+        const idx = nextIdx++;
+        if (idx >= names.length) return;
+        if (!ctx) ctx = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+        const n = names[idx];
+        const file = path.join(__dirname, n + '.cjs');
+        const res = await runTestInBrowser(browser, file, { port: PORT, scratch: SCRATCH, logStore, context: ctx });
+        results[idx] = { n, ...res };
+        if (res.contextDirty) {
+          await ctx.close().catch(() => {});
+          ctx = null;
+        }
+      }
+    } finally {
+      if (ctx) await ctx.close().catch(() => {});
     }
   }
 
   try {
-    // 1. Test allein als Vite-Warmup (kompiliert TS/Module einmalig sauber vor, bevor Worker parallel zugreifen)
+    // 1. Test allein als Vite-Warmup (kompiliert TS/Module einmalig vor und wärmt Context 0)
+    let warmCtx = null;
     if (names.length > 1 && jobs > 1) {
+      warmCtx = await browser.newContext({ viewport: { width: 1280, height: 720 } });
       const first = names[0];
       nextIdx = 1;
-      const res0 = await runTestInBrowser(browser, path.join(__dirname, first + '.cjs'), { port: PORT, scratch: SCRATCH, logStore });
+      const res0 = await runTestInBrowser(browser, path.join(__dirname, first + '.cjs'), { port: PORT, scratch: SCRATCH, logStore, context: warmCtx });
       results[0] = { n: first, ...res0 };
+      if (res0.contextDirty) {
+        await warmCtx.close().catch(() => {});
+        warmCtx = null;
+      }
     }
-    await Promise.all(Array.from({ length: jobs }, () => worker()));
+    await Promise.all(Array.from({ length: jobs }, (_, wi) => worker(wi === 0 ? warmCtx : null)));
 
-    // Zeitkritische Tests (z. B. rAF/Typewriter) bei Parallel-Last einmalig isoliert nachprüfen:
+    // Zeitkritische Tests (z. B. rAF/Typewriter) bei Parallel-Last einmalig isoliert in frischem Context nachprüfen:
     // echte Fehler bleiben rot, reine Parallel-Timing-Flakes fallen sofort auf.
     if (jobs > 1) {
       for (let i = 0; i < results.length; i++) {

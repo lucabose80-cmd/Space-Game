@@ -56,22 +56,26 @@ async function runTestInBrowser(browser, testFile, opts = {}) {
   const port = opts.port || PORT;
   const scratch = opts.scratch || SCRATCH;
   const logStore = opts.logStore || null;
+  const sharedContext = opts.context || null;
+  const origin = `http://127.0.0.1:${port}`;
   fs.mkdirSync(scratch, { recursive: true });
 
-  const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  const context = sharedContext || await browser.newContext({ viewport: { width: 1280, height: 720 } });
   const errors = [];
   const logs = [];
   let failure = null;
+  let page = null;
+  let contextDirty = false;
 
   const exec = async () => {
-    const page = await context.newPage();
+    page = await context.newPage();
     page.on('pageerror', (e) => errors.push('PAGEERROR ' + e.message));
     page.on('console', (m) => {
       if (m.type() === 'error' && !IGNORED_CONSOLE_RE.test(m.text())) {
         errors.push('CONSOLE ' + m.text());
       }
     });
-    await page.goto(`http://127.0.0.1:${port}/`);
+    await page.goto(`${origin}/`);
     await page.waitForFunction(() => document.styleSheets.length > 0);
     await page.evaluate(async () => {
       const { preloadHDArt } = await import('/src/assets/artLoader.ts');
@@ -87,13 +91,32 @@ async function runTestInBrowser(browser, testFile, opts = {}) {
   } catch (e) {
     failure = e;
   } finally {
-    await context.close().catch(() => {});
+    if (sharedContext) {
+      if (page && !page.isClosed()) {
+        try {
+          if (page.url().startsWith(origin)) {
+            await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+          } else {
+            contextDirty = true;
+          }
+        } catch {
+          contextDirty = true;
+        }
+        await page.close().catch(() => { contextDirty = true; });
+      } else {
+        contextDirty = true;
+      }
+      await context.clearCookies().catch(() => { contextDirty = true; });
+      if (failure || errors.length > 0) contextDirty = true;
+    } else {
+      await context.close().catch(() => {});
+    }
   }
 
-  return { ok: !failure && errors.length === 0, logs, errors, failure };
+  return { ok: !failure && errors.length === 0, logs, errors, failure, contextDirty };
 }
 
-module.exports = { PORT, SCRATCH, startVite, runTestInBrowser };
+module.exports = { PORT, SCRATCH, ping, startVite, runTestInBrowser };
 
 if (require.main === module) {
   (async () => {
