@@ -154,7 +154,13 @@ Alle optional mit prozeduralem Fallback (Regel 7). Stil: wie `hub_bg.png`/Dungeo
 3. **Endless-Spirale:** Endbosse bleiben dort im Standardraum (Folgeticket nach dem Piloten).
 
 ## 11. Umsetzungsnotizen
-*(wird während der Umsetzung gefüllt: Abweichungen, gemessene Werte)*
+### Phase A — Raumgrenzen pro Raum (2026-11-27, umgesetzt, Abnahme offen)
+- `DungeonRoom.bounds?: RoomBoundsDef` (`{ l, r, t, b }`); `roomBounds(room)` liefert ein gecachtes, unveränderliches `RoomBounds` mit `cx/cy` — ohne `bounds` immer dasselbe `DEFAULT_ROOM_BOUNDS` (exakt `ROOM_LEFT…`). `scene.bounds` = Grenzen des aktuellen Raums.
+- Boss-Engine: statt `ctx.bounds` heißt das Feld `BossCtx.room` (Schreibweise `L/R/T/B/CX/CY` wie die alte `ROOM`-Konstante → Boss-Züge mechanisch `ROOM.` → `c.room.`). `ROOM` bleibt als Standardraum exportiert; `clampToRoom(x, y, m, room = ROOM)`. Gießerei-Ambosse sind jetzt `anvils(room)`.
+- Strahl-Raycasts (Rail-Schuss 360, Boss-Laser 320): `scene.rayLimit(std)` — Standardraum unverändert, Arena = Diagonale + 12.
+- `NavGrid(blocked, inflate, bounds = DEFAULT_ROOM_BOUNDS)`: Rastergröße je Instanz (`cols/rows`, Standard 43×22).
+- Noch auf Konstanten (Absicht): Renderer (Phase B), Belohnungs-/Loot-Positionen & Layouts (Phase C/D).
+- Nachweis „Standard identisch“: `m12p1` + einmaliger Vorher/Nachher-Vergleich von 9 deterministischen Kampf-Szenarien (bit-identisch).
 
 ## 12. Verknüpfte Dokumente
 [AGENTS.md](AGENTS.md) · [BOSS_ENEMY_PIPELINE.md](BOSS_ENEMY_PIPELINE.md) (Ablauf & Qualität) · [BOSS_ANIMATION_PLAN.md](BOSS_ANIMATION_PLAN.md) (D1–D14) · [MILESTONE_10C_ARCHITECTURE.md](MILESTONE_10C_ARCHITECTURE.md) (Boss-Engine, Balance) · [MILESTONE_10_ARCHITECTURE.md](MILESTONE_10_ARCHITECTURE.md) (Mechaniken, Seeds) · [MILESTONE_11_ARCHITECTURE.md](MILESTONE_11_ARCHITECTURE.md) (Rigs, abgelöste Teile) · [PARALLEL_WORK.md](PARALLEL_WORK.md) · [SPRITE_QUEUE.md](SPRITE_QUEUE.md)
