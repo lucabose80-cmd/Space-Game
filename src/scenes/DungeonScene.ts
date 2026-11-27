@@ -25,7 +25,7 @@ import type {
 import { getDeviceSettings } from '../systems/deviceSettings';
 import { haptic } from '../systems/haptics';
 import { withSeededRandom } from '../systems/seededRng';
-import { formatWeekLabel, getTrialFloorSeed, TRIAL_FLOORS, trialBossHpFactor, trialHasMechanics } from '../systems/weeklyTrial';
+import { formatWeekLabel, getTrialFloorSeed, TRIAL_FLOORS, trialBossHpFactor, trialHasArena, trialHasMechanics } from '../systems/weeklyTrial';
 import {
   generateEndlessRiftFloor,
   generateSector1Floor,
@@ -46,8 +46,18 @@ import { RoomMechanicsSystem } from '../dungeon/roomMechanics';
 import { NavGrid } from '../dungeon/navGrid';
 import { DungeonCamera } from '../dungeon/camera';
 import { arenaEnabled, attachArenas } from '../data/arenas';
+import {
+  arenaAimPoint,
+  arenaAimPoints,
+  arenaBeamHit,
+  arenaClosestHitPoint,
+  createLeviathanArena,
+  isLeviathanArena,
+  leviathanArenaDamage,
+  onLeviathanArenaDefeated,
+} from '../dungeon/bosses/leviathanArena';
 import { BossFx } from '../dungeon/bosses/bossFx';
-import { BOSS_HP, ENEMY_SHIELDS, RIFT_SCALING } from '../data/balance';
+import { BOSS_HP, ENDBOSS_ARENA, ENEMY_SHIELDS, RIFT_SCALING } from '../data/balance';
 import { findFreeSpotSpiral } from '../dungeon/mechanicsGen';
 import { DungeonRenderer } from '../dungeon/dungeonRenderer';
 import type {
@@ -87,6 +97,8 @@ export class DungeonScene {
   /** M12 (Phase A): Grenzen des aktuellen Raums (Standardraum = `ROOM_LEFT…`, Arena = `room.bounds`). */
   /** M12 (Phase B): Kamera — im Standardraum immer (0, 0). */
   public readonly camera = new DungeonCamera();
+  /** M12 Phase D: Titel-Banner (Auftritt/Sieg eines Arena-Endbosses), Bildschirmkoordinaten */
+  public arenaBanner: { title: string; sub: string; t: number; max: number } | null = null;
   public get cameraTarget(): { playerX: number; playerY: number; roomBounds: DungeonRoom['bounds'] } {
     return { playerX: this.playerX, playerY: this.playerY, roomBounds: this.currentRoom?.bounds };
   }
@@ -404,6 +416,8 @@ export class DungeonScene {
       const seed = getTrialFloorSeed(this.trialInfo.weekId, floorIndex);
       const mechanics = trialHasMechanics(this.trialInfo.weekId);
       this.floor = withSeededRandom(seed, () => generateSectorFloor(sector, floorIndex, undefined, { mechanics, portalExclusion: false, beacon: false }));
+      // M12 Phase D: Arena erst ab TRIAL_ARENA_FROM_WEEK (und nur, wenn live) — nach der geseedeten Generierung, ohne Math.random
+      if (trialHasArena(this.trialInfo.weekId)) attachArenas(this.floor);
       // Keine Rift-Risse in der Prüfung (Beute/Progression sind aus)
       for (const [key, room] of [...this.floor.rooms.entries()]) {
         if (room.isRiftChamber) this.floor.rooms.delete(key);
@@ -1030,7 +1044,9 @@ export class DungeonScene {
       this.enemies.push(e);
     } else {
       // Gigantic Sector-1 Endboss: A.E.G.I.S. LEVIATHAN!
-      const e = makeBase(Math.round(BOSS_HP.boss_leviathan * ngMult * (1 + Math.min(2, bossCount) * 0.06)), 28);
+      // M12 Phase D: in der Arena mehr HP (größere Halle, längere Ausweichwege)
+      const arenaMult = this.currentRoom?.arenaKind === 'boss_leviathan' ? ENDBOSS_ARENA.leviathan.hpMult : 1;
+      const e = makeBase(Math.round(BOSS_HP.boss_leviathan * arenaMult * ngMult * (1 + Math.min(2, bossCount) * 0.06)), 28);
       e.bossState = 'lev_idle';
       e.bossStateTimer = 1.05;
       e.bossStateMax = 1.05;
@@ -1064,6 +1080,7 @@ export class DungeonScene {
           beamAngle: Math.PI / 2,
         },
       ];
+      if (arenaMult !== 1) createLeviathanArena(this, e);
       this.enemies.push(e);
     }
   }
@@ -1103,6 +1120,10 @@ export class DungeonScene {
       this.updateFrame(dt, input);
     }
     if (!this.finished) this.camera.update(dt, this.cameraTarget);
+    if (this.arenaBanner) {
+      this.arenaBanner.t -= dt;
+      if (this.arenaBanner.t <= 0) this.arenaBanner = null;
+    }
   }
 
   private updateFrame(dt: number, input: InputManager): void {
@@ -1245,6 +1266,7 @@ export class DungeonScene {
       const eid = Math.floor((this.aimTargetId - 1_000_000) / 10);
       const idx = (this.aimTargetId - 1_000_000) % 10;
       const boss = this.enemies.find((e) => e.id === eid);
+      if (boss?.levArena) return arenaAimPoint(boss, idx);
       const arm = boss?.levArms?.[idx];
       return arm ? { x: arm.x, y: arm.y, r: 12 } : null;
     }
@@ -1290,6 +1312,7 @@ export class DungeonScene {
       }
       if (e.kind === 'boss_leviathan' && e.levArms) {
         for (const arm of e.levArms) {
+          if (arm.dead) continue;
           const ad = Math.hypot(arm.x - this.playerX, arm.y - this.playerY);
           if (ad < bestDist) {
             bestDist = ad;
@@ -1347,7 +1370,9 @@ export class DungeonScene {
       if (e.hp <= 0) continue;
       const boss = this.isBossKind(e.kind);
       push(e.id, e.x, e.y, boss, e.hp / Math.max(1, e.maxHp) < 0.3);
-      if (e.kind === 'boss_leviathan' && e.levArms) {
+      if (e.levArena && isLeviathanArena(this, e)) {
+        for (const w of arenaAimPoints(e)) push(1_000_000 + e.id * 10 + w.idx, w.x, w.y, true, false);
+      } else if (e.kind === 'boss_leviathan' && e.levArms) {
         e.levArms.forEach((arm, i) => push(1_000_000 + e.id * 10 + i, arm.x, arm.y, true, false));
       }
     }
@@ -1963,6 +1988,11 @@ export class DungeonScene {
     let bestY = e.y;
     let bestR = e.radius;
     let bestD = Math.hypot(e.x - refX, e.y - refY) - e.radius;
+    // M12 Phase D: Arena-Leviathan — Schwachstellen (Arme/Ventile/Linse) + Panzer, Treffer wird gemerkt
+    if (e.levArena && isLeviathanArena(this, e)) {
+      const p = arenaClosestHitPoint(this, e, refX, refY);
+      return { x: p.x, y: p.y, r: p.r };
+    }
     if (e.kind === 'boss_leviathan' && e.levArms) {
       for (const arm of e.levArms) {
         const armR = 17;
@@ -2049,7 +2079,8 @@ export class DungeonScene {
     for (const e of [...this.enemies]) {
       if (e.kind === 'boss' && (e.bossHeight ?? 0) > 28) continue;
       let hit = this.pointToSegmentDist(e.x, e.y, sx, sy, ex, ey) <= e.radius + 9;
-      if (!hit && e.kind === 'boss_leviathan' && e.levArms) {
+      if (e.levArena && isLeviathanArena(this, e)) hit = arenaBeamHit(this, e, sx, sy, ex, ey);
+      else if (!hit && e.kind === 'boss_leviathan' && e.levArms) {
         hit = e.levArms.some((arm) => this.pointToSegmentDist(arm.x, arm.y, sx, sy, ex, ey) <= 22);
       }
       if (hit) {
@@ -2842,6 +2873,11 @@ export class DungeonScene {
       finalAmt = Math.round(finalAmt * 1.65);
     }
 
+    // M12 Phase D: Arena-Leviathan nimmt nur an offenen Schwachstellen Schaden (sonst Funken + „GEPANZERT“)
+    if (e.levArena && isLeviathanArena(this, e)) {
+      finalAmt = leviathanArenaDamage(this, e, finalAmt);
+      if (finalAmt <= 0) return;
+    }
     e.hp -= finalAmt;
     if (e.splitGroup !== undefined) for (const o of this.enemies) if (o !== e && o.splitGroup === e.splitGroup) o.hp = e.hp; // gemeinsamer Pool
     e.flashTimer = 0.11;
@@ -3090,6 +3126,7 @@ export class DungeonScene {
       );
       this.state.save();
     } else if (e.kind === 'boss_leviathan') {
+      if (e.levArena && isLeviathanArena(this, e)) onLeviathanArenaDefeated(this, e);
       this.debrisDrops = [];
       this.triggerShake(0.75, 7.0);
       this.shockwaves.push({
