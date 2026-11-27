@@ -119,7 +119,7 @@ module.exports = async ({ page, scratch, PORT }) => {
   assert.ok(!on.err, 'Arena-Kampf ohne Fehler: ' + on.err);
   assert.ok(on.inside, 'alle Gegner in der Arena');
   assert.ok(on.playerFree, 'Spieler steht nicht in einem Hindernis');
-  if (on.side === 'south') assert.deepStrictEqual(on.player, [412, 398 - 18], 'Eintritt Süd');
+  assert.deepStrictEqual(on.player, [412, 398 - 18], 'Arena: Eintritt immer am Südrand (' + on.side + '-Tür)');
   fs.writeFileSync(`${scratch}/m12p3_arena_north.png`, Buffer.from(on.url.split(',')[1], 'base64'));
   fs.writeFileSync(`${scratch}/m12p3_arena_south.png`, Buffer.from(on.url2.split(',')[1], 'base64'));
   console.log('M12 ARENA-DATEN OK');

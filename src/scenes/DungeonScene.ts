@@ -608,6 +608,12 @@ export class DungeonScene {
       this.playerY = rb.cy + 24;
       this.facing = 'up';
     }
+    // M12: Arena — Eintritt immer am Südrand (die Seitentüren liegen hinter Aggregaten/Wand, dort wäre der Spieler eingeklemmt)
+    if (room.arenaKind && room.bounds) {
+      this.playerX = rb.cx;
+      this.playerY = rb.b - 18;
+      this.facing = 'up';
+    }
     this.lastSafeX = this.playerX;
     this.lastSafeY = this.playerY;
     this.camera.snap(this.cameraTarget);
