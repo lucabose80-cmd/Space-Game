@@ -6,7 +6,7 @@
  "pixelRatio": 2,
  "sheets": {
   "turret_rig.png": "272af2de79a8b114",
-  "turret_treads.png": "2e6fe3ce71b5753b"
+  "turret_treads.png": "1eb47d6c517105a8"
  },
  "parts": {
   "base": {
@@ -46,26 +46,26 @@
    "srcH": 131
   },
   "tread_1": {
-   "w": 40,
-   "h": 30,
+   "w": 42,
+   "h": 20,
    "mode": "swap",
    "set": "turret_treads"
   },
   "tread_2": {
-   "w": 40,
-   "h": 30,
+   "w": 42,
+   "h": 20,
    "mode": "swap",
    "set": "turret_treads"
   },
   "tread_3": {
-   "w": 40,
-   "h": 30,
+   "w": 42,
+   "h": 20,
    "mode": "swap",
    "set": "turret_treads"
   },
   "tread_4": {
-   "w": 40,
-   "h": 30,
+   "w": 42,
+   "h": 20,
    "mode": "swap",
    "set": "turret_treads"
   },

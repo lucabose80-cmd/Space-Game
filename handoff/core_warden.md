@@ -16,7 +16,7 @@
 | Faust-Salve P2 | Fäuste kreisen + Flammen | Fäuste fliegen (eigene Faust-/Schweif-Sprites) | lösen sich mit Funken auf | ✅ D11 |
 | Phase-2-Verwandlung | Brüllen | Platten fliegen ab, Funken-Stern | — | ✅ D7 |
 
-- **D12 Beschädigungsstufen:** ✅ P1 < 80 % / < 65 %, P2 < 35 % / < 25 %, kritisch < 15 % — Lücke: Arme bleiben in Phase 1 unversehrt.
+- **D12 Beschädigungsstufen:** ✅ P1 < 80 % / < 65 % (inkl. Arme), P2 < 35 % / < 25 %, kritisch < 15 %.
 - **D13 Körper hängt zusammen:** ✅ (Arme an Schultern mit `SHOULDER_ADJUST`, Platten fliegen erst in Phase 2 ab).
 - **D14:** nicht zutreffend (schwebt; Triebwerks-Kristalle unten sind Code-Optik).
 - **Vergleich mit Krall:** Krall hatte *mehr Code-Effekte pro Angriff* bekommen, um Lücken zu schließen; der Kern-Wächter hat dafür **eigene Sprite-Effekte** (Faust, Schweif, Flamme). In D11 liegt der Kern-Wächter gleichauf bzw. vorn — Krall zieht erst mit dem Einbinden von `krall_fx2`, Rümpfen und Beinen gleich.
@@ -36,4 +36,5 @@
     - `art_source/rigs/core_warden_arms_R3.png` (**S6 rechts**: Phase-2-Angriffsposen ohne Faust mit leuchtender Manschette, Schulterring im Fadenkreuz, `min_margin ≥ 64 px`)
     - `art_source/rigs/core_warden_arms_L3.png` (**S6 links**: Phase-2-Angriffsposen ohne Faust mit Licht links-oben, Schulterring im Fadenkreuz, `min_margin ≥ 63 px`)
 
-- Phase-1-Armschäden: in `SPRITE_QUEUE.md` als `P3-18/19` eingetragen (niedrige Prio).
+- **Phase-1-Armschäden ✅ (P3-18/19):** `core_warden_arms_R4/L4.png` per `art:gen` erzeugt, als `armR/L_19…24` importiert; `core_warden.ts`: Phase 1 und HP < 65 % → beschädigte Hauptposen (`DMG_OF`), Test `m11p2` angepasst. D12-Lücke geschlossen.
+- **Idee (Regel 14):** Effekt-Sheet für Laser-Aufladung/Orbit-Energiebögen statt prozeduraler Optik.
