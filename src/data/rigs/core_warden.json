@@ -187,6 +187,35 @@
           "armL_23",
           "armL_24"
         ]
+      },
+      {
+        "file": "core_warden_fx",
+        "mode": "swap",
+        "cells": [
+          0
+        ],
+        "ids": [
+          "fx_ring"
+        ],
+        "holes": true
+      },
+      {
+        "file": "core_warden_fx",
+        "mode": "swap",
+        "cells": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "ids": [
+          "fx_flare",
+          "fx_orb",
+          "fx_arc_a",
+          "fx_arc_b",
+          "fx_burst"
+        ]
       }
     ]
   },
@@ -383,6 +412,12 @@
     "fist_front",
     "fist_charged",
     "fist_angled",
-    "fist_trail"
+    "fist_trail",
+    "fx_ring",
+    "fx_flare",
+    "fx_orb",
+    "fx_arc_a",
+    "fx_arc_b",
+    "fx_burst"
   ]
 }

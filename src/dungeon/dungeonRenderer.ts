@@ -1810,6 +1810,7 @@ export class DungeonRenderer {
       const prog = Math.min(1, Math.max(0, 1 - (e.bossStateTimer ?? 0) / total));
       const cosA = Math.cos(a);
       const sinA = Math.sin(a);
+      const fx = getHDArt().rigs.core_warden?.parts;
       ctx.save();
       // Strahl-Vorschau
       ctx.strokeStyle = `rgba(251, 113, 133, ${0.3 + prog * 0.5 + pulse * 0.15})`;
@@ -1826,6 +1827,13 @@ export class DungeonRenderer {
       const vy = ly + sinA * 14;
       for (let i = 0; i < 3; i++) {
         const ph = (prog * 2.2 + i / 3) % 1;
+        if (fx?.fx_ring) {
+          const sz = (fx.fx_ring.width / 2) * (0.3 + (1 - ph) * 1.2);
+          ctx.globalAlpha = (1 - ph) * 0.9;
+          ctx.drawImage(fx.fx_ring, vx - sz / 2, vy - sz / 2, sz, sz);
+          ctx.globalAlpha = 1;
+          continue;
+        }
         ctx.strokeStyle = `rgba(253, 224, 71, ${(1 - ph) * 0.8})`;
         ctx.lineWidth = 1.2;
         ctx.beginPath();
@@ -1833,6 +1841,23 @@ export class DungeonRenderer {
         ctx.stroke();
       }
       drawGlow(ctx, vx, vy, 6 + prog * 12, '#fb7185', 0.35 + prog * 0.5);
+      if (fx?.fx_orb) {
+        // Ladekugel: sammelt sich am Visier
+        const os = (fx.fx_orb.width / 2) * (0.15 + prog * 0.55);
+        ctx.globalAlpha = 0.4 + prog * 0.6;
+        ctx.drawImage(fx.fx_orb, vx - os / 2, vy - os / 2, os, os);
+        ctx.globalAlpha = 1;
+      }
+      if (fx?.fx_flare) {
+        // Visier-Glitzern (Sprite), wächst mit der Ladung und blitzt kurz vor dem Schuss
+        const fs = (fx.fx_flare.width / 2) * (0.3 + prog * 0.9 + (prog > 0.85 ? 0.2 : 0));
+        ctx.save();
+        ctx.translate(vx, vy);
+        ctx.rotate(prog * 0.8);
+        ctx.globalAlpha = 0.5 + prog * 0.5;
+        ctx.drawImage(fx.fx_flare, -fs / 2, -fs / 2, fs, fs);
+        ctx.restore();
+      }
       ctx.restore();
     }
   }
@@ -2154,10 +2179,35 @@ export class DungeonRenderer {
       ctx.strokeStyle = '#fde047';
       ctx.lineWidth = 1;
       const tt = this.scene.time;
+      const cwFx = getHDArt().rigs.core_warden?.parts;
+      if (cwFx?.fx_burst) {
+        // Ladefunken an jedem Pylon (Sprite), rotierend und pulsierend
+        for (let i = 0; i < pylons.length; i++) {
+          const bs = (cwFx.fx_burst.width / 2) * (0.5 + 0.3 * Math.abs(Math.sin(tt * 14 + i)));
+          ctx.save();
+          ctx.translate(pylons[i].x, pylons[i].y);
+          ctx.rotate(tt * 3 + i);
+          ctx.drawImage(cwFx.fx_burst, -bs / 2, -bs / 2, bs, bs);
+          ctx.restore();
+        }
+      }
       for (let i = 0; i < pylons.length; i++) {
         const A = pylons[i];
         const B = pylons[(i + 1) % pylons.length];
         ctx.globalAlpha = 0.35 + 0.45 * Math.abs(Math.sin(tt * 19 + i * 2.1));
+        const arcImg = Math.sin(tt * 11 + i * 1.7) > 0 ? cwFx?.fx_arc_a : cwFx?.fx_arc_b;
+        if (arcImg) {
+          // Sprite-Blitz zwischen den Pylonen: auf die Strecke gestreckt (Bild füllt ~70 % seiner Breite)
+          const dist = Math.hypot(B.x - A.x, B.y - A.y);
+          ctx.save();
+          ctx.globalAlpha = 0.3 + 0.35 * Math.abs(Math.sin(tt * 19 + i * 2.1));
+          ctx.translate((A.x + B.x) / 2, (A.y + B.y) / 2);
+          ctx.rotate(Math.atan2(B.y - A.y, B.x - A.x));
+          ctx.scale(dist / (arcImg.width / 2 * 0.7), 0.6);
+          ctx.drawImage(arcImg, -arcImg.width / 4, -arcImg.height / 4, arcImg.width / 2, arcImg.height / 2);
+          ctx.restore();
+          continue;
+        }
         ctx.beginPath();
         ctx.moveTo(A.x, A.y);
         const mx = (A.x + B.x) / 2;

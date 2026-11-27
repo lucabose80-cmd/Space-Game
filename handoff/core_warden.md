@@ -37,4 +37,4 @@
     - `art_source/rigs/core_warden_arms_L3.png` (**S6 links**: Phase-2-Angriffsposen ohne Faust mit Licht links-oben, Schulterring im Fadenkreuz, `min_margin ≥ 63 px`)
 
 - **Phase-1-Armschäden ✅ (P3-18/19):** `core_warden_arms_R4/L4.png` per `art:gen` erzeugt, als `armR/L_19…24` importiert; `core_warden.ts`: Phase 1 und HP < 65 % → beschädigte Hauptposen (`DMG_OF`), Test `m11p2` angepasst. D12-Lücke geschlossen.
-- **Idee (Regel 14):** Effekt-Sheet für Laser-Aufladung/Orbit-Energiebögen statt prozeduraler Optik.
+- **Effekt-Sheet ✅ (P3-20):** `core_warden_fx.png` (`fx_ring/flare/orb/arc_a/arc_b/burst`, `extraImages`) in `dungeonRenderer.ts`: Laser-Aufladung (Ringe, Flare, Kugel) und Orbit-Salve P1 (Blitze, Funkenstern); prozeduraler Rückfall bleibt. **Offen: nur noch Abnahme im echten Kampf.**
