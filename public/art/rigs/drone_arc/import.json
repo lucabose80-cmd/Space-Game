@@ -1,0 +1,48 @@
+{
+ "rig": "drone_arc",
+ "scale": 0.16447,
+ "resample": "lanczos",
+ "torsoDisplayH": 25,
+ "pixelRatio": 2,
+ "sheets": {
+  "drone_arc_rig.png": "8526675486d0c653"
+ },
+ "parts": {
+  "body": {
+   "w": 51,
+   "h": 50,
+   "srcW": 312,
+   "srcH": 304
+  },
+  "visor": {
+   "w": 29,
+   "h": 23,
+   "srcW": 178,
+   "srcH": 138
+  },
+  "coil": {
+   "w": 25,
+   "h": 27,
+   "srcW": 152,
+   "srcH": 164
+  },
+  "nacelle": {
+   "w": 33,
+   "h": 29,
+   "srcW": 202,
+   "srcH": 178
+  },
+  "sparkS": {
+   "w": 17,
+   "h": 26,
+   "srcW": 106,
+   "srcH": 157
+  },
+  "sparkL": {
+   "w": 45,
+   "h": 44,
+   "srcW": 273,
+   "srcH": 268
+  }
+ }
+}

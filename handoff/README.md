@@ -8,6 +8,7 @@ Jeder Chat/Agent pflegt **nur die Datei seines Bereichs**. `HANDOFF.md` bleibt d
 | Kern-Wächter | [`core_warden.md`](core_warden.md) | `anim/rigs/core_warden.ts` | `data/rigs/core_warden.json` | `m11p6_core_warden` |
 | Geschütz | [`enemy_turret.md`](enemy_turret.md) | `anim/rigs/turret.ts` | `data/rigs/turret.json` | `m11p7_turret` |
 | Drohne | [`enemy_drone.md`](enemy_drone.md) | `anim/rigs/drone.ts` | `data/rigs/drone.json` | `m11p8_drone` |
+| Bogen-Drohne | [`enemy_drone_arc.md`](enemy_drone_arc.md) | `anim/rigs/drone_arc.ts` (+ Wrack-Block `renderDroneArcWrecks` in `dungeonRenderer.ts`) | `data/rigs/drone_arc.json` | `m11p10_drone_arc` |
 | Phasen-Jäger | [`enemy_phase_stalker.md`](enemy_phase_stalker.md) | `anim/rigs/phase_stalker.ts` | `data/rigs/phase_stalker.json` | `m11p9_phase_stalker` |
 | Schild-Drohne | [`enemy_shield_drone.md`](enemy_shield_drone.md) | `anim/rigs/shield_drone.ts` | `data/rigs/shield_drone.json` | `m11p…_shield_drone` |
 | Endboss-Arenen (M12) | [`endboss_arena.md`](endboss_arena.md) | `src/dungeon/camera.ts`, `src/data/arenas/`, `bosses/leviathanArena.ts` (+ Phase A/B in gemeinsamen Dateien, siehe Blatt) | `data/arenas/<kind>.ts` | `m12p1…m12p5` |
