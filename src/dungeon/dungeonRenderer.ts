@@ -3,6 +3,7 @@ import { drawGlow, drawPixelShadow } from '../assets/pixelArt';
 import { drawBossLook } from './bosses/bossLooks';
 import { getBossPose, getRigFacing, smoothBossBody } from './anim/bossAnims';
 import { ARC_DEATH_TIME, arcDeathPose } from './anim/rigs/drone_arc';
+import { STALKER_DEATH_TIME, stalkerDeathPose } from './anim/rigs/phase_stalker';
 import { drawDetached, spawnPhase2Parts } from './anim/detached';
 import { spitterDeathPose, updateSpitterGhosts } from './anim/rigs/spore_spitter';
 import { enemyMotion, wantsMotion } from './anim/motion';
@@ -621,6 +622,7 @@ export class DungeonRenderer {
     }
 
     this.renderDroneArcWrecks(ctx);
+    this.renderStalkerWrecks(ctx);
 
     // Faceted 2.5D Hex-Aegis Kinetic Shield (animates smoothly on deploy & retract!)
     if (this.scene.shieldOpenAnim > 0.02) {
@@ -2469,6 +2471,26 @@ export class DungeonRenderer {
   }
 
   /** M11 Phase 7: Gegner-Rig (Teile-Sheet Typ G) zeichnen — Boden bei `e.y + 11`, Blickrichtung zum Spieler (Rig gespiegelt). */
+  /** M11 Phasen-Jäger: Todes-Animation (Kopf/Arme fliegen ab, Beine knicken ein, Energiesplitter) — nur Darstellung. */
+  private readonly stalkerSeen = new Map<Enemy, { x: number; y: number; f: number }>();
+  private stalkerWrecks: { x: number; y: number; f: number; t0: number; id: number }[] = [];
+  private renderStalkerWrecks(ctx: CanvasRenderingContext2D): void {
+    const now = this.scene.time;
+    for (const [e, s] of this.stalkerSeen) {
+      if (this.scene.enemies.includes(e)) continue;
+      if (e.hp <= 0) this.stalkerWrecks.push({ x: s.x, y: s.y, f: s.f, t0: now, id: e.id });
+      this.stalkerSeen.delete(e);
+    }
+    this.stalkerWrecks = this.stalkerWrecks.filter((w) => now - w.t0 < STALKER_DEATH_TIME && now >= w.t0);
+    const images = getHDArt().rigs.phase_stalker;
+    if (!images) return;
+    for (const w of this.stalkerWrecks) {
+      const t = now - w.t0;
+      drawRig(ctx, RIGS.phase_stalker, images, w.x, w.y + 11, stalkerDeathPose(t, w.id), { flipX: w.f < 0 });
+      drawGlow(ctx, w.x, w.y - 4, 18 * (1 - t / STALKER_DEATH_TIME), '#f43f5e', 0.5 * (1 - t / STALKER_DEATH_TIME));
+    }
+  }
+
   /** M11 Bogen-Drohne: Wrack-Animation beim Tod (Teile fliegen ab, Blitz) — nur Darstellung. */
   private readonly droneArcSeen = new Map<Enemy, { x: number; y: number; f: number }>();
   private droneArcWrecks: { x: number; y: number; f: number; t0: number; id: number }[] = [];
@@ -3190,6 +3212,7 @@ export class DungeonRenderer {
       const spr = e.flashTimer > 0 ? art.phaseStalkerFlash : art.phaseStalker;
       if (this.tryDrawEnemyRig(ctx, e, false)) {
         // M11: Rig (Rumpf, Kopf, Klingenarme, Beine) statt Einzelbild
+        this.stalkerSeen.set(e, { x: e.x, y: e.y, f: getRigFacing('phase_stalker', e, this.scene.playerX) });
         drawGlow(ctx, e.x, e.y - 2, e.chargeActive > 0 ? 22 : 16, e.chargeActive > 0 ? '#f43f5e' : '#e879f9', e.chargeActive > 0 ? 0.42 : 0.2);
         this.renderEnemyMiniHp(ctx, e);
         return;

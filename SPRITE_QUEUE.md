@@ -89,6 +89,8 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
 | `P1-01` | [x] | `art_source/rigs/turret_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/turret_0.png`, `public/art/sprites/turret_1.png` | `ART_BRIEF_M11_ENEMIES.md` §3 & §4 (S1) | ✅ Pilot mechanisch (`min_margin ≥ 45 px`, `art:check` ok, bereit für Claude-Import) |
 | `P1-02` | [x] | `art_source/rigs/phase_stalker_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_phase_stalker.png` | `ART_BRIEF_M11_ENEMIES.md` §3 & §4 (S1) | ✅ Pilot humanoid (`min_margin ≥ 53 px`, `art:check` ok, bereit für Claude-Import) |
+| `P1-08` | [x] | `art_source/rigs/phase_stalker_fx.png` | Typ E (Effekt) · 3×2 (`1536×1024`) | `public/art/sprites/enemy_phase_stalker.png`, `art_source/rigs/phase_stalker_rig.png` | `ART_BRIEF_M11_ENEMIES.md` §4 *(Zusatz „Phasen-Jäger-Effekte“)* | in Arbeit: Phasen-Jäger (Regel 14/15). Klingenschlag-Bogen groß · Klingenschlag-Bogen klein (zweiter Hieb) · Phasen-Riss (Abgang, vertikaler Energieriss) · Ankunfts-Funkenring · Nachbild-Schemen · Energiesplitter; je Zelle zentriert, `#FFFFFF`-Hintergrund. ✅ via Gemini API (`gemini-nano-banana-2.1`), `art:check` ok, importiert (`fxSlashL/S`, `fxRift`, `fxArrive`, `fxGhost`, `fxShards`), im Rig verdrahtet |
+| `P1-09` | [x] | `art_source/rigs/phase_stalker_arms_R.png` | Typ L (Pose-Set) · 3×2 (`1536×1024`) | `art_source/rigs/phase_stalker_rig.png` *(Zelle 3, Schulter in Zellmitte)* | `ART_BRIEF_M11_ENEMIES.md` §4 *(optional später Typ L)* | in Arbeit: Phasen-Jäger (Regel 14/15). Vorderer Arm mit Energieklinge, 6 Posen: hängend · ausholen (zurück/hoch) · Schlag nach vorn · Schlag diagonal nach unten · seitlich/Block · Rückzug; Schulter exakt in Zellmitte. Ersetzt das Drehen des einen Arm-Bildes. ✅ via Gemini API (2. Versuch: Zelle 3 hatte Schulter außerhalb der Mitte), Schultern per PIL auf Zellmitte, `art:check` ok, importiert als `armR_0…5` |
 
 > **✅ STOP-GATE (FREIGEGEBEN):** Vom Projektinhaber am 2026-11-26 freigegeben — P2-Serie läuft (Parallel-Einbindung der Pilot-Sheets durch Claude Code).
 
@@ -148,6 +150,13 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 | `P2-17` | [ ] | `art_source/rigs/star_lancer_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_star_lancer.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S4) | Sternen-Lanzer |
 | `P2-18` | [ ] | `art_source/rigs/void_wraith_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_void_wraith.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S4) | Leere-Phantom |
 | `P2-19` | [ ] | `art_source/rigs/monolith_guard_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_monolith_guard.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S4) | Monolith-Wächter |
+
+### P2e — Biom-Varianten für Boden-Effekte (`AGENTS.md` Regel 16, Format `BOSS_ENEMY_PIPELINE.md` §5)
+> Gegner, die außerhalb ihres Heimat-Sektors auftreten **und** schon ein Effekt-Sheet mit Boden-Effekten haben. Weitere Einträge legt jeder Rig-Chat in Stufe 3 an (neue fortlaufende ID). Zellen 1–5 = S1 Korvette · S2 Kristall · S3 Gießerei · S4 Monolith · S5 Omega; Zelle 6 = biom-neutraler Todes-Rückstand.
+
+| ID | Status | Zieldatei | Typ & Format | Referenz (`ImagePaths`) | Brief / Prompt | Notiz |
+| :--- | :---: | :--- | :--- | :--- | :--- | :--- |
+| `P2-21` | [ ] | `art_source/rigs/crystal_crawler_ground.png` | Typ E · 3×2 · `1536×1024` | `art_source/rigs/crystal_crawler_fx.png` (Zelle `fxDust`), Bodenkacheln/Hintergründe S1–S5 | `BOSS_ENEMY_PIPELINE.md` §5 — Prompt: „the same small impact dust trail + scraped ground mark of a crystal crawler lunge, drawn 5 times on 5 different floor materials: rusty moss-covered metal plates (S1), violet-cyan crystal floor (S2), cracked lava rock with embers (S3), black obsidian with star dust (S4), glitching void-energy floor (S5); cell 6: small pile of shattered ice-blue crystal shards; pixel art, same style and scale as reference, white background, 3×2 grid, each effect centred“ | Kristall-Krabbler tritt als Elite in **S1-Riss-Kammern** und in der Omega-Anomalie auf |
 
 ---
 

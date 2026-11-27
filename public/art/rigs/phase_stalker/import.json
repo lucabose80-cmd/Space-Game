@@ -5,7 +5,9 @@
  "torsoDisplayH": 15,
  "pixelRatio": 2,
  "sheets": {
-  "phase_stalker_rig.png": "9a1e77135cf430d2"
+  "phase_stalker_rig.png": "9a1e77135cf430d2",
+  "phase_stalker_arms_R.png": "38f2529bcf91846c",
+  "phase_stalker_fx.png": "c7d3e44cd984303d"
  },
  "parts": {
   "torso": {
@@ -43,6 +45,78 @@
    "h": 24,
    "srcW": 74,
    "srcH": 188
+  },
+  "armR_0": {
+   "w": 66,
+   "h": 66,
+   "mode": "limb",
+   "set": "phase_stalker_arms_R"
+  },
+  "armR_1": {
+   "w": 66,
+   "h": 66,
+   "mode": "limb",
+   "set": "phase_stalker_arms_R"
+  },
+  "armR_2": {
+   "w": 66,
+   "h": 66,
+   "mode": "limb",
+   "set": "phase_stalker_arms_R"
+  },
+  "armR_3": {
+   "w": 66,
+   "h": 66,
+   "mode": "limb",
+   "set": "phase_stalker_arms_R"
+  },
+  "armR_4": {
+   "w": 66,
+   "h": 66,
+   "mode": "limb",
+   "set": "phase_stalker_arms_R"
+  },
+  "armR_5": {
+   "w": 66,
+   "h": 66,
+   "mode": "limb",
+   "set": "phase_stalker_arms_R"
+  },
+  "fxSlashL": {
+   "w": 50,
+   "h": 56,
+   "mode": "swap",
+   "set": "phase_stalker_fx"
+  },
+  "fxSlashS": {
+   "w": 50,
+   "h": 56,
+   "mode": "swap",
+   "set": "phase_stalker_fx"
+  },
+  "fxRift": {
+   "w": 50,
+   "h": 56,
+   "mode": "swap",
+   "set": "phase_stalker_fx"
+  },
+  "fxArrive": {
+   "w": 50,
+   "h": 56,
+   "mode": "swap",
+   "set": "phase_stalker_fx"
+  },
+  "fxGhost": {
+   "w": 50,
+   "h": 56,
+   "mode": "swap",
+   "set": "phase_stalker_fx"
+  },
+  "fxShards": {
+   "w": 50,
+   "h": 56,
+   "mode": "swap",
+   "set": "phase_stalker_fx"
   }
  }
 }
