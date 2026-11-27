@@ -73,6 +73,11 @@ export class BossLab {
   private body!: HTMLDivElement;
   private selected: LabBoss | null = null;
   private selectedEnemy: Kind | null = null;
+  /** Biom-Override (null = Auto: Boss → Heimat-Sektor, Gegner → S1). Zum Prüfen von Boden-Effekten in fremden Sektoren (AGENTS.md Regel 16). */
+  private biom: SectorId | null = null;
+  /** Aktuell geladene Arena */
+  private loaded: { sector: SectorId; floor: 1 | 2 | 3 } | null = null;
+  private tab: 'bosse' | 'gegner' | 'mehr' = 'bosse';
   private timeScale = 1;
   private paused = false;
   private bossImmortal = true;
@@ -80,7 +85,8 @@ export class BossLab {
   private rigOn = true;
   private rigBackup: Record<string, ReturnType<typeof getHDArt>['rigs'][string]> = {};
   private infoTimer = 0;
-  private open = window.innerHeight >= 520; // Querformat-Handy: eingeklappt starten
+  private tabsEl!: HTMLDivElement;
+  private open = window.innerHeight >= 520 && window.innerWidth >= 700; // Handy (hoch oder quer): eingeklappt starten
   private muteToastUntil = 0;
 
   constructor(dng: DungeonScene, state: GameState, hooks: BossLabHooks) {
@@ -129,13 +135,25 @@ export class BossLab {
 
   /** Falls das Spiel versucht, den Dungeon zu verlassen (Tod/Extraktion): im Labor einfach neu aufbauen. */
   public onReturnAttempt(): void {
-    this.loadArena(this.selected?.sector ?? 1, this.selected?.floor ?? 1);
-    if (this.selected) this.spawnBoss(this.selected);
+    if (this.selected) {
+      const a = this.arenaFor(this.selected);
+      this.loadArena(a.sector, a.floor);
+      this.spawnBoss(this.selected);
+    } else {
+      this.loadArena(this.biom ?? 1, 1);
+    }
+  }
+
+  /** Arena für einen Boss: Biom-Override oder Heimat-Sektor (Ebene bleibt, außer in Ω). */
+  private arenaFor(b: LabBoss): { sector: SectorId; floor: 1 | 2 | 3 } {
+    const sector = this.biom ?? b.sector;
+    return { sector, floor: sector === 5 ? 1 : b.floor };
   }
 
   // ---------- Arena ----------
   private loadArena(sector: SectorId, floor: 1 | 2 | 3): void {
     const d = this.dng;
+    this.loaded = { sector, floor };
     this.muteToastUntil = Date.now() + 500;
     d.startRun(sector);
     if (sector !== 5 && floor > 1) d.startFloor(floor, false, sector);
@@ -177,10 +195,11 @@ export class BossLab {
   }
 
   private select(b: LabBoss): void {
-    const needArena = !this.selected || this.selected.sector !== b.sector || this.selected.floor !== b.floor;
+    const a = this.arenaFor(b);
+    const needArena = !this.loaded || this.loaded.sector !== a.sector || this.loaded.floor !== a.floor;
     this.selected = b;
     this.selectedEnemy = null;
-    if (needArena) this.loadArena(b.sector, b.floor);
+    if (needArena) this.loadArena(a.sector, a.floor);
     this.spawnBoss(b);
     this.refreshButtons();
   }
@@ -189,11 +208,19 @@ export class BossLab {
     this.selectedEnemy = kind;
     this.selected = null;
     const d = this.dng;
-    if (d.currentSector !== 1) this.loadArena(1, 1);
+    const want = this.biom ?? 1;
+    if (!this.loaded || this.loaded.sector !== want || this.loaded.floor !== 1) this.loadArena(want, 1);
     d.enemies.length = 0;
     d.bossFx.clear();
     d.spawnEnemy(kind, ROOM_CENTER_X + 50, ROOM_CENTER_Y - 20);
     this.refreshButtons();
+  }
+
+  private setBiom(b: SectorId | null): void {
+    this.biom = b;
+    if (this.selected) this.select(this.selected);
+    else if (this.selectedEnemy) this.spawnEnemy(this.selectedEnemy);
+    else this.refreshButtons();
   }
 
   private bossEntity(): Enemy | undefined {
@@ -214,14 +241,21 @@ export class BossLab {
     const style = document.createElement('style');
     style.textContent = `
       #boss-lab{position:fixed;left:4px;top:70px;z-index:60;font-family:var(--font-pixel,monospace);font-size:10px;color:#e2e8f0;pointer-events:auto;max-width:min(240px,62vw)}
-      #boss-lab .bl-head{display:flex;gap:4px;align-items:center}
-      #boss-lab button{font:inherit;color:#e2e8f0;background:rgba(15,23,42,.92);border:1px solid #475569;padding:5px 6px;min-height:30px;cursor:pointer;touch-action:manipulation}
+      #boss-lab .bl-head,#boss-lab .bl-biom,#boss-lab .bl-tabs{display:flex;gap:3px;align-items:center;flex-wrap:wrap}
+      #boss-lab .bl-biom{margin-top:3px}
+      #boss-lab .bl-biom span{color:#94a3b8;font-size:9px}
+      #boss-lab button{font:inherit;color:#e2e8f0;background:rgba(15,23,42,.92);border:1px solid #475569;padding:4px 7px;min-height:32px;min-width:32px;cursor:pointer;touch-action:manipulation}
+      #boss-lab .bl-biom button{padding:2px 6px;min-height:28px;min-width:28px}
       #boss-lab button.on{border-color:#38e8d4;color:#38e8d4}
       #boss-lab button.sel{background:#0e7490;border-color:#67e8f9}
-      #boss-lab .bl-body{margin-top:4px;background:rgba(10,15,26,.9);border:1px solid #334155;padding:6px;max-height:58vh;overflow:auto}
-      #boss-lab h4{margin:6px 0 3px;font-size:9px;color:#fbbf24;font-weight:normal}
+      #boss-lab .bl-tabs{margin-top:4px}
+      #boss-lab .bl-tabs button{flex:1}
+      #boss-lab .bl-body{margin-top:3px;background:rgba(10,15,26,.9);border:1px solid #334155;padding:5px;max-height:58vh;overflow:auto}
+      #boss-lab h4{margin:5px 0 3px;font-size:9px;color:#fbbf24;font-weight:normal}
       #boss-lab .bl-grid{display:flex;flex-wrap:wrap;gap:3px}
-      #boss-lab .bl-info{margin-top:4px;padding:4px 6px;background:rgba(10,15,26,.9);border:1px solid #334155;line-height:1.5;white-space:pre-line}
+      #boss-lab .bl-pane{display:none}
+      #boss-lab .bl-pane.show{display:block}
+      #boss-lab .bl-info{margin-top:3px;padding:3px 6px;background:rgba(10,15,26,.88);border:1px solid #334155;line-height:1.4;white-space:pre-line;font-size:9px}
     `;
     document.head.appendChild(style);
     this.panel = document.createElement('div');
@@ -229,22 +263,44 @@ export class BossLab {
     this.panel.addEventListener('mousedown', (e) => e.preventDefault()); // Tastatur-Fokus bleibt auf dem Spiel
     const head = document.createElement('div');
     head.className = 'bl-head';
-    const toggle = this.btn('🧪 BOSS-LABOR ▾', () => {
+    const toggle = this.btn('🧪 Labor ▾', () => {
       this.open = !this.open;
       this.body.style.display = this.open ? 'block' : 'none';
+      this.tabsEl.style.display = this.open ? 'flex' : 'none';
     });
     head.appendChild(toggle);
-    head.appendChild(this.btn('✕ Zurück', () => (window.location.href = window.location.pathname)));
+    // immer sichtbar (auch eingeklappt): die Knöpfe, die man beim Zusehen ständig braucht
+    head.appendChild(this.btn('⏸', () => { this.paused = !this.paused; this.refreshButtons(); }, 'pause'));
+    head.appendChild(this.btn('PII', () => { const e = this.bossEntity(); if (e) e.hp = Math.min(e.hp, e.maxHp * 0.45); }, 'phase2'));
+    head.appendChild(this.btn('↻', () => (this.selected ? this.select(this.selected) : this.selectedEnemy && this.spawnEnemy(this.selectedEnemy)), 'respawn'));
+    head.appendChild(this.btn('✕', () => (window.location.href = window.location.pathname)));
     this.panel.appendChild(head);
+    const biomRow = document.createElement('div');
+    biomRow.className = 'bl-biom';
+    const bl = document.createElement('span');
+    bl.textContent = 'Biom';
+    biomRow.appendChild(bl);
+    biomRow.appendChild(this.btn('Auto', () => this.setBiom(null), 'biom:auto'));
+    for (const sec of [1, 2, 3, 4, 5] as SectorId[]) biomRow.appendChild(this.btn(sec === 5 ? 'Ω' : `S${sec}`, () => this.setBiom(sec), `biom:${sec}`));
+    this.panel.appendChild(biomRow);
+    this.info = document.createElement('div'); // direkt unter den Knöpfen, damit die Liste (unten) nichts davon verdeckt
+    this.info.className = 'bl-info';
+    this.panel.appendChild(this.info);
+    const tabs = document.createElement('div');
+    tabs.className = 'bl-tabs';
+    for (const [id, label] of [['bosse', 'Bosse'], ['gegner', 'Gegner'], ['mehr', 'Mehr']] as const) {
+      tabs.appendChild(this.btn(label, () => { this.tab = id; this.refreshButtons(); }, `tab:${id}`));
+    }
+    this.tabsEl = tabs;
+    this.panel.appendChild(tabs);
     this.body = document.createElement('div');
     this.body.className = 'bl-body';
     this.panel.appendChild(this.body);
-    this.info = document.createElement('div');
-    this.info.className = 'bl-info';
-    this.panel.appendChild(this.info);
     document.body.appendChild(this.panel);
     this.buildBody();
     this.body.style.display = this.open ? 'block' : 'none';
+    this.tabsEl.style.display = this.open ? 'flex' : 'none';
+    this.refreshButtons();
     this.layout();
     window.addEventListener('resize', () => this.layout());
     window.addEventListener('orientationchange', () => setTimeout(() => this.layout(), 200));
@@ -258,11 +314,11 @@ export class BossLab {
     if (portrait && r) {
       this.panel.style.top = `${Math.round(r.bottom + 6)}px`;
       this.panel.style.maxWidth = 'calc(100vw - 8px)';
-      this.body.style.maxHeight = `${Math.max(110, Math.round(window.innerHeight - r.bottom - 6 - 200 - 70))}px`;
+      this.body.style.maxHeight = `${Math.max(110, Math.round(Math.min(window.innerHeight * 0.3, window.innerHeight - r.bottom - 6 - 170)))}px`;
     } else {
-      this.panel.style.top = '70px';
+      this.panel.style.top = '112px'; // unter dem HP/EN-Block (bleibt lesbar)
       this.panel.style.maxWidth = 'min(240px, 62vw)';
-      this.body.style.maxHeight = '46vh';
+      this.body.style.maxHeight = '30vh';
     }
   }
 
@@ -279,35 +335,55 @@ export class BossLab {
     return b;
   }
 
-  private section(title: string): HTMLDivElement {
+  private pane(id: string): HTMLDivElement {
+    const el = document.createElement('div');
+    el.className = 'bl-pane';
+    el.dataset.pane = id;
+    this.body.appendChild(el);
+    return el;
+  }
+
+  private section(parent: HTMLElement, title: string): HTMLDivElement {
     const h = document.createElement('h4');
     h.textContent = title;
-    this.body.appendChild(h);
+    parent.appendChild(h);
     const g = document.createElement('div');
     g.className = 'bl-grid';
-    this.body.appendChild(g);
+    parent.appendChild(g);
     return g;
   }
 
   private buildBody(): void {
-    const g2 = this.section('STEUERUNG');
-    g2.appendChild(this.btn('↻ Neu', () => (this.selected ? this.select(this.selected) : this.selectedEnemy && this.spawnEnemy(this.selectedEnemy)), 'respawn'));
-    g2.appendChild(this.btn('Phase II', () => { const e = this.bossEntity(); if (e) e.hp = Math.min(e.hp, e.maxHp * 0.45); }, 'phase2'));
+    // Tab „Bosse“: nach Sektor gruppiert
+    const pb = this.pane('bosse');
+    for (const sec of [1, 2, 3, 4, 5] as SectorId[]) {
+      const g = this.section(pb, sec === 5 ? 'Ω OMEGA' : `SEKTOR ${sec}`);
+      for (const b of LAB_BOSSES.filter((x) => x.sector === sec)) {
+        g.appendChild(this.btn(`${sec === 5 ? 'Ω' : b.floor} ${b.name}`, () => this.select(b), `boss:${b.kind}`));
+      }
+    }
+    // Tab „Gegner“
+    const pg = this.pane('gegner');
+    const g3 = this.section(pg, 'GEGNER (einzeln)');
+    for (const en of LAB_ENEMIES) g3.appendChild(this.btn(en.name, () => this.spawnEnemy(en.kind), `enemy:${en.kind}`));
+    // Tab „Mehr“: Zeit & Schalter
+    const pm = this.pane('mehr');
+    const gt = this.section(pm, 'ZEIT');
+    for (const sp of [0.25, 0.5, 1]) gt.appendChild(this.btn(`${sp}×`, () => { this.timeScale = sp; this.refreshButtons(); }, `speed:${sp}`));
+    const g2 = this.section(pm, 'SCHALTER');
     g2.appendChild(this.btn('HP voll', () => { const e = this.bossEntity(); if (e) e.hp = e.maxHp; }, 'heal'));
-    g2.appendChild(this.btn('⏸ Pause', () => { this.paused = !this.paused; this.refreshButtons(); }, 'pause'));
-    for (const s of [0.25, 0.5, 1]) g2.appendChild(this.btn(`${s}×`, () => { this.timeScale = s; this.refreshButtons(); }, `speed:${s}`));
     g2.appendChild(this.btn('Rig', () => { this.rigOn = !this.rigOn; this.applyRig(); this.refreshButtons(); }, 'rig'));
     g2.appendChild(this.btn('Boss ∞', () => { this.bossImmortal = !this.bossImmortal; this.refreshButtons(); }, 'bossImmortal'));
     g2.appendChild(this.btn('Ich ∞', () => { this.playerImmortal = !this.playerImmortal; this.refreshButtons(); }, 'playerImmortal'));
-    const g1 = this.section('BOSSE');
-    for (const b of LAB_BOSSES) g1.appendChild(this.btn(`${b.sector === 5 ? 'Ω' : 'S' + b.sector + '·' + b.floor} ${b.name}`, () => this.select(b), `boss:${b.kind}`));
-    const g3 = this.section('GEGNER (einzeln)');
-    for (const en of LAB_ENEMIES) g3.appendChild(this.btn(en.name, () => this.spawnEnemy(en.kind), `enemy:${en.kind}`));
   }
 
   private refreshButtons(): void {
     const set = (id: string, on: boolean) => this.panel.querySelector(`[data-lab="${id}"]`)?.classList.toggle('on', on);
     set('pause', this.paused);
+    this.panel.querySelectorAll('[data-pane]').forEach((el) => el.classList.toggle('show', (el as HTMLElement).dataset.pane === this.tab));
+    for (const t of ['bosse', 'gegner', 'mehr']) this.panel.querySelector(`[data-lab="tab:${t}"]`)?.classList.toggle('sel', this.tab === t);
+    set('biom:auto', this.biom === null);
+    for (const sec of [1, 2, 3, 4, 5]) set(`biom:${sec}`, this.biom === sec);
     set('rig', this.rigOn);
     set('bossImmortal', this.bossImmortal);
     set('playerImmortal', this.playerImmortal);
@@ -328,6 +404,7 @@ export class BossLab {
     const rig = RIG_BY_KIND[e.kind];
     const rigState = rig ? (getHDArt().rigs[rig] ? 'Rig an' : 'Rig aus') : 'kein Rig';
     const pct = Math.round((e.hp / e.maxHp) * 100);
-    this.info.textContent = `${this.selected?.name ?? e.kind} · HP ${pct} %${e.bossPhase2 ? ' · PHASE II' : ''}\n${e.bossStatusText ?? e.bossSub ?? ''} · ${rigState}${this.paused ? ' · PAUSE' : this.timeScale !== 1 ? ` · ${this.timeScale}×` : ''}`;
+    const biomTxt = this.loaded ? (this.loaded.sector === 5 ? 'Ω' : `S${this.loaded.sector}`) : '–';
+    this.info.textContent = `${this.selected?.name ?? e.kind} · Biom ${biomTxt}${this.biom === null ? ' (auto)' : ''} · HP ${pct} %${e.bossPhase2 ? ' · PHASE II' : ''}\n${e.bossStatusText ?? e.bossSub ?? ''} · ${rigState}${this.paused ? ' · PAUSE' : this.timeScale !== 1 ? ` · ${this.timeScale}×` : ''}`;
   }
 }

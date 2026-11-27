@@ -120,6 +120,8 @@ Prozedurale Code-Beine wurden **verworfen** (passten nicht zum Pixel-Art-Stil, d
 Teil in `rigs.json` mit `"detach": "phase2"` markieren. Beim ersten Frame mit `bossPhase2` (einmalig, `Enemy.rigDetached`) löst `tryDrawRig` es ab: Bogenflug, ein Aufprall, ~1,7 s ausblenden (`scene.detached`, Update in `DungeonScene`). Danach liefert `getBossPose` das Teil als `hidden`. Aktuell: Kern-Wächter-Brustplatten (`plateL/R`), Krall-Rückenpanzer (`plate`). Rein visuell, kein Schaden.
 
 ## 6. Prüfen (ohne Claude)
+> **Boss-Labor (`?bosslab`), handytauglich:** Tabs *Bosse / Gegner / Mehr* (Zeit 0,25×/0,5×/1×, HP voll, Rig an/aus, Boss ∞, Ich ∞), immer sichtbar: ⏸ Pause · PII Phase II · ↻ Neu · ✕ Zurück. Zeile **Biom** (Auto/S1–S4/Ω) lädt Boss oder Gegner im gewählten Biom — Pflicht-Prüfung für Boden-Effekte in fremden Sektoren (`AGENTS.md` Regel 16).
+
 ```bash
 npm install && npx playwright install chromium     # einmalig
 npm run dev -- --host 127.0.0.1 --port 5199 --strictPort   # Terminal 1

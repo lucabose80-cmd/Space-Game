@@ -88,6 +88,8 @@ Neue Mischungen (neue Pools, Challenges, Events) → diese Tabelle ergänzen.
 
 **Sheet-Format Biom-Variante (Typ E, 3×2, `1536×1024`):** `art_source/rigs/<id>_ground.png` (bei mehreren Boden-Effekten `<id>_ground2.png` …) — Zelle 1–5 = **derselbe** Boden-Effekt im Material von S1 Verlassene Korvette (Rost-Metallplatten, Moos) · S2 Kristall-Nebel (violett-cyan Kristallboden) · S3 Solar-Gießerei (Lava-Gestein, Glut) · S4 Ältesten-Monolith (Obsidian, Sternenstaub) · S5 Omega-Anomalie; Zelle 6 = biom-neutraler Todes-Rückstand des Gegners (optional). Referenz: Effekt-Sheet des Gegners + Bodenkacheln/Hintergrund der fünf Sektoren.
 
+**Im Boss-Labor (`?bosslab`):** Zeile **Biom** (Auto · S1 · S2 · S3 · S4 · Ω) lädt die Arena im gewählten Biom — für Bosse **und** einzelne Gegner, Auswahl bleibt erhalten. So prüfst du G10/D15 (z. B. Vulkan-Titan in S1, Kristall-Krabbler in S4/Ω). Das Labor ist handytauglich: Tabs *Bosse / Gegner / Mehr*, Pause/Phase II/Neu/Schließen immer sichtbar, eingeklappt auf dem Handy.
+
 **Im Code:** Biom des aktuellen Raums = Riss-Kammer → `currentRoom.riftSector`, Spirale → `floor.visualSector`, sonst `currentSector` (S5 = Omega). Die Boden-Zelle wird nach diesem Biom gewählt; fehlt die Variante → Heimat-Variante + Tönung (Fallback, Sheet in `SPRITE_QUEUE.md` bestellen). Rein optisch, kein Zufall.
 
 **Pflicht in Stufe 3 (Sprite-Liste):** für jeden Gegner/Boss prüfen, ob er in der Tabelle oben vorkommt **und** Boden-Effekte hat (Aufschlag, Stampfer, Sturz, Tod am Boden, Spuren) → `<id>_ground.png` mit einplanen. Checklisten-Punkt **G10** (Gegner) bzw. **D15** (Bosse) in `BOSS_ANIMATION_PLAN.md`.
