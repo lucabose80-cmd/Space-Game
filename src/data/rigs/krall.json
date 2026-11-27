@@ -241,6 +241,42 @@
           "clawL_23",
           "clawL_24"
         ]
+      },
+      {
+        "file": "krall_arms_R4",
+        "mode": "limb",
+        "ids": [
+          "clawR_19",
+          "clawR_20",
+          "clawR_21",
+          "clawR_22",
+          "clawR_23",
+          "clawR_24"
+        ]
+      },
+      {
+        "file": "krall_arms_R5",
+        "mode": "limb",
+        "ids": [
+          "clawR_25",
+          "clawR_26",
+          "clawR_27",
+          "clawR_28",
+          "clawR_29",
+          "clawR_30"
+        ]
+      },
+      {
+        "file": "krall_arms_L5",
+        "mode": "limb",
+        "ids": [
+          "clawL_25",
+          "clawL_26",
+          "clawL_27",
+          "clawL_28",
+          "clawL_29",
+          "clawL_30"
+        ]
       }
     ]
   },
@@ -456,7 +492,19 @@
         "clawR_15",
         "clawR_16",
         "clawR_17",
-        "clawR_18"
+        "clawR_18",
+        "clawR_19",
+        "clawR_20",
+        "clawR_21",
+        "clawR_22",
+        "clawR_23",
+        "clawR_24",
+        "clawR_25",
+        "clawR_26",
+        "clawR_27",
+        "clawR_28",
+        "clawR_29",
+        "clawR_30"
       ],
       "offset": [
         11.4,
@@ -522,7 +570,13 @@
         "clawL_21",
         "clawL_22",
         "clawL_23",
-        "clawL_24"
+        "clawL_24",
+        "clawL_25",
+        "clawL_26",
+        "clawL_27",
+        "clawL_28",
+        "clawL_29",
+        "clawL_30"
       ],
       "offset": [
         -14.4,

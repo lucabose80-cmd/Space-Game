@@ -21,7 +21,10 @@
   "krall_arms_R3.png": "5c062b283af2d2db",
   "krall_arms_L3.png": "3a9306a7c6336b7c",
   "krall_fx2.png": "d5a45c82a342530c",
-  "krall_arms_L4.png": "6cfc9c48162f87b1"
+  "krall_arms_L4.png": "6cfc9c48162f87b1",
+  "krall_arms_R4.png": "d19e60002e72afcc",
+  "krall_arms_R5.png": "4d72388ecd5d0501",
+  "krall_arms_L5.png": "49fa902ec8e19bac"
  },
  "parts": {
   "torso": {
@@ -635,6 +638,114 @@
    "h": 80,
    "mode": "limb",
    "set": "krall_arms_L4"
+  },
+  "clawR_19": {
+   "w": 100,
+   "h": 80,
+   "mode": "limb",
+   "set": "krall_arms_R4"
+  },
+  "clawR_20": {
+   "w": 100,
+   "h": 80,
+   "mode": "limb",
+   "set": "krall_arms_R4"
+  },
+  "clawR_21": {
+   "w": 100,
+   "h": 80,
+   "mode": "limb",
+   "set": "krall_arms_R4"
+  },
+  "clawR_22": {
+   "w": 100,
+   "h": 80,
+   "mode": "limb",
+   "set": "krall_arms_R4"
+  },
+  "clawR_23": {
+   "w": 100,
+   "h": 80,
+   "mode": "limb",
+   "set": "krall_arms_R4"
+  },
+  "clawR_24": {
+   "w": 100,
+   "h": 80,
+   "mode": "limb",
+   "set": "krall_arms_R4"
+  },
+  "clawR_25": {
+   "w": 96,
+   "h": 100,
+   "mode": "limb",
+   "set": "krall_arms_R5"
+  },
+  "clawR_26": {
+   "w": 96,
+   "h": 100,
+   "mode": "limb",
+   "set": "krall_arms_R5"
+  },
+  "clawR_27": {
+   "w": 96,
+   "h": 100,
+   "mode": "limb",
+   "set": "krall_arms_R5"
+  },
+  "clawR_28": {
+   "w": 96,
+   "h": 100,
+   "mode": "limb",
+   "set": "krall_arms_R5"
+  },
+  "clawR_29": {
+   "w": 96,
+   "h": 100,
+   "mode": "limb",
+   "set": "krall_arms_R5"
+  },
+  "clawR_30": {
+   "w": 96,
+   "h": 100,
+   "mode": "limb",
+   "set": "krall_arms_R5"
+  },
+  "clawL_25": {
+   "w": 96,
+   "h": 94,
+   "mode": "limb",
+   "set": "krall_arms_L5"
+  },
+  "clawL_26": {
+   "w": 96,
+   "h": 94,
+   "mode": "limb",
+   "set": "krall_arms_L5"
+  },
+  "clawL_27": {
+   "w": 96,
+   "h": 94,
+   "mode": "limb",
+   "set": "krall_arms_L5"
+  },
+  "clawL_28": {
+   "w": 96,
+   "h": 94,
+   "mode": "limb",
+   "set": "krall_arms_L5"
+  },
+  "clawL_29": {
+   "w": 96,
+   "h": 94,
+   "mode": "limb",
+   "set": "krall_arms_L5"
+  },
+  "clawL_30": {
+   "w": 96,
+   "h": 94,
+   "mode": "limb",
+   "set": "krall_arms_L5"
   }
  }
 }
