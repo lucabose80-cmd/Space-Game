@@ -1,7 +1,8 @@
-// M11: Rig-Definitionen (Daten in rigs.json — gemeinsam mit scripts/art-import.py).
+// M11: Rig-Definitionen (Daten in src/data/rigs/*.json — gemeinsam mit scripts/art-import.py).
 import type { Enemy } from '../dungeon/dungeonTypes';
 import type { RigDef, RigPartDef } from '../engine/rig';
-import rigData from './rigs.json';
+// Jedes Rig liegt in einer eigenen Datei `rigs/<rig-id>.json` (paralleles Arbeiten ohne Merge-Konflikte).
+const rigModules = import.meta.glob('./rigs/*.json', { eager: true, import: 'default' }) as Record<string, RigJson>;
 
 interface RigJson {
   kind: Enemy['kind'];
@@ -21,7 +22,7 @@ interface RigJson {
   extraImages?: string[];
 }
 
-const raw = rigData as unknown as Record<string, RigJson>;
+const raw: Record<string, RigJson> = Object.fromEntries(Object.entries(rigModules).map(([path, def]) => [path.replace(/^.*\/(.+)\.json$/, '$1'), def]));
 
 export const RIGS: Record<string, RigDef> = Object.fromEntries(Object.entries(raw).map(([id, r]) => [id, { id, parts: r.parts, ratio: r.sheet.pixelRatio ?? 1 }]));
 

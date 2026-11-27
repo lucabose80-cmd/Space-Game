@@ -1,10 +1,9 @@
 import { getHDArt } from '../assets/artLoader';
 import { drawGlow, drawPixelShadow } from '../assets/pixelArt';
 import { drawBossLook } from './bosses/bossLooks';
-import { getBossPose, smoothBossBody } from './anim/bossAnims';
+import { getBossPose, getRigFacing, smoothBossBody } from './anim/bossAnims';
 import { drawDetached, spawnPhase2Parts } from './anim/detached';
 import { enemyMotion, wantsMotion } from './anim/motion';
-import { turretFacing } from './anim/enemyAnims';
 import { drawRig } from '../engine/rig';
 import { RIG_BY_KIND, RIGS } from '../data/rigs';
 import { getAtlas } from '../assets/sprites';
@@ -2297,7 +2296,7 @@ export class DungeonRenderer {
     if (!images) return false;
     const dx = this.scene.playerX - e.x;
     const dy = this.scene.playerY - e.y;
-    const facing = e.kind === 'turret' ? turretFacing(e, this.scene.playerX) : 1;
+    const facing = getRigFacing(rigId, e, this.scene.playerX);
     const pose = getBossPose(rigId, e, this.scene.time, dx * facing, dy);
     drawPixelShadow(ctx, e.x, e.y + 10, 11, 3.6, 0.45);
     drawRig(ctx, RIGS[rigId], images, e.x, e.y + 11, pose, { flash: e.flashTimer > 0, flipX: facing < 0 });

@@ -205,12 +205,15 @@ def main():
     ap.add_argument("ids", nargs="*")
     ap.add_argument("--src", default="art_source")
     ap.add_argument("--out", default="public/art")
-    ap.add_argument("--rigs", default="src/data/rigs.json")
+    ap.add_argument("--rigs", default="src/data/rigs", help="Ordner mit <rig-id>.json (oder eine einzelne JSON-Datei mit allen Rigs)")
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--resample", default="lanczos", choices=["lanczos", "nearest", "box"])
     ap.add_argument("--keep-cell", type=int, default=None)
     args = ap.parse_args()
-    rigs = json.load(open(args.rigs))
+    if os.path.isdir(args.rigs):
+        rigs = {f[:-5]: json.load(open(os.path.join(args.rigs, f))) for f in sorted(os.listdir(args.rigs)) if f.endswith(".json")}
+    else:
+        rigs = json.load(open(args.rigs))
     report = []
     ids = args.ids or list(rigs.keys())
     for rid in ids:

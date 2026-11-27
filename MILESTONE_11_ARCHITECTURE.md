@@ -96,9 +96,9 @@ export function partWorldPos(def, pose, partId, x, y): { x: number; y: number; r
 - `detached.ts`: **abgelöste Teile** als eigene Objekte (Position, Geschwindigkeit, Rotation, Rückkehr-Ziel). Schaden machen sie über die vorhandenen Systeme (Projektil oder `bossFx`-Zone); dieses Modul zeichnet nur das Teil statt eines Kreises.
 - `transform.ts`: **Phase-2-Effekte** — *Aufbrechen* (Rumpf in zwei Hälften per Clip-Rechteck, gleiten auseinander, Leuchtkern dazwischen), *Panzer abwerfen* (Teile fliegen als Splitter weg und verschwinden), *Teilen* (Boss zeichnet sich 2–3× kleiner an verschiedenen Positionen; Logik siehe §4.3).
 
-### 3.3 Fallback ohne neue Sprites — `src/data/rigs.json`
+### 3.3 Fallback ohne neue Sprites — `src/data/rigs/<rig-id>.json`
 
-> **Nicht umgesetzt:** Ausschnitte aus dem Einzelbild (`source.rects`). Fehlt ein Rig-Bild, zeigt der Boss sein altes Einzel-Sprite. Rig-Daten stehen in `src/data/rigs.json` (nicht `rigs.ts`).
+> **Nicht umgesetzt:** Ausschnitte aus dem Einzelbild (`source.rects`). Fehlt ein Rig-Bild, zeigt der Boss sein altes Einzel-Sprite. Rig-Daten stehen in `src/data/rigs/<rig-id>.json` (nicht `rigs.ts`).
 
 - Jeder Rig kann statt eines Teile-Sheets **Ausschnitte aus dem vorhandenen Einzelbild** verwenden: `source: { sprite: 'boss', rects: { armL: [x, y, w, h], … } }` (Pixel im Original-PNG). So bewegen sich Arme schon heute; an Schnittkanten können kleine Lücken entstehen — die schließt das Teile-Sheet später.
 - Reihenfolge beim Laden: `public/art/rigs/<id>/` vorhanden → nutzen · sonst Ausschnitte aus dem Einzelbild · sonst bisherige Darstellung.
@@ -241,7 +241,7 @@ Jede Phase: Code → Test → `npm run verify` → Screenshots/Bildfolgen ansehe
 
 ### Phase 0 — Pipeline
 - `scripts/art-import.py` (Python + Pillow; Aufruf über `npm run art:import`): Raster erkennen (3×2 / 2×2), Zellen schneiden, Rand-Flood-Fill, Defringe, eng zuschneiden, auf Zielgröße mit NEAREST skalieren (Rig: Rumpfhöhe = bisherige Anzeigehöhe), `import.json` mit Teilgrößen + geschätzten Gelenkpunkten (oberste Mitte des Teils). Option `--keep-cell N`.
-- `check-sprites.mjs`: Abschnitt „Animation“ (fehlende Sheets laut `src/data/rigs.json`).
+- `check-sprites.mjs`: Abschnitt „Animation“ (fehlende Sheets laut `src/data/rigs/<rig-id>.json`).
 - Test: Beispiel-Sheet (in `tests/fixtures/` künstlich erzeugt) → richtige Anzahl Teile, transparenter Hintergrund, keine weißen Fransen.
 
 ### Phase 1 — Rig-Engine & prozedurale Bewegung

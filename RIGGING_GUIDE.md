@@ -21,10 +21,11 @@ Wenn ein Rig fehlt oder ein Bild nicht lädt, wird automatisch das alte Einzelbi
 | `scripts/art-import.py` | zerschneidet Sheets → `public/art/rigs/<rig>/*.png` (+ `import.json`) |
 | `scripts/art-check.py` | Prüfbild mit Fadenkreuz in der Zellmitte, Randwarnung |
 | `scripts/rig-sheet.cjs` | Kontaktbogen: Rig in vielen Boss-Zuständen → `tests/out/rig_<id>.png` |
-| `src/data/rigs.json` | **die Rig-Definition**: Sheet-Layout, Sets, Teile-Baum (Daten, kein Code) |
+| `src/data/rigs/<rig-id>.json` | **die Rig-Definition**: Sheet-Layout, Sets, Teile-Baum (Daten, kein Code) |
 | `src/data/rigs.ts` | lädt `rigs.json`, `RIG_BY_KIND` (Gegnerart → Rig), `rigImageNames` |
 | `src/engine/rig.ts` | `layoutRig`/`drawRig`/`blendPose`, Typen `RigPartDef`, `PartPose` |
-| `src/dungeon/anim/bossAnims.ts` | **Posen je Boss-Zustand** (`getBossPose`, `coreWardenSet`, `krallSet`, `SHOULDER_ADJUST`) |
+| `src/dungeon/anim/bossAnims.ts` | **Animations-Engine** (`getBossPose`: Glättung, Stauch-Impuls, Zwischen-Posen; findet `anim/rigs/*.ts` automatisch) |
+| `src/dungeon/anim/rigs/<rig-id>.ts` | **Posen je Boss-/Gegner-Zustand** (`export const anim: RigAnim` — `coreWardenSet`/`SHOULDER_ADJUST` in `core_warden.ts`, `krallSet` in `krall.ts`, `turretPose` in `turret.ts`); Schnittstelle `anim/rigAnim.ts`, Hilfen `anim/animCommon.ts` |
 | `src/dungeon/dungeonRenderer.ts` (`tryDrawRig`) | zeichnet das Rig statt des Einzelbilds |
 | `src/assets/artLoader.ts` | lädt alle Teile-Bilder (+ Flash-Silhouetten); fehlt eins → Rig = `null` |
 | `src/dev/bossLab.ts` | Boss-Labor `?bosslab` (Zustände ansehen, Pause, „Phase II“, Rig an/aus) |
@@ -78,18 +79,18 @@ Die `kind`-Namen im Code **nicht umbenennen** (Tests, Balancing, Rigs, Seeds hä
 3. In `rigs.json` unter `sheet.sets` eintragen: `{ "file": "<name>", "mode": "limb"|"swap", "ids": ["x_1",…,"x_6"] }`.
 4. Beim Teil `image: "x_1"`, `variants: [...]`, `pivot: [0.5,0.5]` setzen (oder neues Teil anlegen, mit `parent`/`attach`/`offset`/`z`).
 5. `npm run art:import -- <rig-id> --force` → `public/art/rigs/<rig-id>/x_1…x_6.png`. Alle Bilder eines Sets müssen gleich groß sein (Test `m11p2`).
-6. Posen in `bossAnims.ts` verdrahten (§5), prüfen (§6), pushen (§7).
+6. Posen in `anim/rigs/<rig-id>.ts` verdrahten (§5), prüfen (§6), pushen (§7).
 
 `mode`: `limb` (Arm/Bein) und `swap` (Kopf/Rumpf) unterscheiden sich im Import nicht — nur zur Dokumentation. Alt-Teile (`arm.png`, `fist.png`, …) bleiben im Sheet `order`, werden aber nicht mehr benutzt; sie schaden nicht.
 
-## 5. Posen verdrahten (`bossAnims.ts`)
+## 5. Posen verdrahten (`anim/rigs/<rig-id>.ts`)
 `getBossPose(rigId, enemy, time)` liefert pro Frame `{ teilId: { variant, rot, dx, dy, sx, sy, alpha, hidden } }`.
 - **Kern-Wächter** — vollständige Varianten-Karte (Arme je Seite 0–12, Köpfe 0–11, Rümpfe 0–11, Fäuste als Bilder) und alle Zustands→Pose-Zuordnungen: `BOSS_ANIMATION_PLAN.md` §2.1 und `coreWardenSet()` in `bossAnims.ts`. Der Index entspricht der Reihenfolge in `variants` (`rigs.json`); neue Varianten **hinten anhängen**, nie einfügen.
 - **Brustplatten** (`plateL/R`, Typ P): immer `hidden`; erst beim Phase-2-Wechsel löst `detached.ts` sie ab und lässt sie wegfliegen (siehe unten). Die Laser-Brust öffnet sich über die Rumpf-Varianten 6/7/10 (kein Platten-Aufklappen — verdeckte den Kern).
 - **Krall** — `krallSet()`: Arme `clawR`/`clawL` und Rumpf-Variante nach `bossSub` (`idle/windup/active/recover`) und `bossStatusText` (= Zugname aus `bosses/defs.ts`: GREIFARM-STOSS, MAGNET-ZUG, SCHROTT-WURF, SCHROTT-HAGEL), Phase 2 = Skelett-Rumpf (Haltung dort über `fx`), < 25 % HP beschädigt; Anlauf/Nachfedern/Gehen/Treffer im `fx`-Block. Tabelle: `BOSS_ANIMATION_PLAN.md` §3. Gegen mechanisches Zappeln: Schrittphase aus Strecke (`stridePhase`), `KRALL_TAU`, `VARIANT_LAG` (Arm L folgt R), `CLAW_BETWEEN` (Zwischen-Posen). Vorsicht: die Boss-Engine setzt `bossStateMax` nur für die Vorwarnung — Erholungsdauer je Zug in `KRALL_RECOVER` pflegen.
-- **Neuer Boss:** Rig in `rigs.json` anlegen (`kind` = Enemy-kind), `case '<rig-id>'` in `getBossPose` ergänzen. Die **Spiellogik** (Zustände, Schaden, Telegraph) bleibt in `enemyAi.ts` bzw. `bosses/defs.ts` — `bossAnims.ts` liest sie nur.
+- **Neuer Boss:** Rig in `rigs.json` anlegen (`kind` = Enemy-kind), neue Datei `src/dungeon/anim/rigs/<rig-id>.ts` mit `export const anim: RigAnim = { rawPose, tau?, noPulse?, lag?, between?, facing? }` anlegen (wird automatisch registriert; Vorlage `rigs/turret.ts`). Kein Eingriff in gemeinsame Dateien nötig. Die **Spiellogik** (Zustände, Schaden, Telegraph) bleibt in `enemyAi.ts` bzw. `bosses/defs.ts` — `bossAnims.ts` liest sie nur.
 
-### Glättung, Impuls, Zusatzbewegung (`bossAnims.ts`)
+### Glättung, Impuls, Zusatzbewegung (Engine `bossAnims.ts`; je Rig über `tau`/`noPulse`/`lag`/`between` in `anim`)
 `getBossPose` liefert **geglättete** Posen: `rawBossPose` berechnet das Ziel, `smoothPose` nähert Drehung/Lage/Skalierung exponentiell an (`SMOOTH_TAU`), `variant`-Wechsel bleiben hart, bekommen aber einen kurzen Stauch-Impuls (`PULSE_TIME`). Zustand je Boss in einer `WeakMap` (nur `time`, kein `Date.now`). Zustandsabhängige Zusatzbewegung (Anlauf, Nachfedern, Gehen, Treffer) steht im `fx`-Block von `coreWardenSet`. `smoothBossBody` (Renderer) führt das Ganzkörper-Stauchen/Neigen weich nach. Bilder ohne eigenes Teil (z. B. kreisende Fäuste) über `extraImages` in `rigs.json` laden. Mehrere Sets aus **einem** Sheet (unterschiedlich große Teile) per `"cells": [..]` im Set-Eintrag trennen (z. B. `core_warden_fists`: Zellen 0–1 Arme ohne Faust, 2–5 Fäuste). Zwischen-Posen/Blinzeln/Blick: `ARM_BETWEEN`, `NO_PULSE`, `coreWardenSet(…, lookDx)` — `getBossPose` nimmt optional die Spieler-Blickrichtung (`playerX − e.x`).
 
 ### Mehrere Sets pro Teil, `cells`, `extraImages`

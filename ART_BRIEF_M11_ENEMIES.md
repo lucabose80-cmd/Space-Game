@@ -103,6 +103,6 @@ Pro Sitzung lieber **wenige Sheets sauber** als viele schief. Die Boss-Sheets au
 4. Commit `art(m11): <kind> rig` → push → in `HANDOFF.md` unter „M11 Gegner-Rigs“ abhaken.
 
 ## 7. Was Claude Code danach baut (zur Info)
-- Import-Modus `parts` in `npm run art:import` (jede Zelle ein Teil, Gelenk = Zellmitte, gemeinsamer Maßstab = Anzeigegröße des heutigen Sprites) und je Gegner ein Rig in `src/data/rigs.json`.
+- Import-Modus `parts` in `npm run art:import` (jede Zelle ein Teil, Gelenk = Zellmitte, gemeinsamer Maßstab = Anzeigegröße des heutigen Sprites) und je Gegner ein Rig in `src/data/rigs/<rig-id>.json`.
 - `src/dungeon/anim/enemyAnims.ts`: Posen je Gegner-Zustand (gehen, zielen, ausholen, Schuss, Treffer), gezeichnet über dieselbe Rig-Weiche wie bei Bossen — fehlt das Sheet, bleibt das alte Sprite.
 - Spiellogik und Hitboxen bleiben unverändert (rein darstellend).

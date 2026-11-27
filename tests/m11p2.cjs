@@ -1,5 +1,5 @@
 // M11 v2 — Pose-Sets: PartPose.variant tauscht das Bild, Import (limb/swap) liefert gleich große Posen mit Gelenk in der Bildmitte,
-// Kern-Wächter/Krall wählen Posen nach Boss-Zustand.
+// Kern-Wächter wählt Posen nach Boss-Zustand (Krall: m11p5_krall.cjs, Geschütz: m11p7_turret.cjs).
 module.exports = async ({ page }) => {
   const assert = require('node:assert');
   const r = await page.evaluate(async () => {
@@ -30,26 +30,6 @@ module.exports = async ({ page }) => {
     out.stomp = cw({ bossState: 'slam_impact' }).armL.variant;
     out.dmg = [cw({ hp: 100 }), cw({ hp: 75 }), cw({ hp: 60 }), cw({ bossPhase2: true, hp: 30 }), cw({ bossPhase2: true, hp: 20 }), cw({ hp: 10 })].map((p) => [p.head.variant, p.torso.variant, p.armL.variant]);
     out.plateP2 = cw({ bossPhase2: true }).plateL.hidden;
-    out.krallPlate = [anim.getBossPose('krall', e({ kind: 'boss_breacher' }), 1).plate.hidden === true, anim.getBossPose('krall', e({ kind: 'boss_breacher', bossPhase2: true }), 1).plate.hidden === true];
-    out.krall = ['idle', 'windup', 'active'].map((s) => anim.getBossPose("krall", e({ kind: "boss_breacher", bossSub: s, bossStatusText: "GREIFARM-STOSS", bossStateTimer: 1 }), 1).clawR.variant);
-    // Krall: Zug → Arme/Rumpf (clawR/clawL/torso), Phase 2, beschädigt, Gehen
-    const kr = (x) => { const p = anim.getBossPose('krall', e(Object.assign({ kind: 'boss_breacher' }, x)), 1); return [p.clawR.variant, p.clawL.variant, p.torso.variant]; };
-    out.kr = {
-      idle: kr({}),
-      stossW: kr({ bossSub: 'windup', bossStatusText: 'GREIFARM-STOSS', bossStateMax: 0.65, bossStateTimer: 0.3 }),
-      stoss: kr({ bossSub: 'recover', bossStatusText: 'GREIFARM-STOSS', bossStateTimer: 0.8 }),
-      stossEnd: kr({ bossSub: 'recover', bossStatusText: 'GREIFARM-STOSS', bossStateTimer: 0.2 }),
-      magW: kr({ bossSub: 'windup', bossStatusText: 'MAGNET-ZUG', bossStateMax: 0.6, bossStateTimer: 0.3 }),
-      magPull: kr({ bossSub: 'recover', bossStatusText: 'MAGNET-ZUG', bossStateTimer: 0.8 }),
-      wurfW: kr({ bossSub: 'windup', bossStatusText: 'SCHROTT-WURF', bossStateMax: 0.5, bossStateTimer: 0.2 }),
-      wurf: kr({ bossSub: 'recover', bossStatusText: 'SCHROTT-WURF', bossStateTimer: 0.8 }),
-      hagelW: kr({ bossSub: 'windup', bossStatusText: 'SCHROTT-HAGEL', bossStateMax: 0.5, bossStateTimer: 0.2, bossPhase2: true }),
-      hagel: kr({ bossSub: 'recover', bossStatusText: 'SCHROTT-HAGEL', bossStateTimer: 1, bossPhase2: true }),
-      p2: kr({ bossPhase2: true, hp: 40 }),
-      p2dmg: kr({ bossPhase2: true, hp: 20 }),
-    };
-    const krT = (x) => anim.getBossPose('krall', e(Object.assign({ kind: 'boss_breacher' }, x)), 1).torso;
-    out.krFx = { p2duck: krT({ bossPhase2: true, hp: 40, bossSub: 'windup', bossStatusText: 'GREIFARM-STOSS', bossStateMax: 0.65, bossStateTimer: 0.1 }).dy > 0.5, hit: Math.abs(krT({ flashTimer: 0.1 }).dx) > 0.1 };
     // K1: weiche Übergänge — derselbe Boss wechselt Zustand: Drehung springt nicht, Bildwechsel bekommt Impuls, der abklingt
     const boss = e({ id: 9 });
     const g = (t) => anim.getBossPose('core_warden', boss, t);
@@ -124,22 +104,6 @@ module.exports = async ({ page }) => {
   assert.strictEqual(r.plateP2, true);
   // D12 Beschädigungsstufen Kern-Wächter: [Kopf, Rumpf, Arm]
   assert.deepStrictEqual(r.dmg, [[0, 0, 0], [5, 0, 0], [5, 5, 0], [4, 4, 11], [4, 11, 11], [10, 5, 0]], 'Beschädigungsstufen Kern-Wächter');
-  assert.deepStrictEqual(r.krallPlate, [false, true], 'Krall-Rückenpanzer sichtbar, ab Phase 2 weg');
-  assert.deepStrictEqual(r.krall, [0, 1, 6]);
-  const K = r.kr; // [clawR, clawL, torso]: Arme 0 hängend · 1 ausholen · 2 Stoß · 3 seitlich · 4 Block · 5 Stampfer; Rumpf 0 normal · 1 geduckt · 2 aufgerichtet · 3 gebeugt · 4 Phase 2 · 5 beschädigt
-  assert.deepStrictEqual(K.idle, [0, 0, 0]);
-  assert.deepStrictEqual(K.stossW, [1, 1, 1], 'Stoß-Vorwarnung: beide Arme zurück, Rumpf geduckt');
-  assert.deepStrictEqual(K.stoss, [6, 3, 3], 'Stoß (Teleskop kurz zur Stoßseite), Haken seitlich, Rumpf gebeugt');
-  assert.deepStrictEqual(K.stossEnd, [0, 0, 0], 'Stoß-Ende: zurück in Ruhe');
-  assert.deepStrictEqual(K.magW, [1, 1, 2], 'Magnet-Vorwarnung: Rumpf aufgerichtet');
-  assert.deepStrictEqual(K.magPull, [10, 10, 2], 'Magnet-Sog: Arme seitlich, Rumpf aufgerichtet');
-  assert.deepStrictEqual(K.wurfW, [11, 1, 1]);
-  assert.deepStrictEqual(K.wurf, [3, 0, 3], 'Wurf: rechter Arm seitlich');
-  assert.deepStrictEqual(K.hagelW, [11, 11, 4], 'Hagel-Vorwarnung (Phase 2): Skelett-Rumpf, Arme hoch');
-  assert.deepStrictEqual(K.hagel, [5, 5, 4], 'Hagel: Arme stampfen');
-  assert.deepStrictEqual(K.p2, [0, 0, 4], 'Phase 2: Skelett-Rahmen');
-  assert.deepStrictEqual(K.p2dmg, [0, 0, 5], 'Phase 2 < 25 % HP: beschädigter Rumpf');
-  assert.ok(r.krFx.p2duck && r.krFx.hit, 'Krall: Phase-2-Haltung über Verschiebung, Treffer zittert: ' + JSON.stringify(r.krFx));
   assert.strictEqual(r.smooth.variant, 6, 'S2: erst Zwischen-Pose „halb ausgeholt“'); assert.strictEqual(r.smooth.later, 1, 'danach Ausholen-Pose'); assert.ok(r.smooth.impulse, 'Stauch-Impuls beim Bildwechsel'); assert.ok(r.smooth.decayed, 'Impuls klingt ab, Drehung läuft: ' + JSON.stringify(r.smooth));
   assert.ok(r.maxRotStep < 0.2, 'Drehung springt nie > 0,2 rad pro Frame: ' + r.maxRotStep);
   for (const [k, v] of Object.entries(r.fxDiffer)) assert.ok(v, 'Pose-Effekt ' + k + ': ' + JSON.stringify(r.fxDiffer));

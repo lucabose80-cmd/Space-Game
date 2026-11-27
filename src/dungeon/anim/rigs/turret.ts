@@ -1,6 +1,7 @@
 // M11 Phase 7: Posen für Gegner-Rigs (normale Gegner, Teile-Sheets Typ G). Rein darstellend — keine Hitbox-/Schadensänderung, kein Zufall.
-import type { Enemy } from '../dungeonTypes';
-import type { Pose } from '../../engine/rig';
+import type { Pose } from '../../../engine/rig';
+import type { Enemy } from '../../dungeonTypes';
+import type { RigAnim } from '../rigAnim';
 
 const clamp = (v: number, a: number, b: number): number => Math.max(a, Math.min(b, v));
 
@@ -21,7 +22,7 @@ interface TurretState {
 const turretStates = new WeakMap<Enemy, TurretState>();
 
 /** Blickrichtung des Geschütz-Rigs: −1 = Spieler links (Rig spiegeln), +1 = rechts. */
-export function turretFacing(e: Enemy, playerX: number): number {
+function turretFacing(e: Enemy, playerX: number): number {
   return playerX < e.x - 2 ? -1 : 1;
 }
 
@@ -30,7 +31,7 @@ export function turretFacing(e: Enemy, playerX: number): number {
  * Mündungsring + Lade-Kern glühen auf, nach dem Schuss Rückstoß; beim Umsetzen (Scurry) wippt der Körper.
  * `aimDy`/`aimDx` = Spieler minus Geschütz (für die Neigung).
  */
-export function turretPose(e: Enemy, time: number, aimDx: number, aimDy: number): Pose {
+function turretPose(e: Enemy, time: number, aimDx: number, aimDy: number): Pose {
   let st = turretStates.get(e);
   if (!st) {
     st = { tread: e.id, brake: 0, wasMoving: false, wasTelegraph: false, recoil: 0, time };
@@ -75,3 +76,8 @@ export function turretPose(e: Enemy, time: number, aimDx: number, aimDy: number)
     core: { alpha: tele ? p : 0.4 * rk, hidden: !tele && rk <= 0.02, sx: 0.5 + 0.7 * p, sy: 0.5 + 0.7 * p },
   };
 }
+
+export const anim: RigAnim = {
+  rawPose: (e, time, lookDx, lookDy) => turretPose(e, time, lookDx, lookDy),
+  facing: turretFacing,
+};

@@ -1,0 +1,372 @@
+{
+  "kind": "boss_breacher",
+  "sheet": {
+    "file": "krall",
+    "cols": 3,
+    "rows": 2,
+    "order": [
+      "torso",
+      "claw",
+      "legF",
+      "legB",
+      "magnet",
+      "plate"
+    ],
+    "scaleRef": "torso",
+    "torsoDisplayH": 36,
+    "pixelRatio": 2,
+    "sets": [
+      {
+        "file": "krall_arms_R",
+        "mode": "limb",
+        "ids": [
+          "clawR_1",
+          "clawR_2",
+          "clawR_3",
+          "clawR_4",
+          "clawR_5",
+          "clawR_6"
+        ]
+      },
+      {
+        "file": "krall_arms_L",
+        "mode": "limb",
+        "ids": [
+          "clawL_1",
+          "clawL_2",
+          "clawL_3",
+          "clawL_4",
+          "clawL_5",
+          "clawL_6"
+        ]
+      },
+      {
+        "file": "krall_torsos",
+        "mode": "swap",
+        "ids": [
+          "torso_1",
+          "torso_2",
+          "torso_3",
+          "torso_4",
+          "torso_5",
+          "torso_6"
+        ]
+      },
+      {
+        "file": "krall_legs_R",
+        "mode": "limb",
+        "ids": [
+          "legR_1",
+          "legR_2",
+          "legR_3",
+          "legR_4",
+          "legR_5",
+          "legR_6"
+        ]
+      },
+      {
+        "file": "krall_legs_L",
+        "mode": "limb",
+        "ids": [
+          "legL_1",
+          "legL_2",
+          "legL_3",
+          "legL_4",
+          "legL_5",
+          "legL_6"
+        ]
+      },
+      {
+        "file": "krall_effects",
+        "mode": "swap",
+        "cells": [
+          3,
+          4
+        ],
+        "ids": [
+          "magnet_on",
+          "magnet_off"
+        ],
+        "holes": true
+      },
+      {
+        "file": "krall_effects",
+        "mode": "swap",
+        "cells": [
+          0,
+          1,
+          2,
+          5
+        ],
+        "ids": [
+          "scrap_a",
+          "scrap_b",
+          "scrap_c",
+          "spark"
+        ]
+      },
+      {
+        "file": "krall_arms_R2",
+        "mode": "limb",
+        "ids": [
+          "clawR_7",
+          "clawR_8",
+          "clawR_9",
+          "clawR_10",
+          "clawR_11",
+          "clawR_12"
+        ]
+      },
+      {
+        "file": "krall_arms_L2",
+        "mode": "limb",
+        "ids": [
+          "clawL_7",
+          "clawL_8",
+          "clawL_9",
+          "clawL_10",
+          "clawL_11",
+          "clawL_12"
+        ]
+      }
+    ]
+  },
+  "parts": [
+    {
+      "id": "plate",
+      "image": "plate",
+      "z": -2,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "offset": [
+        0.0,
+        13.0
+      ],
+      "detach": "phase2",
+      "parent": "torso",
+      "attach": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "id": "legBL",
+      "image": "legL_1",
+      "parent": "torso",
+      "attach": [
+        0.5,
+        0.5
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "z": -3,
+      "offset": [
+        -14.6,
+        5.8
+      ],
+      "variants": [
+        "legL_1",
+        "legL_2",
+        "legL_3",
+        "legL_4",
+        "legL_5",
+        "legL_6"
+      ]
+    },
+    {
+      "id": "legBR",
+      "image": "legR_1",
+      "parent": "torso",
+      "attach": [
+        0.5,
+        0.5
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "z": -3,
+      "offset": [
+        14.6,
+        5.8
+      ],
+      "variants": [
+        "legR_1",
+        "legR_2",
+        "legR_3",
+        "legR_4",
+        "legR_5",
+        "legR_6"
+      ]
+    },
+    {
+      "id": "legFL",
+      "image": "legL_1",
+      "parent": "torso",
+      "attach": [
+        0.5,
+        0.5
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "z": -1,
+      "offset": [
+        -16.1,
+        0.7
+      ],
+      "variants": [
+        "legL_1",
+        "legL_2",
+        "legL_3",
+        "legL_4",
+        "legL_5",
+        "legL_6"
+      ]
+    },
+    {
+      "id": "legFR",
+      "image": "legR_1",
+      "parent": "torso",
+      "attach": [
+        0.5,
+        0.5
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "z": -1,
+      "offset": [
+        16.1,
+        0.7
+      ],
+      "variants": [
+        "legR_1",
+        "legR_2",
+        "legR_3",
+        "legR_4",
+        "legR_5",
+        "legR_6"
+      ]
+    },
+    {
+      "id": "torso",
+      "image": "torso_1",
+      "z": 0,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "offset": [
+        0.0,
+        -25.7
+      ],
+      "variants": [
+        "torso_1",
+        "torso_2",
+        "torso_3",
+        "torso_4",
+        "torso_5",
+        "torso_6"
+      ]
+    },
+    {
+      "id": "clawR",
+      "image": "clawR_1",
+      "parent": "torso",
+      "attach": [
+        0.5,
+        0.5
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "z": 1,
+      "variants": [
+        "clawR_1",
+        "clawR_2",
+        "clawR_3",
+        "clawR_4",
+        "clawR_5",
+        "clawR_6",
+        "clawR_7",
+        "clawR_8",
+        "clawR_9",
+        "clawR_10",
+        "clawR_11",
+        "clawR_12"
+      ],
+      "offset": [
+        11.4,
+        -7.4
+      ]
+    },
+    {
+      "id": "magnet",
+      "image": "magnet_off",
+      "parent": "torso",
+      "attach": [
+        0.5,
+        0.5
+      ],
+      "pivot": [
+        0.5,
+        0.88
+      ],
+      "z": 3,
+      "offset": [
+        0.0,
+        -14.4
+      ],
+      "variants": [
+        "magnet_off",
+        "magnet_on"
+      ]
+    },
+    {
+      "id": "clawL",
+      "image": "clawL_1",
+      "parent": "torso",
+      "attach": [
+        0.5,
+        0.5
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "z": 1,
+      "variants": [
+        "clawL_1",
+        "clawL_2",
+        "clawL_3",
+        "clawL_4",
+        "clawL_5",
+        "clawL_6",
+        "clawL_7",
+        "clawL_8",
+        "clawL_9",
+        "clawL_10",
+        "clawL_11",
+        "clawL_12"
+      ],
+      "offset": [
+        -14.4,
+        -7.4
+      ]
+    }
+  ],
+  "extraImages": [
+    "scrap_a",
+    "scrap_b",
+    "scrap_c",
+    "spark"
+  ]
+}

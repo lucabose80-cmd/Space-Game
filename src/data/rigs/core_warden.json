@@ -1,0 +1,352 @@
+{
+  "kind": "boss",
+  "sheet": {
+    "file": "core_warden",
+    "cols": 3,
+    "rows": 2,
+    "order": [
+      "torso",
+      "head",
+      "arm",
+      "fist",
+      "plateL",
+      "plateR"
+    ],
+    "scaleRef": "torso",
+    "torsoDisplayH": 30,
+    "pixelRatio": 2,
+    "sets": [
+      {
+        "file": "core_warden_arms_R",
+        "mode": "limb",
+        "ids": [
+          "armR_1",
+          "armR_2",
+          "armR_3",
+          "armR_4",
+          "armR_5",
+          "armR_6"
+        ]
+      },
+      {
+        "file": "core_warden_arms_L",
+        "mode": "limb",
+        "ids": [
+          "armL_1",
+          "armL_2",
+          "armL_3",
+          "armL_4",
+          "armL_5",
+          "armL_6"
+        ]
+      },
+      {
+        "file": "core_warden_heads",
+        "mode": "swap",
+        "ids": [
+          "head_1",
+          "head_2",
+          "head_3",
+          "head_4",
+          "head_5",
+          "head_6"
+        ]
+      },
+      {
+        "file": "core_warden_torsos",
+        "mode": "swap",
+        "ids": [
+          "torso_1",
+          "torso_2",
+          "torso_3",
+          "torso_4",
+          "torso_5",
+          "torso_6"
+        ]
+      },
+      {
+        "file": "core_warden_arms_R2",
+        "mode": "limb",
+        "ids": [
+          "armR_7",
+          "armR_8",
+          "armR_9",
+          "armR_10",
+          "armR_11",
+          "armR_12"
+        ]
+      },
+      {
+        "file": "core_warden_arms_L2",
+        "mode": "limb",
+        "ids": [
+          "armL_7",
+          "armL_8",
+          "armL_9",
+          "armL_10",
+          "armL_11",
+          "armL_12"
+        ]
+      },
+      {
+        "file": "core_warden_torsos2",
+        "mode": "swap",
+        "ids": [
+          "torso_7",
+          "torso_8",
+          "torso_9",
+          "torso_10",
+          "torso_11",
+          "torso_12"
+        ]
+      },
+      {
+        "file": "core_warden_heads2",
+        "mode": "swap",
+        "ids": [
+          "head_7",
+          "head_8",
+          "head_9",
+          "head_10",
+          "head_11",
+          "head_12"
+        ]
+      },
+      {
+        "file": "core_warden_fists",
+        "mode": "limb",
+        "cells": [
+          0,
+          1
+        ],
+        "ids": [
+          "armR_nf",
+          "armL_nf"
+        ]
+      },
+      {
+        "file": "core_warden_fists",
+        "mode": "swap",
+        "cells": [
+          2,
+          3,
+          4,
+          5
+        ],
+        "ids": [
+          "fist_front",
+          "fist_charged",
+          "fist_angled",
+          "fist_trail"
+        ]
+      },
+      {
+        "file": "core_warden_arms_R3",
+        "mode": "limb",
+        "ids": [
+          "armR_13",
+          "armR_14",
+          "armR_15",
+          "armR_16",
+          "armR_17",
+          "armR_18"
+        ]
+      },
+      {
+        "file": "core_warden_arms_L3",
+        "mode": "limb",
+        "ids": [
+          "armL_13",
+          "armL_14",
+          "armL_15",
+          "armL_16",
+          "armL_17",
+          "armL_18"
+        ]
+      }
+    ]
+  },
+  "parts": [
+    {
+      "id": "armL",
+      "image": "armL_1",
+      "variants": [
+        "armL_1",
+        "armL_2",
+        "armL_3",
+        "armL_4",
+        "armL_5",
+        "armL_6",
+        "armL_7",
+        "armL_8",
+        "armL_9",
+        "armL_10",
+        "armL_11",
+        "armL_12",
+        "armL_nf",
+        "armL_13",
+        "armL_14",
+        "armL_15",
+        "armL_16",
+        "armL_17",
+        "armL_18"
+      ],
+      "parent": "torso",
+      "attach": [
+        0.5,
+        0.5
+      ],
+      "offset": [
+        -10,
+        -6.2
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "z": 1
+    },
+    {
+      "id": "armR",
+      "image": "armR_1",
+      "variants": [
+        "armR_1",
+        "armR_2",
+        "armR_3",
+        "armR_4",
+        "armR_5",
+        "armR_6",
+        "armR_7",
+        "armR_8",
+        "armR_9",
+        "armR_10",
+        "armR_11",
+        "armR_12",
+        "armR_nf",
+        "armR_13",
+        "armR_14",
+        "armR_15",
+        "armR_16",
+        "armR_17",
+        "armR_18"
+      ],
+      "parent": "torso",
+      "attach": [
+        0.5,
+        0.5
+      ],
+      "offset": [
+        10.2,
+        -6.2
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "z": 1
+    },
+    {
+      "id": "torso",
+      "image": "torso_1",
+      "variants": [
+        "torso_1",
+        "torso_2",
+        "torso_3",
+        "torso_4",
+        "torso_5",
+        "torso_6",
+        "torso_7",
+        "torso_8",
+        "torso_9",
+        "torso_10",
+        "torso_11",
+        "torso_12"
+      ],
+      "z": 0,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "offset": [
+        0,
+        -18
+      ]
+    },
+    {
+      "id": "head",
+      "image": "head_1",
+      "variants": [
+        "head_1",
+        "head_2",
+        "head_3",
+        "head_4",
+        "head_5",
+        "head_6",
+        "head_7",
+        "head_8",
+        "head_9",
+        "head_10",
+        "head_11",
+        "head_12"
+      ],
+      "parent": "torso",
+      "attach": [
+        0.5,
+        0.5
+      ],
+      "offset": [
+        0,
+        -9.5
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "z": 2
+    },
+    {
+      "id": "plateL",
+      "image": "plateL",
+      "parent": "torso",
+      "attach": [
+        0.5,
+        0.5
+      ],
+      "offset": [
+        -4,
+        1
+      ],
+      "pivot": [
+        0.6,
+        0.55
+      ],
+      "z": 3,
+      "detach": "phase2"
+    },
+    {
+      "id": "plateR",
+      "image": "plateR",
+      "parent": "torso",
+      "attach": [
+        0.5,
+        0.5
+      ],
+      "offset": [
+        4,
+        1
+      ],
+      "pivot": [
+        0.4,
+        0.55
+      ],
+      "z": 3,
+      "detach": "phase2"
+    }
+  ],
+  "extraImages": [
+    "fist_front",
+    "fist_charged",
+    "fist_angled",
+    "fist_trail"
+  ]
+}

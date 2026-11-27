@@ -10,8 +10,10 @@ for (const block of src.matchAll(/export const \w*OPTIONAL_SPRITES = \{([\s\S]*?
     if (!existsSync(new URL(`../public/art/sprites/${m[2]}.png`, import.meta.url))) missing.push({ key: m[1], file: `${m[2]}.png` });
   }
 }
-// M11: Animation — Teile-Sheets/Rigs laut src/data/rigs.json (Quelle in art_source/rigs, Ergebnis in public/art/rigs/<id>/)
-const rigs = JSON.parse(readFileSync(new URL('../src/data/rigs.json', import.meta.url), 'utf8'));
+// M11: Animation — Teile-Sheets/Rigs laut src/data/rigs/*.json (Quelle in art_source/rigs, Ergebnis in public/art/rigs/<id>/)
+import { readdirSync } from 'node:fs';
+const rigsDirUrl = new URL('../src/data/rigs/', import.meta.url);
+const rigs = Object.fromEntries(readdirSync(rigsDirUrl).filter((f) => f.endsWith('.json')).map((f) => [f.slice(0, -5), JSON.parse(readFileSync(new URL(f, rigsDirUrl), 'utf8'))]));
 const rigMissing = [];
 // Geplante, noch nicht in rigs.json eingetragene Sheets (Antigravity-Aufträge) — Hinweis, bis sie vorhanden sind.
 const PLANNED_SHEETS = [
@@ -25,10 +27,11 @@ const PLANNED_SHEETS = [
 const sheetHash = (f) => createHash('sha1').update(readFileSync(f)).digest('hex').slice(0, 16);
 const rigsDir = new URL('../art_source/rigs/', import.meta.url);
 for (const [id, rig] of Object.entries(rigs)) {
-  const src = existsSync(new URL(`${rig.sheet.file}_parts.png`, rigsDir));
+  const srcName = rig.sheet.srcFile ? `${rig.sheet.srcFile}.png` : `${rig.sheet.file}_parts.png`;
+  const src = existsSync(new URL(srcName, rigsDir));
   const metaUrl = new URL(`../public/art/rigs/${id}/import.json`, import.meta.url);
   const out = existsSync(metaUrl);
-  if (!src) rigMissing.push(`  - art_source/rigs/${rig.sheet.file}_parts.png  (Teile-Sheet für ${id} fehlt → Prompt: MILESTONE_11_ARCHITECTURE.md §6.3)`);
+  if (!src) rigMissing.push(`  - art_source/rigs/${srcName}  (Teile-Sheet für ${id} fehlt → Prompt: MILESTONE_11_ARCHITECTURE.md §6.3)`);
   else if (!out) rigMissing.push(`  - ${id}: Sheet vorhanden, aber noch nicht importiert → npm run art:import -- ${id} --force`);
   else {
     for (const set of rig.sheet.sets ?? []) {
