@@ -1,12 +1,4 @@
 import { sound } from '../engine/audio';
-import {
-  ROOM_BOTTOM,
-  ROOM_CENTER_X,
-  ROOM_CENTER_Y,
-  ROOM_LEFT,
-  ROOM_RIGHT,
-  ROOM_TOP,
-} from '../world/dungeonGen';
 import { ENEMY_SHIELDS, SHIELD_HEAT_DECAY_SEC } from '../data/balance';
 import { runBoss } from './bosses/bossEngine';
 import { BOSS_DEFS } from './bosses/defs';
@@ -22,6 +14,7 @@ export class DungeonEnemyAi {
 
   // ==================== LIVELY, DYNAMIC ENEMY AI ====================
   public updateEnemies(rawDt: number): void {
+    const rb = this.scene.bounds; // M12: Raumgrenzen (Standard = ROOM_LEFT…)
     for (let i = this.scene.enemies.length - 1; i >= 0; i--) {
       const e = this.scene.enemies[i];
 
@@ -465,8 +458,8 @@ export class DungeonEnemyAi {
           if (e.telegraphTimer <= 0) {
             // Execute phase-blink to telegraphed flank spot, then strike toward hero!
             this.scene.spawnBurst(e.x, e.y, '#e879f9', 10);
-            const tx = Math.max(ROOM_LEFT + 18, Math.min(ROOM_RIGHT - 18, e.bossTargetX ?? e.x));
-            const ty = Math.max(ROOM_TOP + 18, Math.min(ROOM_BOTTOM - 18, e.bossTargetY ?? e.y));
+            const tx = Math.max(rb.l + 18, Math.min(rb.r - 18, e.bossTargetX ?? e.x));
+            const ty = Math.max(rb.t + 18, Math.min(rb.b - 18, e.bossTargetY ?? e.y));
             if (!this.scene.collidesRoomObstacle(tx, ty, e.radius)) {
               e.x = tx;
               e.y = ty;
@@ -503,12 +496,12 @@ export class DungeonEnemyAi {
             // Choose a telegraphed blink position ~58px beside/behind hero
             const flankAngle = ang + Math.PI + (Math.random() < 0.5 ? 0.9 : -0.9);
             e.bossTargetX = Math.max(
-              ROOM_LEFT + 22,
-              Math.min(ROOM_RIGHT - 22, this.scene.playerX + Math.cos(flankAngle) * 58),
+              rb.l + 22,
+              Math.min(rb.r - 22, this.scene.playerX + Math.cos(flankAngle) * 58),
             );
             e.bossTargetY = Math.max(
-              ROOM_TOP + 22,
-              Math.min(ROOM_BOTTOM - 22, this.scene.playerY + Math.sin(flankAngle) * 52),
+              rb.t + 22,
+              Math.min(rb.b - 22, this.scene.playerY + Math.sin(flankAngle) * 52),
             );
             e.telegraphTimer = 0.54;
             e.moveDirX = -e.moveDirX;
@@ -893,8 +886,8 @@ export class DungeonEnemyAi {
           e.telegraphTimer -= dt;
           if (e.telegraphTimer <= 0) {
             const ang = Math.random() * Math.PI * 2;
-            const bx = Math.max(ROOM_LEFT + 22, Math.min(ROOM_RIGHT - 22, this.scene.playerX + Math.cos(ang) * 72));
-            const by = Math.max(ROOM_TOP + 22, Math.min(ROOM_BOTTOM - 22, this.scene.playerY + Math.sin(ang) * 62));
+            const bx = Math.max(rb.l + 22, Math.min(rb.r - 22, this.scene.playerX + Math.cos(ang) * 72));
+            const by = Math.max(rb.t + 22, Math.min(rb.b - 22, this.scene.playerY + Math.sin(ang) * 62));
             if (!this.scene.collidesRoomObstacle(bx, by, 10) && !this.scene.collidesRoomChasm(bx, by, 8)) {
               this.scene.spawnBurst(e.x, e.y, col, 10);
               e.x = bx;
@@ -1009,7 +1002,7 @@ export class DungeonEnemyAi {
         airborne;
 
       if (e.kind !== 'boss_leviathan') {
-        const ex = Math.max(ROOM_LEFT + e.radius, Math.min(ROOM_RIGHT - e.radius, e.x + e.vx * dt));
+        const ex = Math.max(rb.l + e.radius, Math.min(rb.r - e.radius, e.x + e.vx * dt));
         if (
           (!this.scene.collidesRoomObstacle(ex, e.y, e.radius * 0.85) &&
             !this.scene.collidesRoomChasm(ex, e.y, e.radius * 0.7)) ||
@@ -1019,7 +1012,7 @@ export class DungeonEnemyAi {
         } else if (e.kind === 'turret' || e.kind === 'spore_spitter') {
           e.moveDirX = -e.moveDirX;
         }
-        const ey = Math.max(ROOM_TOP + e.radius, Math.min(ROOM_BOTTOM - e.radius, e.y + e.vy * dt));
+        const ey = Math.max(rb.t + e.radius, Math.min(rb.b - e.radius, e.y + e.vy * dt));
         if (
           (!this.scene.collidesRoomObstacle(e.x, ey, e.radius * 0.85) &&
             !this.scene.collidesRoomChasm(e.x, ey, e.radius * 0.7)) ||
@@ -1310,6 +1303,7 @@ export class DungeonEnemyAi {
 
   // ==================== SECTOR 2 FLOOR II BOSS: PRISMA-WEBERIN ====================
   private updatePrismWeaverAI(e: Enemy, dt: number, dx: number, dy: number, nx: number, ny: number): void {
+    const rb = this.scene.bounds; // M12: Raumgrenzen (Standard = ROOM_LEFT…)
     const enraged = e.hp <= e.maxHp * 0.5;
     if (enraged && !e.bossPhase2) {
       e.bossPhase2 = true;
@@ -1333,10 +1327,10 @@ export class DungeonEnemyAi {
         if (e.phase === 0) {
           // Pick one of 4 arena corners for telegraphed blink!
           const corners = [
-            { x: ROOM_LEFT + 54, y: ROOM_TOP + 42 },
-            { x: ROOM_RIGHT - 54, y: ROOM_TOP + 42 },
-            { x: ROOM_LEFT + 54, y: ROOM_BOTTOM - 42 },
-            { x: ROOM_RIGHT - 54, y: ROOM_BOTTOM - 42 },
+            { x: rb.l + 54, y: rb.t + 42 },
+            { x: rb.r - 54, y: rb.t + 42 },
+            { x: rb.l + 54, y: rb.b - 42 },
+            { x: rb.r - 54, y: rb.b - 42 },
           ];
           const c = corners[Math.floor(Math.random() * corners.length)];
           e.bossTargetX = c.x;
@@ -1357,8 +1351,8 @@ export class DungeonEnemyAi {
       e.vy *= 0.15;
       if (e.bossStateTimer <= 0) {
         this.scene.spawnBurst(e.x, e.y, '#e879f9', 14);
-        e.x = e.bossTargetX ?? ROOM_CENTER_X;
-        e.y = e.bossTargetY ?? ROOM_CENTER_Y;
+        e.x = e.bossTargetX ?? rb.cx;
+        e.y = e.bossTargetY ?? rb.cy;
         this.scene.spawnBurst(e.x, e.y, '#38e8d4', 18);
         sound.playBossLaser();
         // Fire aimed triple crystal orb volley right on arrival!
@@ -1414,6 +1408,7 @@ export class DungeonEnemyAi {
 
   // ==================== SECTOR 2 ENDBOSS: ★ PRISMA-ARCHON ====================
   private updatePrismaArchonAI(e: Enemy, dt: number, dx: number, dy: number): void {
+    const rb = this.scene.bounds; // M12: Raumgrenzen (Standard = ROOM_LEFT…)
     const enraged = e.hp <= e.maxHp * 0.5;
     if (enraged && !e.bossPhase2) {
       e.bossPhase2 = true;
@@ -1424,8 +1419,8 @@ export class DungeonEnemyAi {
       this.scene.callbacks.onToast('🚨 PRISMA-ARCHON PHASE II — ZERSPLITTERTER NOVA-STURM!', 'warn');
       if (e.summonThreshold > 0) {
         e.summonThreshold = 0;
-        this.scene.spawnEnemy('prism_drone', ROOM_CENTER_X - 88, ROOM_TOP + 54);
-        this.scene.spawnEnemy('prism_drone', ROOM_CENTER_X + 88, ROOM_TOP + 54);
+        this.scene.spawnEnemy('prism_drone', rb.cx - 88, rb.t + 54);
+        this.scene.spawnEnemy('prism_drone', rb.cx + 88, rb.t + 54);
       }
     }
 
@@ -1436,8 +1431,8 @@ export class DungeonEnemyAi {
 
     if (state === 's2_idle') {
       // Majestic floating figure-eight glide across upper-mid arena
-      const tx = ROOM_CENTER_X + Math.sin(this.scene.time * 0.9) * 84;
-      const ty = ROOM_TOP + 56 + Math.sin(this.scene.time * 1.8) * 18;
+      const tx = rb.cx + Math.sin(this.scene.time * 0.9) * 84;
+      const ty = rb.t + 56 + Math.sin(this.scene.time * 1.8) * 18;
       e.vx = (tx - e.x) * 2.2;
       e.vy = (ty - e.y) * 2.2;
 
@@ -1525,8 +1520,8 @@ export class DungeonEnemyAi {
         e.bossStatusText = enraged ? 'PHASE II · ARCHON' : 'PRISMA-ARCHON AKTIV';
       }
     } else if (state === 's2_nova_storm') {
-      const tx = ROOM_CENTER_X;
-      const ty = ROOM_CENTER_Y - 22;
+      const tx = rb.cx;
+      const ty = rb.cy - 22;
       e.vx = (tx - e.x) * 2.5;
       e.vy = (ty - e.y) * 2.5;
       e.burstDelay -= dt;
@@ -1560,6 +1555,7 @@ export class DungeonEnemyAi {
 
   // ==================== FLOOR III GIGANTIC BOSS: A.E.G.I.S. LEVIATHAN ====================
   private updateLeviathanAI(e: Enemy, dt: number): void {
+    const rb = this.scene.bounds; // M12: Raumgrenzen (Standard = ROOM_LEFT…)
     const arms = e.levArms;
     if (!arms) return;
     const enraged = e.hp <= e.maxHp * 0.5;
@@ -1597,7 +1593,7 @@ export class DungeonEnemyAi {
         if (arm.timer > 0.24) {
           arm.targetX += (this.scene.playerX - arm.targetX) * Math.min(1, dt * 7);
           arm.targetY +=
-            (Math.max(ROOM_TOP + 62, Math.min(ROOM_BOTTOM - 18, this.scene.playerY)) - arm.targetY) *
+            (Math.max(rb.t + 62, Math.min(rb.b - 18, this.scene.playerY)) - arm.targetY) *
             Math.min(1, dt * 7);
         }
         arm.x += (arm.targetX - arm.x) * Math.min(1, dt * 5);
@@ -1655,8 +1651,8 @@ export class DungeonEnemyAi {
           arm.state = 'returning';
         }
       } else if (arm.state === 'beam') {
-        const bx = arm.side < 0 ? ROOM_CENTER_X - 96 : ROOM_CENTER_X + 96;
-        const by = ROOM_TOP + 52;
+        const bx = arm.side < 0 ? rb.cx - 96 : rb.cx + 96;
+        const by = rb.t + 52;
         arm.x += (bx - arm.x) * Math.min(1, dt * 8);
         arm.y += (by - arm.y) * Math.min(1, dt * 8);
       }
@@ -1732,12 +1728,12 @@ export class DungeonEnemyAi {
         // Aim first drop near player, rest scattered across arena!
         const tx =
           e.subBurst % 3 === 0
-            ? Math.max(ROOM_LEFT + 28, Math.min(ROOM_RIGHT - 28, this.scene.playerX + (Math.random() - 0.5) * 34))
-            : ROOM_LEFT + 32 + Math.random() * (ROOM_RIGHT - ROOM_LEFT - 64);
+            ? Math.max(rb.l + 28, Math.min(rb.r - 28, this.scene.playerX + (Math.random() - 0.5) * 34))
+            : rb.l + 32 + Math.random() * (rb.r - rb.l - 64);
         const ty =
           e.subBurst % 3 === 0
-            ? Math.max(ROOM_TOP + 68, Math.min(ROOM_BOTTOM - 22, this.scene.playerY + (Math.random() - 0.5) * 28))
-            : ROOM_TOP + 72 + Math.random() * (ROOM_BOTTOM - ROOM_TOP - 94);
+            ? Math.max(rb.t + 68, Math.min(rb.b - 22, this.scene.playerY + (Math.random() - 0.5) * 28))
+            : rb.t + 72 + Math.random() * (rb.b - rb.t - 94);
         this.scene.debrisDrops.push({ x: tx, y: ty, r: 22, timer: 0.95, maxTimer: 0.95 });
       }
       if (e.bossStateTimer <= 0) {
@@ -1782,8 +1778,8 @@ export class DungeonEnemyAi {
         const arm = arms[sideIdx];
         arm.state = 'tracking';
         arm.timer = enraged ? 0.68 : 0.82;
-        arm.targetX = Math.max(ROOM_LEFT + 34, Math.min(ROOM_RIGHT - 34, this.scene.playerX));
-        arm.targetY = Math.max(ROOM_TOP + 68, Math.min(ROOM_BOTTOM - 22, this.scene.playerY));
+        arm.targetX = Math.max(rb.l + 34, Math.min(rb.r - 34, this.scene.playerX));
+        arm.targetY = Math.max(rb.t + 68, Math.min(rb.b - 22, this.scene.playerY));
         e.bossState = 'lev_arm_track';
         e.bossStateTimer = enraged ? 1.85 : 2.25;
         e.bossStateMax = e.bossStateTimer;
@@ -1834,6 +1830,7 @@ export class DungeonEnemyAi {
   }
 
   private updateBossAI(e: Enemy, dt: number, dx: number, dy: number, nx: number, ny: number): void {
+    const rb = this.scene.bounds; // M12: Raumgrenzen (Standard = ROOM_LEFT…)
     const enraged = e.hp <= e.maxHp * 0.5;
     const state: BossState = e.bossState ?? 'stalk';
 
@@ -1867,8 +1864,8 @@ export class DungeonEnemyAi {
         maxLife: 0.45,
       });
       this.scene.spawnBurst(e.x, e.y, '#fb7185', 26);
-      this.scene.spawnEnemy('slime', ROOM_CENTER_X - 80, ROOM_CENTER_Y);
-      this.scene.spawnEnemy('drone', ROOM_CENTER_X + 80, ROOM_CENTER_Y);
+      this.scene.spawnEnemy('slime', rb.cx - 80, rb.cy);
+      this.scene.spawnEnemy('drone', rb.cx + 80, rb.cy);
       this.scene.callbacks.onToast('⚠ PHASE II: Kern-Wächter MK-IV im Überlastungs-Modus!', 'warn');
       return;
     }
@@ -2032,8 +2029,8 @@ export class DungeonEnemyAi {
         e.bossTargetX = (e.bossTargetX ?? this.scene.playerX) + (this.scene.playerX - (e.bossTargetX ?? this.scene.playerX)) * Math.min(1, dt * 6);
         e.bossTargetY = (e.bossTargetY ?? this.scene.playerY) + (this.scene.playerY - (e.bossTargetY ?? this.scene.playerY)) * Math.min(1, dt * 6);
       }
-      const tx = Math.max(ROOM_LEFT + 26, Math.min(ROOM_RIGHT - 26, e.bossTargetX ?? ROOM_CENTER_X));
-      const ty = Math.max(ROOM_TOP + 24, Math.min(ROOM_BOTTOM - 24, e.bossTargetY ?? ROOM_CENTER_Y));
+      const tx = Math.max(rb.l + 26, Math.min(rb.r - 26, e.bossTargetX ?? rb.cx));
+      const ty = Math.max(rb.t + 24, Math.min(rb.b - 24, e.bossTargetY ?? rb.cy));
       e.bossTargetX = tx;
       e.bossTargetY = ty;
       e.x += (tx - e.x) * Math.min(1, dt * 7);
@@ -2153,11 +2150,12 @@ export class DungeonEnemyAi {
       const ly = e.y - 8;
       const cosA = Math.cos(e.bossLaserAngle);
       const sinA = Math.sin(e.bossLaserAngle);
-      let maxT = 320;
-      for (let t = 12; t < 320; t += 6) {
+      const rayMax = this.scene.rayLimit(320);
+      let maxT = rayMax;
+      for (let t = 12; t < rayMax; t += 6) {
         const px = lx + cosA * t;
         const py = ly + sinA * t;
-        if (px < ROOM_LEFT || px > ROOM_RIGHT || py < ROOM_TOP || py > ROOM_BOTTOM) {
+        if (px < rb.l || px > rb.r || py < rb.t || py > rb.b) {
           maxT = t;
           break;
         }
