@@ -1,6 +1,6 @@
 import { sound } from '../engine/audio';
 import { ENEMY_SHIELDS, SHIELD_HEAT_DECAY_SEC } from '../data/balance';
-import { runBoss } from './bosses/bossEngine';
+import { bossRoom, runBoss } from './bosses/bossEngine';
 import { BOSS_DEFS } from './bosses/defs';
 import type { DungeonScene } from '../scenes/DungeonScene';
 import type { BossState, Enemy } from './dungeonTypes';
@@ -966,7 +966,7 @@ export class DungeonEnemyAi {
         }
       } else if (BOSS_DEFS[e.kind]) {
         // M10-C: eigenständige Boss-Zugfolgen (Krall, Schlacken-Koloss, Gießerei-Meisterin, Vulkan-Titan, Chrono-Wächter, Monolith-Koloss, Sternen-Archon)
-        runBoss(e, { scene: this.scene, dx, dy, nx, ny, dist, dt, p2: false }, BOSS_DEFS[e.kind]!);
+        runBoss(e, { scene: this.scene, dx, dy, nx, ny, dist, dt, p2: false, room: bossRoom(rb) }, BOSS_DEFS[e.kind]!);
       } else if (e.kind === 'boss_quartz_golem') {
         this.updateQuartzGolemAI(e, dt, dx, dy, nx, ny);
       } else if (e.kind === 'boss_prism_weaver') {
