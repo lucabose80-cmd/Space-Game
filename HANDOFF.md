@@ -55,3 +55,6 @@ Jeder Bereich hat ein eigenes Status-Blatt in [`handoff/`](handoff/README.md) �
 - Ideen: siehe `GAME_DESIGN_DOCUMENT.md` §5.
 
 - **Neue Sprites benötigt (Krall, P0-14…18, `SPRITE_QUEUE.md`):** Phase-2-Rümpfe im Panzer-Maßstab neu (`krall_torsos2`) + beschädigte Arme (verbogen/Stumpf) für Block/Sog/Hagel/Stampfer/Teleskop (`krall_arms_R4/L4/R5/L5`). Übergang bis dahin: Rumpf ×1,1.
+
+## M12 Phase E (2026-11-27)
+Waffen-Arten-Sperre (`WEAPON_TYPE_GATES`), Trophäe „A.E.G.I.S.-Herzlinse“, Hub-Vitrine umgesetzt (am bestehenden Leviathan-Sieg). **Neue Sprites benötigt:** `P1-07` (`prop_trophy_leviathan.png`, `item_trophy_leviathan.png`) — Fallbacks aktiv. Status-Blatt: `handoff/endboss_arena.md`.

@@ -3061,6 +3061,7 @@ export class DungeonScene {
       this.spawnBurst(e.x, e.y + 10, '#fde047', 42);
       this.floorBossDefeated = true;
       this.state.bossDefeatedCount += 1;
+      const firstLeviathanWin = !this.state.hasLeviathanTrophy();
       this.state.sector1Cleared = true;
       this.sector1ClearedInRun = true;
       this.state.recordSectorClear(1, this.runElapsedSec);
@@ -3068,6 +3069,8 @@ export class DungeonScene {
       const dropY = ROOM_CENTER_Y - 12;
       this.spawnLootDrop(ROOM_CENTER_X, dropY, 'leviathan_core');
       this.spawnLootDrop(ROOM_CENTER_X - 18, dropY + 4, 'aegis_plate');
+      // M12 (E): Trophäen-Relikt beim Erstsieg (nie in der Wochen-Prüfung — die läuft über handleTrialBossKilled)
+      if (firstLeviathanWin) this.spawnLootDrop(ROOM_CENTER_X + 18, dropY + 4, 'trophy_leviathan');
       for (let k = 0; k < 3; k++) {
         this.spawnLootDrop(
           ROOM_CENTER_X + (k - 1) * 16,

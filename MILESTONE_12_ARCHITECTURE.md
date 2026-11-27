@@ -156,5 +156,12 @@ Alle optional mit prozeduralem Fallback (Regel 7). Stil: wie `hub_bg.png`/Dungeo
 ## 11. Umsetzungsnotizen
 *(wird während der Umsetzung gefüllt: Abweichungen, gemessene Werte)*
 
+**Phase E (Belohnungen) — umgesetzt, vorerst am bestehenden Leviathan-Sieg (`sector1Cleared`), noch ohne Arena:**
+- `WEAPON_TYPE_GATES` in `balance.ts` (spear ← S1, discus ← S2, hammer ← S3); `GameState.getWeaponTypeLock()` / `canCraftWeapon()`; Schmiede zeigt „🔒 Bauplan: besiege …“. „Besiegt“ = `sectorNCleared` **oder** Rekord `bestSectorClearSec[n]` **oder** NG+ → keine neuen Save-Felder, Save bleibt v11; schon geschmiedete Waffen bleiben.
+- Relikt `trophy_leviathan` („A.E.G.I.S.-Herzlinse“, epic, maxStack 1, Wert 2400) fällt beim **Erstsieg** (nicht in der Wochen-Prüfung, nicht in NG+ erneut). Keine Credits.
+- Hub-Vitrine (`hubEvolution.ts`, Element `leviathan_trophy`, Sprite `prop_trophy_leviathan` optional + prozeduraler Fallback; Position `TROPHY_VITRINE` ungeprüft per Screenshot). Relikt-Icon: prozeduraler Fallback in `artLoader.ts`.
+- Offen: Codex-Interaktion der Vitrine (Siegzeit), Boss-Truhe „3 Relikte“ erst mit der Arena, Sprites `P1-07` (Status `[ ]`).
+- Test: `m12p5`.
+
 ## 12. Verknüpfte Dokumente
 [AGENTS.md](AGENTS.md) · [BOSS_ENEMY_PIPELINE.md](BOSS_ENEMY_PIPELINE.md) (Ablauf & Qualität) · [BOSS_ANIMATION_PLAN.md](BOSS_ANIMATION_PLAN.md) (D1–D14) · [MILESTONE_10C_ARCHITECTURE.md](MILESTONE_10C_ARCHITECTURE.md) (Boss-Engine, Balance) · [MILESTONE_10_ARCHITECTURE.md](MILESTONE_10_ARCHITECTURE.md) (Mechaniken, Seeds) · [MILESTONE_11_ARCHITECTURE.md](MILESTONE_11_ARCHITECTURE.md) (Rigs, abgelöste Teile) · [PARALLEL_WORK.md](PARALLEL_WORK.md) · [SPRITE_QUEUE.md](SPRITE_QUEUE.md)

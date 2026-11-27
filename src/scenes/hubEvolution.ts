@@ -107,6 +107,7 @@ export class HubEvolutionRenderer {
     if (this.flag('nyx_redeemed')) ids.push('free_lantern');
     if (this.flag('vex_spiral')) ids.push('vex_beacon');
     if (this.flag('vex_stays')) ids.push('vex_classboard');
+    if (this.state.hasLeviathanTrophy()) ids.push('leviathan_trophy');
     return ids;
   }
 
@@ -232,6 +233,7 @@ export class HubEvolutionRenderer {
     }
     if (this.flag('vex_spiral')) out.push({ y: VEX_DECO.y, draw: () => this.drawBeacon(ctx, VEX_DECO.x, VEX_DECO.y, time) });
     if (this.flag('vex_stays')) out.push({ y: VEX_DECO.y, draw: () => this.drawClassboard(ctx, VEX_DECO.x, VEX_DECO.y, time) });
+    if (this.state.hasLeviathanTrophy()) out.push({ y: TROPHY_VITRINE.y, draw: () => this.drawLeviathanVitrine(ctx, TROPHY_VITRINE.x, TROPHY_VITRINE.y, time) });
     return out;
   }
 
@@ -514,6 +516,30 @@ export class HubEvolutionRenderer {
     drawGlow(ctx, x, y - 33, 16, '#a78bfa', 0.3 + 0.1 * Math.sin(time * 3));
   }
 
+  /** M12 (E): Vitrine mit der A.E.G.I.S.-Herzlinse. Sprite `prop_trophy_leviathan` optional, sonst prozedural. */
+  private drawLeviathanVitrine(ctx: CanvasRenderingContext2D, x: number, y: number, time: number): void {
+    drawPixelShadow(ctx, x, y + 1, 9, 2.8, 0.45);
+    const spr = this.sprite('propTrophyLeviathan');
+    const pulse = 0.5 + 0.5 * Math.sin(time * 2.4);
+    if (spr) {
+      drawSpriteFoot(ctx, spr, x, y, 26, 26);
+    } else {
+      rect(ctx, x - 9, y - 6, 18, 6, '#1e293b', '#64748b');
+      rect(ctx, x - 8, y - 26, 16, 20, 'rgba(56,232,212,0.12)', '#7dd3fc');
+      rect(ctx, x - 10, y - 28, 20, 3, '#334155', '#94a3b8');
+      const cy = y - 16 + Math.sin(time * 1.8);
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      ctx.arc(x, cy, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fde047';
+      ctx.beginPath();
+      ctx.arc(x, cy, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    drawGlow(ctx, x, y - 16, 16, '#fde047', 0.14 + pulse * 0.12);
+  }
+
   private drawClassboard(ctx: CanvasRenderingContext2D, x: number, y: number, time: number): void {
     drawPixelShadow(ctx, x, y + 1, 8, 2.6, 0.45);
     const spr = this.sprite('propVexClassboard');
@@ -553,6 +579,7 @@ export class HubEvolutionRenderer {
 
 // ---------- Startpositionen (480×270 Logik-Koordinaten; per Screenshot justiert) ----------
 const OBELISK = { x: 240, y: 170 };
+const TROPHY_VITRINE = { x: 206, y: 198 };
 const VEX_DECO = { x: 278, y: 194 };
 const BANNERS = [
   { x: 176, y: 70 },
