@@ -8,18 +8,23 @@ const clamp = (v: number, a: number, b: number): number => Math.max(a, Math.min(
 /** Länge der Schuss-Vorwarnung (enemyAi: `telegraphTimer = 0.46`) und Rückstoß je Bolzen (s). */
 const DRONE_TELEGRAPH = 0.46;
 const DRONE_KICK = 0.16;
+/** Erholung nach dem letzten Bolzen und Treffer-Zucken (s). */
+const DRONE_RECOVER = 0.5;
+const DRONE_HIT = 0.14;
 
 interface DroneState {
   facing: number;
   lastBurst: number;
   kick: number;
+  rec: number;
+  hit: number;
   time: number;
 }
 const droneStates = new WeakMap<Enemy, DroneState>();
 const stateOf = (e: Enemy, time: number): DroneState => {
   let st = droneStates.get(e);
   if (!st) {
-    st = { facing: 1, lastBurst: 0, kick: 0, time };
+    st = { facing: 1, lastBurst: 0, kick: 0, rec: 0, hit: 0, time };
     droneStates.set(e, st);
   }
   return st;
@@ -43,10 +48,18 @@ function dronePose(e: Enemy, time: number, lookDx: number, lookDy: number): Pose
   const dt = Math.max(0, Math.min(0.1, time - st.time));
   st.time = time;
   if (e.subBurst < st.lastBurst) st.kick = DRONE_KICK; // ein Bolzen ist raus
+  if (e.subBurst === 0 && st.lastBurst === 1) st.rec = DRONE_RECOVER; // letzter Bolzen → Erholung (Seiten-Dash)
+  if (e.flashTimer > 0.04 && st.hit <= 0) st.hit = DRONE_HIT;
   st.lastBurst = e.subBurst;
   st.kick = Math.max(0, st.kick - dt);
+  st.rec = Math.max(0, st.rec - dt);
+  st.hit = Math.max(0, st.hit - dt);
   const k = st.kick / DRONE_KICK; // 1 → 0
   const tele = e.telegraphTimer > 0;
+  const r = st.rec / DRONE_RECOVER; // 1 → 0
+  const busy = tele || e.subBurst > 0 || k > 0;
+  const h = (st.hit / DRONE_HIT) * (busy ? 0.3 : 1); // Treffer-Zucken, in Angriffsposen gedämpft
+  const twitch = h * Math.sin(time * 90);
   const p = tele ? clamp(1 - e.telegraphTimer / DRONE_TELEGRAPH, 0, 1) : 0;
   const bursting = e.subBurst > 0 || k > 0;
   const f = st.facing; // Rig ist gespiegelt: Weltgeschwindigkeit in Blickrichtung umrechnen
@@ -60,7 +73,7 @@ function dronePose(e: Enemy, time: number, lookDx: number, lookDy: number): Pose
     return { alpha: 0.75 + 0.25 * speed, sx: 0.55 + 0.25 * speed, sy: s, rot: 0 };
   };
   const nacelle = (side: number): { rot: number; dy: number } => ({
-    rot: side * 0.04 * Math.sin(time * 5 + e.id) + (tele ? -side * 0.08 * p : 0) + (bursting ? side * 0.06 * k : 0),
+    rot: side * 0.04 * Math.sin(time * 5 + e.id) + (tele ? -side * 0.08 * p : 0) + (bursting ? side * 0.06 * k : 0) + side * 0.16 * r * Math.sin(time * 14),
     dy: Math.sin(time * 6.5 + e.id + side) * 0.4,
   });
   const nL = nacelle(-1);
@@ -68,13 +81,31 @@ function dronePose(e: Enemy, time: number, lookDx: number, lookDy: number): Pose
   const fl = flame(1);
   const fr = flame(2);
   return {
-    body: { rot: bank + aim * 0.5 * (tele ? 1 : 0.5), dx: -1.4 * p - 2.2 * k, dy: hover, sx: 1 + 0.04 * k, sy: 1 - 0.04 * k },
+    body: { rot: bank + aim * 0.5 * (tele ? 1 : 0.5) + twitch * 0.12, dx: -1.4 * p - 2.2 * k - 1.4 * h, dy: hover + 1.1 * r, sx: 1 + 0.04 * k - 0.04 * h, sy: 1 - 0.04 * k + 0.04 * h },
     nacelleL: { rot: nL.rot, dy: nL.dy },
     nacelleR: { rot: nR.rot, dy: nR.dy },
     flameL: fl,
     flameR: fr,
-    visor: { variant: tele || k > 0.3 ? 1 : 0, dx: aim * 0.6 + 0.6 * p, dy: aim * 1.6, sx: 0.68, sy: 0.68 },
-    lens: { hidden: !tele && k <= 0.02, alpha: tele ? 0.3 + 0.7 * p : k, sx: 0.3 + 0.4 * p + 0.2 * k, sy: 0.3 + 0.4 * p + 0.2 * k },
+    visor: { variant: tele || k > 0.3 || r > 0.5 ? 1 : 0, dx: aim * 0.6 + 0.6 * p, dy: aim * 1.6, sx: 0.68, sy: 0.68 },
+    lens: { hidden: !tele && k <= 0.02 && r <= 0.05, alpha: tele ? 0.3 + 0.7 * p : Math.max(k, 0.5 * r), sx: 0.3 + 0.4 * p + 0.2 * k, sy: 0.3 + 0.4 * p + 0.2 * k },
+  };
+}
+
+/** Wrack-Pose beim Tod (t = Sekunden seit dem Abschuss, 0…0,5): Gondeln reißen ab, Rumpf kippt und fällt, Linse blitzt, Ausblenden. */
+export const DRONE_DEATH_TIME = 0.5;
+export function droneDeathPose(t: number, id: number): Pose {
+  const u = clamp(t / DRONE_DEATH_TIME, 0, 1);
+  const fall = u * u * 18;
+  const a = clamp(1 - u * u, 0, 1);
+  const spin = 1 + (id % 3) * 0.4;
+  return {
+    body: { rot: u * 0.9 * spin, dy: fall * 0.5, alpha: a, sx: 1 - 0.15 * u, sy: 1 - 0.15 * u },
+    nacelleL: { rot: -u * 2.6, dx: -u * 13, dy: -u * 6 + fall * 1.1, alpha: a },
+    nacelleR: { rot: u * 2.8, dx: u * 13, dy: -u * 7 + fall, alpha: a },
+    flameL: { hidden: u > 0.3, alpha: 1 - u * 2, sx: 0.55, sy: 0.55, rot: -u * 2.6 },
+    flameR: { hidden: u > 0.3, alpha: 1 - u * 2, sx: 0.55, sy: 0.55, rot: u * 2.8 },
+    visor: { variant: u > 0.15 ? 1 : 0, alpha: clamp(1 - u * 2.2, 0, 1), sx: 0.68, sy: 0.68 * (1 - u * 0.7) },
+    lens: { hidden: u > 0.6, alpha: clamp(1.4 - u * 1.8, 0, 1), sx: 0.6 + u * 1.4, sy: 0.6 + u * 1.4 },
   };
 }
 

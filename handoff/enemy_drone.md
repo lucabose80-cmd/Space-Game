@@ -11,11 +11,11 @@
 | G1 Rig vollständig | ✅ | alle 6 Zellen, Kontaktbogen `tests/out/rig_drone.png` (Gondeln am Rumpf, nichts schwebt) |
 | G2 Rückfall | ✅ | `tryDrawEnemyRig` → sonst altes Sprite (Test `m11p1`) |
 | G3 Schweben | ✅ | eigener Rhythmus (6,5 rad/s), Neigen aus `vx`, Flammen aus Tempo |
-| G4 Angriff in 3 Abschnitten | ⬜ | Vorwarnung ✅, Ausführung (Rückstoß je Bolzen) ✅, **Erholung (eigene Pose nach dem letzten Bolzen) fehlt** → `drone.ts` |
+| G4 Angriff in 3 Abschnitten | ✅ | Vorwarnung (Visier/Linse/Rumpf), Ausführung (Rückstoß je Bolzen), Erholung 0,5 s nach letztem Bolzen (Rumpf sackt, Gondeln pendeln aus, Linse glimmt nach) — Test „Erholung“ |
 | G5 Weiche Übergänge | ✅ | Glättung `bossAnims.ts`, Linse/Flamme über Alpha |
-| G6 Treffer-Reaktion | ⬜ | **fehlt:** Zucken ≤ 0,14 s, in Angriffsposen gedämpft → `drone.ts` + Test |
-| G7 Tod | ⬜ | **fehlt:** Wrack-Pose (Gondeln fliegen ab, Rumpf kippt, Blitz) + `renderDroneWrecks` im Renderer (Muster `drone_arc`) + Test |
+| G6 Treffer-Reaktion | ✅ | Zucken ≤ 0,14 s, in Angriffsposen auf 30 % gedämpft — Test „Treffer-Zucken, danach wieder ruhig“ |
+| G7 Tod | ✅ | `droneDeathPose` + `renderDroneWrecks` (0,5 s: Gondeln reißen ab, Rumpf kippt/blendet aus, Linsenblitz) — `tests/out/drone_death.png`, Test „Tod“ |
 | G8 Rein optisch | ✅ | keine Änderung an Hitbox/Schaden/Zufall |
-| G9 Test & Handoff | ⬜ | `m11p8_drone` ✅, dieses Blatt ✅; Tests für G4/G6/G7 ergänzen, `npm run verify` grün, Screenshot `tests/out/drone_death.png` ansehen |
+| G9 Test & Handoff | ✅ | `m11p8_drone` (Rig, Vorwarnung, Tempo, Blick, Treffer, Erholung, Tod), dieses Blatt, `npm run ship` grün |
 | G10 Boden-Effekte | ✅ (n/a) | Flieger ohne Boden-Effekte (nur Schatten); Drohne steht nicht in der Fremd-Auftritt-Tabelle (`BOSS_ENEMY_PIPELINE.md` §5) |
 | Stufe 8 Abnahme | ⬜ | Projektinhaber: 1–2 echte Kämpfe gegen die Drohne |

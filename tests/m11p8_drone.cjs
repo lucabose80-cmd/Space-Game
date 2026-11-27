@@ -10,7 +10,22 @@ module.exports = async ({ page }) => {
     const p1 = anim.getBossPose('drone', e({ id: 4, telegraphTimer: 0.2 }), 1, 50, 0);
     const slow = anim.getBossPose('drone', e({ id: 5 }), 1, 50, 0);
     const fast = anim.getBossPose('drone', e({ id: 5, vx: 140 }), 1, 50, 0);
+    const wreck = await import('/src/dungeon/anim/rigs/drone.ts');
+    // G6 Treffer: Zucken, danach wieder ruhig
+    const hitE = e({ id: 8 }); anim.getBossPose('drone', hitE, 2, 50, 0);
+    hitE.flashTimer = 0.1; const hit = anim.getBossPose('drone', hitE, 2.02, 50, 0);
+    hitE.flashTimer = 0; for (let t = 2.04; t < 2.5; t += 0.02) anim.getBossPose('drone', hitE, t, 50, 0);
+    const calm = anim.getBossPose('drone', hitE, 2.52, 50, 0);
+    // G4 Erholung: letzter Bolzen (subBurst 1 → 0) → Linse glimmt nach, Visier bleibt zugekniffen
+    const recE = e({ id: 9, subBurst: 1 }); anim.getBossPose('drone', recE, 3, 50, 0);
+    recE.subBurst = 0; anim.getBossPose('drone', recE, 3.02, 50, 0);
+    let rec; for (let t = 3.04; t <= 3.2; t += 0.02) rec = anim.getBossPose('drone', recE, t, 50, 0);
+    let rec2; for (let t = 3.22; t <= 3.8; t += 0.02) rec2 = anim.getBossPose('drone', recE, t, 50, 0);
+    // G7 Tod
+    const dw = wreck.droneDeathPose(0.25, 1);
     return {
+      hitDx: hit.body.dx, calmDx: calm.body.dx, rec: [rec.visor.variant, rec.lens.hidden, rec2.visor.variant, rec2.lens.hidden],
+      death: [dw.nacelleL.dx, dw.body.alpha, dw.lens.hidden, wreck.DRONE_DEATH_TIME],
       loaded: !!getHDArt().rigs.drone,
       visor: [p0.visor.variant, p1.visor.variant], lensHidden: [p0.lens.hidden, p1.lens.hidden],
       flame: [slow.flameL.sy, fast.flameL.sy],
@@ -22,4 +37,7 @@ module.exports = async ({ page }) => {
   assert.deepStrictEqual(r.lensHidden, [true, false], 'Lade-Linse nur in der Vorwarnung');
   assert.ok(r.flame[1] > r.flame[0], 'Flammen wachsen mit dem Tempo: ' + JSON.stringify(r.flame));
   assert.deepStrictEqual(r.facing, [-1, -1, 1], 'Blick zum Spieler mit Totzone');
+  assert.ok(r.hitDx < -0.2 && Math.abs(r.calmDx) < 0.3, 'Treffer-Zucken, danach wieder ruhig: ' + JSON.stringify([r.hitDx, r.calmDx]));
+  assert.deepStrictEqual(r.rec, [1, false, 0, true], 'Erholung: Visier zu + Linse glimmt, später wieder normal');
+  assert.ok(r.death[0] < -5 && r.death[1] < 1 && r.death[1] > 0 && r.death[3] === 0.5, 'Tod: Gondel fliegt ab, Rumpf blendet aus: ' + JSON.stringify(r.death));
 };
