@@ -1,0 +1,48 @@
+{
+ "rig": "astral_scarab",
+ "scale": 0.15668,
+ "resample": "lanczos",
+ "torsoDisplayH": 17,
+ "pixelRatio": 2,
+ "sheets": {
+  "astral_scarab_rig.png": "da4c42a5e6293c02"
+ },
+ "parts": {
+  "body": {
+   "w": 23,
+   "h": 34,
+   "srcW": 149,
+   "srcH": 217
+  },
+  "head": {
+   "w": 14,
+   "h": 16,
+   "srcW": 91,
+   "srcH": 100
+  },
+  "wingOpen": {
+   "w": 38,
+   "h": 21,
+   "srcW": 240,
+   "srcH": 136
+  },
+  "wingFold": {
+   "w": 34,
+   "h": 26,
+   "srcW": 218,
+   "srcH": 163
+  },
+  "legF": {
+   "w": 14,
+   "h": 21,
+   "srcW": 91,
+   "srcH": 132
+  },
+  "legB": {
+   "w": 12,
+   "h": 25,
+   "srcW": 77,
+   "srcH": 159
+  }
+ }
+}

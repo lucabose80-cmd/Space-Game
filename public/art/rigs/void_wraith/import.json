@@ -1,0 +1,48 @@
+{
+ "rig": "void_wraith",
+ "scale": 0.13793,
+ "resample": "lanczos",
+ "torsoDisplayH": 12,
+ "pixelRatio": 2,
+ "sheets": {
+  "void_wraith_rig.png": "45b0f5d29423f0f5"
+ },
+ "parts": {
+  "hood": {
+   "w": 18,
+   "h": 23,
+   "srcW": 127,
+   "srcH": 165
+  },
+  "robeTop": {
+   "w": 35,
+   "h": 24,
+   "srcW": 254,
+   "srcH": 174
+  },
+  "hem": {
+   "w": 34,
+   "h": 34,
+   "srcW": 249,
+   "srcH": 245
+  },
+  "clawL": {
+   "w": 13,
+   "h": 29,
+   "srcW": 93,
+   "srcH": 212
+  },
+  "clawR": {
+   "w": 14,
+   "h": 29,
+   "srcW": 98,
+   "srcH": 212
+  },
+  "eyes": {
+   "w": 13,
+   "h": 6,
+   "srcW": 95,
+   "srcH": 47
+  }
+ }
+}

@@ -1,0 +1,48 @@
+{
+ "rig": "monolith_guard",
+ "scale": 0.12749,
+ "resample": "lanczos",
+ "torsoDisplayH": 16,
+ "pixelRatio": 2,
+ "sheets": {
+  "monolith_guard_rig.png": "685bb70d2803b31b"
+ },
+ "parts": {
+  "torso": {
+   "w": 22,
+   "h": 32,
+   "srcW": 170,
+   "srcH": 251
+  },
+  "head": {
+   "w": 11,
+   "h": 18,
+   "srcW": 85,
+   "srcH": 140
+  },
+  "armMace": {
+   "w": 29,
+   "h": 34,
+   "srcW": 225,
+   "srcH": 263
+  },
+  "armShield": {
+   "w": 27,
+   "h": 34,
+   "srcW": 213,
+   "srcH": 268
+  },
+  "legR": {
+   "w": 12,
+   "h": 29,
+   "srcW": 98,
+   "srcH": 229
+  },
+  "legL": {
+   "w": 13,
+   "h": 29,
+   "srcW": 102,
+   "srcH": 229
+  }
+ }
+}

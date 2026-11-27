@@ -1,0 +1,48 @@
+{
+ "rig": "chrono_eye",
+ "scale": 0.12987,
+ "resample": "lanczos",
+ "torsoDisplayH": 10,
+ "pixelRatio": 2,
+ "sheets": {
+  "chrono_eye_rig.png": "32e68343682fdacf"
+ },
+ "parts": {
+  "eyeball": {
+   "w": 20,
+   "h": 20,
+   "srcW": 154,
+   "srcH": 154
+  },
+  "iris": {
+   "w": 14,
+   "h": 14,
+   "srcW": 106,
+   "srcH": 107
+  },
+  "ringOut": {
+   "w": 44,
+   "h": 50,
+   "mode": "swap",
+   "set": "chrono_eye_rig"
+  },
+  "ringMid": {
+   "w": 44,
+   "h": 50,
+   "mode": "swap",
+   "set": "chrono_eye_rig"
+  },
+  "ringIn": {
+   "w": 44,
+   "h": 50,
+   "mode": "swap",
+   "set": "chrono_eye_rig"
+  },
+  "hand": {
+   "w": 44,
+   "h": 50,
+   "mode": "swap",
+   "set": "chrono_eye_rig"
+  }
+ }
+}

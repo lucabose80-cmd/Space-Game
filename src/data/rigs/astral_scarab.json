@@ -1,0 +1,169 @@
+{
+  "kind": "astral_scarab",
+  "sheet": {
+    "file": "astral_scarab",
+    "srcFile": "astral_scarab_rig",
+    "cols": 3,
+    "rows": 2,
+    "order": [
+      "body",
+      "head",
+      "wingOpen",
+      "wingFold",
+      "legF",
+      "legB"
+    ],
+    "scaleRef": "body",
+    "torsoDisplayH": 17,
+    "pixelRatio": 2
+  },
+  "parts": [
+    {
+      "id": "body",
+      "image": "body",
+      "z": 2,
+      "pivot": [
+        0.5,
+        0.55
+      ],
+      "offset": [
+        0,
+        -11
+      ]
+    },
+    {
+      "id": "head",
+      "image": "head",
+      "parent": "body",
+      "attach": [
+        0.5,
+        0.08
+      ],
+      "pivot": [
+        0.5,
+        0.78
+      ],
+      "z": 3,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "wingL",
+      "image": "wingFold",
+      "variants": [
+        "wingFold",
+        "wingOpen"
+      ],
+      "parent": "body",
+      "attach": [
+        0.24,
+        0.34
+      ],
+      "pivot": [
+        0.88,
+        0.18
+      ],
+      "z": 3,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "wingR",
+      "image": "wingFold",
+      "variants": [
+        "wingFold",
+        "wingOpen"
+      ],
+      "parent": "body",
+      "attach": [
+        0.76,
+        0.34
+      ],
+      "pivot": [
+        0.88,
+        0.18
+      ],
+      "z": 3,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "legFL",
+      "image": "legF",
+      "parent": "body",
+      "attach": [
+        0.18,
+        0.34
+      ],
+      "pivot": [
+        0.82,
+        0.82
+      ],
+      "z": 0,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "legBL",
+      "image": "legB",
+      "parent": "body",
+      "attach": [
+        0.2,
+        0.7
+      ],
+      "pivot": [
+        0.72,
+        0.16
+      ],
+      "z": 0,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "legFR",
+      "image": "legF",
+      "parent": "body",
+      "attach": [
+        0.82,
+        0.34
+      ],
+      "pivot": [
+        0.82,
+        0.82
+      ],
+      "z": 0,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "legBR",
+      "image": "legB",
+      "parent": "body",
+      "attach": [
+        0.8,
+        0.7
+      ],
+      "pivot": [
+        0.72,
+        0.16
+      ],
+      "z": 0,
+      "offset": [
+        0,
+        0
+      ]
+    }
+  ]
+}

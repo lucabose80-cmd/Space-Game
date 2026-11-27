@@ -1,0 +1,125 @@
+{
+  "kind": "star_lancer",
+  "sheet": {
+    "file": "star_lancer",
+    "srcFile": "star_lancer_rig",
+    "cols": 3,
+    "rows": 2,
+    "order": [
+      "torso",
+      "head",
+      "armR",
+      "armL",
+      "legs",
+      "spear"
+    ],
+    "scaleRef": "torso",
+    "torsoDisplayH": 14,
+    "pixelRatio": 2
+  },
+  "parts": [
+    {
+      "id": "torso",
+      "image": "torso",
+      "z": 2,
+      "pivot": [
+        0.5,
+        0.65
+      ],
+      "offset": [
+        0,
+        -14
+      ]
+    },
+    {
+      "id": "head",
+      "image": "head",
+      "parent": "torso",
+      "attach": [
+        0.5,
+        0.1
+      ],
+      "pivot": [
+        0.5,
+        0.88
+      ],
+      "z": 3,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "legs",
+      "image": "legs",
+      "parent": "torso",
+      "attach": [
+        0.5,
+        0.62
+      ],
+      "pivot": [
+        0.48,
+        0.1
+      ],
+      "z": 1,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "armL",
+      "image": "armL",
+      "parent": "torso",
+      "attach": [
+        0.82,
+        0.2
+      ],
+      "pivot": [
+        0.35,
+        0.16
+      ],
+      "z": 0,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "armR",
+      "image": "armR",
+      "parent": "torso",
+      "attach": [
+        0.2,
+        0.2
+      ],
+      "pivot": [
+        0.55,
+        0.16
+      ],
+      "z": 4,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "spear",
+      "image": "spear",
+      "parent": "armR",
+      "attach": [
+        0.72,
+        0.88
+      ],
+      "pivot": [
+        0.5,
+        0.6
+      ],
+      "z": 3,
+      "offset": [
+        0,
+        0
+      ]
+    }
+  ]
+}

@@ -1,0 +1,144 @@
+{
+  "kind": "chrono_eye",
+  "sheet": {
+    "file": "chrono_eye",
+    "srcFile": "chrono_eye_rig",
+    "cols": 3,
+    "rows": 2,
+    "order": [
+      "eyeball",
+      "iris",
+      "",
+      "",
+      "",
+      ""
+    ],
+    "scaleRef": "eyeball",
+    "torsoDisplayH": 10,
+    "pixelRatio": 2,
+    "sets": [
+      {
+        "file": "chrono_eye_rig",
+        "mode": "swap",
+        "cells": [
+          2,
+          3,
+          4,
+          5
+        ],
+        "ids": [
+          "ringOut",
+          "ringMid",
+          "ringIn",
+          "hand"
+        ],
+        "holes": true
+      }
+    ]
+  },
+  "parts": [
+    {
+      "id": "eyeball",
+      "image": "eyeball",
+      "z": 2,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "offset": [
+        0,
+        -14
+      ]
+    },
+    {
+      "id": "iris",
+      "image": "iris",
+      "parent": "eyeball",
+      "attach": [
+        0.5,
+        0.5
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "z": 3,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "ringOut",
+      "image": "ringOut",
+      "parent": "eyeball",
+      "attach": [
+        0.5,
+        0.5
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "z": 4,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "ringMid",
+      "image": "ringMid",
+      "parent": "eyeball",
+      "attach": [
+        0.5,
+        0.5
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "z": 1,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "ringIn",
+      "image": "ringIn",
+      "parent": "eyeball",
+      "attach": [
+        0.5,
+        0.5
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "z": 0,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "hand",
+      "image": "hand",
+      "parent": "eyeball",
+      "attach": [
+        0.5,
+        0.5
+      ],
+      "pivot": [
+        0.5,
+        0.84
+      ],
+      "z": 5,
+      "offset": [
+        0,
+        0
+      ]
+    }
+  ]
+}

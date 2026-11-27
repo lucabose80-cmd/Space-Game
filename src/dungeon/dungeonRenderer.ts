@@ -2632,6 +2632,56 @@ export class DungeonRenderer {
           ['panel', 40, -36, 7, -6],
         ],
       },
+      chrono_eye: {
+        color: '#38e8d4',
+        pieces: [
+          ['eyeball', 0, -52, 5, -10],
+          ['ringOut', -30, -58, -8, -10],
+          ['ringMid', 30, -54, 9, -10],
+          ['ringIn', -24, -38, -7, -6],
+          ['hand', 26, -64, 12, -10],
+        ],
+      },
+      astral_scarab: {
+        color: '#38e8d4',
+        pieces: [
+          ['body', -6, -42, -4, -4],
+          ['head', 18, -56, 7, -8],
+          ['wingOpen', -36, -60, -9, -8],
+          ['wingOpen', 36, -58, 9, -8],
+          ['legF', -24, -32, -7, 4],
+        ],
+      },
+      star_lancer: {
+        color: '#fde047',
+        pieces: [
+          ['torso', -8, -44, -4, -8],
+          ['head', 14, -66, 8, -14],
+          ['spear', 42, -56, 10, -8],
+          ['armR', -34, -48, -9, -8],
+          ['legs', 16, -24, 5, 2],
+        ],
+      },
+      void_wraith: {
+        color: '#38e8d4',
+        pieces: [
+          ['hood', 0, -64, 6, -14],
+          ['robeTop', -12, -46, -4, -8],
+          ['hem', 14, -32, 5, 0],
+          ['clawR', 38, -52, 10, -8],
+          ['clawL', -38, -50, -10, -8],
+        ],
+      },
+      monolith_guard: {
+        color: '#fde047',
+        pieces: [
+          ['torso', -6, -38, -3, -8],
+          ['head', 12, -62, 6, -14],
+          ['armMace', 36, -48, 8, -8],
+          ['armShield', -36, -44, -6, -8],
+          ['legR', 16, -22, 4, 2],
+        ],
+      },
     };
     const allRigs = getHDArt().rigs;
     for (const d of this.enemyRigDeaths) {

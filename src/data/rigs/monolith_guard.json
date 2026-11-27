@@ -1,0 +1,125 @@
+{
+  "kind": "monolith_guard",
+  "sheet": {
+    "file": "monolith_guard",
+    "srcFile": "monolith_guard_rig",
+    "cols": 3,
+    "rows": 2,
+    "order": [
+      "torso",
+      "head",
+      "armMace",
+      "armShield",
+      "legR",
+      "legL"
+    ],
+    "scaleRef": "torso",
+    "torsoDisplayH": 16,
+    "pixelRatio": 2
+  },
+  "parts": [
+    {
+      "id": "torso",
+      "image": "torso",
+      "z": 2,
+      "pivot": [
+        0.5,
+        0.65
+      ],
+      "offset": [
+        0,
+        -15
+      ]
+    },
+    {
+      "id": "head",
+      "image": "head",
+      "parent": "torso",
+      "attach": [
+        0.5,
+        0.14
+      ],
+      "pivot": [
+        0.5,
+        0.84
+      ],
+      "z": 3,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "armShield",
+      "image": "armShield",
+      "parent": "torso",
+      "attach": [
+        0.78,
+        0.32
+      ],
+      "pivot": [
+        0.24,
+        0.24
+      ],
+      "z": 4,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "armMace",
+      "image": "armMace",
+      "parent": "torso",
+      "attach": [
+        0.2,
+        0.26
+      ],
+      "pivot": [
+        0.36,
+        0.2
+      ],
+      "z": 3,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "legL",
+      "image": "legL",
+      "parent": "torso",
+      "attach": [
+        0.66,
+        0.74
+      ],
+      "pivot": [
+        0.38,
+        0.12
+      ],
+      "z": 1,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "legR",
+      "image": "legR",
+      "parent": "torso",
+      "attach": [
+        0.34,
+        0.74
+      ],
+      "pivot": [
+        0.62,
+        0.12
+      ],
+      "z": 1,
+      "offset": [
+        0,
+        0
+      ]
+    }
+  ]
+}

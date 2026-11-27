@@ -1,0 +1,125 @@
+{
+  "kind": "void_wraith",
+  "sheet": {
+    "file": "void_wraith",
+    "srcFile": "void_wraith_rig",
+    "cols": 3,
+    "rows": 2,
+    "order": [
+      "hood",
+      "robeTop",
+      "hem",
+      "clawL",
+      "clawR",
+      "eyes"
+    ],
+    "scaleRef": "robeTop",
+    "torsoDisplayH": 12,
+    "pixelRatio": 2
+  },
+  "parts": [
+    {
+      "id": "robeTop",
+      "image": "robeTop",
+      "z": 2,
+      "pivot": [
+        0.5,
+        0.55
+      ],
+      "offset": [
+        0,
+        -15
+      ]
+    },
+    {
+      "id": "hem",
+      "image": "hem",
+      "parent": "robeTop",
+      "attach": [
+        0.5,
+        0.85
+      ],
+      "pivot": [
+        0.5,
+        0.12
+      ],
+      "z": 1,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "hood",
+      "image": "hood",
+      "parent": "robeTop",
+      "attach": [
+        0.5,
+        0.18
+      ],
+      "pivot": [
+        0.5,
+        0.82
+      ],
+      "z": 3,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "eyes",
+      "image": "eyes",
+      "parent": "hood",
+      "attach": [
+        0.5,
+        0.56
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "z": 4,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "clawL",
+      "image": "clawL",
+      "parent": "robeTop",
+      "attach": [
+        0.88,
+        0.74
+      ],
+      "pivot": [
+        0.58,
+        0.12
+      ],
+      "z": 0,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "clawR",
+      "image": "clawR",
+      "parent": "robeTop",
+      "attach": [
+        0.14,
+        0.74
+      ],
+      "pivot": [
+        0.38,
+        0.12
+      ],
+      "z": 4,
+      "offset": [
+        0,
+        0
+      ]
+    }
+  ]
+}

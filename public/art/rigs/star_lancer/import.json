@@ -1,0 +1,48 @@
+{
+ "rig": "star_lancer",
+ "scale": 0.1466,
+ "resample": "lanczos",
+ "torsoDisplayH": 14,
+ "pixelRatio": 2,
+ "sheets": {
+  "star_lancer_rig.png": "5588d123b09c4710"
+ },
+ "parts": {
+  "torso": {
+   "w": 16,
+   "h": 28,
+   "srcW": 108,
+   "srcH": 191
+  },
+  "head": {
+   "w": 9,
+   "h": 18,
+   "srcW": 64,
+   "srcH": 124
+  },
+  "armR": {
+   "w": 10,
+   "h": 24,
+   "srcW": 71,
+   "srcH": 161
+  },
+  "armL": {
+   "w": 11,
+   "h": 23,
+   "srcW": 74,
+   "srcH": 158
+  },
+  "legs": {
+   "w": 26,
+   "h": 27,
+   "srcW": 178,
+   "srcH": 185
+  },
+  "spear": {
+   "w": 10,
+   "h": 58,
+   "srcW": 71,
+   "srcH": 393
+  }
+ }
+}
