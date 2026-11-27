@@ -112,7 +112,7 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 
 | ID | Status | Zieldatei | Typ & Format | Referenz (`ImagePaths`) | Brief / Prompt | Notiz |
 | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
-| `P2-05` | [ ] | `art_source/rigs/crystal_crawler_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_crystal_crawler.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S2) | Kristall-Krabbler |
+| `P2-05` | [x] | `art_source/rigs/crystal_crawler_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_crystal_crawler.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S2) | ✅ Kristall-Krabbler (Panzer-Körper · Kopf mit Mandibeln · 3 linke Beine · abbrechbarer Kristall-Stachel; Gelenke im Fadenkreuz, `min_margin ≥ 96 px`, `art:check` ok) |
 | `P2-06` | [ ] | `art_source/rigs/shard_sniper_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_shard_sniper.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S2) | Splitter-Scharfschütze |
 | `P2-07` | [ ] | `art_source/rigs/prism_drone_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_prism_drone.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S2) | Prisma-Drohne |
 | `P2-08` | [ ] | `art_source/rigs/void_crawler_rig.png` | Typ G · 3×2 · `1536×1024` | `public/art/sprites/enemy_void_crawler.png` | `ART_BRIEF_M11_ENEMIES.md` §4 (S2) | Leere-Krabbler |
