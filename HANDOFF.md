@@ -51,6 +51,8 @@ npm run verify                           # Build + Invarianten + Sprite-Check + 
     - `art_source/rigs/krall_legs_R.png` (rechtes 2-Segment-Spinnenbein, 6 Posen: Schritt vor · Schritt zurück · Standbein · angehoben · geduckt · Absprung, Hüftring im Fadenkreuz, `min_margin ≥ 69 px`)
     - `art_source/rigs/krall_legs_L.png` (linkes 2-Segment-Spinnenbein mit Licht links-oben, 6 Posen, Hüftring im Fadenkreuz, `min_margin ≥ 68 px`)
     - `art_source/rigs/krall_effects.png` (3 Schrottklumpen · Magnet aktiv mit Blitzen · Magnet inaktiv · Funken-/Rost-Splitter, zentriert im Fadenkreuz, `min_margin ≥ 108 px`)
+    - `art_source/rigs/krall_arms_R2.png` (**P0-06 / K-C rechts**: Stoß teleskopiert kurz/mittel/voll · Zuschnappen · Sog mit Funken · Hagel mit Schrottbrocken, Schulterring im Fadenkreuz, `min_margin ≥ 40 px`)
+    - `art_source/rigs/krall_arms_L2.png` (**P0-07 / K-C links**: gleiche 6 Angriffsposen für Schrott-Haken/Mini-Säge mit Licht links-oben, Schulterring im Fadenkreuz, `min_margin ≥ 35 px`)
 
 ## M11 Pose-Sets — Code (umgesetzt) · Handbuch: [`RIGGING_GUIDE.md`](RIGGING_GUIDE.md)
 - **Import (`npm run art:import`, `scripts/art-import.py`):** `sheet.sets` in `src/data/rigs.json` (`file`, `mode: limb|swap`, `ids[]`, optional `cells` zum Teilen eines Sheets in mehrere Sets). Zellmitte = Gelenk, je Set ein gemeinsamer zentrierter Ausschnitt + Rig-Maßstab → alle Posen eines Sets gleich groß, Pivot `[0.5, 0.5]`. Neue Sheets: Datei in `art_source/rigs/` legen, Set in `rigs.json` eintragen (Varianten **hinten anhängen**), `npm run art:import -- <rig> --force`. Bilder ohne Teil: `extraImages`.
@@ -84,9 +86,9 @@ Nach und nach erzeugen, sobald Gemini-Volumen frei ist (Reihenfolge §5 im Brief
 - **Aufräumen erledigt** (Audit 2026-11-26, Blöcke C1–C6): Doku auf aktuellem Stand, „Kern-Wächter“ einheitlich, Repo-Hygiene, toter Code entfernt, gemeinsamer `EnemyKind`, `check:sprites` prüft Sheets/Imports, Pose-Sheet-Import (`art_source/poses`) entfernt, `npm run build:single` dokumentiert, Version 1.4.0. **Firebase-SDK lädt nach dem Start nach** (`src/services/firebaseSdk.ts` per `import()`, Service-API unverändert; Test `t6`) — Abweichung vom Plan: nicht der ganze Service, nur das SDK.
 - **Claude Code (sofort startklar!):**
   1. ~~S6 Kern-Wächter~~ ✅ eingebunden (Abnahme im echten Kampf durch Projektinhaber offen).
-  2. ~~Krall 6/6~~ ✅ eingebunden inkl. Beinposen je Angriff (Abnahme im echten Kampf offen).
+  2. **Krall K-C (P0-06/07):** `krall_arms_R2.png` & `krall_arms_L2.png` sind im Repo — in `rigs.json` (`armR_7…12` / `armL_7…12`) importieren und in `bossAnims.ts` (Teleskop-Stoß, Zuschnappen, Sog-Funken, Hagel-Schrott) einbinden.
   3. **Gegner-Rigs (S1):** `turret_rig.png`, `phase_stalker_rig.png` und `drone_rig.png` sind im Repo! Import-Modus `parts`, Rigs in `rigs.json` und `anim/enemyAnims.ts` umsetzen.
-- **Antigravity (als Nächstes, nach Gemini-Quota-Reset):** Weiter in [`SPRITE_QUEUE.md`](SPRITE_QUEUE.md): P0 zuerst, danach ab **`P2-02`** (`shield_drone_rig.png`) & **`P2-03`** (`spore_spitter_rig.png`) via Skill `sprite-batch`. **Zuerst `P0-06…P0-10` (Krall-Angriffsgrafik, höchste Priorität)**, dann ab `P2-02`.
+- **Antigravity (als Nächstes):** Weiter in [`SPRITE_QUEUE.md`](SPRITE_QUEUE.md) via Skill `sprite-batch`: **`P0-08`** (`krall_fx2.png`) & **`P0-09`** (`krall_torsos2.png`), danach `P0-10`–`P0-12` (Krall), dann ab `P2-02` (`shield_drone_rig.png`).
 - Ökonomie & Boss-Kampfgefühl im echten Spiel beobachten und in `src/data/balance.ts` nachjustieren (Berichte: `tests/out/economy.json`, `tests/out/ttk.json`).
 - Optionale M10/M10-C-Einzel-Sprites bei Bedarf ebenfalls per Antigravity erzeugen.
 
