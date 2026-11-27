@@ -3,7 +3,7 @@
 > **Zweck:** Jedes Werkzeug (und jede neue Sitzung) soll hier in 1 Minute wissen, wo das Projekt steht. **Am Ende jeder Arbeitssitzung aktualisieren** (kurz halten, veraltete Punkte löschen).
 
 ## Stand
-- Meilensteine 1–10-C sind umgesetzt, `SAVE_VERSION = 11` (Vercel deployt bei Push auf `main`). **M11 (lebendige Gegner & Bosse) läuft:** Kern-Wächter animiert, Krall weitgehend eingebunden (Rest wartet auf Import), Geschütz-Rig komplett, Teilen von Quarz-Koloss/Sternen-Archon fertig. **Status je Bereich: [`handoff/README.md`](handoff/README.md).** Übersicht: `MILESTONE_11_ARCHITECTURE.md` §11, `BOSS_ANIMATION_PLAN.md` (Statustabelle §3).
+- Meilensteine 1–10-C sind umgesetzt, `SAVE_VERSION = 11` (Vercel deployt bei Push auf `main`). **M11 (lebendige Gegner & Bosse) läuft:** Kern-Wächter animiert, Krall vollständig eingebunden (alle P0-Sheets verdrahtet, nur Abnahme im Kampf offen), Geschütz-Rig komplett, Teilen von Quarz-Koloss/Sternen-Archon fertig. **Status je Bereich: [`handoff/README.md`](handoff/README.md).** Übersicht: `MILESTONE_11_ARCHITECTURE.md` §11, `BOSS_ANIMATION_PLAN.md` (Statustabelle §3).
 - Doku: `GAME_DESIGN_DOCUMENT.md` (Status), `MILESTONE_10_ARCHITECTURE.md` §11 und `MILESTONE_10C_ARCHITECTURE.md` §9 (Umsetzungsnotizen, gemessene Werte, Abweichungen).
 
 ## Arbeitsablauf & Werkzeug-Sync (Antigravity ↔ Claude Code)
@@ -51,3 +51,5 @@ Jeder Bereich hat ein eigenes Status-Blatt in [`handoff/`](handoff/README.md) �
 ## Offene Punkte
 - Bildgenerierung: läuft direkt in Antigravity per `generate_image` (wochenweise Credits; Gemini-API mit Abrechnung nicht eingerichtet).
 - Ideen: siehe `GAME_DESIGN_DOCUMENT.md` §5.
+
+- **Neue Sprites benötigt (Krall, P0-14…18, `SPRITE_QUEUE.md`):** Phase-2-Rümpfe im Panzer-Maßstab neu (`krall_torsos2`) + beschädigte Arme (verbogen/Stumpf) für Block/Sog/Hagel/Stampfer/Teleskop (`krall_arms_R4/L4/R5/L5`). Übergang bis dahin: Rumpf ×1,1.

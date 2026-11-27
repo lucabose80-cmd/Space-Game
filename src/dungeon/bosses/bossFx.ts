@@ -251,7 +251,26 @@ export class BossFx {
       const s = Math.sin(n * 12.9898) * 43758.5453;
       return s - Math.floor(s);
     };
-    const impact = (r: number): void => {
+    /** P0-08: Bild zentriert (Rotation optional), Größe = Breite in Spielpixeln */
+    const sprite = (img: HTMLCanvasElement | HTMLImageElement | null | undefined, x: number, y: number, w: number, rot = 0, flatten = 1): void => {
+      if (!img) return;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rot);
+      ctx.scale(1, flatten);
+      ctx.drawImage(img, -w / 2, -(w * img.height / img.width) / 2, w, w * img.height / img.width);
+      ctx.restore();
+    };
+    const impact = (r: number, ring?: 'dust' | 'crater'): void => {
+      if (ring === 'dust') { ctx.save(); ctx.globalAlpha = Math.max(0, 1 - kAct); sprite(parts?.fx_dust, z.x, z.y, r * (1.1 + 1.3 * kAct)); ctx.restore(); }
+      if (ring === 'crater') {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, 1 - kAct * kAct);
+        sprite(parts?.fx_crater, z.x, z.y, r * 2.2);
+        ctx.globalAlpha = Math.max(0, 0.8 - kAct);
+        sprite(parts?.fx_rust, z.x, z.y - kAct * 8, r * (1.6 + kAct));
+        ctx.restore();
+      }
       // Aufschlag: Funkenstern wächst, Druckring weitet sich, beides blendet aus
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
@@ -279,6 +298,16 @@ export class BossFx {
         ctx.arc(z.x, z.y, R * (1 - t * 0.9), 0, Math.PI * 2);
         ctx.stroke();
       }
+      if (parts?.fx_field) {
+        // P0-08: Magnet-Feldringe (rot/blau) pulsieren am Magneten, flach gedrückt (Boden-Perspektive)
+        ctx.globalCompositeOperation = 'lighter';
+        for (let i = 0; i < 2; i++) {
+          const t = (time * 0.9 + i / 2) % 1;
+          ctx.globalAlpha = (warn ? 0.25 + 0.3 * prog : 0.7) * Math.sin(t * Math.PI);
+          sprite(parts.fx_field, z.x, z.y - 6, R * 1.9 * (1 - t * 0.75), 0, 0.85);
+        }
+        ctx.globalCompositeOperation = 'source-over';
+      }
       const chunks = [parts?.scrap_a, parts?.scrap_b, parts?.scrap_c];
       for (let i = 0; i < 14; i++) {
         const t = (time * (0.6 + 0.35 * hash(i)) + hash(i + 40)) % 1;
@@ -301,8 +330,12 @@ export class BossFx {
         }
       }
       if (!warn) {
-        // Blitzbögen zwischen Magnet und Rand (alle 0,05 s neu gewürfelt, deterministisch)
+        // Blitzbögen zwischen Magnet und Rand (alle 0,05 s neu gewürfelt, deterministisch) — plus Bogen-Sprite (P0-08)
         const step = Math.floor(time * 20);
+        for (let b = 0; b < 2; b++) {
+          ctx.globalAlpha = 0.55 + 0.35 * hash(step + b * 11);
+          sprite(parts?.fx_arc, z.x, z.y - 14, R * 0.7, hash(step * 2 + b * 17) * Math.PI * 2);
+        }
         ctx.globalCompositeOperation = 'lighter';
         ctx.strokeStyle = '#67e8f9';
         ctx.lineWidth = 1;
@@ -330,7 +363,7 @@ export class BossFx {
         ctx.beginPath();
         ctx.arc(z.x, z.y, r * (1 + 1.6 * (1 - prog)), 0, Math.PI * 2); // zieht sich zusammen
         ctx.stroke();
-      } else impact(r * 1.6);
+      } else impact(r * 1.6, 'dust');
     } else if (z.fx === 'drop') {
       const r = z.r ?? 22;
       if (warn) {
@@ -354,7 +387,7 @@ export class BossFx {
           ctx.drawImage(img, -s / 2, -s / 2, s, s * (img.height / img.width));
           ctx.restore();
         }
-      } else impact(r * 1.5);
+      } else impact(r * 1.5, 'crater');
     } else if (z.fx === 'dash') {
       const x2 = z.x2 ?? z.x;
       const y2 = z.y2 ?? z.y;
@@ -403,6 +436,9 @@ export class BossFx {
           ctx.lineTo(z.x - uy * off + ux * len, z.y + ux * off + uy * len);
           ctx.stroke();
         }
+        // P0-08: Luftwelle läuft in Stoßrichtung die Strecke entlang
+        ctx.globalAlpha = a;
+        sprite(parts?.fx_wave, z.x + ux * len * (0.35 + 0.65 * kAct), z.y + uy * len * (0.35 + 0.65 * kAct), w * 3.2, Math.atan2(uy, ux));
         if (spark) {
           ctx.globalAlpha = a;
           const sz = 20 + 14 * kAct;

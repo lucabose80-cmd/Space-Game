@@ -39,9 +39,27 @@ module.exports = async ({ page }) => {
   assert.deepStrictEqual(K.magPull, [10, 10, 2], 'Magnet-Sog: Arme seitlich, Rumpf aufgerichtet');
   assert.deepStrictEqual(K.wurfW, [11, 1, 1]);
   assert.deepStrictEqual(K.wurf, [3, 0, 3], 'Wurf: rechter Arm seitlich');
-  assert.deepStrictEqual(K.hagelW, [11, 11, 4], 'Hagel-Vorwarnung (Phase 2): Skelett-Rumpf, Arme hoch');
-  assert.deepStrictEqual(K.hagel, [5, 5, 4], 'Hagel: Arme stampfen');
-  assert.deepStrictEqual(K.p2, [0, 0, 4], 'Phase 2: Skelett-Rahmen');
-  assert.deepStrictEqual(K.p2dmg, [0, 0, 5], 'Phase 2 < 25 % HP: beschädigter Rumpf');
+  assert.deepStrictEqual(K.hagelW, [11, 11, 7], 'Hagel-Vorwarnung (Phase 2): Rahmen aufgerichtet (torsos2), Arme hoch');
+  assert.deepStrictEqual(K.hagel, [5, 5, 9], 'Hagel: Arme stampfen, Rahmen gestaucht (torsos2)');
+  assert.deepStrictEqual(K.p2, [12, 12, 4], 'Phase 2 (40 % HP): Skelett-Rahmen, Arme verbogen');
+  assert.deepStrictEqual(K.p2dmg, [15, 12, 16], 'Phase 2 < 25 % HP: schwer beschädigter Rumpf (torsos3), Zange abgebrochen, Haken verbogen');
+  // Beschädigungsstufen (D-Standard: ≥ 4 Stufen + kritisch < 15 %) und Beinposen (krall_legs_R2/L2)
+  const dm = await page.evaluate(async () => {
+    const anim = await import('/src/dungeon/anim/bossAnims.ts');
+    const e = (x) => Object.assign({ id: 1, vx: 0, vy: 0, flashTimer: 0, kind: 'boss_breacher', bossPhase2: false, hp: 100, maxHp: 100 }, x);
+    const P = (x) => anim.getBossPose('krall', e(x), 1);
+    return {
+      p1: [100, 79, 64, 20].map((hp) => P({ hp }).torso.variant),
+      p2: [45, 34, 24, 14].map((hp) => P({ hp, bossPhase2: true }).torso.variant),
+      armsR: [100, 60, 30].map((hp) => P({ hp }).clawR.variant),
+      legBrace: P({ bossSub: 'recover', bossStatusText: 'MAGNET-ZUG', bossStateTimer: 0.8 }).legFL.variant,
+      legLunge: P({ bossSub: 'recover', bossStatusText: 'GREIFARM-STOSS', bossStateTimer: 0.8, chargeDirX: 1, chargeDirY: 0 }).legFL.variant,
+      legTremble: P({ bossPhase2: true }).legFL.variant,
+    };
+  });
+  assert.deepStrictEqual(dm.p1, [0, 12, 13, 14], 'Phase 1: normal · leicht < 80 · mittel < 65 · schwer < 25');
+  assert.deepStrictEqual(dm.p2, [4, 15, 16, 17], 'Phase 2: Rahmen · leicht < 35 · schwer < 25 · kritisch < 15');
+  assert.deepStrictEqual(dm.armsR, [0, 12, 15], 'Zange: intakt · verbogen < 65 % · Stumpf < 35 %');
+  assert.deepStrictEqual([dm.legBrace, dm.legLunge, dm.legTremble], [10, 6, 11], 'Beine: Magnet-Stemmen · Ausfall · Ruhe-Zittern (Phase 2)');
   assert.ok(r.krFx.p2duck && r.krFx.hit, 'Krall: Phase-2-Haltung über Verschiebung, Treffer zittert: ' + JSON.stringify(r.krFx));
 };

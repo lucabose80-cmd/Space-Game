@@ -128,6 +128,107 @@
           "clawL_11",
           "clawL_12"
         ]
+      },
+      {
+        "file": "krall_torsos2",
+        "mode": "swap",
+        "ids": [
+          "torso_7",
+          "torso_8",
+          "torso_9",
+          "torso_10",
+          "torso_11",
+          "torso_12"
+        ]
+      },
+      {
+        "file": "krall_torsos3",
+        "mode": "swap",
+        "ids": [
+          "torso_13",
+          "torso_14",
+          "torso_15",
+          "torso_16",
+          "torso_17",
+          "torso_18"
+        ]
+      },
+      {
+        "file": "krall_legs_R2",
+        "mode": "limb",
+        "ids": [
+          "legR_7",
+          "legR_8",
+          "legR_9",
+          "legR_10",
+          "legR_11",
+          "legR_12"
+        ]
+      },
+      {
+        "file": "krall_legs_L2",
+        "mode": "limb",
+        "ids": [
+          "legL_7",
+          "legL_8",
+          "legL_9",
+          "legL_10",
+          "legL_11",
+          "legL_12"
+        ]
+      },
+      {
+        "file": "krall_arms_R3",
+        "mode": "limb",
+        "ids": [
+          "clawR_13",
+          "clawR_14",
+          "clawR_15",
+          "clawR_16",
+          "clawR_17",
+          "clawR_18"
+        ]
+      },
+      {
+        "file": "krall_arms_L3",
+        "mode": "limb",
+        "ids": [
+          "clawL_13",
+          "clawL_14",
+          "clawL_15",
+          "clawL_16",
+          "clawL_17",
+          "clawL_18"
+        ]
+      },
+      {
+        "file": "krall_fx2",
+        "mode": "swap",
+        "cells": [
+          0,
+          2,
+          4,
+          5
+        ],
+        "ids": [
+          "fx_wave",
+          "fx_arc",
+          "fx_crater",
+          "fx_rust"
+        ]
+      },
+      {
+        "file": "krall_fx2",
+        "mode": "swap",
+        "cells": [
+          1,
+          3
+        ],
+        "ids": [
+          "fx_field",
+          "fx_dust"
+        ],
+        "holes": true
       }
     ]
   },
@@ -174,7 +275,13 @@
         "legL_3",
         "legL_4",
         "legL_5",
-        "legL_6"
+        "legL_6",
+        "legL_7",
+        "legL_8",
+        "legL_9",
+        "legL_10",
+        "legL_11",
+        "legL_12"
       ]
     },
     {
@@ -200,7 +307,13 @@
         "legR_3",
         "legR_4",
         "legR_5",
-        "legR_6"
+        "legR_6",
+        "legR_7",
+        "legR_8",
+        "legR_9",
+        "legR_10",
+        "legR_11",
+        "legR_12"
       ]
     },
     {
@@ -226,7 +339,13 @@
         "legL_3",
         "legL_4",
         "legL_5",
-        "legL_6"
+        "legL_6",
+        "legL_7",
+        "legL_8",
+        "legL_9",
+        "legL_10",
+        "legL_11",
+        "legL_12"
       ]
     },
     {
@@ -252,7 +371,13 @@
         "legR_3",
         "legR_4",
         "legR_5",
-        "legR_6"
+        "legR_6",
+        "legR_7",
+        "legR_8",
+        "legR_9",
+        "legR_10",
+        "legR_11",
+        "legR_12"
       ]
     },
     {
@@ -273,7 +398,19 @@
         "torso_3",
         "torso_4",
         "torso_5",
-        "torso_6"
+        "torso_6",
+        "torso_7",
+        "torso_8",
+        "torso_9",
+        "torso_10",
+        "torso_11",
+        "torso_12",
+        "torso_13",
+        "torso_14",
+        "torso_15",
+        "torso_16",
+        "torso_17",
+        "torso_18"
       ]
     },
     {
@@ -301,7 +438,13 @@
         "clawR_9",
         "clawR_10",
         "clawR_11",
-        "clawR_12"
+        "clawR_12",
+        "clawR_13",
+        "clawR_14",
+        "clawR_15",
+        "clawR_16",
+        "clawR_17",
+        "clawR_18"
       ],
       "offset": [
         11.4,
@@ -355,7 +498,13 @@
         "clawL_9",
         "clawL_10",
         "clawL_11",
-        "clawL_12"
+        "clawL_12",
+        "clawL_13",
+        "clawL_14",
+        "clawL_15",
+        "clawL_16",
+        "clawL_17",
+        "clawL_18"
       ],
       "offset": [
         -14.4,
@@ -367,6 +516,12 @@
     "scrap_a",
     "scrap_b",
     "scrap_c",
-    "spark"
+    "spark",
+    "fx_wave",
+    "fx_arc",
+    "fx_crater",
+    "fx_rust",
+    "fx_field",
+    "fx_dust"
   ]
 }
