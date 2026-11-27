@@ -1,48 +1,48 @@
 {
  "rig": "drone",
- "scale": 0.14103,
+ "scale": 0.10552,
  "resample": "lanczos",
  "torsoDisplayH": 22,
  "pixelRatio": 2,
  "sheets": {
-  "drone_rig.png": "090a722ba621b026"
+  "drone_rig.png": "e3d0a160e8e6aaf0"
  },
  "parts": {
   "body": {
-   "w": 45,
+   "w": 44,
    "h": 44,
-   "srcW": 319,
-   "srcH": 312
+   "srcW": 416,
+   "srcH": 417
   },
   "visor": {
-   "w": 26,
-   "h": 20,
-   "srcW": 181,
-   "srcH": 140
+   "w": 37,
+   "h": 27,
+   "srcW": 354,
+   "srcH": 257
   },
   "nacelle": {
-   "w": 29,
-   "h": 24,
-   "srcW": 209,
-   "srcH": 169
+   "w": 26,
+   "h": 28,
+   "srcW": 249,
+   "srcH": 265
   },
   "lens": {
-   "w": 18,
-   "h": 18,
-   "srcW": 128,
-   "srcH": 128
+   "w": 17,
+   "h": 17,
+   "srcW": 161,
+   "srcH": 160
   },
   "flame": {
-   "w": 20,
-   "h": 21,
-   "srcW": 144,
-   "srcH": 151
+   "w": 21,
+   "h": 35,
+   "srcW": 200,
+   "srcH": 336
   },
   "visorHalf": {
-   "w": 26,
-   "h": 22,
-   "srcW": 181,
-   "srcH": 156
+   "w": 39,
+   "h": 29,
+   "srcW": 368,
+   "srcH": 272
   }
  }
 }
