@@ -4,7 +4,7 @@
 
 ## Stand
 - Meilensteine 1–10-C sind umgesetzt, `SAVE_VERSION = 11` (Vercel deployt bei Push auf `main`). **M11 (lebendige Gegner & Bosse) läuft:** Kern-Wächter animiert, Krall vollständig eingebunden (alle P0-Sheets verdrahtet, nur Abnahme im Kampf offen), Geschütz-Rig komplett, Teilen von Quarz-Koloss/Sternen-Archon fertig. **Status je Bereich: [`handoff/README.md`](handoff/README.md).** Übersicht: `MILESTONE_11_ARCHITECTURE.md` §11, `BOSS_ANIMATION_PLAN.md` (Statustabelle §3).
-- **Kristall-Krabbler-Rig (P2-05)** eingebunden (`handoff/enemy_crystal_crawler.md`); optionale Effekt-Sprites: `SPRITE_QUEUE.md` P3-21 (bis dahin Tod-Splitter aus Rig-Teilen).
+- **Kristall-Krabbler-Rig (P2-05)** eingebunden (`handoff/enemy_crystal_crawler.md`); Effekt-Sheet P3-21 selbst generiert und verdrahtet (Tod-Splitter, Glühen, Funkenspur).
 - Doku: `GAME_DESIGN_DOCUMENT.md` (Status), `MILESTONE_10_ARCHITECTURE.md` §11 und `MILESTONE_10C_ARCHITECTURE.md` §9 (Umsetzungsnotizen, gemessene Werte, Abweichungen).
 
 ## Arbeitsablauf & Werkzeug-Sync (Antigravity ↔ Claude Code)

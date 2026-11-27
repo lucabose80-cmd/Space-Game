@@ -2379,15 +2379,18 @@ export class DungeonRenderer {
       return;
     }
     this.crawlerDeaths = this.crawlerDeaths.filter((d) => sc.time - d.t0 < 0.95 && sc.time >= d.t0);
-    // [Teil, vx, vy, Drehung/s, Start-dy]
-    const pieces: [string, number, number, number, number][] = [
-      ['crystal', 6, -78, 7, -10],
-      ['crystal', -26, -58, -9, -7],
-      ['crystal', 30, -48, 11, -5],
-      ['head', 40, -50, 6, -1],
-      ['legA', -36, -34, -8, 4],
-      ['legB', 18, -40, 9, 4],
-      ['legC', -12, -26, -5, 4],
+    // [Teil, vx, vy, Drehung/s, Start-dy, Maßstab] — Splitter/Panzerbruch aus dem Effekt-Sheet (P3-21), Kopf/Beine aus den Rig-Teilen
+    const fx = images.parts.fxShardS ? 1 : 0;
+    const pieces: [string, number, number, number, number, number][] = [
+      [fx ? 'fxShardL' : 'crystal', 6, -78, 7, -10, 0.38],
+      [fx ? 'fxShardM' : 'crystal', -26, -58, -9, -7, 0.8],
+      [fx ? 'fxShardS' : 'crystal', 30, -48, 11, -5, 1],
+      [fx ? 'fxShardS' : 'crystal', -40, -36, 9, -3, 0.9],
+      [fx ? 'fxPlate' : 'torso', 8, -30, 3, 0, 0.6],
+      ['head', 40, -50, 6, -1, 1],
+      ['legA', -36, -34, -8, 4, 1],
+      ['legB', 18, -40, 9, 4, 1],
+      ['legC', -12, -26, -5, 4, 1],
     ];
     for (const d of this.crawlerDeaths) {
       out.push({
@@ -2396,7 +2399,7 @@ export class DungeonRenderer {
           const t = sc.time - d.t0;
           const fade = t > 0.6 ? 1 - (t - 0.6) / 0.35 : 1;
           const floorDy = 10;
-          pieces.forEach(([part, vx, vy, spin, dy0], i) => {
+          pieces.forEach(([part, vx, vy, spin, dy0, k], i) => {
             const img = images.parts[part];
             if (!img) return;
             const x = d.x + vx * d.flip * t;
@@ -2406,7 +2409,7 @@ export class DungeonRenderer {
             ctx.globalAlpha = Math.max(0, fade);
             ctx.translate(x, y);
             ctx.rotate(spin * Math.min(t, 0.5) + i);
-            ctx.drawImage(img, -img.width / 4, -img.height / 4, img.width / 2, img.height / 2);
+            ctx.drawImage(img, (-img.width / 4) * k, (-img.height / 4) * k, (img.width / 2) * k, (img.height / 2) * k);
             ctx.restore();
           });
           drawGlow(ctx, d.x, d.y - 2, 16 * (1 - t), '#67e8f9', 0.5 * (1 - t));
@@ -2948,10 +2951,34 @@ export class DungeonRenderer {
     if (e.kind === 'crystal_crawler') {
       // M11: Rig (Panzer, Kopf, 6 Beine im Dreifuß-Takt, Rücken-Kristall) — sonst altes Einzelbild
       const pulse = 0.5 + 0.5 * Math.sin(this.scene.time * 28);
+      const fxImgs = getHDArt().rigs.crystal_crawler?.parts;
+      const dir = this.scene.playerX < e.x - 2 ? -1 : 1;
+      // Vorschnellen: violette Funken-/Staubspur hinter dem Krabbler (Effekt-Sheet P3-21)
+      if (e.chargeActive > 0 && fxImgs?.fxDust) {
+        const d = fxImgs.fxDust;
+        ctx.save();
+        ctx.globalAlpha = 0.75;
+        ctx.translate(e.x - dir * 14, e.y + 5);
+        ctx.scale(dir, 1);
+        ctx.drawImage(d, -d.width / 4, -d.height / 4, d.width / 2, d.height / 2);
+        ctx.restore();
+      }
       if (this.tryDrawEnemyRig(ctx, e, false)) {
-        this.crawlerSeen.set(e.id, { x: e.x, y: e.y, flip: this.scene.playerX < e.x - 2 ? -1 : 1 });
-        // Vorwarnung: Kristalle glühen auf (cyan), beim Vorschnellen violette Spur
-        if (e.telegraphTimer > 0) drawGlow(ctx, e.x, e.y - 8, 17 + pulse * 4, '#67e8f9', 0.34 + pulse * 0.2);
+        this.crawlerSeen.set(e.id, { x: e.x, y: e.y, flip: dir });
+        // Vorwarnung: Kristalle glühen auf — leuchtender Rücken-Panzer (Effekt-Sheet P3-21) pulsiert über dem Rig
+        if (e.telegraphTimer > 0) {
+          const g = fxImgs?.fxGlow;
+          if (g) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.globalAlpha = 0.5 + pulse * 0.35;
+            ctx.translate(e.x, e.y - 3);
+            ctx.scale(dir, 1);
+            ctx.drawImage(g, -g.width / 4, -g.height / 4, g.width / 2, g.height / 2);
+            ctx.restore();
+          }
+          drawGlow(ctx, e.x, e.y - 8, 15 + pulse * 3, '#67e8f9', 0.2 + pulse * 0.12);
+        }
         drawGlow(ctx, e.x, e.y, e.chargeActive > 0 ? 20 : 14, '#c084fc', e.chargeActive > 0 ? 0.45 : 0.2);
         this.renderEnemyMiniHp(ctx, e);
         return;

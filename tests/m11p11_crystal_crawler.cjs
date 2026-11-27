@@ -77,13 +77,21 @@ module.exports = async ({ page }) => {
     dng.render(ctx, input);
     const before = hash();
     en.hp = 0; dng.onEnemyKilled(en);
+    const alive = dng.enemies.length;
     dng.time = 3.016; dng.render(ctx, input);
     dng.time = 3.35; dng.render(ctx, input); const debris = hash();
-    const shot = canvas.toDataURL('image/png');
+    const crop = () => { const c = document.createElement('canvas'); c.width = 480; c.height = 400; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(canvas, 400, 180, 240, 200, 0, 0, 480, 400); return c.toDataURL('image/png'); };
+    const shot = crop();
+    // Vorwarnung (Glühen) und Vorschnellen (Funkenspur) als Prüfbilder
+    dng.enemies.length = 0; dng.spawnEnemy('crystal_crawler', 250, 130); dng.enemies[0].hp = dng.enemies[0].maxHp = 1e6; dng.enemies[0].telegraphTimer = 0.2; dng.time = 6; dng.roomFade = 0; dng.render(ctx, input);
+    const teleShot = crop();
+    dng.enemies[0].telegraphTimer = 0; dng.enemies[0].chargeActive = 0.2; dng.time = 6.05; dng.render(ctx, input);
+    const chargeShot = crop();
     dng.time = 5; dng.render(ctx, input); const after = hash();
-    return { withRig, without, before, debris, after, shot, alive: dng.enemies.length };
+    return { withRig, without, before, debris, after, shot, teleShot, chargeShot, alive };
   });
   require('node:fs').writeFileSync(require('node:path').join(__dirname, 'out', 'crystal_crawler_death.png'), Buffer.from(g.shot.split(',')[1], 'base64'));
+  for (const k of ['teleShot', 'chargeShot']) require('node:fs').writeFileSync(require('node:path').join(__dirname, 'out', `crystal_crawler_${k}.png`), Buffer.from(g[k].split(',')[1], 'base64'));
   assert.notStrictEqual(g.withRig, g.without, 'Rig und Fallback-Sprite werden unterschiedlich gezeichnet (Rückfall läuft ohne Fehler)');
   assert.strictEqual(g.alive, 0);
   assert.notStrictEqual(g.debris, g.after, 'Tod: Kristall-Splitter fliegen ab und sind später weg');

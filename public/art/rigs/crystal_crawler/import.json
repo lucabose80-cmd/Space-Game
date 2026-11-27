@@ -5,7 +5,8 @@
  "torsoDisplayH": 17,
  "pixelRatio": 2,
  "sheets": {
-  "crystal_crawler_rig.png": "43060113c8f96be6"
+  "crystal_crawler_rig.png": "43060113c8f96be6",
+  "crystal_crawler_fx.png": "6cd90752d456624e"
  },
  "parts": {
   "torso": {
@@ -43,6 +44,42 @@
    "h": 16,
    "srcW": 90,
    "srcH": 124
+  },
+  "fxShardS": {
+   "w": 58,
+   "h": 48,
+   "mode": "swap",
+   "set": "crystal_crawler_fx"
+  },
+  "fxShardM": {
+   "w": 58,
+   "h": 48,
+   "mode": "swap",
+   "set": "crystal_crawler_fx"
+  },
+  "fxShardL": {
+   "w": 58,
+   "h": 48,
+   "mode": "swap",
+   "set": "crystal_crawler_fx"
+  },
+  "fxGlow": {
+   "w": 58,
+   "h": 48,
+   "mode": "swap",
+   "set": "crystal_crawler_fx"
+  },
+  "fxPlate": {
+   "w": 58,
+   "h": 48,
+   "mode": "swap",
+   "set": "crystal_crawler_fx"
+  },
+  "fxDust": {
+   "w": 58,
+   "h": 48,
+   "mode": "swap",
+   "set": "crystal_crawler_fx"
   }
  }
 }

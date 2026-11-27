@@ -5,20 +5,197 @@
     "srcFile": "crystal_crawler_rig",
     "cols": 3,
     "rows": 2,
-    "order": ["torso", "head", "legA", "legB", "legC", "crystal"],
+    "order": [
+      "torso",
+      "head",
+      "legA",
+      "legB",
+      "legC",
+      "crystal"
+    ],
     "scaleRef": "torso",
     "torsoDisplayH": 17,
-    "pixelRatio": 2
+    "pixelRatio": 2,
+    "sets": [
+      {
+        "file": "crystal_crawler_fx",
+        "mode": "swap",
+        "ids": [
+          "fxShardS",
+          "fxShardM",
+          "fxShardL",
+          "fxGlow",
+          "fxPlate",
+          "fxDust"
+        ]
+      }
+    ]
   },
   "parts": [
-    { "id": "torso", "image": "torso", "z": 1, "pivot": [0.5, 0.8], "offset": [0, -7] },
-    { "id": "head", "image": "head", "parent": "torso", "attach": [0.98, 0.6], "pivot": [0.25, 0.6], "z": 3, "offset": [0, 0] },
-    { "id": "crystal", "image": "crystal", "parent": "torso", "attach": [0.5, 0.2], "pivot": [0.5, 0.9], "z": 2, "offset": [0, 0] },
-    { "id": "legA1", "image": "legA", "parent": "torso", "attach": [0.8, 0.88], "pivot": [0.77, 0.15], "z": 2, "offset": [0, 0] },
-    { "id": "legB1", "image": "legB", "parent": "torso", "attach": [0.55, 0.9], "pivot": [0.7, 0.14], "z": 2, "offset": [0, 0] },
-    { "id": "legC1", "image": "legC", "parent": "torso", "attach": [0.3, 0.88], "pivot": [0.83, 0.16], "z": 2, "offset": [0, 0] },
-    { "id": "legA2", "image": "legA", "parent": "torso", "attach": [0.7, 0.85], "pivot": [0.77, 0.15], "z": 0, "offset": [0, 0] },
-    { "id": "legB2", "image": "legB", "parent": "torso", "attach": [0.45, 0.86], "pivot": [0.7, 0.14], "z": 0, "offset": [0, 0] },
-    { "id": "legC2", "image": "legC", "parent": "torso", "attach": [0.22, 0.85], "pivot": [0.83, 0.16], "z": 0, "offset": [0, 0] }
+    {
+      "id": "torso",
+      "image": "torso",
+      "z": 1,
+      "pivot": [
+        0.5,
+        0.8
+      ],
+      "offset": [
+        0,
+        -7
+      ]
+    },
+    {
+      "id": "head",
+      "image": "head",
+      "parent": "torso",
+      "attach": [
+        0.98,
+        0.6
+      ],
+      "pivot": [
+        0.25,
+        0.6
+      ],
+      "z": 3,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "crystal",
+      "image": "crystal",
+      "parent": "torso",
+      "attach": [
+        0.5,
+        0.2
+      ],
+      "pivot": [
+        0.5,
+        0.9
+      ],
+      "z": 2,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "legA1",
+      "image": "legA",
+      "parent": "torso",
+      "attach": [
+        0.8,
+        0.88
+      ],
+      "pivot": [
+        0.77,
+        0.15
+      ],
+      "z": 2,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "legB1",
+      "image": "legB",
+      "parent": "torso",
+      "attach": [
+        0.55,
+        0.9
+      ],
+      "pivot": [
+        0.7,
+        0.14
+      ],
+      "z": 2,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "legC1",
+      "image": "legC",
+      "parent": "torso",
+      "attach": [
+        0.3,
+        0.88
+      ],
+      "pivot": [
+        0.83,
+        0.16
+      ],
+      "z": 2,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "legA2",
+      "image": "legA",
+      "parent": "torso",
+      "attach": [
+        0.7,
+        0.85
+      ],
+      "pivot": [
+        0.77,
+        0.15
+      ],
+      "z": 0,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "legB2",
+      "image": "legB",
+      "parent": "torso",
+      "attach": [
+        0.45,
+        0.86
+      ],
+      "pivot": [
+        0.7,
+        0.14
+      ],
+      "z": 0,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "legC2",
+      "image": "legC",
+      "parent": "torso",
+      "attach": [
+        0.22,
+        0.85
+      ],
+      "pivot": [
+        0.83,
+        0.16
+      ],
+      "z": 0,
+      "offset": [
+        0,
+        0
+      ]
+    }
+  ],
+  "extraImages": [
+    "fxShardS",
+    "fxShardM",
+    "fxShardL",
+    "fxGlow",
+    "fxPlate",
+    "fxDust"
   ]
 }
