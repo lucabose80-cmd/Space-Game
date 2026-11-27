@@ -114,14 +114,18 @@ Neue Mischungen (neue Pools, Challenges, Events) → diese Tabelle ergänzen.
 ### 5b.3 Echo-Varianten mit neuen Attacken (entschieden — als eigener Meilenstein, Pilot zuerst)
 - **Echo-Elite** = Variante eines vorhandenen Gegners mit **einem zusätzlichen Zug**, in NG+ (ab Stufe 1) und in der Spirale. Aussehen: Rig des Originals + Echo-Aura (§5b.1) + Echo-Tönung; der **neue Zug** bekommt eigene Posen und eine eigene Angriffsgrafik (Effekt-Sheet pro Variante, `<kind>_echo_fx.png`).
 - **Pilot (2 Stück, nach Abnahme Serie):** je ein Fernkämpfer und ein Nahkämpfer aus Sektor 1, damit das Format trägt (Vorschlag: Drohne — „Echo-Salve“ (Nachbild feuert versetzt), Phasen-Jäger — „Echo-Sprung“ (Doppelgänger-Spur)). **STOP-GATE:** erst nach Abnahme im Spiel weitere Varianten.
-- **Regeln:** neue Züge ≥ 0,4 s telegrafiert, deterministisch (kein globaler Zufall), Werte in `src/data/balance.ts`, Auftreten über deterministische Tabelle (nicht in jedem Raum), eigener Test, Checkliste G1–G10 gilt zusätzlich für den neuen Zug. **Nicht in der Wochen-Prüfung** (verändert Gameplay → Prüfung bleibt normiert, siehe 5b.4).
+- **Regeln:** neue Züge ≥ 0,4 s telegrafiert, deterministisch (kein globaler Zufall), Werte in `src/data/balance.ts` (separate, normierte Prüfungs-Werte für die feste Wochen-Herausforderung), Auftreten über deterministische Tabelle (nicht in jedem Raum), eigener Test, Checkliste G1–G10 gilt zusätzlich für den neuen Zug. **Enthalten in der festen Wochen-Herausforderung** (siehe 5b.4).
 - Eintrag im Steckbrief (§2) je Variante; Sprites in `SPRITE_QUEUE.md` P4b (`P4-05` ff., erst nach Pilot-Freigabe).
 
 ### 5b.4 Entscheidungen (Projektinhaber, 2026-11-27)
 1. NG+-Marker: **dezente Aura**, kein Namens-Zusatz. ✅
 2. Spiralen-Look: **eigenes Spiralen-Biom mit eigenem Hintergrund.** ✅
 3. **Echo-Varianten mit neuen Attacken** (Gameplay-Neuerung) — ja. ✅
-4. **Wochen-Prüfung:** Der **Look** (Aura, Biom-Optik) gilt auch dort; **zunächst bleibt es bei einer einzigen Prüfungs-Variante** (keine Echo-Varianten/neuen Attacken, keine zusätzlichen Prüfungs-Modi), bis der Inhaber alles testen kann — Umstellung später auf Zuruf (Mechanik-Gate nach Muster `TRIAL_MECHANICS_FROM_WEEK`/`TRIAL_ARENA_FROM_WEEK`, damit laufende Wochen nicht kippen). *Interpretation der Antwort — bitte bei Gelegenheit bestätigen.*
+4. **Wochen-Prüfung (Klarstellung des Inhabers):** Es gibt **eine feste Wochen-Herausforderung, die nicht wechselt und alles beinhaltet** — Arena-Boss, Spiralen-Biom/Look, NG+-Aura, Echo-Varianten mit neuen Attacken, Sektor-Mechaniken. Das **Rotieren** (wechselnder Sektor/Mutator je Kalenderwoche, `getCurrentWeeklyTrial` in `weeklyTrial.ts`) wird **später** wieder eingeschaltet, wenn der Inhaber alles testen kann. ✅
+   - **Umsetzung (nach Startsignal):** `getCurrentWeeklyTrial` bekommt einen Schalter `TRIAL_ROTATION_ENABLED` (Standard `false` in dieser Phase) und eine feste `FIXED_TRIAL`-Definition (Layout-Seed, Mutator, Inhalte). Solange `false`, liefert jede Woche dieselbe Herausforderung; die Wochen-ID bleibt für die Bestenliste (Rekorde je Woche) erhalten. Alles Neue hängt an einem Gate wie `TRIAL_ARENA_FROM_WEEK`, damit die **laufende Woche nicht kippt**.
+   - **Normierung bleibt:** feste Ausrüstungsstufen (`TRIAL_COMBAT_LEVELS`), kein Loot/Credits, keine Waffen-Sperren-Auswirkung — die Echo-Varianten/Arena-Werte werden dafür **mit eigenen Prüfungs-Werten** in `balance.ts` kalibriert (Messung `m10cp10`).
+   - **Später:** Rotation wieder an → die Inhalte werden zu einem Pool (z. B. Sektor-/Boss-/Biom-Auswahl je Woche); Vorbereitung: Inhalte als Daten (`TrialContentDef`), nicht fest im Code verdrahtet.
+   - Im Plan §5b.3 gilt damit **nicht mehr** „nicht in der Wochen-Prüfung“: Echo-Varianten sind **in** der festen Herausforderung enthalten.
 
 ### 5b.5 Im Boss-Labor & in der Checkliste
 - Labor (`?bosslab`): Biom-Zeile bekommt **„Spirale“**, dazu Schalter **NG+ 0–6**; Echo-Varianten als eigene Einträge in der Gegnerliste. Alles optisch bzw. nur im Labor.
