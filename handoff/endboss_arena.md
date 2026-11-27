@@ -9,7 +9,7 @@
   - Belohnungs-/Extraktions-Pads, Loot-Drops, Geschütz-Startpunkte, Heilstation in `DungeonScene` + Renderer jetzt über `scene.bounds` (Standardraum identisch — Vorher/Nachher-Vergleich inkl. Boss-Sieg & Drops).
   - `arenaFloor.ts` zeichnet den Kachelplan (Glut-Platten `p`, Boss-Wand-Fallback über `W`); Sprites `arena_leviathan_bg/wall` (P1-03/04) werden automatisch genutzt, sobald vorhanden (`M12_OPTIONAL_SPRITES`). Wand-Sockel wird nicht als Schott-Balken gezeichnet.
   - Test `m12p3` + Screenshots `tests/out/m12p3_arena_north/south.png` (angesehen).
-- **Sprites P1-03…P1-06 freigegeben** (`SPRITE_QUEUE.md`, STOP-GATE nach P1-03/04 → Sichtprüfung mit `?arena`).
+- **Sprites P1-03 & P1-04 geliefert ✅** (`arena_leviathan_bg.png` `1376×704` + `arena_leviathan_wall.png` `1376×192`, `m12p3` grün + Screenshots geprüft); **STOP-GATE vor `P1-05`/`P1-06`** wartet auf Sichtprüfung im Spiel (`?arena`).
 - **Phase B (Kamera) umgesetzt:**
   - `src/dungeon/camera.ts` (`DungeonCamera`): Standardraum immer (0, 0); Arena: Totzone 40×24, Glättung τ 0,12 s, Klemme so, dass der Arena-Rand wie die Standard-Wand sitzt (`DungeonCamera.range`), kleiner Raum mittig, Rasterung auf HD-Pixel, `snap()` beim Raumwechsel, `focus(x, y, sec)` (max. 2,5 s, sperrt Spieler-Eingabe über `input.locked`), `toWorld/toScreen`.
   - `DungeonScene`: `scene.camera`, `update()` → `updateFrame()` + Kamera-Update; Maus-Zielen Bildschirm → Welt.
