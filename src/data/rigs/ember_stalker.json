@@ -1,0 +1,125 @@
+{
+  "kind": "ember_stalker",
+  "sheet": {
+    "file": "ember_stalker",
+    "srcFile": "ember_stalker_rig",
+    "cols": 3,
+    "rows": 2,
+    "order": [
+      "torso",
+      "head",
+      "armR",
+      "armL",
+      "legR",
+      "legL"
+    ],
+    "scaleRef": "torso",
+    "torsoDisplayH": 12,
+    "pixelRatio": 2
+  },
+  "parts": [
+    {
+      "id": "torso",
+      "image": "torso",
+      "z": 2,
+      "pivot": [
+        0.5,
+        0.82
+      ],
+      "offset": [
+        0,
+        -12
+      ]
+    },
+    {
+      "id": "head",
+      "image": "head",
+      "parent": "torso",
+      "attach": [
+        0.55,
+        0.12
+      ],
+      "pivot": [
+        0.5,
+        0.86
+      ],
+      "z": 3,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "armL",
+      "image": "armL",
+      "parent": "torso",
+      "attach": [
+        0.78,
+        0.24
+      ],
+      "pivot": [
+        0.14,
+        0.22
+      ],
+      "z": 0,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "armR",
+      "image": "armR",
+      "parent": "torso",
+      "attach": [
+        0.24,
+        0.26
+      ],
+      "pivot": [
+        0.22,
+        0.2
+      ],
+      "z": 4,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "legL",
+      "image": "legL",
+      "parent": "torso",
+      "attach": [
+        0.64,
+        0.92
+      ],
+      "pivot": [
+        0.35,
+        0.12
+      ],
+      "z": 1,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "legR",
+      "image": "legR",
+      "parent": "torso",
+      "attach": [
+        0.36,
+        0.92
+      ],
+      "pivot": [
+        0.5,
+        0.12
+      ],
+      "z": 1,
+      "offset": [
+        0,
+        0
+      ]
+    }
+  ]
+}

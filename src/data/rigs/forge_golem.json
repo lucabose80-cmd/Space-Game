@@ -1,0 +1,143 @@
+{
+  "kind": "forge_golem",
+  "sheet": {
+    "file": "forge_golem",
+    "srcFile": "forge_golem_rig",
+    "cols": 3,
+    "rows": 2,
+    "order": [
+      "torso",
+      "head",
+      "armR",
+      "armL",
+      "leg",
+      "furnace"
+    ],
+    "scaleRef": "torso",
+    "torsoDisplayH": 17,
+    "pixelRatio": 2
+  },
+  "parts": [
+    {
+      "id": "torso",
+      "image": "torso",
+      "z": 2,
+      "pivot": [
+        0.5,
+        0.8
+      ],
+      "offset": [
+        0,
+        -12
+      ]
+    },
+    {
+      "id": "furnace",
+      "image": "furnace",
+      "parent": "torso",
+      "attach": [
+        0.54,
+        0.62
+      ],
+      "pivot": [
+        0.44,
+        0.55
+      ],
+      "z": 3,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "head",
+      "image": "head",
+      "parent": "torso",
+      "attach": [
+        0.52,
+        0.12
+      ],
+      "pivot": [
+        0.48,
+        0.82
+      ],
+      "z": 3,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "armL",
+      "image": "armL",
+      "parent": "torso",
+      "attach": [
+        0.86,
+        0.28
+      ],
+      "pivot": [
+        0.24,
+        0.22
+      ],
+      "z": 0,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "armR",
+      "image": "armR",
+      "parent": "torso",
+      "attach": [
+        0.16,
+        0.28
+      ],
+      "pivot": [
+        0.26,
+        0.24
+      ],
+      "z": 4,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "legL",
+      "image": "leg",
+      "parent": "torso",
+      "attach": [
+        0.68,
+        0.92
+      ],
+      "pivot": [
+        0.35,
+        0.16
+      ],
+      "z": 1,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "legR",
+      "image": "leg",
+      "parent": "torso",
+      "attach": [
+        0.32,
+        0.92
+      ],
+      "pivot": [
+        0.35,
+        0.16
+      ],
+      "z": 1,
+      "offset": [
+        0,
+        0
+      ]
+    }
+  ]
+}

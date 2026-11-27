@@ -2582,6 +2582,56 @@ export class DungeonRenderer {
           ['crysS', -28, -54, -9, -8],
         ],
       },
+      magma_mortar: {
+        color: '#fb923c',
+        pieces: [
+          ['torso', -8, -40, -4, -4],
+          ['barrel', 32, -62, 9, -10],
+          ['cap', -26, -54, -8, -8],
+          ['legF', 28, -32, 7, 4],
+          ['legB', -28, -30, -7, 4],
+        ],
+      },
+      slag_beetle: {
+        color: '#f97316',
+        pieces: [
+          ['body', -6, -42, -4, -4],
+          ['wingL', -34, -60, -9, -8],
+          ['wingR', 34, -58, 9, -8],
+          ['legA', -24, -32, -7, 4],
+          ['legB', 24, -30, 7, 4],
+        ],
+      },
+      ember_stalker: {
+        color: '#f97316',
+        pieces: [
+          ['torso', -8, -44, -4, -8],
+          ['head', 14, -66, 8, -14],
+          ['armR', 38, -52, 10, -8],
+          ['armL', -36, -48, -10, -8],
+          ['legR', 18, -24, 5, 2],
+        ],
+      },
+      forge_golem: {
+        color: '#fb923c',
+        pieces: [
+          ['torso', -6, -38, -3, -8],
+          ['head', 12, -62, 6, -14],
+          ['armR', 34, -44, 7, -8],
+          ['armL', -34, -42, -7, -8],
+          ['leg', 16, -22, 4, 2],
+        ],
+      },
+      solar_drone: {
+        color: '#fde047',
+        pieces: [
+          ['core', 0, -52, 5, -10],
+          ['ringOut', -28, -56, -8, -10],
+          ['ringIn', 28, -54, 9, -10],
+          ['panel', -40, -38, -7, -6],
+          ['panel', 40, -36, 7, -6],
+        ],
+      },
     };
     const allRigs = getHDArt().rigs;
     for (const d of this.enemyRigDeaths) {
@@ -3249,6 +3299,37 @@ export class DungeonRenderer {
     const m6Def = m6SpriteMap[e.kind];
     if (m6Def) {
       const offY = m6Def.hovers ? Math.sin(this.scene.time * 5.2 + e.id) * 2.5 : -Math.abs(Math.sin(e.anim * 5.6)) * 2.0;
+      // Biom-passende Staubspur beim Dash für Käfer-Gegner (G10)
+      if ((e.kind === 'slag_beetle' || e.kind === 'astral_scarab') && e.chargeActive > 0) {
+        const groundBiome = Math.min(5, Math.max(1, this.scene.currentRoom.riftSector ?? this.scene.floor.visualSector ?? this.scene.currentSector));
+        const dustSpr = getHDArt().rigs.crystal_crawler?.parts?.[`fxDustS${groundBiome}`];
+        if (dustSpr) {
+          const dir = Math.abs(e.chargeDirX) > 0.1 ? (e.chargeDirX < 0 ? -1 : 1) : 1;
+          ctx.save();
+          ctx.globalAlpha = 0.72;
+          ctx.translate(e.x - dir * 12, e.y + 6);
+          ctx.scale(dir, 1);
+          ctx.drawImage(dustSpr, -dustSpr.width / 4, -dustSpr.height / 4, dustSpr.width / 2, dustSpr.height / 2);
+          ctx.restore();
+        }
+      }
+      if (this.tryDrawEnemyRig(ctx, e, false)) {
+        const dir = this.scene.playerX < e.x - 2 ? -1 : 1;
+        this.enemyRigSeen.set(e.id, { kind: e.kind, x: e.x, y: e.y, flip: dir });
+        if (m6Def.shield) {
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.strokeStyle = e.telegraphTimer > 0 ? '#fde047' : m6Def.glow;
+          ctx.lineWidth = 2.6;
+          ctx.beginPath();
+          ctx.arc(e.x, e.y + offY * 0.4, 16, e.aimAngle - 0.9, e.aimAngle + 0.9);
+          ctx.stroke();
+          ctx.restore();
+        }
+        drawGlow(ctx, e.x, e.y + offY * 0.4, e.telegraphTimer > 0 ? 22 : 15, m6Def.glow, e.telegraphTimer > 0 ? 0.52 : 0.24);
+        this.renderEnemyMiniHp(ctx, e);
+        return;
+      }
       const spr = e.flashTimer > 0 ? m6Def.flash : m6Def.spr;
       if (spr) {
         ctx.drawImage(spr, e.x - m6Def.w / 2, e.y - m6Def.h / 2 - 2 + offY, m6Def.w, m6Def.h);

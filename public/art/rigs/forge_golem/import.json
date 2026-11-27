@@ -1,0 +1,48 @@
+{
+ "rig": "forge_golem",
+ "scale": 0.13178,
+ "resample": "lanczos",
+ "torsoDisplayH": 17,
+ "pixelRatio": 2,
+ "sheets": {
+  "forge_golem_rig.png": "c8397857a757d2b5"
+ },
+ "parts": {
+  "torso": {
+   "w": 30,
+   "h": 34,
+   "srcW": 229,
+   "srcH": 258
+  },
+  "head": {
+   "w": 19,
+   "h": 24,
+   "srcW": 142,
+   "srcH": 181
+  },
+  "armR": {
+   "w": 33,
+   "h": 32,
+   "srcW": 252,
+   "srcH": 245
+  },
+  "armL": {
+   "w": 33,
+   "h": 32,
+   "srcW": 250,
+   "srcH": 242
+  },
+  "leg": {
+   "w": 19,
+   "h": 33,
+   "srcW": 141,
+   "srcH": 248
+  },
+  "furnace": {
+   "w": 21,
+   "h": 17,
+   "srcW": 159,
+   "srcH": 130
+  }
+ }
+}

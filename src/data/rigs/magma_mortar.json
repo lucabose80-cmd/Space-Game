@@ -1,0 +1,161 @@
+{
+  "kind": "magma_mortar",
+  "sheet": {
+    "file": "magma_mortar",
+    "srcFile": "magma_mortar_rig",
+    "cols": 3,
+    "rows": 2,
+    "order": [
+      "torso",
+      "barrel",
+      "legF",
+      "legB",
+      "cap",
+      "orb"
+    ],
+    "scaleRef": "torso",
+    "torsoDisplayH": 16,
+    "pixelRatio": 2
+  },
+  "parts": [
+    {
+      "id": "torso",
+      "image": "torso",
+      "z": 2,
+      "pivot": [
+        0.5,
+        0.72
+      ],
+      "offset": [
+        0,
+        -7
+      ]
+    },
+    {
+      "id": "barrel",
+      "image": "barrel",
+      "parent": "torso",
+      "attach": [
+        0.52,
+        0.32
+      ],
+      "pivot": [
+        0.35,
+        0.72
+      ],
+      "z": 3,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "orb",
+      "image": "orb",
+      "parent": "barrel",
+      "attach": [
+        0.74,
+        0.24
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "z": 5,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "cap",
+      "image": "cap",
+      "parent": "torso",
+      "attach": [
+        0.5,
+        0.72
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "z": 4,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "legFL",
+      "image": "legF",
+      "parent": "torso",
+      "attach": [
+        0.16,
+        0.75
+      ],
+      "pivot": [
+        0.84,
+        0.48
+      ],
+      "z": 3,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "legBL",
+      "image": "legB",
+      "parent": "torso",
+      "attach": [
+        0.22,
+        0.55
+      ],
+      "pivot": [
+        0.84,
+        0.46
+      ],
+      "z": 0,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "legFR",
+      "image": "legF",
+      "parent": "torso",
+      "attach": [
+        0.84,
+        0.75
+      ],
+      "pivot": [
+        0.84,
+        0.48
+      ],
+      "z": 3,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "legBR",
+      "image": "legB",
+      "parent": "torso",
+      "attach": [
+        0.78,
+        0.55
+      ],
+      "pivot": [
+        0.84,
+        0.46
+      ],
+      "z": 0,
+      "offset": [
+        0,
+        0
+      ]
+    }
+  ]
+}

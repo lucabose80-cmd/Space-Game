@@ -1,0 +1,48 @@
+{
+ "rig": "slag_beetle",
+ "scale": 0.13836,
+ "resample": "lanczos",
+ "torsoDisplayH": 22,
+ "pixelRatio": 2,
+ "sheets": {
+  "slag_beetle_rig.png": "58539d06318a1604"
+ },
+ "parts": {
+  "body": {
+   "w": 26,
+   "h": 44,
+   "srcW": 187,
+   "srcH": 318
+  },
+  "wingL": {
+   "w": 19,
+   "h": 33,
+   "srcW": 140,
+   "srcH": 242
+  },
+  "wingR": {
+   "w": 19,
+   "h": 33,
+   "srcW": 140,
+   "srcH": 242
+  },
+  "legA": {
+   "w": 18,
+   "h": 24,
+   "srcW": 132,
+   "srcH": 176
+  },
+  "legB": {
+   "w": 27,
+   "h": 18,
+   "srcW": 198,
+   "srcH": 132
+  },
+  "legC": {
+   "w": 13,
+   "h": 28,
+   "srcW": 93,
+   "srcH": 203
+  }
+ }
+}

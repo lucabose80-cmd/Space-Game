@@ -1,0 +1,48 @@
+{
+ "rig": "magma_mortar",
+ "scale": 0.12403,
+ "resample": "lanczos",
+ "torsoDisplayH": 16,
+ "pixelRatio": 2,
+ "sheets": {
+  "magma_mortar_rig.png": "2843766609959c98"
+ },
+ "parts": {
+  "torso": {
+   "w": 32,
+   "h": 32,
+   "srcW": 257,
+   "srcH": 258
+  },
+  "barrel": {
+   "w": 31,
+   "h": 29,
+   "srcW": 251,
+   "srcH": 232
+  },
+  "legF": {
+   "w": 29,
+   "h": 30,
+   "srcW": 233,
+   "srcH": 245
+  },
+  "legB": {
+   "w": 30,
+   "h": 31,
+   "srcW": 245,
+   "srcH": 251
+  },
+  "cap": {
+   "w": 28,
+   "h": 19,
+   "srcW": 227,
+   "srcH": 153
+  },
+  "orb": {
+   "w": 20,
+   "h": 19,
+   "srcW": 159,
+   "srcH": 153
+  }
+ }
+}

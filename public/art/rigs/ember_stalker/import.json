@@ -1,0 +1,48 @@
+{
+ "rig": "ember_stalker",
+ "scale": 0.12245,
+ "resample": "lanczos",
+ "torsoDisplayH": 12,
+ "pixelRatio": 2,
+ "sheets": {
+  "ember_stalker_rig.png": "acbff37a30f040e9"
+ },
+ "parts": {
+  "torso": {
+   "w": 17,
+   "h": 24,
+   "srcW": 137,
+   "srcH": 196
+  },
+  "head": {
+   "w": 10,
+   "h": 15,
+   "srcW": 84,
+   "srcH": 121
+  },
+  "armR": {
+   "w": 24,
+   "h": 29,
+   "srcW": 200,
+   "srcH": 233
+  },
+  "armL": {
+   "w": 25,
+   "h": 30,
+   "srcW": 208,
+   "srcH": 242
+  },
+  "legR": {
+   "w": 9,
+   "h": 29,
+   "srcW": 75,
+   "srcH": 237
+  },
+  "legL": {
+   "w": 11,
+   "h": 27,
+   "srcW": 92,
+   "srcH": 220
+  }
+ }
+}

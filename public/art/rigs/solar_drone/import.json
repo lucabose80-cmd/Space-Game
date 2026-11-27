@@ -1,0 +1,48 @@
+{
+ "rig": "solar_drone",
+ "scale": 0.11905,
+ "resample": "lanczos",
+ "torsoDisplayH": 10,
+ "pixelRatio": 2,
+ "sheets": {
+  "solar_drone_rig.png": "55b6673b85c98f68"
+ },
+ "parts": {
+  "core": {
+   "w": 20,
+   "h": 20,
+   "srcW": 168,
+   "srcH": 168
+  },
+  "panel": {
+   "w": 19,
+   "h": 7,
+   "srcW": 156,
+   "srcH": 62
+  },
+  "coreOver": {
+   "w": 32,
+   "h": 32,
+   "srcW": 270,
+   "srcH": 273
+  },
+  "flare": {
+   "w": 24,
+   "h": 14,
+   "srcW": 200,
+   "srcH": 117
+  },
+  "ringOut": {
+   "w": 40,
+   "h": 44,
+   "mode": "swap",
+   "set": "solar_drone_rig"
+  },
+  "ringIn": {
+   "w": 40,
+   "h": 44,
+   "mode": "swap",
+   "set": "solar_drone_rig"
+  }
+ }
+}
