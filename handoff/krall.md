@@ -7,24 +7,26 @@
 - **Eingebunden (diese Sitzung, P0-08…12 alle verdrahtet):** `krall.json` um Sets `krall_torsos2` (`torso_7…12`), `krall_torsos3` (`torso_13…18`), `krall_legs_R2/L2` (`legR/L_7…12`), `krall_arms_R3/L3` (`clawR/L_13…18`), `krall_fx2` (`fx_wave/arc/crater/rust`, Ringe `fx_field/fx_dust` mit `holes`) erweitert und importiert. `krall.ts`: **Phase-2-Rahmen je Haltung** (`KT2`: geduckt · aufgerichtet · gebeugt · Stampfer gestaucht · Wurf-Drehung · überhitzt vor dem Hagel; Ruhe = alter Skelett-Rumpf Index 4) · **Rumpf-Beschädigung** (`KT3`: P1 <80/<65/<25 % · P2 <35/<25/<15 % kritisch; ersetzt das Haltungsbild, Haltung dann über `fx`) · **Arme** verbogen (R <65 %, L <50 %) und Stumpf (R <35 %, L <20 %) für hängend/ausholen/Stoß (Teleskop/Schnappen zählen als Stoß) · **Beine** (`KLEG2`): Ausfall, Bremsen, Stampfer-Landung, Magnet-Stemmen, Phase-2-Humpeln (<35 %), Ruhe-Zittern (Phase 2). `bossFx.ts`: `fx_field` (Magnet-Feldringe), `fx_arc` (Blitzbogen), `fx_wave` (Stoß-Luftwelle), `fx_dust` (Druckring), `fx_crater`+`fx_rust` (Schrott-Aufschlag). Test `m11p5_krall` erweitert; Kontaktbogen `rig-sheet.cjs krall` um 7 Schadensfälle ergänzt.
 - **P0-14 ✅ eingebunden:** `krall_torsos2` im Panzer-Maßstab (84×100), `t2k`-Skalierung entfernt; Ruhe-Rumpf in Phase 2 = neutrale torsos2-Pose. **P0-15…18 ✅ eingebunden:** `krall_arms_L4` → `clawL_19…24`, `krall_arms_R4` → `clawR_19…24` (verbogen), `krall_arms_R5` → `clawR_25…30`, `krall_arms_L5` → `clawL_25…30` (Stumpf), je seitlich · Block · Stampfer · Sog · Halten · Teleskop voll. `damagedArm()` in `krall.ts`: Zange verbogen < 65 % / Stumpf < 35 %, Haken verbogen < 50 % / Stumpf < 20 % — in **allen** Armposen (Tests: `m11p5_krall`). Damit sind alle P0-Krall-Sheets verdrahtet.
 
-### Prüfung gegen D1–D14 (`BOSS_ANIMATION_PLAN.md` §1) — Stand dieser Sitzung
-| | Status | Nachweis / Lücke |
+### Checkliste D1–D15 (Stand: laufend aktualisieren — fremdes Werkzeug kann hier ohne Rückfrage weitermachen)
+| | Status | Nachweis / nächster Schritt |
 | :--- | :---: | :--- |
-| D1 Rig vollständig | ✅ | Kontaktbogen `tests/out/rig_krall.png` (36 Zustände), Gelenke sitzen auch bei Stumpf/verbogen; Zoom 4× nicht einzeln durchgesehen |
-| D2 Posen je Abschnitt | ✅ | `krallSet()`, Test `m11p5_krall` (Vorwarnung/Ausführung/Erholung je Zug) |
-| D3 weiche Übergänge | ✅ | `tau`/`lag`/`between`; **Lücke:** `CLAW_BETWEEN` kennt nur Zwischenposen der Original-Arme (0–5), neue Varianten 12+ wechseln hart |
-| D4 Anlauf & Nachfedern | ✅ | Vorwarnung hebt/duckt, Nachfedern über `damped`/`k` |
-| D5 Fortbewegung | ✅ | Schrittphase aus Strecke, Ruhe-Zittern (Phase 2), Humpeln < 35 % |
-| D6 Treffer-Reaktion | ✅ | `flashTimer` → Zittern, Arme federn (nicht in Angriffsposen) |
-| D7 Phase-2-Verwandlung | ✅ | Panzer fällt ab (`detached.ts`, `m11p3`), danach Rahmen-Rumpf |
-| D8 Lesbarkeit | ✅ | nur `krall.ts`/`bossFx.ts`/Rig-Daten geändert, keine Hitbox/Schaden |
-| D9 Rückfall | ⚠️ | alte Rückfall-Logik unverändert; neue Varianten **nicht** einzeln mit fehlendem Bild getestet |
-| D10 Tests & Doku | ✅ | `m11p5_krall` (Schadensstufen, Arme, Beine), `RIGGING_GUIDE.md` §5 nicht neu angefasst — **offen** |
-| D11 Angriffsgrafik | ✅ | `BossZone.fx` `pull`/`dash`/`blast`/`drop` mit `fx_field/arc/wave/dust/crater/rust` (letzte Sitzung) |
-| D12 Beschädigungsstufen | ✅ | Rumpf P1 <80/<65/<25 %, P2 <35/<25/<15 %; Arme verbogen/Stumpf in allen Posen |
-| D13 Körper hängt zusammen | ✅ | Rahmen-Rümpfe jetzt gleich groß, Magnet sitzt; Hüften nach innen in Phase 2. Beine-Feinjustierung nur im Kontaktbogen geprüft |
-| D14 Beine/Unterkörper | ✅ | `KLEG`/`KLEG2` je Zug und Phase |
-→ Offen: Abnahme im echten Kampf (Stufe 8), D3-Lücke (Zwischenposen neuer Varianten), `RIGGING_GUIDE.md` §5 nachziehen, D9-Test.
+| D1 Rig vollständig | ✅ | Kontaktbogen `tests/out/rig_krall.png` (36 Zustände) |
+| D2 Posen je Abschnitt | ✅ | `krallSet()`, Test `m11p5_krall` |
+| D3 weiche Übergänge | ⬜ | Neue Arm-Varianten (12–29) wechseln hart. **Nächster Schritt:** `CLAW_BETWEEN` in `krall.ts` um Zwischenposen für Übergänge zu/von Varianten ≥ 12 ergänzen (z. B. verbogen↔intakt über Zwischenstufe `0>…`), Test `m11p5_krall` (Rotationssprung < 0,2 rad) |
+| D4 Anlauf & Nachfedern | ✅ | `wp`/`k`/`damped` in `krallSet()` |
+| D5 Fortbewegung | ✅ | `stridePhase`, Humpeln, Ruhe-Zittern |
+| D6 Treffer-Reaktion | ✅ | `flashTimer`-Zittern/Arme federn |
+| D7 Phase-2-Verwandlung | ✅ | Panzer fällt ab (`m11p3`) |
+| D8 Lesbarkeit | ✅ | nur Visuals geändert |
+| D9 Rückfall | ⬜ | **Nächster Schritt:** Test in `m11p5_krall.cjs`: `getHDArt().rigs.krall` ohne einzelne Varianten (z. B. `clawR_25` entfernt) → kein Absturz, Rückfall aufs alte Sprite |
+| D10 Tests & Doku | ⬜ | `RIGGING_GUIDE.md` §5 (Krall-Block) um Rumpf-/Arm-/Bein-Varianten-Tabelle + `damagedArm()` ergänzen |
+| D11 Angriffsgrafik | ✅ | `BossZone.fx` + `fx_*` Sprites |
+| D12 Beschädigungsstufen | ✅ | Rumpf 6 Stufen, Arme verbogen/Stumpf in allen Posen |
+| D13 Körper hängt zusammen | ✅ | Rahmen im Panzer-Maßstab, Magnet sitzt |
+| D14 Beine/Unterkörper | ✅ | `KLEG`/`KLEG2` je Zug/Phase |
+| D15 Boden-Effekte je Biom | ⬜ | Krall tritt in der ∞ Spirale fremd auf. Sheets `krall_ground.png` (Krater) + `krall_ground2.png` (Staub/Druckring) = Queue `P0-19/20` `[~]`; danach `fx_ground_*` importieren + Biom-Auswahl in `bossFx.ts` (`riftSector` → `floor.visualSector` → `currentSector`), Fallback = `fx_crater`/`fx_dust` + Tönung, Test |
+| Stufe 8 Abnahme | ⬜ | Projektinhaber: 1–2 echte Kämpfe (Phase 1 + 2) |
+
 - Abnahme im echten Kampf offen.
 
 ## Art-Sheets (`art_source/rigs/`)
