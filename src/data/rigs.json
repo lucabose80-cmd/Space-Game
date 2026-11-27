@@ -740,7 +740,37 @@
       ],
       "scaleRef": "housing",
       "torsoDisplayH": 19,
-      "pixelRatio": 2
+      "pixelRatio": 2,
+      "sets": [
+        {
+          "file": "turret_treads",
+          "mode": "swap",
+          "cells": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "ids": [
+            "tread_1",
+            "tread_2",
+            "tread_3",
+            "tread_4"
+          ]
+        },
+        {
+          "file": "turret_treads",
+          "mode": "swap",
+          "cells": [
+            4,
+            5
+          ],
+          "ids": [
+            "dust",
+            "brake"
+          ]
+        }
+      ]
     },
     "parts": [
       {
@@ -830,6 +860,91 @@
         "offset": [
           8,
           0
+        ]
+      },
+      {
+        "id": "treadL",
+        "image": "tread_1",
+        "variants": [
+          "tread_1",
+          "tread_2",
+          "tread_3",
+          "tread_4"
+        ],
+        "parent": "base",
+        "attach": [
+          0.5,
+          0.5
+        ],
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "z": -1,
+        "offset": [
+          -8,
+          3
+        ]
+      },
+      {
+        "id": "treadR",
+        "image": "tread_1",
+        "variants": [
+          "tread_1",
+          "tread_2",
+          "tread_3",
+          "tread_4"
+        ],
+        "flipX": true,
+        "parent": "base",
+        "attach": [
+          0.5,
+          0.5
+        ],
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "z": -1,
+        "offset": [
+          8,
+          3
+        ]
+      },
+      {
+        "id": "dust",
+        "image": "dust",
+        "parent": "base",
+        "attach": [
+          0.5,
+          0.5
+        ],
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "z": -2,
+        "offset": [
+          0,
+          4
+        ]
+      },
+      {
+        "id": "brake",
+        "image": "brake",
+        "parent": "base",
+        "attach": [
+          0.5,
+          0.5
+        ],
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "z": 4,
+        "offset": [
+          0,
+          5
         ]
       }
     ]

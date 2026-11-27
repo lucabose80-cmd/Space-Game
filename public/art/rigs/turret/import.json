@@ -5,7 +5,8 @@
  "torsoDisplayH": 19,
  "pixelRatio": 2,
  "sheets": {
-  "turret_rig.png": "272af2de79a8b114"
+  "turret_rig.png": "272af2de79a8b114",
+  "turret_treads.png": "2e6fe3ce71b5753b"
  },
  "parts": {
   "base": {
@@ -43,6 +44,42 @@
    "h": 15,
    "srcW": 135,
    "srcH": 131
+  },
+  "tread_1": {
+   "w": 40,
+   "h": 30,
+   "mode": "swap",
+   "set": "turret_treads"
+  },
+  "tread_2": {
+   "w": 40,
+   "h": 30,
+   "mode": "swap",
+   "set": "turret_treads"
+  },
+  "tread_3": {
+   "w": 40,
+   "h": 30,
+   "mode": "swap",
+   "set": "turret_treads"
+  },
+  "tread_4": {
+   "w": 40,
+   "h": 30,
+   "mode": "swap",
+   "set": "turret_treads"
+  },
+  "dust": {
+   "w": 30,
+   "h": 20,
+   "mode": "swap",
+   "set": "turret_treads"
+  },
+  "brake": {
+   "w": 30,
+   "h": 20,
+   "mode": "swap",
+   "set": "turret_treads"
   }
  }
 }

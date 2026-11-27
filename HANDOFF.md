@@ -81,7 +81,7 @@ Nach und nach erzeugen, sobald Gemini-Volumen frei ist (Reihenfolge §5 im Brief
 
 ## Gegner-Rigs (M11 Phase 7) — Stand
 - **Geschütz (`turret`) eingebunden:** `rigs.json` → `turret` (`sheet.srcFile: turret_rig`, Teile base/housing/barrel/muzzle/core), `src/dungeon/anim/enemyAnims.ts` (`turretPose`: Neigung zum Spieler, Rohr fährt in Vorwarnung aus, Mündung/Kern glühen, Rückstoß, Wippen beim Umsetzen), Renderer `tryDrawEnemyRig` (Blick zum Spieler = Rig gespiegelt). Fallback: altes `turret_0/1`.
-- **Bereit zum Einbinden (P0-13 ✅ geliefert):** Raupenketten `art_source/rigs/turret_treads.png` (4 Rollphasen links + Staubwolke + Bremsfunken, `min_margin ≥ 78 px`) — jetzt als Teile `treadL/R` einbauen (Rollphase aus Strecke, Staub/Bremsfunken).
+- **Geschütz komplett (P0-13 ✅ eingebunden):** Ketten `treadL/R` (4 Rollphasen aus zurückgelegter Strecke, rechte Kette gespiegelt + gegenläufig), Staubwolke beim Fahren, Bremsfunken beim Anhalten (`turretPose` in `enemyAnims.ts`).
 - **Noch ohne Code:** `phase_stalker_rig.png`, `drone_rig.png` liegen vor, werden als Nächstes eingebunden (gleiches Muster).
 
 ## Nächster Schritt
@@ -90,7 +90,7 @@ Nach und nach erzeugen, sobald Gemini-Volumen frei ist (Reihenfolge §5 im Brief
 - **Claude Code (sofort startklar!):**
   1. ~~S6 Kern-Wächter~~ ✅ eingebunden (Abnahme im echten Kampf durch Projektinhaber offen).
   2. ~~Krall K-C (P0-06/07)~~ ✅ eingebunden: `clawR/L` Varianten 6–11 (`KARM.telS/telM/telL/snap/sog/hold`). **Neu bereit (P0-08/09/11):** `krall_fx2.png` (Ringe mit `holes: true`), `krall_torsos2.png` (6 Phase-2-Rümpfe) & `krall_torsos3.png` (6 Beschädigungsstufen) in `rigs.json` importieren und in `bossAnims.ts`/`bossFx.ts` einbinden.
-  3. **Gegner-Rigs (S1):** `turret_rig.png` ✅ eingebunden + **`turret_treads.png` (P0-13)** neu bereit zum Einbinden; `phase_stalker_rig.png` und `drone_rig.png` ebenfalls bereit.
+  3. **Gegner-Rigs (S1):** `turret_rig.png` + `turret_treads.png` ✅ eingebunden (Muster: `rigs.json` + `enemyAnims.ts` + `tryDrawEnemyRig`); **als Nächstes** `phase_stalker_rig.png` und `drone_rig.png` (liegen bereit).
 - **Antigravity (als Nächstes):** Weiter in [`SPRITE_QUEUE.md`](SPRITE_QUEUE.md) via Skill `sprite-batch`: **`P0-10`** (`krall_legs_R2.png` + `krall_legs_L2.png`), danach **`P0-12`** (`krall_arms_R3.png` + `krall_arms_L3.png`), dann ab `P2-02` (`shield_drone_rig.png`).
 - Ökonomie & Boss-Kampfgefühl im echten Spiel beobachten und in `src/data/balance.ts` nachjustieren (Berichte: `tests/out/economy.json`, `tests/out/ttk.json`).
 - Optionale M10/M10-C-Einzel-Sprites bei Bedarf ebenfalls per Antigravity erzeugen.
