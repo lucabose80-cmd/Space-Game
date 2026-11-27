@@ -33,8 +33,6 @@ import {
   ROOM_BOTTOM,
   ROOM_CENTER_X,
   ROOM_CENTER_Y,
-  ROOM_LEFT,
-  ROOM_RIGHT,
   ROOM_TOP,
   roomBounds,
   roomKey,
@@ -89,6 +87,11 @@ export class DungeonScene {
   /** M12 (Phase A): Grenzen des aktuellen Raums (Standardraum = `ROOM_LEFT…`, Arena = `room.bounds`). */
   public get bounds(): Readonly<RoomBounds> {
     return roomBounds(this.currentRoom);
+  }
+  /** M12: Reichweite für Strahl-Raycasts bis zur Raumgrenze — Standardraum = bisheriger Wert, Arena = Diagonale. */
+  public rayLimit(standard: number): number {
+    const rb = this.bounds;
+    return this.currentRoom?.bounds ? Math.max(standard, Math.ceil(Math.hypot(rb.r - rb.l, rb.b - rb.t)) + 12) : standard;
   }
 
   public playerX = ROOM_CENTER_X;
@@ -559,25 +562,26 @@ export class DungeonScene {
     this.aimTargetId = null;
     this.roomFade = 0.22;
 
+    const rb = this.bounds; // M12: Türen/Eintritt relativ zu den Raumgrenzen
     if (enteredFrom === 'north') {
-      this.playerX = ROOM_CENTER_X;
-      this.playerY = ROOM_TOP + 18;
+      this.playerX = rb.cx;
+      this.playerY = rb.t + 18;
       this.facing = 'down';
     } else if (enteredFrom === 'south') {
-      this.playerX = ROOM_CENTER_X;
-      this.playerY = ROOM_BOTTOM - 18;
+      this.playerX = rb.cx;
+      this.playerY = rb.b - 18;
       this.facing = 'up';
     } else if (enteredFrom === 'west') {
-      this.playerX = ROOM_LEFT + 18;
-      this.playerY = ROOM_CENTER_Y;
+      this.playerX = rb.l + 18;
+      this.playerY = rb.cy;
       this.facing = 'right';
     } else if (enteredFrom === 'east') {
-      this.playerX = ROOM_RIGHT - 18;
-      this.playerY = ROOM_CENTER_Y;
+      this.playerX = rb.r - 18;
+      this.playerY = rb.cy;
       this.facing = 'left';
     } else {
-      this.playerX = ROOM_CENTER_X;
-      this.playerY = ROOM_CENTER_Y + 24;
+      this.playerX = rb.cx;
+      this.playerY = rb.cy + 24;
       this.facing = 'up';
     }
     this.lastSafeX = this.playerX;
@@ -2001,11 +2005,13 @@ export class DungeonScene {
     const dy = Math.sin(angle);
 
     // Raycast to room boundary
-    let maxT = 360;
-    for (let t = 8; t < 360; t += 6) {
+    const rb = this.bounds;
+    const rayMax = this.rayLimit(360);
+    let maxT = rayMax;
+    for (let t = 8; t < rayMax; t += 6) {
       const px = sx + dx * t;
       const py = sy + dy * t;
-      if (px < ROOM_LEFT || px > ROOM_RIGHT || py < ROOM_TOP || py > ROOM_BOTTOM) {
+      if (px < rb.l || px > rb.r || py < rb.t || py > rb.b) {
         maxT = t;
         break;
       }
@@ -2495,19 +2501,20 @@ export class DungeonScene {
         d.x += d.vx * dt;
         d.y += d.vy * dt;
       } else {
+        const rb = this.bounds;
         let nx = d.x + d.vx * dt;
         let ny = d.y + d.vy * dt;
         let bounced = false;
 
         // Room wall bounce
-        if (nx <= ROOM_LEFT + 7 || nx >= ROOM_RIGHT - 7) {
+        if (nx <= rb.l + 7 || nx >= rb.r - 7) {
           d.vx = -d.vx;
-          nx = Math.max(ROOM_LEFT + 8, Math.min(ROOM_RIGHT - 8, nx));
+          nx = Math.max(rb.l + 8, Math.min(rb.r - 8, nx));
           bounced = true;
         }
-        if (ny <= ROOM_TOP + 7 || ny >= ROOM_BOTTOM - 7) {
+        if (ny <= rb.t + 7 || ny >= rb.b - 7) {
           d.vy = -d.vy;
-          ny = Math.max(ROOM_TOP + 8, Math.min(ROOM_BOTTOM - 8, ny));
+          ny = Math.max(rb.t + 8, Math.min(rb.b - 8, ny));
           bounced = true;
         }
 
@@ -2696,12 +2703,13 @@ export class DungeonScene {
   }
 
   public moveEntityWithCollisions(dx: number, dy: number): void {
+    const rb = this.bounds;
     const r = 6;
-    const nx = Math.max(ROOM_LEFT + r, Math.min(ROOM_RIGHT - r, this.playerX + dx));
+    const nx = Math.max(rb.l + r, Math.min(rb.r - r, this.playerX + dx));
     if (!this.collidesRoomObstacle(nx, this.playerY, r)) {
       this.playerX = nx;
     }
-    const ny = Math.max(ROOM_TOP + r, Math.min(ROOM_BOTTOM - r, this.playerY + dy));
+    const ny = Math.max(rb.t + r, Math.min(rb.b - r, this.playerY + dy));
     if (!this.collidesRoomObstacle(this.playerX, ny, r)) {
       this.playerY = ny;
     }
@@ -2739,15 +2747,16 @@ export class DungeonScene {
 
   public checkDoorTransition(): void {
     const r = this.currentRoom;
+    const rb = this.bounds;
     const doorHalf = 18;
 
-    if (r.doors.north && Math.abs(this.playerX - ROOM_CENTER_X) < doorHalf && this.playerY <= ROOM_TOP + 8) {
+    if (r.doors.north && Math.abs(this.playerX - rb.cx) < doorHalf && this.playerY <= rb.t + 8) {
       this.enterRoom(roomKey(r.gx, r.gy - 1), 'south');
-    } else if (r.doors.south && Math.abs(this.playerX - ROOM_CENTER_X) < doorHalf && this.playerY >= ROOM_BOTTOM - 8) {
+    } else if (r.doors.south && Math.abs(this.playerX - rb.cx) < doorHalf && this.playerY >= rb.b - 8) {
       this.enterRoom(roomKey(r.gx, r.gy + 1), 'north');
-    } else if (r.doors.west && Math.abs(this.playerY - ROOM_CENTER_Y) < doorHalf && this.playerX <= ROOM_LEFT + 8) {
+    } else if (r.doors.west && Math.abs(this.playerY - rb.cy) < doorHalf && this.playerX <= rb.l + 8) {
       this.enterRoom(roomKey(r.gx - 1, r.gy), 'east');
-    } else if (r.doors.east && Math.abs(this.playerY - ROOM_CENTER_Y) < doorHalf && this.playerX >= ROOM_RIGHT - 8) {
+    } else if (r.doors.east && Math.abs(this.playerY - rb.cy) < doorHalf && this.playerX >= rb.r - 8) {
       this.enterRoom(roomKey(r.gx + 1, r.gy), 'west');
     }
   }
@@ -2909,8 +2918,9 @@ export class DungeonScene {
   /** M11 Teilen: Boss in zwei Hälften teilen (gemeinsamer HP-Pool, eine Boss-Leiste). Nur einmal pro Boss. */
   public splitBoss(e: Enemy): boolean {
     if (e.splitGroup !== undefined || !this.enemies.includes(e)) return false;
-    const side = e.x > ROOM_CENTER_X ? -1 : 1;
-    const twin: Enemy = { ...e, id: this.nextEnemyId++, x: Math.max(ROOM_LEFT + 30, Math.min(ROOM_RIGHT - 30, e.x + side * 46)), vx: 0, vy: 0, flashTimer: 0, splitRole: 1 };
+    const rb = this.bounds;
+    const side = e.x > rb.cx ? -1 : 1;
+    const twin: Enemy = { ...e, id: this.nextEnemyId++, x: Math.max(rb.l + 30, Math.min(rb.r - 30, e.x + side * 46)), vx: 0, vy: 0, flashTimer: 0, splitRole: 1 };
     e.splitGroup = e.id;
     e.splitRole = 0;
     twin.splitGroup = e.id;
@@ -3705,6 +3715,7 @@ export class DungeonScene {
   }
 
   public updateProjectiles(dt: number): void {
+    const rb = this.bounds;
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const p = this.projectiles[i];
       if (p.homing && !p.fromPlayer && p.life > (p.homingUntilLife ?? 0)) {
@@ -3731,10 +3742,10 @@ export class DungeonScene {
       }
 
       const hitWall =
-        p.x < ROOM_LEFT ||
-        p.x > ROOM_RIGHT ||
-        p.y < ROOM_TOP ||
-        p.y > ROOM_BOTTOM ||
+        p.x < rb.l ||
+        p.x > rb.r ||
+        p.y < rb.t ||
+        p.y > rb.b ||
         this.collidesRoomObstacle(p.x, p.y, p.radius, false);
 
       if (hitWall || p.life <= 0) {
@@ -3862,6 +3873,7 @@ export class DungeonScene {
   }
 
   public updateDrops(dt: number): void {
+    const rb = this.bounds;
     const hasPuck = this.activeCompanion === 'puck';
     const magnetRadius = hasPuck ? 116 : 44;
     const pullSpeed = hasPuck ? 185 : 135;
@@ -3871,8 +3883,8 @@ export class DungeonScene {
       d.age += dt;
       d.vx *= Math.pow(0.04, dt);
       d.vy *= Math.pow(0.04, dt);
-      d.x = Math.max(ROOM_LEFT + 8, Math.min(ROOM_RIGHT - 8, d.x + d.vx * dt));
-      d.y = Math.max(ROOM_TOP + 8, Math.min(ROOM_BOTTOM - 8, d.y + d.vy * dt));
+      d.x = Math.max(rb.l + 8, Math.min(rb.r - 8, d.x + d.vx * dt));
+      d.y = Math.max(rb.t + 8, Math.min(rb.b - 8, d.y + d.vy * dt));
 
       const dist = Math.hypot(this.playerX - d.x, this.playerY - d.y);
       if (d.age > 0.22 && dist < magnetRadius && !isBackpackFullFor(this.state.inventory, d.itemId)) {
