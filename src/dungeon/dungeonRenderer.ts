@@ -12,12 +12,12 @@ import { COMPANION_DEFS, SUIT_THEMES } from '../data/companions';
 import { getInfusionDef, RIFT_MUTATORS } from '../data/infusions';
 import { getItemDef } from '../data/items';
 import { VIRTUAL_HEIGHT, VIRTUAL_WIDTH, type InputManager } from '../engine/input';
+import { renderArenaFloor } from './arenaFloor';
+import { drawEdgeMarkers, offscreenMarkers } from './edgeIndicators';
 import {
   ROOM_BOTTOM,
   ROOM_CENTER_X,
   ROOM_CENTER_Y,
-  ROOM_LEFT,
-  ROOM_RIGHT,
   ROOM_TOP,
   roomKey,
   type DungeonRoom,
@@ -47,6 +47,11 @@ export class DungeonRenderer {
       const sy = (Math.random() - 0.5) * 2 * this.scene.shakeMag * shakeK;
       ctx.translate(sx, sy);
     }
+    // M12 (Phase B): Welt-Ebene unter der Kamera; Standardraum = (0, 0) → keine Verschiebung
+    const camX = this.scene.camera.renderX();
+    const camY = this.scene.camera.renderY();
+    if (camX !== 0 || camY !== 0) ctx.translate(-camX, -camY);
+    const arena = this.scene.currentRoom.bounds !== undefined;
 
     const visSec = this.scene.floor.visualSector ?? this.scene.currentSector;
     const roomBg =
@@ -57,7 +62,9 @@ export class DungeonRenderer {
           : visSec === 2
             ? art.dungeonBgS2 ?? art.dungeonBg
             : art.dungeonBg;
-    if (roomBg) {
+    if (arena) {
+      renderArenaFloor(ctx, this.scene.currentRoom, visSec, camX, camY, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+    } else if (roomBg) {
       ctx.drawImage(roomBg, 0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
     } else {
       ctx.fillStyle =
@@ -68,53 +75,53 @@ export class DungeonRenderer {
             : visSec === 2
               ? '#150d28'
               : '#0e131f';
-      ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+      ctx.fillRect(camX, camY, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
     }
 
     // Subtle violet-cyan Rift Dimension atmosphere when inside a Rift Chamber or the Endless Spiral!
     if (this.scene.isEndlessRift || this.scene.currentRoom.isRiftChamber) {
       ctx.fillStyle = 'rgba(139, 92, 246, 0.14)';
-      ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+      ctx.fillRect(camX, camY, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
     }
 
     // Distinct Sector & Floor I / II / III Atmospheric Tints + Cosmic Night Ambience!
     if (this.scene.currentSector === 5) {
       ctx.fillStyle = 'rgba(250, 204, 21, 0.08)';
-      ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+      ctx.fillRect(camX, camY, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
     } else if (this.scene.currentSector === 4) {
       if (this.scene.currentFloor === 2) {
         ctx.fillStyle = 'rgba(14, 48, 66, 0.16)';
-        ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+        ctx.fillRect(camX, camY, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
       } else if (this.scene.currentFloor === 3) {
         ctx.fillStyle = 'rgba(66, 48, 12, 0.16)';
-        ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+        ctx.fillRect(camX, camY, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
       }
     } else if (this.scene.currentSector === 3) {
       if (this.scene.currentFloor === 2) {
         ctx.fillStyle = 'rgba(66, 22, 8, 0.15)';
-        ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+        ctx.fillRect(camX, camY, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
       } else if (this.scene.currentFloor === 3) {
         ctx.fillStyle = 'rgba(84, 18, 10, 0.2)';
-        ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+        ctx.fillRect(camX, camY, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
       }
     } else if (this.scene.currentSector === 2) {
       if (this.scene.currentFloor === 2) {
         ctx.fillStyle = 'rgba(26, 18, 62, 0.16)';
-        ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+        ctx.fillRect(camX, camY, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
       } else if (this.scene.currentFloor === 3) {
         ctx.fillStyle = 'rgba(58, 12, 68, 0.19)';
-        ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+        ctx.fillRect(camX, camY, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
       }
     } else if (this.scene.currentFloor === 2) {
       ctx.fillStyle = 'rgba(10, 56, 46, 0.2)';
-      ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+      ctx.fillRect(camX, camY, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
     } else if (this.scene.currentFloor === 3) {
       ctx.fillStyle = 'rgba(54, 16, 12, 0.22)';
-      ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+      ctx.fillRect(camX, camY, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
     }
     if (this.scene.state.timeOfDay === 'night') {
       ctx.fillStyle = 'rgba(15, 23, 54, 0.16)';
-      ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+      ctx.fillRect(camX, camY, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
     }
 
     // Subterranean Moonlighter Secret Vault ambiance & Grav-Rope exit shaft!
@@ -186,11 +193,12 @@ export class DungeonRenderer {
     this.scene.bossFx.render(ctx, this.scene.time);
 
     // Ambient bioluminescent spores / shimmering crystal motes in Sector 2!
+    const rb = this.scene.bounds; // M12: Raumgrenzen
     for (let s = 0; s < 12; s++) {
-      const sx = ROOM_LEFT + ((s * 73 + this.scene.currentRoom.tileSeed) % (ROOM_RIGHT - ROOM_LEFT));
+      const sx = rb.l + ((s * 73 + this.scene.currentRoom.tileSeed) % (rb.r - rb.l));
       const sy =
-        ROOM_TOP +
-        ((s * 47 + Math.floor(this.scene.time * 8) + this.scene.currentRoom.tileSeed) % (ROOM_BOTTOM - ROOM_TOP));
+        rb.t +
+        ((s * 47 + Math.floor(this.scene.time * 8) + this.scene.currentRoom.tileSeed) % (rb.b - rb.t));
       const a = 0.25 + 0.45 * Math.sin(this.scene.time * 2.5 + s);
       ctx.fillStyle =
         this.scene.currentSector === 2
@@ -806,7 +814,7 @@ export class DungeonRenderer {
     ctx.globalAlpha = 1;
 
     if (input.isMouseActive() && !input.locked) {
-      const m = input.getMousePos();
+      const m = this.scene.camera.toWorld(input.getMousePos().x, input.getMousePos().y);
       ctx.strokeStyle = 'rgba(56, 232, 212, 0.8)';
       ctx.lineWidth = 0.8;
       ctx.strokeRect(m.x - 3.5, m.y - 3.5, 7, 7);
@@ -816,11 +824,14 @@ export class DungeonRenderer {
 
     ctx.restore();
 
+    // M12 (Phase B, A7): Gefahrenzonen außerhalb des Bildes → Pfeil am Rand (nur mit Kamera)
+    if (arena) drawEdgeMarkers(ctx, offscreenMarkers(this.scene.bossFx.zones, camX, camY, VIRTUAL_WIDTH, VIRTUAL_HEIGHT), this.scene.time);
+
     this.renderMinimap(ctx);
     this.renderBossBar(ctx);
 
     if (this.scene.activePrompt) {
-      this.renderPrompt(ctx, this.scene.activePrompt.label, this.scene.activePrompt.x, this.scene.activePrompt.y);
+      this.renderPrompt(ctx, this.scene.activePrompt.label, this.scene.activePrompt.x - camX, this.scene.activePrompt.y - camY);
     }
 
     if (this.scene.roomFade > 0) {
@@ -1284,10 +1295,11 @@ export class DungeonRenderer {
       }
     };
 
-    if (doors.north) drawH(ROOM_CENTER_X, ROOM_TOP - 6);
-    if (doors.south) drawH(ROOM_CENTER_X, ROOM_BOTTOM + 10);
-    if (doors.west) drawV(ROOM_LEFT - 10, ROOM_CENTER_Y);
-    if (doors.east) drawV(ROOM_RIGHT + 10, ROOM_CENTER_Y);
+    const rb = this.scene.bounds; // M12: Türen an den Raumgrenzen
+    if (doors.north) drawH(rb.cx, rb.t - 6);
+    if (doors.south) drawH(rb.cx, rb.b + 10);
+    if (doors.west) drawV(rb.l - 10, rb.cy);
+    if (doors.east) drawV(rb.r + 10, rb.cy);
   }
 
   private renderWarpPad(ctx: CanvasRenderingContext2D, x: number, y: number, color: string): void {
@@ -1818,11 +1830,13 @@ export class DungeonRenderer {
     const ly = e.y - 8 - (e.bossHeight ?? 0);
     const cosA = Math.cos(a);
     const sinA = Math.sin(a);
-    let maxT = 320;
-    for (let t = 12; t < 320; t += 6) {
+    const rb = this.scene.bounds;
+    const rayMax = this.scene.rayLimit(320);
+    let maxT = rayMax;
+    for (let t = 12; t < rayMax; t += 6) {
       const px = lx + cosA * t;
       const py = ly + sinA * t;
-      if (px < ROOM_LEFT || px > ROOM_RIGHT || py < ROOM_TOP || py > ROOM_BOTTOM) {
+      if (px < rb.l || px > rb.r || py < rb.t || py > rb.b) {
         maxT = t;
         break;
       }
