@@ -79,6 +79,17 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 
 > **✅ STOP-GATE (FREIGEGEBEN):** Vom Projektinhaber am 2026-11-26 freigegeben — P2-Serie läuft (Parallel-Einbindung der Pilot-Sheets durch Claude Code).
 
+### P1b — M12 Endboss-Arena: Pilot A.E.G.I.S. Leviathan (`[~]` = wartet auf Plan-Freigabe — **noch nicht generieren**)
+> Plan: [`MILESTONE_12_ARCHITECTURE.md`](MILESTONE_12_ARCHITECTURE.md) §6 & §9 (Prompts dort). Erst generieren, wenn der Projektinhaber den Plan freigegeben hat und Claude Code den Status auf `[ ]` setzt. Alle mit prozeduralem Fallback.
+
+| ID | Status | Zieldatei | Typ & Format | Referenz (`ImagePaths`) | Brief / Prompt | Notiz |
+| :--- | :---: | :--- | :--- | :--- | :--- | :--- |
+| `P1-03` | [~] | `public/art/sprites/arena_leviathan_bg.png` | Arena-Boden · `1376×704` | `public/art/sprites/hub_bg.png` (Stil), Sektor-1-Dungeonkacheln | `MILESTONE_12_ARCHITECTURE.md` §9 | Reaktorhalle ohne Boss, 2×2 Bildschirme |
+| `P1-04` | [~] | `public/art/sprites/arena_leviathan_wall.png` | Boss-Wand · `1376×192` | `public/art/sprites/item_leviathan_core.png` | `MILESTONE_12_ARCHITECTURE.md` §9 | Leviathan-Körper als Nordwand, Kern-Linse mittig |
+| `P1-05` | [~] | `art_source/rigs/leviathan_arena_parts.png` | Typ P · 3×2 · `1536×1024` | `P1-04` | `MILESTONE_12_ARCHITECTURE.md` §9 · `ART_BRIEF_M11.md` §2 | Kranarm ×2 · Hammer-Klaue · Kabel · Ventil intakt/zerstört |
+| `P1-06` | [~] | `art_source/rigs/leviathan_arena_fx.png` | Typ E · 3×2 · `1536×1024` | `P1-03` | `MILESTONE_12_ARCHITECTURE.md` §9 | Platte bricht (3 Stufen) · Trümmer · Dampf · Linse offen |
+| `P1-07` | [~] | `public/art/sprites/prop_trophy_leviathan.png` + `public/art/sprites/item_trophy_leviathan.png` | `96×96` + `64×64` | `public/art/sprites/item_leviathan_core.png` | `MILESTONE_12_ARCHITECTURE.md` §9 · `ART_AND_DESIGN_GUIDE.md` §3/§7 | Hub-Vitrine + Item-Icon „A.E.G.I.S.-Herzlinse“ |
+
 ---
 
 ## P2 — M11 Gegner-Rigs: Serie (Sektor 1 → 4)
