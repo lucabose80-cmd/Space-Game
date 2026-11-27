@@ -107,7 +107,6 @@ export class HubEvolutionRenderer {
     if (this.flag('nyx_redeemed')) ids.push('free_lantern');
     if (this.flag('vex_spiral')) ids.push('vex_beacon');
     if (this.flag('vex_stays')) ids.push('vex_classboard');
-    if (this.state.hasLeviathanTrophy()) ids.push('leviathan_trophy');
     return ids;
   }
 

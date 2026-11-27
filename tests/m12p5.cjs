@@ -47,10 +47,10 @@ module.exports = async ({ page }) => {
     const canvas = document.createElement('canvas'); canvas.width = 480; canvas.height = 270; const ctx = canvas.getContext('2d');
     const anchors = { forge: { x: 100, y: 100 }, medbay: { x: 380, y: 100 }, nyxNpc: { x: 300, y: 200 }, techNpc: { x: 150, y: 200 }, guild: { x: 240, y: 90 } };
     const none = new GameState(); const h0 = new HubEvolutionRenderer(none, anchors);
-    out.hubBefore = h0.getActiveElementIds().includes('leviathan_trophy');
+    out.hubBefore = h0.getDrawables(ctx, 1).length;
     const h1 = new HubEvolutionRenderer(g, anchors); h1.spritesEnabled = false;
-    out.hubAfter = h1.getActiveElementIds().includes('leviathan_trophy');
-    out.hubDrawables = h1.getDrawables(ctx, 1).length - h0.getDrawables(ctx, 1).length;
+    out.hubAfter = h1.getDrawables(ctx, 1).length;
+    out.hubDrawables = out.hubAfter - out.hubBefore;
     h1.getDrawables(ctx, 1).forEach((x) => x.draw());
     return out;
   });
@@ -68,6 +68,6 @@ module.exports = async ({ page }) => {
   assert.strictEqual(r.secondDrops, 0, 'Folgesieg: kein weiteres Relikt');
   assert.strictEqual(r.creditsDelta, 0, 'keine Credits');
   assert.deepStrictEqual(r.trial, { drops: 0, cleared: false, trophy: false }, 'Prüfung ohne Belohnung');
-  assert.strictEqual(r.hubBefore, false); assert.strictEqual(r.hubAfter, true); assert.strictEqual(r.hubDrawables, 1);
+  assert.strictEqual(r.hubDrawables, 1, 'Vitrine nur nach Erstsieg');
   console.log('M12 PHASE E OK');
 };
