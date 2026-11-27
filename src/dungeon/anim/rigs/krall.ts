@@ -22,18 +22,23 @@ const isFrameTorso = (t: number): boolean => t === KTORSO.p2 || (t >= KT2.duck &
 /** P0-12 (`krall_arms_R3/L3`, Variante 12–17): verbogen (hängend · ausholend · Stoß) · abgebrochener Stumpf (dito) */
 const KARM_BENT = 12;
 const KARM_STUMP = 15;
-/** Arm-Pose (0 hängend · 1 ausholend · 2 Stoß, Teleskop/Schnappen zählen als Stoß) → beschädigte Variante je Seite und HP-Anteil */
+/**
+ * P0-15/16 (`krall_arms_R4/L4`, Variante 18–23 = verbogen) und P0-17/18 (`R5/L5`, 24–29 = Stumpf) in den übrigen Posen:
+ * seitlich · Block · Stampfer · Sog · Halten · Teleskop voll.
+ */
+const KARM_OTHER_BENT = 18;
+const KARM_OTHER_STUMP = 24;
+const KARM_OTHER: readonly number[] = [KARM.side, KARM.block, KARM.stomp, KARM.sog, KARM.hold, KARM.telL];
+/** Arm-Pose → beschädigte Variante je Seite und HP-Anteil (Zange R: verbogen < 65 %, Stumpf < 35 % · Haken L: < 50 % / < 20 %) */
 function damagedArm(v: number, hp: number, right: boolean): number {
-  // P0-16 (`krall_arms_L4`, Variante 18–23): linker Haken verbogen in seitlich · Block · Stampfer · Sog · Halten · Teleskop voll (Stumpf-Varianten folgen mit P0-18)
-  if (!right && hp >= 0.2 && hp < 0.5) {
-    const L4: Record<number, number> = { [KARM.side]: 18, [KARM.block]: 19, [KARM.stomp]: 20, [KARM.sog]: 21, [KARM.hold]: 22, [KARM.telL]: 23 };
-    if (L4[v] !== undefined) return L4[v];
-  }
-  const base = v === 0 || v === 1 || v === 2 ? v : v >= KARM.telS && v <= KARM.snap ? 2 : -1;
+  const stump = hp < (right ? 0.35 : 0.2);
+  const bent = hp < (right ? 0.65 : 0.5);
+  if (!bent) return v;
+  const other = KARM_OTHER.indexOf(v);
+  if (other >= 0) return (stump ? KARM_OTHER_STUMP : KARM_OTHER_BENT) + other;
+  const base = v === 0 || v === 1 || v === 2 ? v : v >= KARM.telS && v <= KARM.snap ? 2 : -1; // Teleskop/Schnappen zählen als Stoß
   if (base < 0) return v;
-  if (hp < (right ? 0.35 : 0.2)) return KARM_STUMP + base; // Zange bricht zuerst ab
-  if (hp < (right ? 0.65 : 0.5)) return KARM_BENT + base;
-  return v;
+  return (stump ? KARM_STUMP : KARM_BENT) + base;
 }
 /** Erholungszeit je Zug (defs.ts) — die Engine setzt `bossStateMax` nur für die Vorwarnung, `bossStateTimer` läuft in der Erholung von diesem Wert ab. */
 const KRALL_RECOVER: Record<string, number> = { 'MAGNET-ZUG': 1.3, 'SCHROTT-WURF': 0.9, 'GREIFARM-STOSS': 0.9, 'SCHROTT-HAGEL': 1.1 };
