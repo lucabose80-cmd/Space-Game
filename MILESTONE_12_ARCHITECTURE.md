@@ -1,6 +1,6 @@
 # MILESTONE_12_ARCHITECTURE.md — Sektor-Endbosse als Arena-Bosse (*STARLIGHTER*)
 
-> **Status: PLAN — wartet auf Freigabe durch den Projektinhaber.** Noch kein Code. Nach Freigabe wird Phase A–F (§7) umgesetzt, zuerst nur für den **Piloten A.E.G.I.S. Leviathan (Sektor 1)**; die übrigen drei Endbosse folgen erst nach Abnahme des Piloten im echten Spiel.
+> **Status: PLAN — Fragen §10 beantwortet (2026-11-27), wartet auf Startsignal für Phase A.** Noch kein Code. Nach Freigabe wird Phase A–F (§7) umgesetzt, zuerst nur für den **Piloten A.E.G.I.S. Leviathan (Sektor 1)**; die übrigen drei Endbosse folgen erst nach Abnahme des Piloten im echten Spiel.
 
 **Entscheidungen des Projektinhabers (2026-11-27):**
 1. Die Ebene-III-Bosse (letzter Boss vor dem nächsten Sektor) werden **in die Map integrierte Arena-Bosse** wie bei *Moonlighter* — keine großen Einzelmodelle oder „stärkere Duplikate“ mehr.
@@ -85,9 +85,21 @@ export interface ArenaDef {
 | Belohnung | Umsetzung | Wann |
 | :--- | :--- | :--- |
 | **Trophäen-Relikt** | Neues `ItemDef` je Endboss, Seltenheit `epic`, `maxStack: 1`, hoher `baseValue`; im Laden verkaufbar (Credits entstehen erst dort). Leviathan: **„A.E.G.I.S.-Herzlinse“** (`trophy_leviathan`). Bestehender Drop `leviathan_core` bleibt. | jeder Sieg (1×) |
-| **Freischaltung** | Beim **Erstsieg** ein Bauplan: Leviathan → neue Waffen-Infusion **„Omega-Überlast“** (Ionen-Speer) über `unlockedInfusions`; S2–S4 später je eine Infusion/Begleiter-Variante. Flag `endbossFirstClears?: Partial<Record<SectorId, boolean>>` | nur Erstsieg |
+| **Freischaltung = Waffen-Art** | Waffen-Arten sind in der Schmiede **komplett gesperrt**, bis der passende Sektor-Endboss besiegt ist (Entscheidung Inhaber; keine Infusion). Neue Tabelle `WEAPON_TYPE_GATES` in `balance.ts` (neben `WEAPON_TIER_GATES`), geprüft in `GameState.canCraftWeapon()` + Schmiede-UI zeigt „🔒 Bauplan: besiege A.E.G.I.S. Leviathan“. Siehe §5.1 | Erstsieg |
 | **Hub-Trophäe** | Neuer Fall in `hubEvolution.ts`: Leviathan-Linse als leuchtende Vitrine auf der Promenade (Sprite optional + prozeduraler Fallback, `M10_OPTIONAL_SPRITES`). Interaktion = Codex-Eintrag mit Siegzeit | nach Erstsieg, dauerhaft |
 | Extra-Loot | Boss-Truhe mit 3 Relikten aus `rollLootItem(3, …)` + `aegis_plate` (statt Einzel-Drops) | jeder Sieg |
+
+### 5.1 Waffen-Arten-Sperre (Vorschlag Zuordnung — vom Inhaber zu bestätigen)
+| Waffen-Art | frei ab | Begründung |
+| :--- | :--- | :--- |
+| `blade` Klinge | Start (wie heute) | Startwaffe |
+| `blaster`, `fists` | Start (in der Schmiede herstellbar) | genug Auswahl für Sektor 1 (Nah + Fern) |
+| `spear` Ionen-Speer | **A.E.G.I.S. Leviathan** besiegt (S1) | passt zur Story (Speer = Leviathan-Technik) |
+| `discus` | **Prisma-Archon** besiegt (S2) | Prisma-/Licht-Thema |
+| `hammer` | **Vulkan-Titan** besiegt (S3) | Schmiede-/Lava-Thema |
+| *(S4 Sternen-Archon)* | — | noch keine 7. Waffen-Art → bis dahin Hub-Trophäe + Relikt; später neue Waffe |
+
+Regeln: **schon hergestellte Waffen bleiben** (alte Saves, kein Entzug); `sectorNCleared` aus alten Saves zählt als besiegt; NG+ behält alle Freischaltungen; Wochen-Prüfung normiert Waffen ohnehin (keine Auswirkung). Nach Änderung `npm test -- m10cp8 m10cp10` (Kampfdauer bei eingeschränkter Waffenwahl prüfen).
 
 Wochen-Prüfung: weiterhin **kein** Loot, keine Freischaltung, keine Trophäe (`handleTrialBossKilled` bleibt maßgeblich).
 
@@ -113,7 +125,7 @@ Wochen-Prüfung: weiterhin **kein** Loot, keine Freischaltung, keine Trophäe (`
 | **B — Kamera** | `camera.ts`, Renderer-Translation, Eingabe-Umrechnung, Rand-Pfeile, `focus()` | `camera.ts` (neu), `dungeonRenderer.ts`, `DungeonScene.ts`, `UIManager.ts` (nur falls HUD betroffen) | `m12p2` (Kamera klemmt, Standardraum = 0,0, Screenshot) |
 | **C — Arena-Daten** | `ArenaDef`, Leviathan-Halle, Anhängen nach `generateSectorFloor`, prozeduraler Arena-Fallback | `src/data/arenas/leviathan.ts` (neu), `dungeonGen.ts`, `mechanicsGen.ts` | `m12p3` (Seed-Layout identisch außer Bossraum, Arena begehbar/erreichbar) |
 | **D — Leviathan-Kampf** | 3 Phasen, Schwachstellen, Arena-Mechaniken, neue Attacken, Auftritt | `enemyAi.updateLeviathanAI` → eigenes `src/dungeon/bosses/leviathanArena.ts`, `bossFx.ts`, `roomMechanics*.ts` | `m12p4` (Phasenwechsel, Schwachstellen-Logik, Telegraph ≥ 0,4/0,8 s) |
-| **E — Belohnungen** | Trophäen-Relikt, Freischaltung, Hub-Vitrine, optionale Save-Felder | `items.ts`, `infusions.ts`, `types.ts`, `gameState.ts`, `hubEvolution.ts`, `artLoader.ts` | `m12p5` (Erstsieg vs. Wiederholung, Prüfung ohne Belohnung, Save alt lädt) |
+| **E — Belohnungen** | Trophäen-Relikt, Waffen-Arten-Sperre (§5.1), Hub-Vitrine, optionale Save-Felder | `items.ts`, `balance.ts`, `upgrades.ts`, `UIManager.ts` (Schmiede), `types.ts`, `gameState.ts`, `hubEvolution.ts`, `artLoader.ts` | `m12p5` (Erstsieg vs. Wiederholung, Prüfung ohne Belohnung, Save alt lädt) |
 | **F — Balance & Abnahme** | Kampfdauer messen, Mobil-Check, Boss-Labor-Eintrag „Arena“, Doku | `balance.ts`, `bossLab.ts`, Doku | `m10cp8`/`m10cp10` + Abnahme durch Projektinhaber |
 
 Danach (eigene Tickets, erst nach Pilot-Abnahme): **Prisma-Archon** (Spiegel-Kathedrale, Lichtstrahlen über Spiegel umgelenkt), **Vulkan-Titan** (Kraterkessel, Lava-Fluss steigt, Titan ragt aus dem Krater), **Sternen-Archon** (Sternwarte, Plattformen driften, Teilen nutzt die zwei Arena-Hälften). Je Boss wird hier ein eigener §6-Block ergänzt.
@@ -136,13 +148,13 @@ Alle optional mit prozeduralem Fallback (Regel 7). Stil: wie `hub_bg.png`/Dungeo
 | P1-06 | `art_source/rigs/leviathan_arena_fx.png` | Typ E · 3×2 · 1536×1024 | Bodenplatte bricht (3 Stufen) · Deckentrümmer · Dampfstoß · Kern-Linse offen | Formel E, Referenz P1-03 |
 | P1-07 | `public/art/sprites/prop_trophy_leviathan.png` + `item_trophy_leviathan.png` | 96×96 + 64×64 | Hub-Vitrine mit leuchtender Herzlinse · Item-Icon der Linse | wie `ART_AND_DESIGN_GUIDE.md` §7 (Promenade) bzw. §3 (Items) |
 
-## 10. Offene Fragen an den Projektinhaber (vor Phase D)
-1. Soll die Wochen-Prüfung die Arena sofort bekommen oder erst ab einer festen Woche (`TRIAL_ARENA_FROM_WEEK`, empfohlen)?
-2. Freischaltung Leviathan: Infusion „Omega-Überlast“ für den Ionen-Speer ok, oder lieber ein Begleiter / eine neue Waffe?
-3. Endless-Spirale: Endbosse dort weiter im Standardraum (empfohlen für den Piloten) oder ebenfalls Arena?
+## 10. Entscheidungen zu den offenen Fragen (Inhaber, 2026-11-27)
+1. **Wochen-Prüfung:** die laufende Woche bleibt unverändert — Arena erst ab der **nächsten Woche nach dem Release** (`TRIAL_ARENA_FROM_WEEK` = erste Woche nach Deploy von Phase D).
+2. **Freischaltung:** keine Infusion „Omega-Überlast“ — stattdessen **Waffen-Arten bis zum Sektor-Abschluss sperren** (§5.1).
+3. **Endless-Spirale:** Endbosse bleiben dort im Standardraum (Folgeticket nach dem Piloten).
 
 ## 11. Umsetzungsnotizen
 *(wird während der Umsetzung gefüllt: Abweichungen, gemessene Werte)*
 
 ## 12. Verknüpfte Dokumente
-[AGENTS.md](AGENTS.md) · [BOSS_ANIMATION_PLAN.md](BOSS_ANIMATION_PLAN.md) (D1–D14) · [MILESTONE_10C_ARCHITECTURE.md](MILESTONE_10C_ARCHITECTURE.md) (Boss-Engine, Balance) · [MILESTONE_10_ARCHITECTURE.md](MILESTONE_10_ARCHITECTURE.md) (Mechaniken, Seeds) · [MILESTONE_11_ARCHITECTURE.md](MILESTONE_11_ARCHITECTURE.md) (Rigs, abgelöste Teile) · [PARALLEL_WORK.md](PARALLEL_WORK.md) · [SPRITE_QUEUE.md](SPRITE_QUEUE.md)
+[AGENTS.md](AGENTS.md) · [BOSS_ENEMY_PIPELINE.md](BOSS_ENEMY_PIPELINE.md) (Ablauf & Qualität) · [BOSS_ANIMATION_PLAN.md](BOSS_ANIMATION_PLAN.md) (D1–D14) · [MILESTONE_10C_ARCHITECTURE.md](MILESTONE_10C_ARCHITECTURE.md) (Boss-Engine, Balance) · [MILESTONE_10_ARCHITECTURE.md](MILESTONE_10_ARCHITECTURE.md) (Mechaniken, Seeds) · [MILESTONE_11_ARCHITECTURE.md](MILESTONE_11_ARCHITECTURE.md) (Rigs, abgelöste Teile) · [PARALLEL_WORK.md](PARALLEL_WORK.md) · [SPRITE_QUEUE.md](SPRITE_QUEUE.md)
