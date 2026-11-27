@@ -181,22 +181,22 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
 | `P3-05` | [x] | `public/art/sprites/prop_hub_crystal_lantern.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | ✅ Kristall-Laterne (`96×96` RGBA, Flood-Fill + Defringe + `NEAREST`) |
 | `P3-06` | [x] | `public/art/sprites/prop_hub_star_banner.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | ✅ Sternen-Banner (`96×96` RGBA, Flood-Fill + Stangen-Zwischenraum freigestellt + `NEAREST`) |
-| `P3-07` | [ ] | `public/art/sprites/prop_kael_memorial.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | Kael-Gedenkamboss |
-| `P3-08` | [ ] | `public/art/sprites/prop_lyra_echo_sign.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | Lyra-Klinikschild |
-| `P3-09` | [ ] | `public/art/sprites/prop_nyx_free_lantern.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | Nyx-Laterne |
-| `P3-10` | [ ] | `public/art/sprites/npc_pilgrim.png` | Formel B · `96×96` RGBA | `public/art/sprites/npc_lyra.png` *(Proportion)* | `ART_AND_DESIGN_GUIDE.md` §7 | Pilger-NPC |
-| `P3-11` | [ ] | `public/art/sprites/npc_foundry_worker.png` | Formel B · `96×96` RGBA | `public/art/sprites/npc_kael.png` *(Proportion)* | `ART_AND_DESIGN_GUIDE.md` §7 | Gießerei-Arbeiter-NPC |
-| `P3-12` | [ ] | `public/art/sprites/npc_elder_scholar.png` | Formel B · `96×96` RGBA | `public/art/sprites/npc_vex.png` *(Proportion)* | `ART_AND_DESIGN_GUIDE.md` §7 | Ältesten-Gelehrter-NPC |
+| `P3-07` | [x] | `public/art/sprites/prop_kael_memorial.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | ✅ Kael-Gedenkamboss (`96×96` RGBA, Flood-Fill + Defringe + `NEAREST`, via `gemini-nano-banana-2.1`) |
+| `P3-08` | [x] | `public/art/sprites/prop_lyra_echo_sign.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | ✅ Lyra-Klinikschild (`96×96` RGBA, Flood-Fill + Halterungs-Loch freigestellt + `NEAREST`, kein Text) |
+| `P3-09` | [x] | `public/art/sprites/prop_nyx_free_lantern.png` | Formel B · `96×96` RGBA | `public/art/hub_bg.png` | `ART_AND_DESIGN_GUIDE.md` §7 | ✅ Nyx-Laterne (`96×96` RGBA, Flood-Fill + Defringe + `NEAREST`) |
+| `P3-10` | [x] | `public/art/sprites/npc_pilgrim.png` | Formel B · `96×96` RGBA | `public/art/sprites/npc_lyra.png` *(Proportion)* | `ART_AND_DESIGN_GUIDE.md` §7 | ✅ Pilger-NPC (`96×96` RGBA, Moonlighter-NPC-Proportion wie Lyra/Kael/Vex, Flood-Fill + `NEAREST`) |
+| `P3-11` | [x] | `public/art/sprites/npc_foundry_worker.png` | Formel B · `96×96` RGBA | `public/art/sprites/npc_kael.png` *(Proportion)* | `ART_AND_DESIGN_GUIDE.md` §7 | ✅ Gießerei-Arbeiter-NPC (`96×96` RGBA, Proportion wie Kael, Flood-Fill + `NEAREST`) |
+| `P3-12` | [x] | `public/art/sprites/npc_elder_scholar.png` | Formel B · `96×96` RGBA | `public/art/sprites/npc_vex.png` *(Proportion)* | `ART_AND_DESIGN_GUIDE.md` §7 | ✅ Ältesten-Gelehrter-NPC (`96×96` RGBA, Flood-Fill + `NEAREST`) |
 
 ### P3c — Fehlende M10-C Boss-Sprites (Fallback-Ersatz)
 
 | ID | Status | Zieldatei | Typ & Format | Referenz (`ImagePaths`) | Brief / Prompt | Notiz |
 | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
-| `P3-13` | [ ] | `public/art/sprites/boss_slag_colossus.png` | Formel B · `128×128` RGBA | `public/art/sprites/boss_vulkan_titan.png` *(Sektor-3-Stil)* | `ART_AND_DESIGN_GUIDE.md` §8 | S3 E1 Schlacken-Koloss |
-| `P3-14` | [ ] | `public/art/sprites/boss_forge_mistress.png` | Formel B · `128×128` RGBA | `public/art/sprites/boss_vulkan_titan.png` *(Sektor-3-Stil)* | `ART_AND_DESIGN_GUIDE.md` §8 | S3 E2 Gießerei-Meisterin |
-| `P3-15` | [ ] | `public/art/sprites/boss_chrono_warden.png` | Formel B · `128×128` RGBA | `public/art/sprites/boss_star_archon.png` *(Sektor-4-Stil)* | `ART_AND_DESIGN_GUIDE.md` §8 | S4 E1 Chrono-Wächter |
-| `P3-16` | [ ] | `public/art/sprites/boss_monolith_colossus.png` | Formel B · `128×128` RGBA | `public/art/sprites/boss_star_archon.png` *(Sektor-4-Stil)* | `ART_AND_DESIGN_GUIDE.md` §8 | S4 E2 Monolith-Koloss |
-| `P3-17` | [ ] | `public/art/sprites/boss_scrap_collector.png` | Formel B · `128×128` RGBA | `public/art/sprites/boss_breacher.png` | `ART_AND_DESIGN_GUIDE.md` §8 | Sehr niedrige Prio: Krall nutzt bereits sein M11-Rig |
+| `P3-13` | [x] | `public/art/sprites/boss_slag_colossus.png` | Formel B · `128×128` RGBA | `public/art/sprites/boss_vulkan_titan.png` *(Sektor-3-Stil)* | `ART_AND_DESIGN_GUIDE.md` §8 | ✅ S3 E1 Schlacken-Koloss (`128×128` RGBA, Flood-Fill + `NEAREST`, via `gemini-nano-banana-2.1`) |
+| `P3-14` | [x] | `public/art/sprites/boss_forge_mistress.png` | Formel B · `128×128` RGBA | `public/art/sprites/boss_vulkan_titan.png` *(Sektor-3-Stil)* | `ART_AND_DESIGN_GUIDE.md` §8 | ✅ S3 E2 Gießerei-Meisterin (`128×128` RGBA, Flood-Fill + `NEAREST`) |
+| `P3-15` | [x] | `public/art/sprites/boss_chrono_warden.png` | Formel B · `128×128` RGBA | `public/art/sprites/boss_star_archon.png` *(Sektor-4-Stil)* | `ART_AND_DESIGN_GUIDE.md` §8 | ✅ S4 E1 Chrono-Wächter (`128×128` RGBA, Flood-Fill + Ring-Löcher freigestellt + `NEAREST`) |
+| `P3-16` | [x] | `public/art/sprites/boss_monolith_colossus.png` | Formel B · `128×128` RGBA | `public/art/sprites/boss_star_archon.png` *(Sektor-4-Stil)* | `ART_AND_DESIGN_GUIDE.md` §8 | ✅ S4 E2 Monolith-Koloss (`128×128` RGBA, Flood-Fill + intakter heller Kern + `NEAREST`) |
+| `P3-17` | [x] | `public/art/sprites/boss_scrap_collector.png` | Formel B · `128×128` RGBA | `public/art/sprites/boss_breacher.png` | `ART_AND_DESIGN_GUIDE.md` §8 | ✅ S1 E1 Schrott-Sammler „Krall“ Rückfall-Sprite (`128×128` RGBA, Flood-Fill + `NEAREST`) |
 
 ### P3d — Kern-Wächter: Phase-1-Armschäden (D12-Lücke, niedrige Priorität)
 
