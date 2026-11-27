@@ -90,7 +90,18 @@ function pose(e: Enemy, time: number, lookDx: number, lookDy: number): Pose {
   const ejX = tele ? 0 : 16 * eject;
   const ejY = tele ? 0 : 16 * eject * aim;
 
+  // Effekte aus spore_spitter_fx: Erdkrümel beim Ein-/Austauchen, Sporen-Puff + Druckring beim Ausstoß
+  const entering = scurry && dig < 1, leaving = !scurry && dig > 0;
+  const dirtOn = entering || leaving || st.dip > 0;
+  const dirtVar = st.dip > 0.3 ? 0 : entering ? 1 : leaving ? 2 : 2;
+  const dirtGrow = entering ? 0.5 + 0.4 * dig : leaving ? 0.9 + 0.2 * (1 - dig) : 0.55;
+  const dirtA = entering ? 0.9 : leaving ? dig : 0.8;
+  const ringOn = rk > 0.05;
+  const ringS = 0.3 + 0.6 * eject;
   return {
+    dirt: { hidden: !dirtOn, variant: dirtVar, sx: dirtGrow, sy: dirtGrow * 0.6, alpha: dirtA },
+    puff: { hidden: rk <= 0.3, variant: 0, sx: 0.3 + 0.2 * eject, sy: 0.3 + 0.2 * eject, alpha: clamp((rk - 0.3) * 2, 0, 1), dx: kick * 0.5 },
+    ring: { hidden: !ringOn, sx: ringS, sy: ringS, alpha: rk * 0.9, dx: kick * 0.5 },
     body: { variant: dig > 0.5 ? 1 : 0, sx, sy, dx: kick, dy: dig * 1.2 + 0.6 * st.dip - 0.6 * p, rot: 0.04 * fl * st.flinchDir + 0.03 * sway * dig },
     eye: {
       // schaut zum Spieler; kneift beim Aufblähen leicht zusammen, tief im Boden fast zu
@@ -154,11 +165,17 @@ export function spitterDeathPose(g: SpitterGhost, age: number): Pose {
   const burst = clamp(age / 0.18, 0, 1); // Platzen in den ersten 0,18 s
   const fall = u * u; // Teile fallen beschleunigt
   const d = g.dir;
+  // Kinder erben die Körper-Stauchung → Gegenskalierung, damit Kapseln/Auge/Spore beim Wegfliegen ihre Form behalten
+  const bx = 1 + 0.08 * burst, by = 1 - 0.1 * burst;
+  const ix = 1 / bx, iy = 1 / by;
   return {
-    body: { variant: u > 0.35 ? 1 : 0, sx: 1 + 0.35 * burst, sy: 1 - 0.55 * burst, dy: 1.5 * burst, alpha: 1 - clamp((u - 0.6) / 0.4, 0, 1) },
-    eye: { dx: 2 * d * burst, dy: -9 * Math.sin(Math.min(1, u * 1.4) * Math.PI) + 12 * fall, rot: 3 * u * d, alpha: 1 - clamp((u - 0.5) / 0.5, 0, 1) },
-    podL: { variant: 1, dx: -14 * burst - 4 * u, dy: -10 * Math.sin(Math.min(1, u * 1.3) * Math.PI) + 14 * fall, rot: -2.4 * u, alpha: 1 - clamp((u - 0.55) / 0.45, 0, 1) },
-    podR: { variant: 1, dx: 14 * burst + 4 * u, dy: -10 * Math.sin(Math.min(1, u * 1.3) * Math.PI) + 14 * fall, rot: 2.4 * u, alpha: 1 - clamp((u - 0.55) / 0.45, 0, 1) },
-    spore: { dy: -6 - 4 * u, sx: 1 + 1.6 * u, sy: 1 + 1.6 * u, alpha: 1 - u },
+    body: { variant: u > 0.2 ? 1 : 0, sx: bx, sy: by, dy: 1.5 * burst, alpha: 1 - clamp((u - 0.6) / 0.4, 0, 1) },
+    eye: { sx: ix, sy: iy, dx: 2 * d * burst, dy: -9 * Math.sin(Math.min(1, u * 1.4) * Math.PI) + 12 * fall, alpha: 1 - clamp((u - 0.5) / 0.5, 0, 1) },
+    podL: { variant: 1, sx: ix, sy: iy, dx: -14 * burst - 4 * u, dy: -10 * Math.sin(Math.min(1, u * 1.3) * Math.PI) + 14 * fall, alpha: 1 - clamp((u - 0.55) / 0.45, 0, 1) },
+    podR: { variant: 1, sx: ix, sy: iy, dx: 14 * burst + 4 * u, dy: -10 * Math.sin(Math.min(1, u * 1.3) * Math.PI) + 14 * fall, alpha: 1 - clamp((u - 0.55) / 0.45, 0, 1) },
+    dirt: { hidden: true },
+    puff: { variant: 1, dy: 6, sx: (0.25 + 0.4 * burst) * ix, sy: (0.25 + 0.4 * burst) * iy, alpha: 1 - clamp((u - 0.4) / 0.6, 0, 1) },
+    ring: { dy: 6, sx: (0.2 + 0.7 * burst) * ix, sy: (0.2 + 0.7 * burst) * iy, alpha: (1 - burst) * 0.9 },
+    spore: { dy: -6 - 4 * u, sx: (1 + 1.6 * u) * ix, sy: (1 + 1.6 * u) * iy, alpha: 1 - u },
   };
 }
