@@ -6,3 +6,5 @@
 - Rig blickt in Zielrichtung (Hysterese auf `cos(aimAngle)`), Spiegelung übernimmt der Renderer; Rückstoß nach der 3er-Salve, Lehnen beim Fliegen, Schwebe-Wippen wie zuvor.
 - Rein darstellend — keine Hitbox-/Schadensänderung. Test: `tests/m11p7_shield_drone.cjs`. `tests/m11p1.cjs` prüft die registrierten Rig-Kinds jetzt per „enthält“ (statt exakter Liste → paralleles Arbeiten).
 - **Offen:** Abnahme im echten Kampf durch den Projektinhaber (`?bosslab` → Schild-Drohne). Optional später: Schadensstufen / Treffer-Zucken (kein Sprite nötig, nur Pose).
+
+- **Schildbögen (P2-02b, `shield_drone_arcs.png`):** 6 flache, symmetrische Sicheln (intakt · heiß · überhitzt/rissig · flackert · Block-Blitz · klein beim Einklappen) ersetzen Zellen 5/6 von `shield_drone_rig.png` (asymmetrischer Haken wirkte vor dem Rumpf seltsam). Block-Blitz wird über den Hitze-Anstieg erkannt. Alte Zellen 5/6 + Emitter-Ring sind ungenutzt.
