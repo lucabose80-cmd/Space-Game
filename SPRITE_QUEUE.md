@@ -33,9 +33,9 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 
 ---
 
-## P0 — NEU, höchste Priorität: Krall-Angriffsgrafik (vom Projektinhaber nach Test gewünscht)
+## P0 — NEU, höchste Priorität: Krall-Angriffsgrafik & Geschütz-Antrieb (erledigt ✅)
 
-> **Grund:** Beim Test wirkten Kralls Angriffe „leer“ (Sog nur ein Schadenskreis, Schrott-Hagel nur Kreise, Stoß nur kleine Armbewegung). Code-Seite ist umgesetzt (Sog-Ringe/Schrott-Strom, fallende Schrottklumpen mit Aufschlag, Stoß-Streifen) und nutzt vorhandene Bilder (`scrap_a/b/c`, `spark`). Mit diesen Sheets kann es auf Kern-Wächter-Niveau gebracht werden. **Reihenfolge: P0-13 (Geschütz-Ketten, blockiert Gegner-Serie) → P0-06 → P0-07 → P0-08 → P0-09 → P0-10 → P0-11 → P0-12** (P0-11/12 = Beschädigungsstufen). Referenz überall: `public/art/sprites/boss_breacher.png`, `art_source/rigs/krall_parts.png`.
+> **Grund:** Beim Test wirkten Kralls Angriffe „leer“ (Sog nur ein Schadenskreis, Schrott-Hagel nur Kreise, Stoß nur kleine Armbewegung). Code-Seite ist umgesetzt (Sog-Ringe/Schrott-Strom, fallende Schrottklumpen mit Aufschlag, Stoß-Streifen) und nutzt vorhandene Bilder (`scrap_a/b/c`, `spark`). Mit diesen Sheets kann es auf Kern-Wächter-Niveau gebracht werden. **Reihenfolge: P0-13 (Geschütz-Ketten, blockiert Gegner-Serie) → P0-06 → P0-07 → P0-08 → P0-09 → P0-10 → P0-11 → P0-12** (alle geliefert ✅). Referenz überall: `public/art/sprites/boss_breacher.png`, `art_source/rigs/krall_parts.png`.
 
 | ID | Status | Zieldatei | Typ & Format | Referenz (`ImagePaths`) | Brief / Prompt | Notiz |
 | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
@@ -46,7 +46,7 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 | `P0-09` | [x] | `art_source/rigs/krall_torsos2.png` | Typ S · 3×2 · `1536×1024` | `art_source/rigs/krall_torsos.png` *(Zelle 5 = Phase-2-Skelettrahmen)* | `ART_BRIEF_M11.md` §4.1 (Zusatz K-A) | ✅ 6 Phase-2-Skelettrahmen-Rümpfe (`min_margin ≥ 56 px`, `art:check` ok, Kern im Fadenkreuz, bereit für Claude-Import) |
 | `P0-10` | [x] | `art_source/rigs/krall_legs_R2.png` + `krall_legs_L2.png` | Typ L · 2× 3×2 | `art_source/rigs/krall_legs_R.png` / `_L.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-B) | ✅ Angriffsbeine K-B (`R2: min_margin ≥ 38 px`, `L2: min_margin ≥ 31 px`, `art:check` ok, L nicht gespiegelt, Licht links-oben) |
 | `P0-11` | [x] | `art_source/rigs/krall_torsos3.png` | Typ S · 3×2 · `1536×1024` | `art_source/rigs/krall_torsos.png`, `art_source/rigs/krall_torsos2.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-E) | ✅ 6 Beschädigungsstufen Rumpf (P1 < 80/< 65/< 25 %, P2 < 35/< 25/kritisch < 15 %; Kern im Fadenkreuz, `min_margin ≥ 35 px`, `art:check` ok) |
-| `P0-12` | [ ] | `art_source/rigs/krall_arms_R3.png` + `krall_arms_L3.png` | Typ L · 2× 3×2 | `art_source/rigs/krall_arms_R.png` / `_L.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-E) | **Beschädigte Arme je Seite:** Zange/Haken verbogen (hängend · ausholend · Stoß) · abgebrochen mit Stumpf und Funken (hängend · ausholend · Stoß). Schulterring im Fadenkreuz, L nicht gespiegelt |
+| `P0-12` | [x] | `art_source/rigs/krall_arms_R3.png` + `krall_arms_L3.png` | Typ L · 2× 3×2 | `art_source/rigs/krall_arms_R.png` / `_L.png` | `ART_BRIEF_M11.md` §4.1 (Zusatz K-E) | ✅ Beschädigte Arme K-E (verbogen + abgebrochener funkender Stumpf; `R3: min_margin ≥ 34 px`, `L3: min_margin ≥ 77 px`, `art:check` ok, L nicht gespiegelt) |
 
 ---
 
