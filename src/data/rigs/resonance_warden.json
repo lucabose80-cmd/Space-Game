@@ -1,0 +1,111 @@
+{
+  "kind": "resonance_warden",
+  "sheet": {
+    "file": "resonance_warden",
+    "srcFile": "resonance_warden_rig",
+    "cols": 3,
+    "rows": 2,
+    "order": [
+      "torso",
+      "eye",
+      "crysL",
+      "crysS",
+      "shield",
+      "eyeGlow"
+    ],
+    "scaleRef": "torso",
+    "torsoDisplayH": 23,
+    "pixelRatio": 2
+  },
+  "parts": [
+    {
+      "id": "torso",
+      "image": "torso",
+      "z": 2,
+      "pivot": [
+        0.5,
+        0.6
+      ],
+      "offset": [
+        0,
+        -15
+      ]
+    },
+    {
+      "id": "eye",
+      "image": "eye",
+      "variants": [
+        "eye",
+        "eyeGlow"
+      ],
+      "parent": "torso",
+      "attach": [
+        0.54,
+        0.58
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "z": 3,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "shield",
+      "image": "shield",
+      "parent": "torso",
+      "attach": [
+        0.16,
+        0.58
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "z": 4,
+      "offset": [
+        -3,
+        0
+      ]
+    },
+    {
+      "id": "crysL",
+      "image": "crysL",
+      "parent": "torso",
+      "attach": [
+        0.5,
+        0.5
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "z": 4,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "crysS",
+      "image": "crysS",
+      "parent": "torso",
+      "attach": [
+        0.5,
+        0.5
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "z": 0,
+      "offset": [
+        0,
+        0
+      ]
+    }
+  ]
+}

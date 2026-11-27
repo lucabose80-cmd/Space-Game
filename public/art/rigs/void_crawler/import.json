@@ -1,0 +1,48 @@
+{
+ "rig": "void_crawler",
+ "scale": 0.11881,
+ "resample": "lanczos",
+ "torsoDisplayH": 18,
+ "pixelRatio": 2,
+ "sheets": {
+  "void_crawler_rig.png": "431077487e252b88"
+ },
+ "parts": {
+  "torso": {
+   "w": 42,
+   "h": 36,
+   "srcW": 350,
+   "srcH": 303
+  },
+  "head": {
+   "w": 19,
+   "h": 32,
+   "srcW": 164,
+   "srcH": 266
+  },
+  "legA": {
+   "w": 11,
+   "h": 16,
+   "srcW": 94,
+   "srcH": 133
+  },
+  "legB": {
+   "w": 9,
+   "h": 16,
+   "srcW": 76,
+   "srcH": 136
+  },
+  "legC": {
+   "w": 16,
+   "h": 15,
+   "srcW": 132,
+   "srcH": 127
+  },
+  "tendril": {
+   "w": 29,
+   "h": 29,
+   "srcW": 242,
+   "srcH": 244
+  }
+ }
+}

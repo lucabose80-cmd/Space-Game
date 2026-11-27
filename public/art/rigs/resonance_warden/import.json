@@ -1,0 +1,48 @@
+{
+ "rig": "resonance_warden",
+ "scale": 0.12073,
+ "resample": "lanczos",
+ "torsoDisplayH": 23,
+ "pixelRatio": 2,
+ "sheets": {
+  "resonance_warden_rig.png": "c183d2b2bfbad4f9"
+ },
+ "parts": {
+  "torso": {
+   "w": 40,
+   "h": 46,
+   "srcW": 333,
+   "srcH": 381
+  },
+  "eye": {
+   "w": 17,
+   "h": 16,
+   "srcW": 140,
+   "srcH": 132
+  },
+  "crysL": {
+   "w": 17,
+   "h": 34,
+   "srcW": 140,
+   "srcH": 285
+  },
+  "crysS": {
+   "w": 8,
+   "h": 20,
+   "srcW": 70,
+   "srcH": 167
+  },
+  "shield": {
+   "w": 22,
+   "h": 28,
+   "srcW": 181,
+   "srcH": 236
+  },
+  "eyeGlow": {
+   "w": 36,
+   "h": 36,
+   "srcW": 298,
+   "srcH": 298
+  }
+ }
+}

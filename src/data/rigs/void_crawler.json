@@ -1,0 +1,179 @@
+{
+  "kind": "void_crawler",
+  "sheet": {
+    "file": "void_crawler",
+    "srcFile": "void_crawler_rig",
+    "cols": 3,
+    "rows": 2,
+    "order": [
+      "torso",
+      "head",
+      "legA",
+      "legB",
+      "legC",
+      "tendril"
+    ],
+    "scaleRef": "torso",
+    "torsoDisplayH": 18,
+    "pixelRatio": 2
+  },
+  "parts": [
+    {
+      "id": "torso",
+      "image": "torso",
+      "z": 1,
+      "pivot": [
+        0.5,
+        0.8
+      ],
+      "offset": [
+        0,
+        -7
+      ]
+    },
+    {
+      "id": "head",
+      "image": "head",
+      "parent": "torso",
+      "attach": [
+        0.84,
+        0.72
+      ],
+      "pivot": [
+        0.24,
+        0.65
+      ],
+      "z": 3,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "tendril",
+      "image": "tendril",
+      "parent": "torso",
+      "attach": [
+        0.22,
+        0.48
+      ],
+      "pivot": [
+        0.18,
+        0.78
+      ],
+      "z": 2,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "legA1",
+      "image": "legA",
+      "parent": "torso",
+      "attach": [
+        0.78,
+        0.86
+      ],
+      "pivot": [
+        0.75,
+        0.18
+      ],
+      "z": 2,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "legB1",
+      "image": "legB",
+      "parent": "torso",
+      "attach": [
+        0.54,
+        0.88
+      ],
+      "pivot": [
+        0.65,
+        0.16
+      ],
+      "z": 2,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "legC1",
+      "image": "legC",
+      "parent": "torso",
+      "attach": [
+        0.3,
+        0.86
+      ],
+      "pivot": [
+        0.8,
+        0.18
+      ],
+      "z": 2,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "legA2",
+      "image": "legA",
+      "parent": "torso",
+      "attach": [
+        0.68,
+        0.84
+      ],
+      "pivot": [
+        0.75,
+        0.18
+      ],
+      "z": 0,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "legB2",
+      "image": "legB",
+      "parent": "torso",
+      "attach": [
+        0.44,
+        0.85
+      ],
+      "pivot": [
+        0.65,
+        0.16
+      ],
+      "z": 0,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "legC2",
+      "image": "legC",
+      "parent": "torso",
+      "attach": [
+        0.22,
+        0.84
+      ],
+      "pivot": [
+        0.8,
+        0.18
+      ],
+      "z": 0,
+      "offset": [
+        0,
+        0
+      ]
+    }
+  ]
+}

@@ -31,11 +31,11 @@ import { getMechanicsDrawables, renderMechanicsGround } from './roomMechanicsRen
 import type { Enemy, SpearThrustFx, WeaponSwing } from './dungeonTypes';
 
 export class DungeonRenderer {
-  /** M11 Kristall-Krabbler & Splitter-Scharfschütze: zuletzt gesehene Rig-Positionen + laufende Tod-Splitter (nur Darstellung) */
+  /** M11 Kristall-Krabbler & Gegner-Rigs: zuletzt gesehene Rig-Positionen + laufende Tod-Splitter (nur Darstellung) */
   private crawlerSeen = new Map<number, { x: number; y: number; flip: number }>();
   private crawlerDeaths: { x: number; y: number; flip: number; t0: number }[] = [];
-  private sniperSeen = new Map<number, { x: number; y: number; flip: number }>();
-  private sniperDeaths: { x: number; y: number; flip: number; t0: number }[] = [];
+  private enemyRigSeen = new Map<number, { kind: string; x: number; y: number; flip: number }>();
+  private enemyRigDeaths: { kind: string; x: number; y: number; flip: number; t0: number }[] = [];
   private lastDefeated = -1;
   private scene: DungeonScene;
 
@@ -2529,36 +2529,72 @@ export class DungeonRenderer {
         });
       }
     }
-    // M11 Splitter-Scharfschütze: Tod-Trümmer (Jetpack, Gewehr, Rumpf, Beine fliegen ab)
-    if (this.sniperSeen.size > 0) {
+    // M11 Gegner-Rigs (S2+): Tod-Trümmer (Rig-Teile fliegen ab + Aufblitzen, rein optisch)
+    if (this.enemyRigSeen.size > 0) {
       const alive = new Set(sc.enemies.map((en) => en.id));
-      for (const [id, pos] of this.sniperSeen) {
+      for (const [id, pos] of this.enemyRigSeen) {
         if (alive.has(id)) continue;
-        this.sniperSeen.delete(id);
-        if (killed) this.sniperDeaths.push({ x: pos.x, y: pos.y, flip: pos.flip, t0: sc.time });
+        this.enemyRigSeen.delete(id);
+        if (killed) this.enemyRigDeaths.push({ ...pos, t0: sc.time });
       }
     }
-    const snImgs = getHDArt().rigs.shard_sniper;
-    if (!snImgs || this.sniperDeaths.length === 0) {
-      this.sniperDeaths.length = 0;
-      return;
-    }
-    this.sniperDeaths = this.sniperDeaths.filter((d) => sc.time - d.t0 < 0.85 && sc.time >= d.t0);
-    const snPieces: [string, number, number, number, number][] = [
-      ['jetpack', -38, -58, -7, -10],
-      ['rifle', 42, -52, 9, -6],
-      ['torso', -10, -44, -4, -10],
-      ['legs', 16, -24, 5, 2],
-      ['armR', 28, -36, 8, -6],
-    ];
-    for (const d of this.sniperDeaths) {
+    if (this.enemyRigDeaths.length === 0) return;
+    this.enemyRigDeaths = this.enemyRigDeaths.filter((d) => sc.time - d.t0 < 0.85 && sc.time >= d.t0);
+    const debrisCfg: Record<string, { color: string; pieces: [string, number, number, number, number][] }> = {
+      shard_sniper: {
+        color: '#f472b6',
+        pieces: [
+          ['jetpack', -38, -58, -7, -10],
+          ['rifle', 42, -52, 9, -6],
+          ['torso', -10, -44, -4, -10],
+          ['legs', 16, -24, 5, 2],
+          ['armR', 28, -36, 8, -6],
+        ],
+      },
+      prism_drone: {
+        color: '#38e8d4',
+        pieces: [
+          ['top', -18, -64, -8, -12],
+          ['bot', 22, -40, 7, -4],
+          ['band', -8, -48, -5, -8],
+          ['shardA', 36, -54, 11, -8],
+          ['shardB', -34, -44, -10, -8],
+        ],
+      },
+      void_crawler: {
+        color: '#e879f9',
+        pieces: [
+          ['torso', -10, -42, -4, -4],
+          ['head', 38, -52, 7, -4],
+          ['tendril', -32, -60, -9, -8],
+          ['legA', 26, -34, 8, 4],
+          ['legB', -26, -30, -8, 4],
+          ['legC', 10, -24, 5, 4],
+        ],
+      },
+      resonance_warden: {
+        color: '#fde047',
+        pieces: [
+          ['torso', -8, -46, -4, -10],
+          ['eye', 20, -64, 8, -10],
+          ['shield', -36, -44, -7, -6],
+          ['crysL', 38, -58, 10, -10],
+          ['crysS', -28, -54, -9, -8],
+        ],
+      },
+    };
+    const allRigs = getHDArt().rigs;
+    for (const d of this.enemyRigDeaths) {
+      const cfg = debrisCfg[d.kind];
+      const rigImgs = allRigs[d.kind];
+      if (!cfg || !rigImgs) continue;
       out.push({
         y: d.y + 6,
         draw: () => {
           const t = sc.time - d.t0;
           const fade = t > 0.55 ? 1 - (t - 0.55) / 0.3 : 1;
-          snPieces.forEach(([part, vx, vy, spin, dy0], i) => {
-            const img = snImgs.parts[part];
+          cfg.pieces.forEach(([part, vx, vy, spin, dy0], i) => {
+            const img = rigImgs.parts[part];
             if (!img) return;
             const x = d.x + vx * d.flip * t;
             const y = Math.min(d.y + 10, d.y + dy0 + vy * t + 145 * t * t);
@@ -2569,7 +2605,7 @@ export class DungeonRenderer {
             ctx.drawImage(img, -img.width / 4, -img.height / 4, img.width / 2, img.height / 2);
             ctx.restore();
           });
-          drawGlow(ctx, d.x, d.y - 4, 18 * (1 - t), '#f472b6', 0.55 * (1 - t));
+          drawGlow(ctx, d.x, d.y - 4, 18 * (1 - t), cfg.color, 0.55 * (1 - t));
         },
       });
     }
@@ -3278,6 +3314,12 @@ export class DungeonRenderer {
       return;
     }
     if (e.kind === 'prism_drone') {
+      if (this.tryDrawEnemyRig(ctx, e, false)) {
+        this.enemyRigSeen.set(e.id, { kind: e.kind, x: e.x, y: e.y, flip: 1 });
+        drawGlow(ctx, e.x, e.y - 2, e.telegraphTimer > 0 ? 22 : 15, e.telegraphTimer > 0 ? '#e879f9' : '#38e8d4', e.telegraphTimer > 0 ? 0.52 : 0.24);
+        this.renderEnemyMiniHp(ctx, e);
+        return;
+      }
       const hover = Math.sin(this.scene.time * 6.0 + e.id) * 2.8;
       const spr = e.flashTimer > 0 ? art.prismDroneFlash : art.prismDrone;
       if (spr) {
@@ -3297,7 +3339,7 @@ export class DungeonRenderer {
     if (e.kind === 'shard_sniper') {
       if (this.tryDrawEnemyRig(ctx, e, false)) {
         const dir = this.scene.playerX < e.x - 2 ? -1 : 1;
-        this.sniperSeen.set(e.id, { x: e.x, y: e.y, flip: dir });
+        this.enemyRigSeen.set(e.id, { kind: e.kind, x: e.x, y: e.y, flip: dir });
         drawGlow(ctx, e.x, e.y - 4, e.telegraphTimer > 0 ? 22 : 14, '#f472b6', e.telegraphTimer > 0 ? 0.52 : 0.22);
         this.renderEnemyMiniHp(ctx, e);
         return;
@@ -3311,6 +3353,24 @@ export class DungeonRenderer {
       return;
     }
     if (e.kind === 'void_crawler') {
+      const dir = e.chargeActive > 0 && Math.abs(e.chargeDirX) > 0.1 ? (e.chargeDirX < 0 ? -1 : 1) : this.scene.playerX < e.x - 2 ? -1 : 1;
+      // Biom-passende Staubspur beim Dash (G10, nutzt gemeinsame S1–S5-Staubspuren)
+      const groundBiome = Math.min(5, Math.max(1, this.scene.currentRoom.riftSector ?? this.scene.floor.visualSector ?? this.scene.currentSector));
+      const dustSpr = getHDArt().rigs.crystal_crawler?.parts?.[`fxDustS${groundBiome}`];
+      if (e.chargeActive > 0 && dustSpr) {
+        ctx.save();
+        ctx.globalAlpha = 0.72;
+        ctx.translate(e.x - dir * 14, e.y + 5);
+        ctx.scale(dir, 1);
+        ctx.drawImage(dustSpr, -dustSpr.width / 4, -dustSpr.height / 4, dustSpr.width / 2, dustSpr.height / 2);
+        ctx.restore();
+      }
+      if (this.tryDrawEnemyRig(ctx, e, false)) {
+        this.enemyRigSeen.set(e.id, { kind: e.kind, x: e.x, y: e.y, flip: dir });
+        drawGlow(ctx, e.x, e.y, e.chargeActive > 0 ? 22 : 15, e.chargeActive > 0 ? '#38e8d4' : '#e879f9', e.chargeActive > 0 ? 0.5 : 0.26);
+        this.renderEnemyMiniHp(ctx, e);
+        return;
+      }
       const hop = Math.abs(Math.sin(e.anim * 6.6)) * (e.chargeActive > 0 ? 4.8 : 2.2);
       const spr = e.flashTimer > 0 ? art.voidCrawlerFlash : art.voidCrawler;
       if (spr) {
@@ -3329,6 +3389,14 @@ export class DungeonRenderer {
     }
     if (e.kind === 'resonance_warden') {
       const hover = Math.sin(this.scene.time * 4.5 + e.id) * 2.4;
+      if (this.tryDrawEnemyRig(ctx, e, false)) {
+        const dir = this.scene.playerX < e.x - 2 ? -1 : 1;
+        this.enemyRigSeen.set(e.id, { kind: e.kind, x: e.x, y: e.y, flip: dir });
+        this.renderShieldArc(ctx, e, hover * 0.5, 15.5, 0.95, '#e879f9', 2.8);
+        drawGlow(ctx, e.x, e.y + hover * 0.5, 19, '#c084fc', e.telegraphTimer > 0 ? 0.52 : 0.25);
+        this.renderEnemyMiniHp(ctx, e);
+        return;
+      }
       const spr = e.flashTimer > 0 ? art.resonanceWardenFlash : art.resonanceWarden;
       if (spr) {
         ctx.drawImage(spr, e.x - 14, e.y - 16 + hover, 28, 28);

@@ -1,0 +1,48 @@
+{
+ "rig": "prism_drone",
+ "scale": 0.10458,
+ "resample": "lanczos",
+ "torsoDisplayH": 8,
+ "pixelRatio": 2,
+ "sheets": {
+  "prism_drone_rig.png": "fb5ee0d05a3d55d1"
+ },
+ "parts": {
+  "top": {
+   "w": 32,
+   "h": 22,
+   "srcW": 306,
+   "srcH": 207
+  },
+  "bot": {
+   "w": 35,
+   "h": 23,
+   "srcW": 335,
+   "srcH": 224
+  },
+  "band": {
+   "w": 33,
+   "h": 16,
+   "srcW": 320,
+   "srcH": 153
+  },
+  "shardA": {
+   "w": 8,
+   "h": 20,
+   "srcW": 72,
+   "srcH": 192
+  },
+  "shardB": {
+   "w": 8,
+   "h": 15,
+   "srcW": 73,
+   "srcH": 148
+  },
+  "core": {
+   "w": 29,
+   "h": 29,
+   "srcW": 273,
+   "srcH": 275
+  }
+ }
+}

@@ -1,0 +1,125 @@
+{
+  "kind": "prism_drone",
+  "sheet": {
+    "file": "prism_drone",
+    "srcFile": "prism_drone_rig",
+    "cols": 3,
+    "rows": 2,
+    "order": [
+      "top",
+      "bot",
+      "band",
+      "shardA",
+      "shardB",
+      "core"
+    ],
+    "scaleRef": "band",
+    "torsoDisplayH": 8,
+    "pixelRatio": 2
+  },
+  "parts": [
+    {
+      "id": "band",
+      "image": "band",
+      "z": 2,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "offset": [
+        0,
+        -13
+      ]
+    },
+    {
+      "id": "core",
+      "image": "core",
+      "parent": "band",
+      "attach": [
+        0.5,
+        0.5
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "z": 1,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "top",
+      "image": "top",
+      "parent": "band",
+      "attach": [
+        0.5,
+        0.15
+      ],
+      "pivot": [
+        0.5,
+        0.92
+      ],
+      "z": 3,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "bot",
+      "image": "bot",
+      "parent": "band",
+      "attach": [
+        0.5,
+        0.85
+      ],
+      "pivot": [
+        0.5,
+        0.08
+      ],
+      "z": 1,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "shardA",
+      "image": "shardA",
+      "parent": "band",
+      "attach": [
+        0.5,
+        0.5
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "z": 4,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "shardB",
+      "image": "shardB",
+      "parent": "band",
+      "attach": [
+        0.5,
+        0.5
+      ],
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "z": 0,
+      "offset": [
+        0,
+        0
+      ]
+    }
+  ]
+}
