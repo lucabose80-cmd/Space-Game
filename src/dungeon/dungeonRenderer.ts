@@ -4,6 +4,7 @@ import { drawBossLook } from './bosses/bossLooks';
 import { getBossPose, getRigFacing, smoothBossBody } from './anim/bossAnims';
 import { ARC_DEATH_TIME, arcDeathPose } from './anim/rigs/drone_arc';
 import { STALKER_DEATH_TIME, stalkerDeathPose } from './anim/rigs/phase_stalker';
+import { SHIELD_DRONE_DEATH_TIME, shieldDroneDeathPose } from './anim/rigs/shield_drone';
 import { drawDetached, spawnPhase2Parts } from './anim/detached';
 import { spitterDeathPose, updateSpitterGhosts } from './anim/rigs/spore_spitter';
 import { enemyMotion, wantsMotion } from './anim/motion';
@@ -623,6 +624,7 @@ export class DungeonRenderer {
 
     this.renderDroneArcWrecks(ctx);
     this.renderStalkerWrecks(ctx);
+    this.renderShieldDroneWrecks(ctx);
 
     // Faceted 2.5D Hex-Aegis Kinetic Shield (animates smoothly on deploy & retract!)
     if (this.scene.shieldOpenAnim > 0.02) {
@@ -2505,6 +2507,26 @@ export class DungeonRenderer {
     }
   }
 
+  /** M11 Schild-Drohne: Todes-Animation (Düsen reißen ab, Rumpf kippt, Schildbogen zerspringt) — nur Darstellung. */
+  private readonly shieldDroneSeen = new Map<Enemy, { x: number; y: number; f: number }>();
+  private shieldDroneWrecks: { x: number; y: number; f: number; t0: number; id: number }[] = [];
+  private renderShieldDroneWrecks(ctx: CanvasRenderingContext2D): void {
+    const now = this.scene.time;
+    for (const [e, s] of this.shieldDroneSeen) {
+      if (this.scene.enemies.includes(e)) continue;
+      if (e.hp <= 0) this.shieldDroneWrecks.push({ x: s.x, y: s.y, f: s.f, t0: now, id: e.id });
+      this.shieldDroneSeen.delete(e);
+    }
+    this.shieldDroneWrecks = this.shieldDroneWrecks.filter((w) => now - w.t0 < SHIELD_DRONE_DEATH_TIME && now >= w.t0);
+    const images = getHDArt().rigs.shield_drone;
+    if (!images) return;
+    for (const w of this.shieldDroneWrecks) {
+      const t = now - w.t0;
+      drawRig(ctx, RIGS.shield_drone, images, w.x, w.y + 11, shieldDroneDeathPose(t, w.id), { flipX: w.f < 0 });
+      drawGlow(ctx, w.x, w.y - 2, 18 * (1 - t / SHIELD_DRONE_DEATH_TIME), '#38e8d4', 0.45 * (1 - t / SHIELD_DRONE_DEATH_TIME));
+    }
+  }
+
   /** M11 Bogen-Drohne: Wrack-Animation beim Tod (Teile fliegen ab, Blitz) — nur Darstellung. */
   private readonly droneArcSeen = new Map<Enemy, { x: number; y: number; f: number }>();
   private droneArcWrecks: { x: number; y: number; f: number; t0: number; id: number }[] = [];
@@ -3252,6 +3274,7 @@ export class DungeonRenderer {
       );
     } else if (e.kind === 'shield_drone') {
       if (this.tryDrawEnemyRig(ctx, e, false)) {
+        this.shieldDroneSeen.set(e, { x: e.x, y: e.y, f: getRigFacing('shield_drone', e, this.scene.playerX) });
         // M11: Rig (Rumpf + Düsen + Emitter + drehender Schildbogen) — Konter-Hinweis bei offenem Schild bleibt
         if ((e.shieldDownTimer ?? 0) > 0) {
           ctx.fillStyle = '#fde047';

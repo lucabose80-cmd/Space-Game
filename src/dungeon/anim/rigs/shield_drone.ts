@@ -98,19 +98,23 @@ function dronePose(e: Enemy, time: number): Pose {
   const moving = clamp(speed / 50, 0, 1);
   const lean = clamp(e.vx * facing * 0.004, -0.2, 0.2);
   const kick = rk * 2.6; // Rückstoß entgegen der Zielrichtung
+  // G6 Treffer-Zucken (≤ 0,15 s, flashTimer): Rumpf ruckt zurück und kippt; in der Vorwarnung auf 30 % gedämpft
+  const hit = clamp(e.flashTimer / 0.12, 0, 1) * (tele ? 0.3 : 1);
+  // G4 Erholung: nach der Salve (Schild noch offen, keine Vorwarnung) sackt der Rumpf kurz ein, Visier dimmt — Konter-Fenster lesbar
+  const recover = st.down === 'attack' && !tele ? clamp(downT / cfg.attackOpenSec, 0, 1) : 0;
   const flare = clamp(0.2 + 0.8 * moving + 0.6 * p + 0.5 * rk, 0, 1.2); // 0 … ~1: Schubstärke
   const flick = 0.9 + 0.1 * Math.sin(time * 40 + e.id);
 
   return {
     hull: {
-      dx: -Math.cos(aLocal) * kick - 0.8 * p,
-      dy: -hover - Math.sin(aLocal) * kick,
-      rot: lean + (tele ? -0.06 * p : 0) + 0.05 * rk,
+      dx: -Math.cos(aLocal) * (kick + 1.6 * hit) - 0.8 * p,
+      dy: -hover - Math.sin(aLocal) * kick + 0.9 * recover,
+      rot: lean + (tele ? -0.06 * p : 0) + 0.05 * rk + 0.16 * hit * (e.id % 2 === 0 ? 1 : -1),
       sx: 1 + 0.05 * rk - 0.03 * p,
       sy: 1 - 0.05 * rk + 0.03 * p,
     },
     // Lichtauge schaut zum Spieler und leuchtet in der Vorwarnung auf
-    visor: { dx: Math.cos(aLocal) * 1.4, dy: Math.sin(aLocal) * 1.0, sx: 1 + 0.12 * p + 0.1 * rk, sy: 1 + 0.12 * p + 0.1 * rk },
+    visor: { dx: Math.cos(aLocal) * 1.4, dy: Math.sin(aLocal) * 1.0, sx: 1 + 0.12 * p + 0.1 * rk + 0.1 * hit, sy: 1 + 0.12 * p + 0.1 * rk + 0.1 * hit, alpha: 1 - 0.3 * recover },
     nacelleL: { rot: -lean * 0.5 + 0.05 * Math.sin(time * 9 + e.id), sy: (0.9 + 0.15 * flare) * flick, sx: 0.95 + 0.05 * flare },
     nacelleR: { rot: -lean * 0.5 - 0.05 * Math.sin(time * 9 + e.id + 1.3), sy: 0.8 * (0.9 + 0.15 * flare) * flick, sx: 0.8 * (0.95 + 0.05 * flare) },
     arc: {
@@ -126,7 +130,26 @@ function dronePose(e: Enemy, time: number): Pose {
   };
 }
 
+/** Dauer der Todes-Animation (s). */
+export const SHIELD_DRONE_DEATH_TIME = 0.6;
+
+/** Todespose (t = Sekunden seit dem Tod): Düsen reißen ab, der Rumpf kippt und sackt weg, der Schildbogen zerspringt (rissiges Bild, weitet sich, blendet aus). */
+export function shieldDroneDeathPose(t: number, id: number): Pose {
+  const u = clamp(t / SHIELD_DRONE_DEATH_TIME, 0, 1);
+  const fall = Math.min(u * u * 12, 10);
+  const fade = clamp(1.25 - u, 0, 1);
+  const s = id % 2 === 0 ? 1 : -1;
+  return {
+    hull: { rot: 0.6 * u * s, dy: fall, dx: 2 * u * s, alpha: fade, sy: 1 - 0.12 * u },
+    visor: { dy: fall * 0.4, dx: 1.5 * u * s, alpha: clamp(1 - u * 2.2, 0, 1) },
+    nacelleL: { rot: -4 * u, dx: -15 * u, dy: -7 * u + fall * 1.5, alpha: fade },
+    nacelleR: { rot: 4 * u, dx: 15 * u, dy: -9 * u + fall * 1.5, alpha: fade },
+    arc: { variant: 2, dy: ARC_CENTER_DROP * ARC_BASE + ARC_PUSH + fall * 0.6, sx: ARC_BASE * (1 + 0.8 * u), sy: ARC_BASE * (1 - 0.3 * u), alpha: clamp(1 - u * 1.6, 0, 1) },
+  };
+}
+
 export const anim: RigAnim = {
   rawPose: (e, time) => dronePose(e, time),
   facing: (e) => facingOf(e),
+  noPulse: ['arc'],
 };
