@@ -1,0 +1,48 @@
+{
+ "rig": "turret",
+ "scale": 0.11411,
+ "resample": "lanczos",
+ "torsoDisplayH": 19,
+ "pixelRatio": 2,
+ "sheets": {
+  "turret_rig.png": "272af2de79a8b114"
+ },
+ "parts": {
+  "base": {
+   "w": 44,
+   "h": 36,
+   "srcW": 388,
+   "srcH": 312
+  },
+  "housing": {
+   "w": 40,
+   "h": 38,
+   "srcW": 350,
+   "srcH": 333
+  },
+  "barrelIn": {
+   "w": 25,
+   "h": 22,
+   "srcW": 218,
+   "srcH": 191
+  },
+  "barrelOut": {
+   "w": 28,
+   "h": 18,
+   "srcW": 243,
+   "srcH": 161
+  },
+  "muzzle": {
+   "w": 17,
+   "h": 16,
+   "srcW": 151,
+   "srcH": 136
+  },
+  "core": {
+   "w": 15,
+   "h": 15,
+   "srcW": 135,
+   "srcH": 131
+  }
+ }
+}

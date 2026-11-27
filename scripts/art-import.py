@@ -145,7 +145,10 @@ def import_rig(rid, rig, args, report):
     sh = rig["sheet"]
     parts_all = []
     # bis zu zwei Sheets: <file>_parts.png, <file>_parts2.png
-    srcs = [os.path.join(args.src, "rigs", f"{sh['file']}_parts.png"), os.path.join(args.src, "rigs", f"{sh['file']}_parts2.png")]
+    if sh.get("srcFile"):  # Gegner-Rigs: art_source/rigs/<srcFile>.png (z. B. turret_rig.png)
+        srcs = [os.path.join(args.src, "rigs", f"{sh['srcFile']}.png")]
+    else:
+        srcs = [os.path.join(args.src, "rigs", f"{sh['file']}_parts.png"), os.path.join(args.src, "rigs", f"{sh['file']}_parts2.png")]
     order = list(sh["order"])
     if not os.path.exists(srcs[0]):
         report.append(f"– {rid}: Sheet fehlt ({srcs[0]})")

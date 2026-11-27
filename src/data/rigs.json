@@ -686,5 +686,116 @@
       "fist_angled",
       "fist_trail"
     ]
+  },
+  "turret": {
+    "kind": "turret",
+    "sheet": {
+      "file": "turret",
+      "srcFile": "turret_rig",
+      "cols": 3,
+      "rows": 2,
+      "order": [
+        "base",
+        "housing",
+        "barrelIn",
+        "barrelOut",
+        "muzzle",
+        "core"
+      ],
+      "scaleRef": "housing",
+      "torsoDisplayH": 19,
+      "pixelRatio": 2
+    },
+    "parts": [
+      {
+        "id": "base",
+        "image": "base",
+        "z": 0,
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "offset": [
+          0,
+          -4
+        ]
+      },
+      {
+        "id": "core",
+        "image": "core",
+        "parent": "housing",
+        "attach": [
+          0.5,
+          0.5
+        ],
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "z": 0.5,
+        "offset": [
+          2,
+          0
+        ]
+      },
+      {
+        "id": "housing",
+        "image": "housing",
+        "parent": "base",
+        "attach": [
+          0.5,
+          0.5
+        ],
+        "pivot": [
+          0.5,
+          0.62
+        ],
+        "z": 1,
+        "offset": [
+          0,
+          -6
+        ]
+      },
+      {
+        "id": "barrel",
+        "image": "barrelIn",
+        "variants": [
+          "barrelIn",
+          "barrelOut"
+        ],
+        "parent": "housing",
+        "attach": [
+          0.5,
+          0.5
+        ],
+        "pivot": [
+          0.3,
+          0.5
+        ],
+        "z": 2,
+        "offset": [
+          7,
+          -1
+        ]
+      },
+      {
+        "id": "muzzle",
+        "image": "muzzle",
+        "parent": "barrel",
+        "attach": [
+          0.5,
+          0.5
+        ],
+        "pivot": [
+          0.5,
+          0.5
+        ],
+        "z": 3,
+        "offset": [
+          8,
+          0
+        ]
+      }
+    ]
   }
 }

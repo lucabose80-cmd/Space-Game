@@ -74,6 +74,11 @@ Nach und nach erzeugen, sobald Gemini-Volumen frei ist (Reihenfolge §5 im Brief
 - [ ] S4: `chrono_eye_rig` · `astral_scarab_rig` · `star_lancer_rig` · `void_wraith_rig` · `monolith_guard_rig`
 - Code-Seite (Claude Code, bereit!): Import-Modus `parts`, Rigs in `rigs.json`, `anim/enemyAnims.ts`. *(Hinweis: `turret_rig.png` Zelle 5 ist ein hohler sechseckiger Mündungsring mit `#FFFFFF`-Innenloch — beim `parts`-Import ggf. Innen-Weiß entfernen wie bei Ringen üblich.)*
 
+## Gegner-Rigs (M11 Phase 7) — Stand
+- **Geschütz (`turret`) eingebunden:** `rigs.json` → `turret` (`sheet.srcFile: turret_rig`, Teile base/housing/barrel/muzzle/core), `src/dungeon/anim/enemyAnims.ts` (`turretPose`: Neigung zum Spieler, Rohr fährt in Vorwarnung aus, Mündung/Kern glühen, Rückstoß, Wippen beim Umsetzen), Renderer `tryDrawEnemyRig` (Blick zum Spieler = Rig gespiegelt). Fallback: altes `turret_0/1`.
+- **Fehlt (PRIORITÄT P0-13):** Raupenketten `turret_treads.png` — das Geschütz bewegt sich (`scurry`), hat aber keinen Antrieb → gleitet. Danach Ketten als Teile `treadL/R` einbauen (Rollphase aus Strecke, Staub).
+- **Noch ohne Code:** `phase_stalker_rig.png`, `drone_rig.png` liegen vor, werden als Nächstes eingebunden (gleiches Muster).
+
 ## Nächster Schritt
 - **Polish (Teile 1–3) abgenommen & erledigt:** Hintergrund-Pause, Wackeln/Vibration im Hilfe-Tab, Tür-Label · Kern-Wächter-Schritte, Hit-Stop (`heavyStop`), Telegraph-Blitz, Schadenszahlen-Merge · Dungeon-Code lädt nach (`__game.dungeonReady`, Chunk-Gruppe `dungeon` entfernt). Tests `t7`, `t7b`, `t8`.
 - **Aufräumen erledigt** (Audit 2026-11-26, Blöcke C1–C6): Doku auf aktuellem Stand, „Kern-Wächter“ einheitlich, Repo-Hygiene, toter Code entfernt, gemeinsamer `EnemyKind`, `check:sprites` prüft Sheets/Imports, Pose-Sheet-Import (`art_source/poses`) entfernt, `npm run build:single` dokumentiert, Version 1.4.0. **Firebase-SDK lädt nach dem Start nach** (`src/services/firebaseSdk.ts` per `import()`, Service-API unverändert; Test `t6`) — Abweichung vom Plan: nicht der ganze Service, nur das SDK.

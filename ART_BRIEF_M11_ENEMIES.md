@@ -41,6 +41,9 @@ Für eine **zweite Variante** desselben Teils (z. B. Rohr eingefahren/ausgefahre
 ## 4. Aufträge pro Gegner
 Spalten: **Zellen 1–6** (Reihenfolge = Prompt), **Gelenk** = was in der Zellmitte liegt, **Bewegung im Code** = wofür die Teile gebraucht werden. Dateiname: `art_source/rigs/<kind>_rig.png`.
 
+### Zusatz Geschütz-Antrieb (`turret_treads.png`, P0-13)
+Das Geschütz bewegt sich im Spiel (`scurry`), das Rig hat aber nur Sockel + Gehäuse → es würde gleiten. Zusatz-Sheet: Zellen 1–4 vier Rollphasen **einer linken Raupenkette** (Glieder wandern, rechte Kette spiegelt der Code), 5 kleine Staubwolke, 6 Bremsfunken/Rost-Spritzer. Zellmitte = Kettenmitte, 3/4-Draufsicht, Breite ≈ Sockel. Prompt-Vorschlag: „4 animation frames of one left caterpillar track unit of a small mobile turret, pixel art, same style/palette as the reference turret, white background, 3×2 grid: frames 1–4 track rolling, 5 small dust puff, 6 brake sparks and rust flakes; each centred in its cell“.
+
 ### Sektor 1
 | Gegner (`kind`) · Referenz | Zellen 1–6 | Gelenk (Zellmitte) | Bewegung im Code |
 | :--- | :--- | :--- | :--- |

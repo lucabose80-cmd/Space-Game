@@ -3,6 +3,7 @@
 import { RIGS } from '../../data/rigs';
 import type { PartPose, Pose } from '../../engine/rig';
 import type { Enemy } from '../dungeonTypes';
+import { turretPose } from './enemyAnims';
 
 const clamp01 = (v: number): number => Math.max(0, Math.min(1, v));
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
@@ -352,8 +353,8 @@ export function smoothBossBody(e: Enemy, sx: number, sy: number, tilt: number, t
 }
 
 /** Pose des Boss-Rigs (geglättet). Teile mit `detach: 'phase2'` sind ab Phase 2 unsichtbar (sie fliegen als abgelöste Teile). */
-export function getBossPose(rigId: string, e: Enemy, time: number, lookDx = 0): Pose {
-  const pose = smoothPose(e, rawBossPose(rigId, e, time, lookDx), time, rigId === 'krall' ? KRALL_TAU : SMOOTH_TAU);
+export function getBossPose(rigId: string, e: Enemy, time: number, lookDx = 0, lookDy = 0): Pose {
+  const pose = smoothPose(e, rawBossPose(rigId, e, time, lookDx, lookDy), time, rigId === 'krall' ? KRALL_TAU : SMOOTH_TAU);
   if (e.bossPhase2) {
     for (const p of RIGS[rigId]?.parts ?? []) if (p.detach === 'phase2') pose[p.id] = { ...pose[p.id], hidden: true };
   }
@@ -372,7 +373,7 @@ function stridePhase(e: Enemy, time: number, speed: number): number {
   return st.phase;
 }
 
-function rawBossPose(rigId: string, e: Enemy, time: number, lookDx: number): Pose {
+function rawBossPose(rigId: string, e: Enemy, time: number, lookDx: number, lookDy: number): Pose {
   const speed = Math.hypot(e.vx, e.vy);
   const walk = Math.min(1, speed / 60);
   switch (rigId) {
@@ -398,6 +399,7 @@ function rawBossPose(rigId: string, e: Enemy, time: number, lookDx: number): Pos
         plate: { dy: breathe * 0.5 },
       };
     }
+    case 'turret': return turretPose(e, time, lookDx, lookDy);
     case 'core_warden': {
       const sw = Math.sin(time * 1.8 + e.id);
       const breathe = Math.sin(time * 2.4 + e.id);

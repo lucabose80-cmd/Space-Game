@@ -4,6 +4,7 @@ import { drawBossLook } from './bosses/bossLooks';
 import { getBossPose, smoothBossBody } from './anim/bossAnims';
 import { drawDetached, spawnPhase2Parts } from './anim/detached';
 import { enemyMotion, wantsMotion } from './anim/motion';
+import { turretFacing } from './anim/enemyAnims';
 import { drawRig } from '../engine/rig';
 import { RIG_BY_KIND, RIGS } from '../data/rigs';
 import { getAtlas } from '../assets/sprites';
@@ -2288,6 +2289,21 @@ export class DungeonRenderer {
     return true;
   }
 
+  /** M11 Phase 7: Gegner-Rig (Teile-Sheet Typ G) zeichnen — Boden bei `e.y + 11`, Blickrichtung zum Spieler (Rig gespiegelt). */
+  private tryDrawEnemyRig(ctx: CanvasRenderingContext2D, e: Enemy, _moving: boolean): boolean {
+    const rigId = RIG_BY_KIND[e.kind];
+    if (!rigId) return false;
+    const images = getHDArt().rigs[rigId];
+    if (!images) return false;
+    const dx = this.scene.playerX - e.x;
+    const dy = this.scene.playerY - e.y;
+    const facing = e.kind === 'turret' ? turretFacing(e, this.scene.playerX) : 1;
+    const pose = getBossPose(rigId, e, this.scene.time, dx * facing, dy);
+    drawPixelShadow(ctx, e.x, e.y + 10, 11, 3.6, 0.45);
+    drawRig(ctx, RIGS[rigId], images, e.x, e.y + 11, pose, { flash: e.flashTimer > 0, flipX: facing < 0 });
+    return true;
+  }
+
   private renderBreacherBoss(ctx: CanvasRenderingContext2D, e: Enemy): void {
     const art = getHDArt();
     const state = e.bossState ?? 'stalk';
@@ -2975,6 +2991,12 @@ export class DungeonRenderer {
       const scurrying = e.scurryTimer > 0;
       const bob = scurrying ? Math.abs(Math.sin(this.scene.time * 22 + e.id)) * 2.2 : 0;
       const tilt = scurrying ? Math.sin(this.scene.time * 22 + e.id) * 0.08 : 0;
+      if (this.tryDrawEnemyRig(ctx, e, scurrying)) {
+        // M11: Rig (Sockel + drehendes Gehäuse + Rohr) statt Einzelbild
+        if (e.telegraphTimer > 0) drawGlow(ctx, e.x, e.y - 4, 20, '#fbbf24', 0.45);
+        this.renderEnemyMiniHp(ctx, e);
+        return;
+      }
       const spr =
         e.flashTimer > 0
           ? art.turretFlash ?? atlas.turretFlash
