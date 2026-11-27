@@ -72,7 +72,7 @@ module.exports = async ({ page }) => {
   assert.deepStrictEqual(r.pixEye, [0, 0, 255, 255], 'z-Reihenfolge: Auge über dem Arm'); assert.strictEqual(r.hiddenArm[3], 0); assert.deepStrictEqual(r.flash, [255, 255, 255, 255]);
   assert.deepStrictEqual(r.blend, [0.5, 1.5, 2]);
   assert.ok(r.lean); assert.deepStrictEqual(r.windup, [true, true]); assert.deepStrictEqual(r.hit, [true, true]); assert.deepStrictEqual(r.wants, [true, false, false, false]);
-  assert.deepStrictEqual(r.loaded, [true, true, ['boss', 'boss_breacher', 'turret']]); assert.ok(r.legsMove);
+  assert.deepStrictEqual(r.loaded, [true, true, ['boss', 'boss_breacher', 'drone', 'turret']]); assert.ok(r.legsMove);
   assert.ok(r.rendered.krall && r.rendered.core_warden, 'Rig verändert das Bild gegenüber dem Fallback: ' + JSON.stringify(r.rendered)); assert.ok(r.enemiesOk);
   console.log('M11 PHASE1 OK');
 };
