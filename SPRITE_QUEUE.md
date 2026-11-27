@@ -8,6 +8,11 @@
 
 ## Verbindliche Regeln für ALLE Agenten & KIs
 
+### 0. Grundhaltung: Qualität vor Sparen (Projektinhaber, 2026-11-27)
+- **Neue Sheets bestellen ist ausdrücklich erwünscht.** Der Projektinhaber hat genug Gemini-Guthaben — Bild-Credits sind **kein** Grund, eine Pose/Arena/Effekt mit Code zu verbiegen oder ein schwaches Sheet zu behalten (`AGENTS.md` Regel 14).
+- **Gefällt etwas nicht oder klappt es technisch nicht** (falscher Maßstab, Gelenk sitzt nicht, Pose wirkt puppenhaft, Stil passt nicht, Rückmeldung des Inhabers): **Ersatz-Sheet** eintragen — neue ID, Status `[ ]`, Notiz *„ersetzt `<datei>` — Grund: …“*, Referenz = altes Sheet + was anders werden soll. Ersatz-Einträge werden auch bei vorhandener Datei neu generiert (Ausnahme in Regel 2.2). Zusätzliche Posen/Zustände = **Zusatz-Sheet** (`<id>_<teil>N.png`).
+- Die STOP-GATES bleiben — sie sichern die **Qualität** (erst Pilot im Spiel prüfen, dann Serie), nicht das Budget. Der Inhaber kann Gates und den Sicherheits-Deckel (Regel 2.5) jederzeit lockern.
+
 ### 1. Einsortier-Pflicht (Claude Code, Feature-Agenten & Planung)
 Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet oder einen prozeduralen Fallback anlegt, **muss** es im selben Commit hier in `SPRITE_QUEUE.md` eintragen:
 - in der passenden Prioritätsstufe (**P0** = laufendes Boss-Rig / Blocker · **P1** = Pilot vor Serie · **P2** = M11 Gegner-Rigs · **P3** = optionale M10/M10-C-Fallbacks · **P4** = weitere Boss-Rigs),
@@ -143,7 +148,7 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 
 ## P3 — Optionale M10 & M10-C Einzel-Sprites (Fallbacks ersetzen)
 
-> **Credit-Spar-Hinweis:** Bis zu 6 zusammengehörige M10-Promenade-Props (oder 4 M10-C-Boss-Sprites) können als **ein** `3×2`-Sheet auf `#FFFFFF` erzeugt und per PIL sauber in einzelne `96×96`- bzw. `128×128`-RGBA-PNGs extrahiert werden (1 Slot statt 6 Slots). Eine abgelegte PNG ersetzt den prozeduralen Fallback sofort ohne Codeänderung.
+> **Bündel-Tipp (optional, kein Muss — §0):** Bis zu 6 zusammengehörige M10-Promenade-Props (oder 4 M10-C-Boss-Sprites) können als **ein** `3×2`-Sheet auf `#FFFFFF` erzeugt und per PIL sauber in einzelne `96×96`- bzw. `128×128`-RGBA-PNGs extrahiert werden (1 Slot statt 6 Slots). Eine abgelegte PNG ersetzt den prozeduralen Fallback sofort ohne Codeänderung.
 
 ### P3a — Schwächste Promenaden-Fallbacks zuerst (M10-A)
 
@@ -185,12 +190,14 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | `P3-18` | [ ] | `art_source/rigs/core_warden_arms_R4.png` | L · 3×2 (`1536×1024`) | `core_warden_arms_R.png` + `core_warden_arms_R2.png` | `ART_BRIEF_M11.md` §4.2 *(Zusatz „Phase-1-Armschäden“)* | rechter Arm, Phase 1 **beschädigt**: Hauptposen Hängend · Ausholen · Schlag · Laser-Seite · Block · Stampfer, mit Rissen, verbogener Panzerung, Funken, Schulterkappe angeschlagen; Schulterring im Fadenkreuz |
 | `P3-19` | [ ] | `art_source/rigs/core_warden_arms_L4.png` | L · 3×2 (`1536×1024`) | `core_warden_arms_L.png` + `core_warden_arms_L2.png` | `ART_BRIEF_M11.md` §4.2 *(Zusatz „Phase-1-Armschäden“)* | linker Arm, gleiche Posen, nicht gespiegelt, Licht links-oben |
+| `P3-20` | [ ] | `art_source/rigs/drone_arc_extra.png` | G · 3×2 (`1536×1024`) | `art_source/rigs/drone_arc_rig.png` | `ART_BRIEF_M11_ENEMIES.md` §4 *(Bogen-Drohne, Zusatz-Sheet)* | **Optional** (Rig läuft ohne): 1 Visier halb zu (Vorwarnung) · 2 Visier Funken-Blitz · 3 Spule überladen (glühende Spitze) · 4–6 Wrack-Splitter Rumpf-Hälfte / Spulen-Stummel / Gondel-Trümmer (Tod). Gelenke wie im Hauptsheet |
+| `P3-21` | [ ] | `art_source/rigs/crystal_crawler_fx.png` | Typ E (Effekt) · 3×2 (`1536×1024`) | `art_source/rigs/crystal_crawler_rig.png` *(Palette/Kristall)* | `ART_BRIEF_M11_ENEMIES.md` §4 *(Zusatz „Krabbler-Effekte“)* | Kristall-Krabbler: ersetzt die wiederverwendeten Rig-Teile beim Tod + Vorwarnung: Kristall-Splitter klein · mittel · groß (eisblau, Facetten) · glühender Rücken-Kristall (hell, Aura) · Panzerbruchstück (violett) · lila Funken-/Staubspur fürs Vorschnellen; je Zelle zentriert, `#FFFFFF`-Hintergrund. Bis dahin: Tod-Splitter aus Rig-Teilen (`crystal`/`head`/`legA–C`), Glühen per `drawGlow` |
 
 ---
 
 ## P4 — Weitere Boss-Rig-Sets (`ART_BRIEF_M11.md` §4.3)
 
-> **⛔ STOP-GATE (GESPERRT):** Zellenlisten pro Boss werden erst festgelegt (jede muss den **Mindeststandard D11–D14** abdecken: Angriffsgrafik, Beschädigungsstufen, Beine/Unterkörper je Angriff), wenn **Kern-Wächter** und **Krall** im echten Spiel abgenommen sind (spart Credits). Danach trägt Claude Code die konkreten Sheets je Boss hier als `P4-01 …` ein:
+> **⛔ STOP-GATE (GESPERRT):** Zellenlisten pro Boss werden erst festgelegt (jede muss den **Mindeststandard D11–D14** abdecken: Angriffsgrafik, Beschädigungsstufen, Beine/Unterkörper je Angriff), wenn **Kern-Wächter** und **Krall** im echten Spiel abgenommen sind (damit die Serie auf einem abgenommenen Vorbild aufbaut — Qualität, nicht Budget; §0). Danach trägt Claude Code die konkreten Sheets je Boss hier als `P4-01 …` ein:
 > Quarz-Koloss · Sternen-Archon · Leviathan · Prisma-Weberin · Prisma-Archon · Schlacken-Koloss · Gießerei-Meisterin · Vulkan-Titan · Chrono-Wächter · Monolith-Koloss.
 
 ---

@@ -2,6 +2,7 @@ import { getHDArt } from '../assets/artLoader';
 import { drawGlow, drawPixelShadow } from '../assets/pixelArt';
 import { drawBossLook } from './bosses/bossLooks';
 import { getBossPose, getRigFacing, smoothBossBody } from './anim/bossAnims';
+import { ARC_DEATH_TIME, arcDeathPose } from './anim/rigs/drone_arc';
 import { drawDetached, spawnPhase2Parts } from './anim/detached';
 import { spitterDeathPose, updateSpitterGhosts } from './anim/rigs/spore_spitter';
 import { enemyMotion, wantsMotion } from './anim/motion';
@@ -30,6 +31,10 @@ import { getMechanicsDrawables, renderMechanicsGround } from './roomMechanicsRen
 import type { Enemy, SpearThrustFx, WeaponSwing } from './dungeonTypes';
 
 export class DungeonRenderer {
+  /** M11 Kristall-Krabbler: zuletzt gesehene Rig-Positionen + laufende Tod-Splitter (nur Darstellung) */
+  private crawlerSeen = new Map<number, { x: number; y: number; flip: number }>();
+  private crawlerDeaths: { x: number; y: number; flip: number; t0: number }[] = [];
+  private lastDefeated = -1;
   private scene: DungeonScene;
 
   constructor(scene: DungeonScene) {
@@ -558,6 +563,7 @@ export class DungeonRenderer {
     // Milestone 10-A: solide Kristall-Prismen (S2) y-sortiert zwischen Gegnern & Held
     for (const d of getMechanicsDrawables(ctx, this.scene)) drawables.push(d);
     for (const d of this.scene.detached) drawables.push({ y: d.y + 2, draw: () => drawDetached(ctx, d) });
+    this.collectCrawlerDebris(ctx, drawables);
     drawables.push({ y: this.scene.playerY, draw: () => this.renderPlayer(ctx) });
     if (this.scene.activeCompanion) {
       drawables.push({ y: this.scene.companionY, draw: () => this.renderCompanion(ctx) });
@@ -613,6 +619,8 @@ export class DungeonRenderer {
         this.renderPrismaArchonTwinBeams(ctx, e);
       }
     }
+
+    this.renderDroneArcWrecks(ctx);
 
     // Faceted 2.5D Hex-Aegis Kinetic Shield (animates smoothly on deploy & retract!)
     if (this.scene.shieldOpenAnim > 0.02) {
@@ -2352,7 +2360,80 @@ export class DungeonRenderer {
     return true;
   }
 
+  /** M11: Tod des Kristall-Krabblers — Kristalle, Kopf und Beine splittern ab (rein optisch, aus zuletzt gesehener Rig-Position). */
+  private collectCrawlerDebris(ctx: CanvasRenderingContext2D, out: { y: number; draw: () => void }[]): void {
+    const sc = this.scene;
+    const killed = this.lastDefeated >= 0 && sc.enemiesDefeated > this.lastDefeated;
+    this.lastDefeated = sc.enemiesDefeated;
+    if (this.crawlerSeen.size > 0) {
+      const alive = new Set(sc.enemies.map((en) => en.id));
+      for (const [id, pos] of this.crawlerSeen) {
+        if (alive.has(id)) continue;
+        this.crawlerSeen.delete(id);
+        if (killed) this.crawlerDeaths.push({ x: pos.x, y: pos.y, flip: pos.flip, t0: sc.time });
+      }
+    }
+    const images = getHDArt().rigs.crystal_crawler;
+    if (!images) {
+      this.crawlerDeaths.length = 0;
+      return;
+    }
+    this.crawlerDeaths = this.crawlerDeaths.filter((d) => sc.time - d.t0 < 0.95 && sc.time >= d.t0);
+    // [Teil, vx, vy, Drehung/s, Start-dy]
+    const pieces: [string, number, number, number, number][] = [
+      ['crystal', 6, -78, 7, -10],
+      ['crystal', -26, -58, -9, -7],
+      ['crystal', 30, -48, 11, -5],
+      ['head', 40, -50, 6, -1],
+      ['legA', -36, -34, -8, 4],
+      ['legB', 18, -40, 9, 4],
+      ['legC', -12, -26, -5, 4],
+    ];
+    for (const d of this.crawlerDeaths) {
+      out.push({
+        y: d.y + 6,
+        draw: () => {
+          const t = sc.time - d.t0;
+          const fade = t > 0.6 ? 1 - (t - 0.6) / 0.35 : 1;
+          const floorDy = 10;
+          pieces.forEach(([part, vx, vy, spin, dy0], i) => {
+            const img = images.parts[part];
+            if (!img) return;
+            const x = d.x + vx * d.flip * t;
+            const rawY = d.y + dy0 + vy * t + 130 * t * t;
+            const y = Math.min(rawY, d.y + floorDy);
+            ctx.save();
+            ctx.globalAlpha = Math.max(0, fade);
+            ctx.translate(x, y);
+            ctx.rotate(spin * Math.min(t, 0.5) + i);
+            ctx.drawImage(img, -img.width / 4, -img.height / 4, img.width / 2, img.height / 2);
+            ctx.restore();
+          });
+          drawGlow(ctx, d.x, d.y - 2, 16 * (1 - t), '#67e8f9', 0.5 * (1 - t));
+        },
+      });
+    }
+  }
+
   /** M11 Phase 7: Gegner-Rig (Teile-Sheet Typ G) zeichnen — Boden bei `e.y + 11`, Blickrichtung zum Spieler (Rig gespiegelt). */
+  /** M11 Bogen-Drohne: Wrack-Animation beim Tod (Teile fliegen ab, Blitz) — nur Darstellung. */
+  private readonly droneArcSeen = new Map<Enemy, { x: number; y: number; f: number }>();
+  private droneArcWrecks: { x: number; y: number; f: number; t0: number; id: number }[] = [];
+  private renderDroneArcWrecks(ctx: CanvasRenderingContext2D): void {
+    const now = this.scene.time;
+    for (const [e, s] of this.droneArcSeen) {
+      if (this.scene.enemies.includes(e)) continue;
+      if (e.hp <= 0) this.droneArcWrecks.push({ x: s.x, y: s.y, f: s.f, t0: now, id: e.id });
+      this.droneArcSeen.delete(e);
+    }
+    this.droneArcWrecks = this.droneArcWrecks.filter((w) => now - w.t0 < ARC_DEATH_TIME);
+    const images = getHDArt().rigs.drone_arc;
+    if (!images) return;
+    for (const w of this.droneArcWrecks) {
+      drawRig(ctx, RIGS.drone_arc, images, w.x, w.y + 11, arcDeathPose(now - w.t0, w.id), { flipX: w.f < 0 });
+    }
+  }
+
   private tryDrawEnemyRig(ctx: CanvasRenderingContext2D, e: Enemy, _moving: boolean): boolean {
     const rigId = RIG_BY_KIND[e.kind];
     if (!rigId) return false;
@@ -2362,7 +2443,7 @@ export class DungeonRenderer {
     const dy = this.scene.playerY - e.y;
     const facing = getRigFacing(rigId, e, this.scene.playerX);
     const pose = getBossPose(rigId, e, this.scene.time, dx * facing, dy);
-    if (e.kind === 'drone') drawPixelShadow(ctx, e.x, e.y + 14, 8, 2.6, 0.28); // Flieger: kleiner, blasser Bodenschatten
+    if (e.kind === 'drone' || e.kind === 'drone_arc') drawPixelShadow(ctx, e.x, e.y + 14, 8, 2.6, 0.28); // Flieger: kleiner, blasser Bodenschatten
     else drawPixelShadow(ctx, e.x, e.y + 10, 11, 3.6, 0.45);
     drawRig(ctx, RIGS[rigId], images, e.x, e.y + 11, pose, { flash: e.flashTimer > 0, flipX: facing < 0 });
     return true;
@@ -2865,6 +2946,16 @@ export class DungeonRenderer {
     }
 
     if (e.kind === 'crystal_crawler') {
+      // M11: Rig (Panzer, Kopf, 6 Beine im Dreifuß-Takt, Rücken-Kristall) — sonst altes Einzelbild
+      const pulse = 0.5 + 0.5 * Math.sin(this.scene.time * 28);
+      if (this.tryDrawEnemyRig(ctx, e, false)) {
+        this.crawlerSeen.set(e.id, { x: e.x, y: e.y, flip: this.scene.playerX < e.x - 2 ? -1 : 1 });
+        // Vorwarnung: Kristalle glühen auf (cyan), beim Vorschnellen violette Spur
+        if (e.telegraphTimer > 0) drawGlow(ctx, e.x, e.y - 8, 17 + pulse * 4, '#67e8f9', 0.34 + pulse * 0.2);
+        drawGlow(ctx, e.x, e.y, e.chargeActive > 0 ? 20 : 14, '#c084fc', e.chargeActive > 0 ? 0.45 : 0.2);
+        this.renderEnemyMiniHp(ctx, e);
+        return;
+      }
       const hop = Math.abs(Math.sin(e.anim * 5.8)) * (e.chargeActive > 0 ? 4.2 : 1.8);
       const spr = e.flashTimer > 0 ? art.crystalCrawlerFlash : art.crystalCrawler;
       if (spr) {
@@ -2978,7 +3069,10 @@ export class DungeonRenderer {
       const hover = Math.sin(this.scene.time * 7.2 + e.id) * 2.8;
       const bank = Math.max(-0.24, Math.min(0.24, e.vx * 0.0028));
       const spr = e.flashTimer > 0 ? art.droneArcFlash ?? art.droneFlash : art.droneArc ?? art.drone;
-      if (spr) {
+      if (this.tryDrawEnemyRig(ctx, e, false)) {
+        // M11: Rig (Rumpf + Visier + 2 Spulen + 2 Gondeln + Funken); Schweben/Neigen/Aufladen/Entladen macht die Pose
+        this.droneArcSeen.set(e, { x: e.x, y: e.y, f: getRigFacing('drone_arc', e, this.scene.playerX) });
+      } else if (spr) {
         ctx.save();
         ctx.translate(e.x, e.y + hover);
         ctx.rotate(bank);
