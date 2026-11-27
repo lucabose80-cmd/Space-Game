@@ -111,8 +111,10 @@ export function layoutRig(def: RigDef, images: RigImages | null, pose: Pose, opt
     const p = byId.get(id)!;
     const ps = pose[p.id] ?? {};
     const key = (p.variants && ps.variant !== undefined ? p.variants[Math.max(0, Math.min(p.variants.length - 1, Math.round(ps.variant)))] : undefined) ?? p.image ?? p.id;
-    const baseImg = images?.parts[key] ?? null;
-    const baseFlash = images?.flash[key] ?? null;
+    // D9: fehlt das Bild einer Variante (z. B. noch nicht importiert), zeigt das Teil sein Basisbild statt zu verschwinden
+    const keyOk = images?.parts[key] ? key : (p.image ?? p.id);
+    const baseImg = images?.parts[keyOk] ?? null;
+    const baseFlash = images?.flash[keyOk] ?? null;
     const img = baseImg && p.flipX ? flipped(baseImg) : baseImg;
     const flash = baseFlash && p.flipX ? flipped(baseFlash) : baseFlash;
     const ratio = def.ratio ?? 1;

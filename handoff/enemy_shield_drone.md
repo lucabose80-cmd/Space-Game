@@ -20,4 +20,5 @@
 - ✅ G8 Rein optisch — nur `anim/rigs/shield_drone.ts`, Rig-JSON, Renderer-Zweig + Wrack-Liste; kein Zufall, keine Hitbox-/Schadensänderung
 - ✅ G9 Test/Handoff/Screenshots — `tests/m11p7_shield_drone.cjs`, dieses Blatt, `tests/out/shield_drone_shot{Idle,Attack,Death}.png`
 - ✅ G10 Boden-Effekte — Schild-Drohne schwebt, hat nur Körper-/Energie-Effekte (Bogen, Blitz, Splitter); kein Bodenkontakt → kein `_ground`-Sheet nötig (tritt in Riss-Kammern/Spirale/Omega auf, Effekte sind farbneutral cyan/orange)
-- ⬜ Abnahme im echten Kampf durch den Projektinhaber (erlaubter Haltegrund) — danach ggf. Feinschliff (Bogen-Abstand `ARC_PUSH`, Düsen-Offsets in `shield_drone.json`)
+- ✅ Szenen-Screenshots Idle/Angriff/Tod angesehen (Angriff: Schild eingeklappt + ▼-Konter-Symbol, beide Düsen am Rumpf)
+- ⬜ Abnahme im echten Kampf durch den Projektinhaber (erlaubter Haltegrund, Regel 17 b). **Nächster Schritt danach:** bei Feinschliff-Wünschen nur Zahlen in `src/dungeon/anim/rigs/shield_drone.ts` (`ARC_PUSH`, `ARC_BASE`, `ARC_CENTER_DROP`) bzw. Düsen-`offset` in `src/data/rigs/shield_drone.json` ändern, `npm test -- m11p7_shield_drone`, Kontaktbogen per `node scripts/rig-sheet.cjs`/eigenes Skript prüfen; bei „Bogen/Düsen gefallen nicht“ Ersatz-Sheet in `SPRITE_QUEUE.md` bestellen (`P2-02b`/`P2-02` ersetzen) und per `npm run art:gen` erzeugen.

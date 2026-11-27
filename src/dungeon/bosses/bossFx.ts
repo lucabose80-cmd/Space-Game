@@ -129,7 +129,15 @@ export class BossFx {
     scene.damagePlayer(dmg, dx / l, dy / l);
   }
 
+  /** D15: Biom des aktuellen Raums (1–5) für Boden-Effekte: Riss-Kammer → `riftSector`, Spirale → `floor.visualSector`, sonst `currentSector` */
+  private biome = 1;
+  public get groundBiome(): number {
+    return this.biome;
+  }
+
   public update(scene: DungeonScene, dt: number): void {
+    const rs = scene.currentRoom?.riftSector;
+    this.biome = rs ?? (scene.isEndlessRift ? scene.floor.visualSector : undefined) ?? scene.currentSector ?? 1;
     this.slowMult = 1;
     const px = scene.playerX;
     const py = scene.playerY;
@@ -251,6 +259,8 @@ export class BossFx {
       const s = Math.sin(n * 12.9898) * 43758.5453;
       return s - Math.floor(s);
     };
+    /** D15: Boden-Effekt in der Variante des aktuellen Raum-Bioms (`gc_1…5` Krater, `gd_1…5` Druckring); fehlt sie → Heimat-Bild (`fx_*`) */
+    const groundImg = (prefix: 'gc' | 'gd', fallback: HTMLCanvasElement | null | undefined): HTMLCanvasElement | null | undefined => parts?.[`${prefix}_${this.biome}`] ?? fallback;
     /** P0-08: Bild zentriert (Rotation optional), Größe = Breite in Spielpixeln */
     const sprite = (img: HTMLCanvasElement | HTMLImageElement | null | undefined, x: number, y: number, w: number, rot = 0, flatten = 1): void => {
       if (!img) return;
@@ -262,11 +272,11 @@ export class BossFx {
       ctx.restore();
     };
     const impact = (r: number, ring?: 'dust' | 'crater'): void => {
-      if (ring === 'dust') { ctx.save(); ctx.globalAlpha = Math.max(0, 1 - kAct); sprite(parts?.fx_dust, z.x, z.y, r * (1.1 + 1.3 * kAct)); ctx.restore(); }
+      if (ring === 'dust') { ctx.save(); ctx.globalAlpha = Math.max(0, 1 - kAct); sprite(groundImg('gd', parts?.fx_dust), z.x, z.y, r * (1.1 + 1.3 * kAct)); ctx.restore(); }
       if (ring === 'crater') {
         ctx.save();
         ctx.globalAlpha = Math.max(0, 1 - kAct * kAct);
-        sprite(parts?.fx_crater, z.x, z.y, r * 2.2);
+        sprite(groundImg('gc', parts?.fx_crater), z.x, z.y, r * 2.2);
         ctx.globalAlpha = Math.max(0, 0.8 - kAct);
         sprite(parts?.fx_rust, z.x, z.y - kAct * 8, r * (1.6 + kAct));
         ctx.restore();

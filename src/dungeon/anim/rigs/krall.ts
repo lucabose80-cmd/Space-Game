@@ -161,11 +161,24 @@ function krallSet(e: Enemy, time: number): KrallSet {
 /** Krall-Zwischen-Posen der Arme (`von>nach`): Anlauf vor Stoß/Wurf/Stampfer, Ausschwingen nach dem Stoß. */
 const CLAW_BETWEEN: Record<string, number> = { '0>2': KARM.windup, '0>3': KARM.windup, '0>5': KARM.windup, '2>0': KARM.side, '3>0': KARM.windup };
 
+/** D3: Übergang zwischen intaktem und beschädigtem Arm (Variante ≥ 12): kurz über die „ausholende“ Pose der Schadensklasse (verbogen 13 · Stumpf 16), damit kein harter Bildsprung entsteht */
+function dmgClass(v: number): 0 | 1 | 2 {
+  if ((v >= KARM_BENT && v < KARM_STUMP) || (v >= KARM_OTHER_BENT && v < KARM_OTHER_STUMP)) return 1;
+  if ((v >= KARM_STUMP && v < KARM_OTHER_BENT) || v >= KARM_OTHER_STUMP) return 2;
+  return 0;
+}
+function dmgBetween(prev: number, next: number): number | undefined {
+  const cp = dmgClass(prev);
+  const cn = dmgClass(next);
+  if (cp === cn) return undefined;
+  return (Math.max(cp, cn) === 2 ? KARM_STUMP : KARM_BENT) + 1; // ausholend
+}
+
 export const anim: RigAnim = {
   tau: 0.1, // schwere Maschine → trägere Annäherung als der Kern-Wächter
   noPulse: ['legFL', 'legFR', 'legBL', 'legBR', 'magnet'],
   lag: { clawL: 0.07 }, // der linke Arm folgt dem rechten (wirkt weniger „synchron zappelnd“)
-  between: (id, prev, next) => (id.startsWith('claw') ? CLAW_BETWEEN[`${prev}>${next}`] : undefined),
+  between: (id, prev, next) => (id.startsWith('claw') ? CLAW_BETWEEN[`${prev}>${next}`] ?? dmgBetween(prev, next) : undefined),
   rawPose(e, time) {
     const speed = Math.hypot(e.vx, e.vy);
     const walk = Math.min(1, speed / 60);
