@@ -3139,7 +3139,9 @@ export class DungeonScene {
       );
       this.state.save();
     } else if (e.kind === 'boss_leviathan') {
-      if (e.levArena && isLeviathanArena(this, e)) onLeviathanArenaDefeated(this, e);
+      const isArena = Boolean(e.levArena && isLeviathanArena(this, e));
+      const firstLeviathanWin = !this.state.hasLeviathanTrophy();
+      if (isArena) onLeviathanArenaDefeated(this, e, firstLeviathanWin);
       this.debrisDrops = [];
       this.triggerShake(0.75, 7.0);
       this.shockwaves.push({
@@ -3153,25 +3155,28 @@ export class DungeonScene {
       this.spawnBurst(e.x, e.y + 10, '#fde047', 42);
       this.floorBossDefeated = true;
       this.state.bossDefeatedCount += 1;
-      const firstLeviathanWin = !this.state.hasLeviathanTrophy();
       this.state.sector1Cleared = true;
       this.sector1ClearedInRun = true;
       this.state.recordSectorClear(1, this.runElapsedSec);
-      // Drop Leviathan Omega Core + 4 rare/epic relics in center of arena!
-      const dropY = this.bounds.cy - 12;
-      this.spawnLootDrop(this.bounds.cx, dropY, 'leviathan_core');
-      this.spawnLootDrop(this.bounds.cx - 18, dropY + 4, 'aegis_plate');
-      // M12 (E): Trophäen-Relikt beim Erstsieg (nie in der Wochen-Prüfung — die läuft über handleTrialBossKilled)
-      if (firstLeviathanWin) this.spawnLootDrop(this.bounds.cx + 18, dropY + 4, 'trophy_leviathan');
-      for (let k = 0; k < 3; k++) {
-        this.spawnLootDrop(
-          this.bounds.cx + (k - 1) * 16,
-          dropY + 8,
-          rollLootItem(3, true, nightBoost, luckBonus, 1),
-        );
+      if (!isArena) {
+        // Standardraum / Endlos-Spirale: Einzel-Drops in der Raummitte (Arena legt die Beute gezielt in die Boss-Truhe der Schatzkammer)
+        const dropY = this.bounds.cy - 12;
+        this.spawnLootDrop(this.bounds.cx, dropY, 'leviathan_core');
+        this.spawnLootDrop(this.bounds.cx - 18, dropY + 4, 'aegis_plate');
+        // M12 (E): Trophäen-Relikt beim Erstsieg (nie in der Wochen-Prüfung — die läuft über handleTrialBossKilled)
+        if (firstLeviathanWin) this.spawnLootDrop(this.bounds.cx + 18, dropY + 4, 'trophy_leviathan');
+        for (let k = 0; k < 3; k++) {
+          this.spawnLootDrop(
+            this.bounds.cx + (k - 1) * 16,
+            dropY + 8,
+            rollLootItem(3, true, nightBoost, luckBonus, 1),
+          );
+        }
       }
       this.callbacks.onToast(
-        '★ SEKTOR 1 BEZWUNGEN! A.E.G.I.S. LEVIATHAN zerstört! Sektor-2-Schlüssel & Dock II im Raumhafen freigeschaltet!',
+        firstLeviathanWin
+          ? '★ SEKTOR 1 BEZWUNGEN! A.E.G.I.S. LEVIATHAN zerstört! Ionen-Speer-Bauplan, Sektor-2-Schlüssel & Dock II freigeschaltet!'
+          : '★ SEKTOR 1 BEZWUNGEN! A.E.G.I.S. LEVIATHAN zerstört! Sektor-2-Schlüssel & Dock II im Raumhafen freigeschaltet!',
         'good',
       );
       this.state.save();
@@ -4290,20 +4295,36 @@ export class DungeonScene {
                     : Math.random() < 0.5
                       ? 'aegis_plate'
                       : 'reactor_shard';
-            const rolled: string[] = chest.secret
+            const rolled: string[] = chest.boss
               ? [
-                  guaranteedSecret,
-                  rollLootItem(3, true, true, luckBonus + 0.25, sec),
-                  rollLootItem(3, true, true, luckBonus + 0.2, sec),
-                  rollLootItem(Math.min(3, d + 1), true, nightBoost, luckBonus + 0.15, sec),
-                  rollLootItem(d, true, nightBoost, luckBonus, sec),
+                  ...(this.currentRoom.arenaKind === 'boss_leviathan'
+                    ? [
+                        ...(this.currentRoom.arenaVault?.firstClear ? ['trophy_leviathan'] : []),
+                        'leviathan_core',
+                        'aegis_plate',
+                      ]
+                    : [guaranteedSecret]),
+                  rollLootItem(3, true, nightBoost, luckBonus + 0.15, sec),
+                  rollLootItem(3, true, nightBoost, luckBonus + 0.1, sec),
+                  rollLootItem(3, true, nightBoost, luckBonus, sec),
                 ]
-              : [
-                  rollLootItem(d, true, nightBoost, luckBonus, sec),
-                  rollLootItem(d, true, nightBoost, luckBonus, sec),
-                  rollLootItem(d, false, nightBoost, luckBonus, sec),
-                  rollLootItem(d, Math.random() < 0.55, nightBoost, luckBonus, sec),
-                ];
+              : chest.secret
+                ? [
+                    guaranteedSecret,
+                    rollLootItem(3, true, true, luckBonus + 0.25, sec),
+                    rollLootItem(3, true, true, luckBonus + 0.2, sec),
+                    rollLootItem(Math.min(3, d + 1), true, nightBoost, luckBonus + 0.15, sec),
+                    rollLootItem(d, true, nightBoost, luckBonus, sec),
+                  ]
+                : [
+                    rollLootItem(d, true, nightBoost, luckBonus, sec),
+                    rollLootItem(d, true, nightBoost, luckBonus, sec),
+                    rollLootItem(d, false, nightBoost, luckBonus, sec),
+                    rollLootItem(d, Math.random() < 0.55, nightBoost, luckBonus, sec),
+                  ];
+            if (chest.boss && this.currentRoom.arenaKind === 'boss_leviathan' && this.currentRoom.arenaVault?.firstClear) {
+              this.callbacks.onToast('🏆 A.E.G.I.S.-Herzlinse gefunden! Ionen-Speer in der Schmiede & Vitrine auf der Promenade frei!', 'good');
+            }
             if (this.activeCompanion === 'puck' && Math.random() < 0.25) {
               rolled.push(rollLootItem(d, true, nightBoost, luckBonus, sec));
               this.floats.push({

@@ -609,7 +609,7 @@ function updateArms(scene: DungeonScene, e: Enemy, dt: number): void {
 }
 
 /** Sieg: Glut sinkt (Abgrund schließt sich), Kamera schwenkt zur Linse. */
-export function onLeviathanArenaDefeated(scene: DungeonScene, e: Enemy): void {
+export function onLeviathanArenaDefeated(scene: DungeonScene, e: Enemy, firstClear = false): void {
   const L = e.levArena;
   if (!L) return;
   L.state = 'dead';
@@ -621,7 +621,7 @@ export function onLeviathanArenaDefeated(scene: DungeonScene, e: Enemy): void {
   }
   scene.camera.focus(e.x, e.y + 40, 1.5);
   scene.arenaBanner = { title: 'A.E.G.I.S. ABGESCHALTET', sub: 'Der Reaktorkern erlischt', t: 2.6, max: 2.6 };
-  startArenaVault(scene); // Schatzkammer hinter der Wand öffnet sich
+  startArenaVault(scene, firstClear); // Schatzkammer hinter der Wand öffnet sich
 }
 
 // ---------------------------------------------------------------- Optik (rein darstellend)
@@ -673,13 +673,22 @@ export function drawLeviathanArena(ctx: CanvasRenderingContext2D, scene: Dungeon
   if (!L) return;
   const t = scene.time;
   const pulse = 0.5 + 0.5 * Math.sin(t * 8);
-  const hasBg = !!getHDArt().arenaLeviathanBg;
+  const art = getHDArt();
+  const hasBg = !!art.arenaLeviathanBg;
   // Kühlventile
   for (const v of L.vents) {
     ctx.save();
     if (v.broken) {
-      ctx.fillStyle = '#1e293b';
-      ctx.fillRect(v.x - 7, v.y - 9, 14, 18);
+      if (art.arenaLeviathanVentBroken) {
+        ctx.translate(v.x, v.y);
+        if (v.x > scene.bounds.cx) ctx.scale(-1, 1);
+        ctx.drawImage(art.arenaLeviathanVentBroken, -13, -13, 26, 26);
+      } else {
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(v.x - 7, v.y - 9, 14, 18);
+      }
+      ctx.restore();
+      ctx.save();
       ctx.fillStyle = `rgba(148, 163, 184, ${0.3 + 0.2 * Math.sin(t * 5 + v.y)})`;
       ctx.beginPath();
       ctx.arc(v.x + (v.x < scene.bounds.cx ? 8 : -8), v.y - 6 - ((t * 20) % 12), 4, 0, Math.PI * 2);

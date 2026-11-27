@@ -15,6 +15,8 @@ export interface ArenaVaultState {
   open: number;
   /** Grenzen/Hindernisse/Truhe übernommen */
   done: boolean;
+  /** War dies der Erstsieg über den Endboss (für Trophäen-Relikt in der Boss-Truhe)? */
+  firstClear?: boolean;
 }
 
 /** Ab wann die Tür aufgeht und wie lange sie fährt (s) */
@@ -32,11 +34,11 @@ function origin(room: DungeonRoom): { l: number; t: number } {
 }
 
 /** Beim Sieg: Öffnung vormerken. */
-export function startArenaVault(scene: DungeonScene): void {
+export function startArenaVault(scene: DungeonScene, firstClear = false): void {
   const room = scene.currentRoom;
   if (scene.isWeeklyTrial || !vaultDef(room) || room.arenaVault) return;
   room.arenaOriginT = room.bounds!.t;
-  room.arenaVault = { t: 0, open: 0, done: false };
+  room.arenaVault = { t: 0, open: 0, done: false, firstClear };
 }
 
 export function updateArenaVault(scene: DungeonScene, dt: number): void {

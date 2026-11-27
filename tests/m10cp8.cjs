@@ -21,6 +21,26 @@ module.exports = async ({ page }) => {
     // 2) Boss-TTK
     out.ttk = {};
     for (const [k, hp] of Object.entries(bal.BOSS_HP)) { const ex = bal.BOSS_EXPECTED[k]; out.ttk[k] = { hp, level: ex.level, band: ex.band, ttk: +(hp / avgDps(ex.level)).toFixed(1) }; }
+    // 2b) M12 Phase F: Leviathan-Arena-Kampfdauer (S1-Startwaffen Stufe 3, echte Schwachstellen-Fenster, ~55 % effektive Angriffszeit beim Ausweichen)
+    {
+      const LA = await import('/src/dungeon/bosses/leviathanArena.ts');
+      const s1Dps = ['blade', 'blaster', 'fists'].reduce((a, w) => a + dps(w, 3), 0) / 3;
+      const gA = new GameState(); gA.saveLocked = true; gA.sector1Cleared = true;
+      const dA = new DungeonScene(gA, { onReturnToHub() {}, onToast() {}, onHudDirty() {} });
+      dA.startRun(1); dA.startFloor(3, false, 1);
+      dA.floor.rooms.get(dA.floor.bossKey).doors = { north: false, south: true, east: false, west: false };
+      dA.enterRoom(dA.floor.bossKey, 'south');
+      const boss = dA.enemies.find((e) => e.kind === 'boss_leviathan');
+      const idle = new Proxy({ locked: false, getMoveVector: () => ({ x: 0, y: 0 }), isMouseActive: () => false, getMousePos: () => ({ x: 0, y: 0 }) }, { get: (o, k) => (k in o ? o[k] : () => false), set: (o, k, v) => ((o[k] = v), true) });
+      const tick = 0.25; let t = 0; const effDps = s1Dps * 0.8;
+      while (boss && boss.hp > 0 && t < 400) {
+        for (let i = 0; i < 15; i++) { dA.invulnTimer = 9999; dA.update(1 / 60, idle); }
+        t += tick;
+        const pts = LA.arenaHitPoints(boss).filter((p) => p.weak);
+        if (pts.length && boss.hp > 0) { const p = pts[0]; dA.getClosestEnemyHitPoint(boss, p.x, p.y); dA.damageEnemy(boss, effDps * tick, 0, 1, 0, true, false); }
+      }
+      out.arenaTtk = { boss_leviathan: { hp: boss?.maxHp ?? 0, level: 3, s1Dps: +s1Dps.toFixed(1), effDps: +effDps.toFixed(1), ttk: +t.toFixed(1), band: [150, 210] } };
+    }
     // 3) Standard-Gegner: Treffer bis zum Tod (erwartete Ausrüstung je Sektor/Ebene)
     const gs = new GameState(); const dng = new DungeonScene(gs, { onReturnToHub() {}, onToast() {}, onHudDirty() {} }); dng.startRun(1);
     const levelFor = { '1-1': 1, '1-2': 2, '1-3': 3, '2-1': 4, '2-2': 4, '2-3': 5, '3-1': 6, '3-2': 6, '3-3': 6, '4-1': 7, '4-2': 7, '4-3': 7 };
@@ -56,11 +76,12 @@ module.exports = async ({ page }) => {
     return out;
   });
   const dir = path.join(__dirname, 'out'); fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, 'ttk.json'), JSON.stringify({ ttk: r.ttk, hits: r.hits }, null, 1));
+  fs.writeFileSync(path.join(dir, 'ttk.json'), JSON.stringify({ ttk: r.ttk, arenaTtk: r.arenaTtk, hits: r.hits }, null, 1));
   fs.writeFileSync(path.join(dir, 'economy.json'), JSON.stringify(r.economy, null, 1)); // Bericht, bricht nie ab
-  console.log(JSON.stringify({ blade: r.blade, hammer: r.hammer, ttk: Object.fromEntries(Object.entries(r.ttk).map(([k, v]) => [k, v.ttk])), hits: r.hits, bounty: r.economy.bounty, ratio: r.priceRatio, t1: r.t1, locks: [r.lock3, r.afford3, r.lock3b, r.lock4, r.lock4b], migrated: r.migrated, notTwice: r.notTwice }));
+  console.log(JSON.stringify({ blade: r.blade, hammer: r.hammer, ttk: Object.fromEntries(Object.entries(r.ttk).map(([k, v]) => [k, v.ttk])), arenaTtk: r.arenaTtk, hits: r.hits, bounty: r.economy.bounty, ratio: r.priceRatio, t1: r.t1, locks: [r.lock3, r.afford3, r.lock3b, r.lock4, r.lock4b], migrated: r.migrated, notTwice: r.notTwice }));
   assert.deepStrictEqual(r.blade.slice(0, 5), [20, 24, 28, 32, 70]); assert.strictEqual(r.hammer[3], Math.round(34 * 1.6));
   for (const [k, v] of Object.entries(r.ttk)) assert.ok(v.ttk >= v.band[0] && v.ttk <= v.band[1], `${k}: TTK ${v.ttk}s außerhalb ${v.band}`);
+  for (const [k, v] of Object.entries(r.arenaTtk)) assert.ok(v.ttk >= v.band[0] && v.ttk <= v.band[1], `Arena ${k}: TTK ${v.ttk}s außerhalb ${v.band}`);
   for (const [k, hits] of Object.entries(r.hits)) for (const h of hits) assert.ok(h >= 1 && h <= 5, `Standard-Gegner ${k}: ${h} Treffer`);
   assert.ok(r.priceRatio >= 0.55 && r.priceRatio <= 0.75, 'Preisfaktor ' + r.priceRatio);
   assert.ok(r.t1[0][0].qty === 3 && r.t1[1].includes('reactor_shard') && /24 → 28|20 → 24/.test(r.t1[2]), JSON.stringify(r.t1));

@@ -84,6 +84,10 @@ export interface HDArtAssets {
   arenaLeviathanBodyP3: HTMLCanvasElement | null;
   arenaLeviathanBodyDead: HTMLCanvasElement | null;
   arenaLeviathanVault: HTMLCanvasElement | null;
+  arenaLeviathanHammer: HTMLCanvasElement | null;
+  arenaLeviathanHammerGrounded: HTMLCanvasElement | null;
+  arenaLeviathanCable: HTMLCanvasElement | null;
+  arenaLeviathanVentBroken: HTMLCanvasElement | null;
   npcPilgrim: HTMLCanvasElement | null;
   npcFoundryWorker: HTMLCanvasElement | null;
   npcElderScholar: HTMLCanvasElement | null;
@@ -253,6 +257,10 @@ const art: HDArtAssets = {
   arenaLeviathanBodyP3: null,
   arenaLeviathanBodyDead: null,
   arenaLeviathanVault: null,
+  arenaLeviathanHammer: null,
+  arenaLeviathanHammerGrounded: null,
+  arenaLeviathanCable: null,
+  arenaLeviathanVentBroken: null,
   npcPilgrim: null,
   npcFoundryWorker: null,
   npcElderScholar: null,
@@ -403,6 +411,11 @@ export const M12_OPTIONAL_SPRITES = {
   arenaLeviathanBodyP3: 'arena_leviathan_body_p3',
   arenaLeviathanBodyDead: 'arena_leviathan_body_dead',
   arenaLeviathanVault: 'arena_leviathan_vault',
+  // Kran-Hammer, Kabel & zerstörtes Kühlventil (P1-05) — Fallback: prozedural in dungeonRenderer.ts / leviathanArena.ts
+  arenaLeviathanHammer: 'arena_leviathan_hammer',
+  arenaLeviathanHammerGrounded: 'arena_leviathan_hammer_grounded',
+  arenaLeviathanCable: 'arena_leviathan_cable',
+  arenaLeviathanVentBroken: 'arena_leviathan_vent_broken',
 } as const;
 
 export type M12SpriteKey = keyof typeof M12_OPTIONAL_SPRITES;
