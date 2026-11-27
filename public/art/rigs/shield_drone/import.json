@@ -1,0 +1,48 @@
+{
+ "rig": "shield_drone",
+ "scale": 0.15385,
+ "resample": "lanczos",
+ "torsoDisplayH": 24,
+ "pixelRatio": 2,
+ "sheets": {
+  "shield_drone_rig.png": "6cdb5cb2a13b65fa"
+ },
+ "parts": {
+  "hull": {
+   "w": 48,
+   "h": 48,
+   "srcW": 312,
+   "srcH": 312
+  },
+  "visor": {
+   "w": 28,
+   "h": 24,
+   "srcW": 184,
+   "srcH": 158
+  },
+  "nacelle": {
+   "w": 28,
+   "h": 32,
+   "srcW": 181,
+   "srcH": 211
+  },
+  "emitter": {
+   "w": 54,
+   "h": 40,
+   "mode": "swap",
+   "set": "shield_drone_rig"
+  },
+  "arcOn": {
+   "w": 54,
+   "h": 42,
+   "mode": "swap",
+   "set": "shield_drone_rig"
+  },
+  "arcHot": {
+   "w": 54,
+   "h": 42,
+   "mode": "swap",
+   "set": "shield_drone_rig"
+  }
+ }
+}
