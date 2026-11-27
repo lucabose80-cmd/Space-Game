@@ -300,7 +300,7 @@ class StarlighterGame {
     this.syncMusic();
     this.ui.showTitle();
     this.syncTouch();
-    if (new URLSearchParams(window.location.search).has('bosslab')) this.startBossLab();
+    if ([...new URLSearchParams(window.location.search).keys()].some((k) => k.toLowerCase() === 'bosslab')) this.startBossLab();
 
     this.canvas.addEventListener('pointerdown', () => {
       sound.unlock();

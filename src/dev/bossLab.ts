@@ -1,14 +1,16 @@
 // BEHELFSMÄSSIGES Boss-Labor (Entwicklungs-/Test-Werkzeug, M11): Bosse & Gegner auswählen und in Bewegung ansehen.
-// Aufruf NUR über die Adresse mit `?bosslab` (z. B. https://…/?bosslab). Im normalen Spiel nirgends verlinkt.
+// Aufruf NUR über die Adresse mit `?bosslab` (z. B. https://…/?bosslab; Groß-/Kleinschreibung egal).
+// Tab „Bosse“ → Abschnitt „ARENEN“: Endboss-Raum wie im Spiel (Großarena, Kamera, Auftritt, 3 Phasen) ohne Durchspielen. Im normalen Spiel nirgends verlinkt.
 // Fasst den Spielstand NICHT an: Speichern ist gesperrt (state.saveLocked), nichts wird abgeschlossen oder verkauft.
 // Hinweis: bewusst außerhalb der Spielwelt — bleibt ein Dev-Werkzeug und wird vor einem Release wieder entfernt.
 import { getHDArt } from '../assets/artLoader';
+import { ARENAS, attachArenas } from '../data/arenas';
 import { RIG_BY_KIND } from '../data/rigs';
 import type { Enemy } from '../dungeon/dungeonTypes';
 import type { DungeonScene } from '../scenes/DungeonScene';
 import type { GameState } from '../systems/gameState';
 import type { SectorId } from '../types';
-import { ROOM_CENTER_X, ROOM_CENTER_Y } from '../world/dungeonGen';
+import { ROOM_CENTER_X, ROOM_CENTER_Y, type EnemyKind } from '../world/dungeonGen';
 
 type Kind = Enemy['kind'];
 
@@ -73,6 +75,9 @@ export class BossLab {
   private body!: HTMLDivElement;
   private selected: LabBoss | null = null;
   private selectedEnemy: Kind | null = null;
+  /** M12: gewählte Endboss-Arena (echter Bossraum der Ebene III statt leerer Laborraum) */
+  private selectedArena: EnemyKind | null = null;
+  private arenaActive = false;
   /** Biom-Override (null = Auto: Boss → Heimat-Sektor, Gegner → S1). Zum Prüfen von Boden-Effekten in fremden Sektoren (AGENTS.md Regel 16). */
   private biom: SectorId | null = null;
   /** Aktuell geladene Arena */
@@ -135,7 +140,9 @@ export class BossLab {
 
   /** Falls das Spiel versucht, den Dungeon zu verlassen (Tod/Extraktion): im Labor einfach neu aufbauen. */
   public onReturnAttempt(): void {
-    if (this.selected) {
+    if (this.selectedArena) {
+      this.selectArena(this.selectedArena);
+    } else if (this.selected) {
       const a = this.arenaFor(this.selected);
       this.loadArena(a.sector, a.floor);
       this.spawnBoss(this.selected);
@@ -154,6 +161,7 @@ export class BossLab {
   private loadArena(sector: SectorId, floor: 1 | 2 | 3): void {
     const d = this.dng;
     this.loaded = { sector, floor };
+    this.arenaActive = false;
     this.muteToastUntil = Date.now() + 500;
     d.startRun(sector);
     if (sector !== 5 && floor > 1) d.startFloor(floor, false, sector);
@@ -185,6 +193,28 @@ export class BossLab {
     this.hooks.onSceneChange();
   }
 
+  /** M12: echten Arena-Bossraum (Ebene III des Heimat-Sektors) laden und betreten — mit Auftritt, Kamera und Kampf. */
+  private selectArena(kind: EnemyKind): void {
+    const d = this.dng;
+    const lb = LAB_BOSSES.find((x) => x.kind === kind);
+    if (!lb) return;
+    this.selected = null;
+    this.selectedEnemy = null;
+    this.selectedArena = kind;
+    this.loaded = { sector: lb.sector, floor: lb.floor };
+    this.arenaActive = true;
+    this.muteToastUntil = Date.now() + 500;
+    d.startRun(lb.sector);
+    d.startFloor(lb.floor, false, lb.sector);
+    const boss = d.floor.rooms.get(d.floor.bossKey);
+    if (boss && !boss.bounds) attachArenas(d.floor); // unabhängig von ENDBOSS_ARENA_LIVE
+    if (boss) boss.doors = { north: false, south: true, east: false, west: false };
+    d.enterRoom(d.floor.bossKey, 'south');
+    d.invulnTimer = 5;
+    this.hooks.onSceneChange();
+    this.refreshButtons();
+  }
+
   private spawnBoss(b: LabBoss): void {
     const d = this.dng;
     d.enemies.length = 0;
@@ -196,9 +226,10 @@ export class BossLab {
 
   private select(b: LabBoss): void {
     const a = this.arenaFor(b);
-    const needArena = !this.loaded || this.loaded.sector !== a.sector || this.loaded.floor !== a.floor;
+    const needArena = !this.loaded || this.arenaActive || this.loaded.sector !== a.sector || this.loaded.floor !== a.floor;
     this.selected = b;
     this.selectedEnemy = null;
+    this.selectedArena = null;
     if (needArena) this.loadArena(a.sector, a.floor);
     this.spawnBoss(b);
     this.refreshButtons();
@@ -207,9 +238,10 @@ export class BossLab {
   private spawnEnemy(kind: Kind): void {
     this.selectedEnemy = kind;
     this.selected = null;
+    this.selectedArena = null;
     const d = this.dng;
     const want = this.biom ?? 1;
-    if (!this.loaded || this.loaded.sector !== want || this.loaded.floor !== 1) this.loadArena(want, 1);
+    if (!this.loaded || this.arenaActive || this.loaded.sector !== want || this.loaded.floor !== 1) this.loadArena(want, 1);
     d.enemies.length = 0;
     d.bossFx.clear();
     d.spawnEnemy(kind, ROOM_CENTER_X + 50, ROOM_CENTER_Y - 20);
@@ -218,7 +250,8 @@ export class BossLab {
 
   private setBiom(b: SectorId | null): void {
     this.biom = b;
-    if (this.selected) this.select(this.selected);
+    if (this.selectedArena) this.selectArena(this.selectedArena);
+    else if (this.selected) this.select(this.selected);
     else if (this.selectedEnemy) this.spawnEnemy(this.selectedEnemy);
     else this.refreshButtons();
   }
@@ -272,7 +305,7 @@ export class BossLab {
     // immer sichtbar (auch eingeklappt): die Knöpfe, die man beim Zusehen ständig braucht
     head.appendChild(this.btn('⏸', () => { this.paused = !this.paused; this.refreshButtons(); }, 'pause'));
     head.appendChild(this.btn('PII', () => { const e = this.bossEntity(); if (e) e.hp = Math.min(e.hp, e.maxHp * 0.45); }, 'phase2'));
-    head.appendChild(this.btn('↻', () => (this.selected ? this.select(this.selected) : this.selectedEnemy && this.spawnEnemy(this.selectedEnemy)), 'respawn'));
+    head.appendChild(this.btn('↻', () => (this.selectedArena ? this.selectArena(this.selectedArena) : this.selected ? this.select(this.selected) : this.selectedEnemy && this.spawnEnemy(this.selectedEnemy)), 'respawn'));
     head.appendChild(this.btn('✕', () => (window.location.href = window.location.pathname)));
     this.panel.appendChild(head);
     const biomRow = document.createElement('div');
@@ -356,6 +389,12 @@ export class BossLab {
   private buildBody(): void {
     // Tab „Bosse“: nach Sektor gruppiert
     const pb = this.pane('bosse');
+    // M12: Endboss-Arenen (echter Bossraum, so wie im Spiel) — künftige Arenen erscheinen hier automatisch
+    const ga = this.section(pb, 'ARENEN (Endboss-Raum)');
+    for (const kind of Object.keys(ARENAS) as EnemyKind[]) {
+      const lb = LAB_BOSSES.find((x) => x.kind === kind);
+      ga.appendChild(this.btn(`🏟 ${lb?.name ?? kind}`, () => this.selectArena(kind), `arena:${kind}`));
+    }
     for (const sec of [1, 2, 3, 4, 5] as SectorId[]) {
       const g = this.section(pb, sec === 5 ? 'Ω OMEGA' : `SEKTOR ${sec}`);
       for (const b of LAB_BOSSES.filter((x) => x.sector === sec)) {
@@ -388,9 +427,9 @@ export class BossLab {
     set('bossImmortal', this.bossImmortal);
     set('playerImmortal', this.playerImmortal);
     for (const s of [0.25, 0.5, 1]) set(`speed:${s}`, this.timeScale === s);
-    this.panel.querySelectorAll('[data-lab^="boss:"], [data-lab^="enemy:"]').forEach((el) => {
+    this.panel.querySelectorAll('[data-lab^="boss:"], [data-lab^="enemy:"], [data-lab^="arena:"]').forEach((el) => {
       const id = (el as HTMLElement).dataset.lab ?? '';
-      el.classList.toggle('sel', id === `boss:${this.selected?.kind}` || id === `enemy:${this.selectedEnemy}`);
+      el.classList.toggle('sel', id === `boss:${this.selected?.kind}` || id === `enemy:${this.selectedEnemy}` || id === `arena:${this.selectedArena}`);
     });
   }
 
@@ -405,6 +444,6 @@ export class BossLab {
     const rigState = rig ? (getHDArt().rigs[rig] ? 'Rig an' : 'Rig aus') : 'kein Rig';
     const pct = Math.round((e.hp / e.maxHp) * 100);
     const biomTxt = this.loaded ? (this.loaded.sector === 5 ? 'Ω' : `S${this.loaded.sector}`) : '–';
-    this.info.textContent = `${this.selected?.name ?? e.kind} · Biom ${biomTxt}${this.biom === null ? ' (auto)' : ''} · HP ${pct} %${e.bossPhase2 ? ' · PHASE II' : ''}\n${e.bossStatusText ?? e.bossSub ?? ''} · ${rigState}${this.paused ? ' · PAUSE' : this.timeScale !== 1 ? ` · ${this.timeScale}×` : ''}`;
+    this.info.textContent = `${this.selectedArena ? `🏟 ${LAB_BOSSES.find((x) => x.kind === this.selectedArena)?.name ?? ''}` : this.selected?.name ?? e.kind} · Biom ${biomTxt}${this.biom === null ? ' (auto)' : ''} · HP ${pct} %${e.bossPhase2 ? ' · PHASE II' : ''}\n${e.bossStatusText ?? e.bossSub ?? ''} · ${rigState}${this.paused ? ' · PAUSE' : this.timeScale !== 1 ? ` · ${this.timeScale}×` : ''}`;
   }
 }

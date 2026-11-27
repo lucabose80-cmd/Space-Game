@@ -3,6 +3,7 @@
 
 ## Stand (2026-11-27)
 - **⚠ Phase A–D läuft** (gemeinsame Dateien!) — umgesetzt & gepusht, Abnahme durch Projektinhaber offen.
+- **🧪 Testen ohne Durchspielen:** `…/?bosslab` (Groß-/Kleinschreibung egal) → Tab „Bosse“ → Abschnitt **ARENEN** → „🏟 Leviathan“ lädt den echten Arena-Bossraum (Auftritt, Kamera, 3 Phasen; `PII`/`Boss ∞`/`Ich ∞`/Zeitlupe funktionieren). **Künftige Arena-Bosse erscheinen dort automatisch**, sobald sie in `src/data/arenas/index.ts` (`ARENAS`) stehen. Test `m12p6_lab`.
 - **🟢 LIVE seit 2026-11-27** (`ENDBOSS_ARENA_LIVE = true` auf Wunsch des Inhabers; Wochen-Prüfung ab `TRIAL_ARENA_FROM_WEEK = '2026-W49'`). Abnahme im echten Kampf weiterhin offen → Rückmeldungen hier sammeln.
 - **Phase D (Leviathan-Arena-Kampf) umgesetzt:**
   - `src/dungeon/bosses/leviathanArena.ts`: Auftritt (Kamera-Fahrt + Banner, 2,5 s bis zum ersten Sieg, danach 0,8 s; Eingabe gesperrt, kein Schaden) · Phase I Kran-Hammer (Arm steckt 1,6 s → angreifbar, eigene HP 15 %) / Kabel-Peitsche / Ventil-Dampf · Phase II (65 % oder beide Arme zerstört) Platten brechen (1,2 s Vorwarnung → Abgrund) / Zwillings-Strahl über die Halle / Trümmerfall / Kabel-Griff; Kühlventile (4 × 4 %) → Linse 3 s offen; ohne intakte Ventile öffnet die Linse nach großen Angriffen 2,5 s (kein Weichlock) · Phase III (30 %) Panzer fällt ab, Linse dauerhaft offen, Omega-Puls (Ringe mit Lücke), Glut-Wellen N→S (jedes Band mit Lücke), Letzter Griff (Sog); < 15 % kritisch (schneller) · Sieg: Abgrund schließt sich, Kamera zur Linse, Banner.

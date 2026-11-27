@@ -17,7 +17,7 @@ export const ARENAS: Partial<Record<EnemyKind, ArenaDef>> = {
 export function arenaEnabled(): boolean {
   if (ENDBOSS_ARENA_LIVE) return true;
   try {
-    return typeof location !== 'undefined' && new URLSearchParams(location.search).has('arena');
+    return typeof location !== 'undefined' && [...new URLSearchParams(location.search).keys()].some((k) => k.toLowerCase() === 'arena');
   } catch {
     return false;
   }
