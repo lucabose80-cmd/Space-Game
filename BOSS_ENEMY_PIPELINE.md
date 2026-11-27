@@ -95,7 +95,7 @@ Neue Mischungen (neue Pools, Challenges, Events) → diese Tabelle ergänzen.
 **Pflicht in Stufe 3 (Sprite-Liste):** für jeden Gegner/Boss prüfen, ob er in der Tabelle oben vorkommt **und** Boden-Effekte hat (Aufschlag, Stampfer, Sturz, Tod am Boden, Spuren) → `<id>_ground.png` mit einplanen. Checklisten-Punkt **G10** (Gegner) bzw. **D15** (Bosse) in `BOSS_ANIMATION_PLAN.md`.
 
 ## 5b. New Game+ & ∞ Spirale — eigener Look & Echo-Varianten (PLAN, Entscheidungen 2026-11-27, noch nicht umgesetzt)
-> **Status: Plan mit beantworteten Fragen (§5b.4).** Umsetzung erst auf Startsignal des Projektinhabers; Sprites stehen in `SPRITE_QUEUE.md` P4b als `[~]` bis dahin.
+> **Status: Plan mit beantworteten Fragen (§5b.4).** Umsetzung erst auf Startsignal des Projektinhabers; Sprites stehen in `SPRITE_QUEUE.md` (Abschnitt „NG+ & Spirale“, P4-01…06) als `[~]` bis dahin.
 
 **Ausgangslage (Stand heute):** NG+ ändert nur **Werte** (`ngPlusLevel`), nicht das **Aussehen**. Die ∞ Spirale wechselt nur die vier Sektor-Biome (S1→S4, `visualSector`) und mischt Gegner/Bosse — ohne eigenen Look. Beides soll sich sichtbar nach „Endgame“ anfühlen.
 
@@ -115,7 +115,7 @@ Neue Mischungen (neue Pools, Challenges, Events) → diese Tabelle ergänzen.
 - **Echo-Elite** = Variante eines vorhandenen Gegners mit **einem zusätzlichen Zug**, in NG+ (ab Stufe 1) und in der Spirale. Aussehen: Rig des Originals + Echo-Aura (§5b.1) + Echo-Tönung; der **neue Zug** bekommt eigene Posen und eine eigene Angriffsgrafik (Effekt-Sheet pro Variante, `<kind>_echo_fx.png`).
 - **Pilot (2 Stück, nach Abnahme Serie):** je ein Fernkämpfer und ein Nahkämpfer aus Sektor 1, damit das Format trägt (Vorschlag: Drohne — „Echo-Salve“ (Nachbild feuert versetzt), Phasen-Jäger — „Echo-Sprung“ (Doppelgänger-Spur)). **STOP-GATE:** erst nach Abnahme im Spiel weitere Varianten.
 - **Regeln:** neue Züge ≥ 0,4 s telegrafiert, deterministisch (kein globaler Zufall), Werte in `src/data/balance.ts` (separate, normierte Prüfungs-Werte für die feste Wochen-Herausforderung), Auftreten über deterministische Tabelle (nicht in jedem Raum), eigener Test, Checkliste G1–G10 gilt zusätzlich für den neuen Zug. **Enthalten in der festen Wochen-Herausforderung** (siehe 5b.4).
-- Eintrag im Steckbrief (§2) je Variante; Sprites in `SPRITE_QUEUE.md` P4b (`P4-05` ff., erst nach Pilot-Freigabe).
+- Eintrag im Steckbrief (§2) je Variante; Sprites in `SPRITE_QUEUE.md` (Abschnitt „NG+ & Spirale“, P4-01…06) (`P4-05` ff., erst nach Pilot-Freigabe).
 
 ### 5b.4 Entscheidungen (Projektinhaber, 2026-11-27)
 1. NG+-Marker: **dezente Aura**, kein Namens-Zusatz. ✅

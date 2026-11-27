@@ -96,15 +96,15 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 
 > **✅ STOP-GATE (FREIGEGEBEN):** Vom Projektinhaber am 2026-11-26 freigegeben — P2-Serie läuft (Parallel-Einbindung der Pilot-Sheets durch Claude Code).
 
-### P1b — M12 Endboss-Arena: Pilot A.E.G.I.S. Leviathan (`[~]` = wartet auf Plan-Freigabe — **noch nicht generieren**)
+### P1b — M12 Endboss-Arena: Pilot A.E.G.I.S. Leviathan (✅ freigegeben 2026-11-27 — Reihenfolge: P1-03, P1-04, dann P1-05/P1-06)
 > Plan: [`MILESTONE_12_ARCHITECTURE.md`](MILESTONE_12_ARCHITECTURE.md) §6 & §9 (Prompts dort). Erst generieren, wenn der Projektinhaber den Plan freigegeben hat und Claude Code den Status auf `[ ]` setzt. Alle mit prozeduralem Fallback.
 
 | ID | Status | Zieldatei | Typ & Format | Referenz (`ImagePaths`) | Brief / Prompt | Notiz |
 | :--- | :---: | :--- | :--- | :--- | :--- | :--- |
-| `P1-03` | [~] | `public/art/sprites/arena_leviathan_bg.png` | Arena-Boden · `1376×704` | `public/art/sprites/hub_bg.png` (Stil), Sektor-1-Dungeonkacheln | `MILESTONE_12_ARCHITECTURE.md` §9 | Reaktorhalle ohne Boss, 2×2 Bildschirme |
-| `P1-04` | [~] | `public/art/sprites/arena_leviathan_wall.png` | Boss-Wand · `1376×192` | `public/art/sprites/item_leviathan_core.png` | `MILESTONE_12_ARCHITECTURE.md` §9 | Leviathan-Körper als Nordwand, Kern-Linse mittig |
-| `P1-05` | [~] | `art_source/rigs/leviathan_arena_parts.png` | Typ P · 3×2 · `1536×1024` | `P1-04` | `MILESTONE_12_ARCHITECTURE.md` §9 · `ART_BRIEF_M11.md` §2 | Kranarm ×2 · Hammer-Klaue · Kabel · Ventil intakt/zerstört |
-| `P1-06` | [~] | `art_source/rigs/leviathan_arena_fx.png` | Typ E · 3×2 · `1536×1024` | `P1-03` | `MILESTONE_12_ARCHITECTURE.md` §9 | Platte bricht (3 Stufen) · Trümmer · Dampf · Linse offen |
+| `P1-03` | [ ] | `public/art/sprites/arena_leviathan_bg.png` | Arena-Boden · `1376×704` | `public/art/sprites/hub_bg.png` (Stil), Sektor-1-Dungeonkacheln | `MILESTONE_12_ARCHITECTURE.md` §9 | Reaktorhalle ohne Boss, 2×2 Bildschirme |
+| `P1-04` | [ ] | `public/art/sprites/arena_leviathan_wall.png` | Boss-Wand · `1376×192` | `public/art/sprites/item_leviathan_core.png` | `MILESTONE_12_ARCHITECTURE.md` §9 | Leviathan-Körper als Nordwand, Kern-Linse mittig |
+| `P1-05` | [ ] | `art_source/rigs/leviathan_arena_parts.png` | Typ P · 3×2 · `1536×1024` | `P1-04` | `MILESTONE_12_ARCHITECTURE.md` §9 · `ART_BRIEF_M11.md` §2 | Kranarm ×2 · Hammer-Klaue · Kabel · Ventil intakt/zerstört |
+| `P1-06` | [ ] | `art_source/rigs/leviathan_arena_fx.png` | Typ E · 3×2 · `1536×1024` | `P1-03` | `MILESTONE_12_ARCHITECTURE.md` §9 | Platte bricht (3 Stufen) · Trümmer · Dampf · Linse offen |
 | `P1-07` | [x] | `public/art/sprites/prop_trophy_leviathan.png` + `public/art/sprites/item_trophy_leviathan.png` | `96×96` + `64×64` | `public/art/sprites/item_leviathan_core.png` | `MILESTONE_12_ARCHITECTURE.md` §9 · `ART_AND_DESIGN_GUIDE.md` §3/§7 | ✅ Hub-Vitrine (`96×96` RGBA, Flood-Fill + `NEAREST`) + Item-Icon „A.E.G.I.S.-Herzlinse“ (`64×64` RGBA) |
 
 ---
@@ -213,21 +213,27 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 
 ---
 
+## P3b2 — NG+ & Spirale (gemeinsamer Look) — vor dem P4-Stop-Gate
+> Steht bewusst **vor** dem ⛔ STOP-GATE der Boss-Rig-Sets (P4), weil es davon unabhängig ist und freigegeben wurde.
+
+### NG+ & ∞ Spirale: gemeinsamer Look + Spiralen-Biom (✅ freigegeben 2026-11-27 — Reihenfolge: P4-01, P4-02, P4-03, P4-04; Echo-Pilot P4-05/06 zuletzt)
+> Plan & Entscheidungen: `BOSS_ENEMY_PIPELINE.md` §5b. Gemeinsame Sheets für alle Wesen + eigenes Spiralen-Biom. Echo-Pilot `P4-05`/`P4-06` (je 1 Sheet); weitere Echo-Varianten erst nach Abnahme des Piloten im Spiel (STOP-GATE).
+
+| ID | Status | Zieldatei | Typ & Format | Referenz (`ImagePaths`) | Brief / Prompt | Notiz |
+| :--- | :---: | :--- | :--- | :--- | :--- | :--- |
+| `P4-01` | [ ] | `art_source/rigs/ngplus_aura.png` | Typ E · 3×2 · `1536×1024` | `art_source/rigs/spore_spitter_fx.png` (Effekt-Stil), `public/art/sprites/enemy_phase_stalker.png` (Größenvergleich) | `BOSS_ENEMY_PIPELINE.md` §5b.1 — Prompt: „6 pixel-art effect cells for a subtle New Game Plus marker: faint pulsing cool white-cyan aura ring small / medium / large (hollow, transparent centre, low contrast), a few sparks, spark wreath, soft ground glow ellipse; consistent style, centred, white background, 3×2 grid“ | dezent! Ringe mit `holes: true` importieren |
+| `P4-02` | [ ] | `art_source/rigs/spiral_ground.png` | Typ E · 3×2 · `1536×1024` | `art_source/rigs/crystal_crawler_fx.png` (Effekt-Stil), `public/art/dungeon_bg_s4.png` (Palette-Anker) | `BOSS_ENEMY_PIPELINE.md` §5b.2 — Prompt: „6 pixel-art floor effects for an endless spiral dimension: small singularity crack, large singularity crack, echo shimmer patch, floating void dust cloud, impact ring, echo death residue; dark violet-white palette, centred, white background, 3×2 grid“ | gilt für alle Boden-Effekte in der Spirale (kein `_ground` pro Gegner nötig) |
+| `P4-03` | [ ] | `public/art/dungeon_bg_spiral.png` | Raum-Hintergrund · `960×540` | `public/art/dungeon_bg_s4.png` (Format/Perspektive), `public/art/dungeon_bg_s2.png` (Kristall-Stil) | `ART_AND_DESIGN_GUIDE.md` (Dungeon-Hintergründe) + `BOSS_ENEMY_PIPELINE.md` §5b.2 — Prompt: „top-down 3/4 pixel art dungeon room floor and walls of an endless spiral dimension, dark violet and white, floating cracks of void light, subtle spiral pattern in the floor, same layout and perspective as the reference background, no characters, no UI“ | **Layout wie `dungeon_bg_s4.png`** (Türen/Wände an gleichen Stellen!) — Prüfung Boss-Labor Biom „Spirale“ |
+| `P4-04` | [ ] | `art_source/rigs/spiral_props.png` | Typ P · 3×2 · `1536×1024` | `public/art/dungeon_bg_s4.png`, `P4-03` | `BOSS_ENEMY_PIPELINE.md` §5b.2 | 6 Hindernis-/Deko-Teile im Spiralen-Stil (Säule, Kristallsplitter, Riss-Pfosten, Echo-Kiste, schwebender Block, Spiralen-Obelisk) |
+| `P4-05` | [ ] | `art_source/rigs/drone_echo_fx.png` | Typ E · 3×2 · `1536×1024` (Effekte, Mitte = Gelenk) | `art_source/rigs/drone_rig.png`, `art_source/rigs/ngplus_aura.png` (sobald vorhanden, sonst `spore_spitter_fx.png`) | `BOSS_ENEMY_PIPELINE.md` §5b.3 — Prompt: „6 pixel-art effect cells for an ‚Echo Salvo‘ attack of a hovering drone: faint white-cyan afterimage ghost of the drone (cell 1 charging, cell 2 offset left, cell 3 offset right, semi-transparent), delayed energy bolt streak with echo trail (cell 4), echo muzzle flash ring (cell 5, hollow), small echo death shards (cell 6); same style, palette and scale as the reference drone, centred, white background, 3×2 grid“ | **Echo-Pilot 1/2 (Fernkämpfer):** neuer Zug „Echo-Salve“ — Nachbild feuert versetzt; Zellen 3 & 5 ggf. `holes: true`. Serie erst nach Pilot-Abnahme im Spiel (**STOP-GATE** für weitere Echo-Varianten) |
+| `P4-06` | [ ] | `art_source/rigs/phase_stalker_echo_fx.png` | Typ E · 3×2 · `1536×1024` (Effekte, Mitte = Gelenk) | `art_source/rigs/phase_stalker_rig.png`, `art_source/rigs/ngplus_aura.png` (sobald vorhanden, sonst `spore_spitter_fx.png`) | `BOSS_ENEMY_PIPELINE.md` §5b.3 — Prompt: „6 pixel-art effect cells for an ‚Echo Leap‘ attack of a humanoid blade stalker: translucent white-cyan double silhouette crouching (cell 1), motion trail ghost sequence of the leap (cells 2 and 3), landing impact ring with echo cracks (cell 4, hollow), slash arc afterimage (cell 5), echo death shards (cell 6); same style, palette and scale as the reference, centred, white background, 3×2 grid“ | **Echo-Pilot 2/2 (Nahkämpfer):** neuer Zug „Echo-Sprung“ — Doppelgänger-Spur; Zelle 4 `holes: true` |
+
+---
+
 ## P4 — Weitere Boss-Rig-Sets (`ART_BRIEF_M11.md` §4.3)
 
 > **⛔ STOP-GATE (GESPERRT):** Zellenlisten pro Boss werden erst festgelegt (jede muss den **Mindeststandard D11–D14** abdecken: Angriffsgrafik, Beschädigungsstufen, Beine/Unterkörper je Angriff), wenn **Kern-Wächter** und **Krall** im echten Spiel abgenommen sind (damit die Serie auf einem abgenommenen Vorbild aufbaut — Qualität, nicht Budget; §0). Danach trägt Claude Code die konkreten Sheets je Boss hier als `P4-01 …` ein:
 > Quarz-Koloss · Sternen-Archon · Leviathan · Prisma-Weberin · Prisma-Archon · Schlacken-Koloss · Gießerei-Meisterin · Vulkan-Titan · Chrono-Wächter · Monolith-Koloss.
-
-### P4b — NG+ & ∞ Spirale: gemeinsamer Look + Spiralen-Biom (**PLAN `[~]` — Entscheidungen liegen vor, wartet auf Startsignal des Projektinhabers, noch nicht generieren**)
-> Plan & Entscheidungen: `BOSS_ENEMY_PIPELINE.md` §5b. Gemeinsame Sheets für alle Wesen + eigenes Spiralen-Biom. Echo-Varianten (`P4-05` ff.) erst nach Pilot-Abnahme. Erst auf `[ ]`, wenn der Inhaber startet.
-
-| ID | Status | Zieldatei | Typ & Format | Referenz (`ImagePaths`) | Brief / Prompt | Notiz |
-| :--- | :---: | :--- | :--- | :--- | :--- | :--- |
-| `P4-01` | [~] | `art_source/rigs/ngplus_aura.png` | Typ E · 3×2 · `1536×1024` | `art_source/rigs/spore_spitter_fx.png` (Effekt-Stil), `public/art/sprites/enemy_phase_stalker.png` (Größenvergleich) | `BOSS_ENEMY_PIPELINE.md` §5b.1 — Prompt: „6 pixel-art effect cells for a subtle New Game Plus marker: faint pulsing cool white-cyan aura ring small / medium / large (hollow, transparent centre, low contrast), a few sparks, spark wreath, soft ground glow ellipse; consistent style, centred, white background, 3×2 grid“ | dezent! Ringe mit `holes: true` importieren |
-| `P4-02` | [~] | `art_source/rigs/spiral_ground.png` | Typ E · 3×2 · `1536×1024` | `art_source/rigs/crystal_crawler_fx.png` (Effekt-Stil), `public/art/dungeon_bg_s4.png` (Palette-Anker) | `BOSS_ENEMY_PIPELINE.md` §5b.2 — Prompt: „6 pixel-art floor effects for an endless spiral dimension: small singularity crack, large singularity crack, echo shimmer patch, floating void dust cloud, impact ring, echo death residue; dark violet-white palette, centred, white background, 3×2 grid“ | gilt für alle Boden-Effekte in der Spirale (kein `_ground` pro Gegner nötig) |
-| `P4-03` | [~] | `public/art/dungeon_bg_spiral.png` | Raum-Hintergrund · `960×540` | `public/art/dungeon_bg_s4.png` (Format/Perspektive), `public/art/dungeon_bg_s2.png` (Kristall-Stil) | `ART_AND_DESIGN_GUIDE.md` (Dungeon-Hintergründe) + `BOSS_ENEMY_PIPELINE.md` §5b.2 — Prompt: „top-down 3/4 pixel art dungeon room floor and walls of an endless spiral dimension, dark violet and white, floating cracks of void light, subtle spiral pattern in the floor, same layout and perspective as the reference background, no characters, no UI“ | **Layout wie `dungeon_bg_s4.png`** (Türen/Wände an gleichen Stellen!) — Prüfung Boss-Labor Biom „Spirale“ |
-| `P4-04` | [~] | `art_source/rigs/spiral_props.png` | Typ P · 3×2 · `1536×1024` | `public/art/dungeon_bg_s4.png`, `P4-03` | `BOSS_ENEMY_PIPELINE.md` §5b.2 | 6 Hindernis-/Deko-Teile im Spiralen-Stil (Säule, Kristallsplitter, Riss-Pfosten, Echo-Kiste, schwebender Block, Spiralen-Obelisk) |
-| `P4-05` | [~] | *(Echo-Pilot, Zellenlisten erst nach Start)* `art_source/rigs/drone_echo_fx.png`, `art_source/rigs/phase_stalker_echo_fx.png` | Typ E · 3×2 · `1536×1024` | `art_source/rigs/drone_rig.png`, `art_source/rigs/phase_stalker_rig.png` | `BOSS_ENEMY_PIPELINE.md` §5b.3 | Echo-Elite-Pilot (neuer Zug je Variante); **STOP-GATE bis Pilot im Spiel abgenommen** |
 
 ---
 
