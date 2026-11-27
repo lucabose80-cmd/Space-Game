@@ -88,7 +88,7 @@ export function trialHasMechanics(weekId: string): boolean {
  * damit eine laufende Wertungswoche nicht kippt. Beim Setzen von `ENDBOSS_ARENA_LIVE = true` auf die Folgewoche
  * des Deploys anpassen. Zusätzlich muss die Arena live sein (`ENDBOSS_ARENA_LIVE`).
  */
-export const TRIAL_ARENA_FROM_WEEK = '2026-W50';
+export const TRIAL_ARENA_FROM_WEEK = '2026-W49';
 
 export function trialHasArena(weekId: string): boolean {
   return ENDBOSS_ARENA_LIVE && weekId >= TRIAL_ARENA_FROM_WEEK;

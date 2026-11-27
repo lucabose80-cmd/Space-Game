@@ -168,7 +168,7 @@ module.exports = async ({ page, PORT }) => {
   assert.ok(r.glowBands >= 6 && r.glowGaps, 'Glut-Wellen mit Lücke: ' + r.glowBands);
   assert.deepStrictEqual(r.win, [0, 'A.E.G.I.S. ABGESCHALTET', 'dead'], 'Sieg: Abgrund schließt sich, Banner');
   assert.deepStrictEqual(r.determ, [true, true], 'Zugfolge deterministisch');
-  assert.deepStrictEqual(r.trial.slice(0, 2), [false, false], 'Wochen-Prüfung: Arena aus, solange nicht live');
+  assert.deepStrictEqual(r.trial, [false, true, '2026-W49', true], 'Wochen-Prüfung: Arena erst ab 2026-W49 (laufende Woche unverändert)');
   assert.ok(!r.bot.err, 'Bot-Kampf ohne Fehler: ' + r.bot.err);
   assert.ok(r.bot.dead, 'Bot besiegt den Leviathan über die Schwachstellen: ' + JSON.stringify(r.bot));
   console.log('M12 LEVIATHAN-ARENA OK');

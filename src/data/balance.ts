@@ -117,7 +117,7 @@ export const WEAPON_AVG_COOLDOWN = { blade: 0.25, spear: 0.22, fists: 0.17, disc
  * `false`, solange der Arena-Kampf (Phase D) fehlt — bis dahin nur zum Ansehen per URL `?arena`.
  * Wochen-Prüfung: nie vor `TRIAL_ARENA_FROM_WEEK` (Phase D).
  */
-export const ENDBOSS_ARENA_LIVE = false;
+export const ENDBOSS_ARENA_LIVE = true;
 
 /** M12 Phase D: Arena-Endbosse — Werte (Start, Feinschliff in Phase F mit m10cp8). */
 export const ENDBOSS_ARENA = {

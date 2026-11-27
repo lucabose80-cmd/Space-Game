@@ -1,7 +1,7 @@
 // M12 Phase C — Arena-Daten (Reaktorhalle des Leviathan) & Anhängen an den Bossraum.
 // 1) Kachelplan gültig (43 × 22), alle begehbaren Kacheln vom Eingang aus erreichbar, Hindernis-Rechtecke decken genau die festen Kacheln.
 // 2) Seed-Layout: `generateSectorFloor` + `attachArenas` verbraucht kein Math.random; alle Räume außer dem Bossraum bit-identisch.
-// 3) Gate: ohne `?arena` (und ENDBOSS_ARENA_LIVE = false) kein Arena-Raum; Wochen-Prüfung nie.
+// 3) Gate: live (ENDBOSS_ARENA_LIVE = true) → Arena auch ohne `?arena`.
 // 4) Mit `?arena`: Bossraum = Arena (Grenzen, Boss am Anker), Kampf läuft, Eintritt/Kamera passen, Nordtür bekommt Durchgang. Screenshot.
 module.exports = async ({ page, scratch, PORT }) => {
   const assert = require('node:assert');
@@ -66,7 +66,7 @@ module.exports = async ({ page, scratch, PORT }) => {
   assert.deepStrictEqual([r.boss.pods, r.boss.chasms, r.boss.chest], [0, 0, null]);
   assert.deepStrictEqual(r.others, [false, false, false, false, false, false], 'nur S1 Ebene III bekommt (vorerst) eine Arena');
   assert.strictEqual(r.northGap, false, 'Nordtür: Durchgang im Boss-Sockel');
-  assert.strictEqual(r.enabledDefault, false, 'ohne ?arena aus (ENDBOSS_ARENA_LIVE = false)');
+  assert.strictEqual(r.enabledDefault, true, 'live: Arena auch ohne ?arena (ENDBOSS_ARENA_LIVE = true)');
 
   // ---------- 3/4) Spiel: Gate & Arena-Kampf ----------
   const run = async (url) => {
@@ -111,7 +111,7 @@ module.exports = async ({ page, scratch, PORT }) => {
     });
   };
   const off = await run(`http://127.0.0.1:${PORT}/`);
-  assert.strictEqual(off.arena, false, 'Gate: ohne ?arena Standard-Bossraum');
+  assert.strictEqual(off.arena, true, 'live: Arena-Bossraum auch ohne ?arena');
   const on = await run(`http://127.0.0.1:${PORT}/?arena`);
   console.log(JSON.stringify({ ...on, url: undefined, url2: undefined }));
   assert.strictEqual(on.arena, true, 'mit ?arena: Arena-Bossraum');

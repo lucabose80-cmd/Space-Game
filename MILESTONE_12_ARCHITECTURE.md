@@ -178,7 +178,7 @@ Alle optional mit prozeduralem Fallback (Regel 7). Stil: wie `hub_bg.png`/Dungeo
 - Inhalte mit festen Standard-Positionen (Belohnungs-/Extraktions-Pads, Loot-Drops, Heilstation, Geschütz-Startpunkte) nutzen jetzt `scene.bounds` (Standardraum identisch, Vorher/Nachher-Vergleich inkl. Boss-Sieg).
 - Nachweis: `m12p3` (Kachelplan gültig & erreichbar, `Math.random`-Aufrufe gleich, nur Bossraum ändert sich, Gate, Arena-Kampf ohne Fehler, Screenshots).
 
-### Phase D — Leviathan-Arena-Kampf (2026-11-27, umgesetzt, im Live-Spiel noch aus)
+### Phase D — Leviathan-Arena-Kampf (2026-11-27, umgesetzt, live geschaltet 2026-11-27; Prüfung ab 2026-W49)
 - Eigene Datei `src/dungeon/bosses/leviathanArena.ts`; `enemyAi` ruft sie nur im Arena-Raum (`isLeviathanArena`), sonst bleibt der alte Leviathan (Standardraum identisch). Zustand `Enemy.levArena`.
 - **Schwachstellen über Trefferpunkte statt `Enemy.weakPoints`:** `getClosestEnemyHitPoint` liefert in der Arena den nächsten Punkt aus Linse/Körper/Armen/Ventilen (offene Schwachstellen bevorzugt) und merkt ihn sich; `damageEnemy` filtert direkt vor dem Abzug (`leviathanArenaDamage`). Schaden ohne Trefferpunkt im selben Frame (Brand, Ketten-Blitz) prallt am Panzer ab. Teil-HP: Arme 15 %, Ventile 4 %, Überschuss fließt nicht in den Pool; Linse ×1,25.
 - **Abweichungen:** Phase II auch, wenn beide Arme zerstört sind (sonst kein Schaden mehr möglich). Ohne intakte Ventile öffnet die Linse in Phase II nach Strahl/Trümmern 2,5 s (kein Weichlock). „Kamera zoomt heraus“ → Kamera-Fahrt + Beben (die Kamera hat keinen Zoom). Glut in Phase III als wandernde Bänder mit Lücke (A9). Auftritt lang, solange `sector1Cleared` falsch ist (statt eigenem Save-Feld). Kein eigenes Musik-Intro (Boss-Brüllen).
