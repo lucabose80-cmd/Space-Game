@@ -1777,18 +1777,37 @@ export class DungeonRenderer {
       ctx.stroke();
       ctx.restore();
     } else if (state === 'laser_windup') {
-      // Blinking crimson targeting beam before Reactor Laser Sweep!
+      // Aufladung: konvergierende Ringe am Visier + Strahl-Vorschau, die mit dem Fortschritt breiter/heller wird (nur Optik)
       const a = e.bossLaserAngle ?? 0;
       const lx = e.x;
-      const ly = e.y - 8;
+      const ly = e.y - 8 - (e.bossHeight ?? 0);
+      const total = e.bossPhase2 ? 0.65 : 0.76;
+      const prog = Math.min(1, Math.max(0, 1 - (e.bossStateTimer ?? 0) / total));
+      const cosA = Math.cos(a);
+      const sinA = Math.sin(a);
       ctx.save();
-      ctx.strokeStyle = `rgba(251, 113, 133, ${0.45 + pulse * 0.5})`;
-      ctx.lineWidth = 2;
-      ctx.setLineDash([5, 3]);
+      // Strahl-Vorschau
+      ctx.strokeStyle = `rgba(251, 113, 133, ${0.3 + prog * 0.5 + pulse * 0.15})`;
+      ctx.lineWidth = 1 + prog * 4;
+      ctx.setLineDash(prog > 0.8 ? [] : [5, 3]);
       ctx.beginPath();
       ctx.moveTo(lx, ly);
-      ctx.lineTo(lx + Math.cos(a) * 260, ly + Math.sin(a) * 260);
+      ctx.lineTo(lx + cosA * 260, ly + sinA * 260);
       ctx.stroke();
+      ctx.setLineDash([]);
+      // Konvergierende Ringe (drei, zeitlich versetzt) am Austrittspunkt
+      ctx.globalCompositeOperation = 'lighter';
+      const vx = lx + cosA * 14;
+      const vy = ly + sinA * 14;
+      for (let i = 0; i < 3; i++) {
+        const ph = (prog * 2.2 + i / 3) % 1;
+        ctx.strokeStyle = `rgba(253, 224, 71, ${(1 - ph) * 0.8})`;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.arc(vx, vy, 4 + (1 - ph) * 20, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      drawGlow(ctx, vx, vy, 6 + prog * 12, '#fb7185', 0.35 + prog * 0.5);
       ctx.restore();
     }
   }
@@ -2099,6 +2118,32 @@ export class DungeonRenderer {
       if (py.depth >= 0) {
         this.drawBossPylon(ctx, py.x, py.y, bodyX, bodyY - 4, enraged, pylonCharging, fistScale);
       }
+    }
+
+    // 6. Orbit-Salve Phase 1: Energiebögen zwischen den Pylonen + Ladefunken (nur Optik; Phase 2 hat Fäuste)
+    if (!enraged && pylonCharging && pylons.length > 1) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = '#fde047';
+      ctx.lineWidth = 1;
+      const tt = this.scene.time;
+      for (let i = 0; i < pylons.length; i++) {
+        const A = pylons[i];
+        const B = pylons[(i + 1) % pylons.length];
+        ctx.globalAlpha = 0.35 + 0.45 * Math.abs(Math.sin(tt * 19 + i * 2.1));
+        ctx.beginPath();
+        ctx.moveTo(A.x, A.y);
+        const mx = (A.x + B.x) / 2;
+        const my = (A.y + B.y) / 2;
+        const nx = -(B.y - A.y);
+        const ny = B.x - A.x;
+        const nl = Math.hypot(nx, ny) || 1;
+        const j = Math.sin(tt * 33 + i * 5.3) * 4;
+        ctx.lineTo(mx + (nx / nl) * j, my + (ny / nl) * j);
+        ctx.lineTo(B.x, B.y);
+        ctx.stroke();
+      }
+      ctx.restore();
     }
   }
 
