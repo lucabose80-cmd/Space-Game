@@ -125,17 +125,17 @@ module.exports = async ({ page }) => {
   // D12 Beschädigungsstufen Kern-Wächter: [Kopf, Rumpf, Arm]
   assert.deepStrictEqual(r.dmg, [[0, 0, 0], [5, 0, 0], [5, 5, 0], [4, 4, 11], [4, 11, 11], [10, 5, 0]], 'Beschädigungsstufen Kern-Wächter');
   assert.deepStrictEqual(r.krallPlate, [false, true], 'Krall-Rückenpanzer sichtbar, ab Phase 2 weg');
-  assert.deepStrictEqual(r.krall, [0, 1, 2]);
+  assert.deepStrictEqual(r.krall, [0, 1, 6]);
   const K = r.kr; // [clawR, clawL, torso]: Arme 0 hängend · 1 ausholen · 2 Stoß · 3 seitlich · 4 Block · 5 Stampfer; Rumpf 0 normal · 1 geduckt · 2 aufgerichtet · 3 gebeugt · 4 Phase 2 · 5 beschädigt
   assert.deepStrictEqual(K.idle, [0, 0, 0]);
   assert.deepStrictEqual(K.stossW, [1, 1, 1], 'Stoß-Vorwarnung: beide Arme zurück, Rumpf geduckt');
-  assert.deepStrictEqual(K.stoss, [2, 3, 3], 'Stoß: Zange zur Kamera, Haken seitlich, Rumpf gebeugt');
+  assert.deepStrictEqual(K.stoss, [6, 3, 3], 'Stoß (Teleskop kurz zur Stoßseite), Haken seitlich, Rumpf gebeugt');
   assert.deepStrictEqual(K.stossEnd, [0, 0, 0], 'Stoß-Ende: zurück in Ruhe');
   assert.deepStrictEqual(K.magW, [1, 1, 2], 'Magnet-Vorwarnung: Rumpf aufgerichtet');
-  assert.deepStrictEqual(K.magPull, [3, 3, 2], 'Magnet-Sog: Arme seitlich, Rumpf aufgerichtet');
-  assert.deepStrictEqual(K.wurfW, [1, 1, 1]);
+  assert.deepStrictEqual(K.magPull, [10, 10, 2], 'Magnet-Sog: Arme seitlich, Rumpf aufgerichtet');
+  assert.deepStrictEqual(K.wurfW, [11, 1, 1]);
   assert.deepStrictEqual(K.wurf, [3, 0, 3], 'Wurf: rechter Arm seitlich');
-  assert.deepStrictEqual(K.hagelW, [1, 1, 4], 'Hagel-Vorwarnung (Phase 2): Skelett-Rumpf, Arme hoch');
+  assert.deepStrictEqual(K.hagelW, [11, 11, 4], 'Hagel-Vorwarnung (Phase 2): Skelett-Rumpf, Arme hoch');
   assert.deepStrictEqual(K.hagel, [5, 5, 4], 'Hagel: Arme stampfen');
   assert.deepStrictEqual(K.p2, [0, 0, 4], 'Phase 2: Skelett-Rahmen');
   assert.deepStrictEqual(K.p2dmg, [0, 0, 5], 'Phase 2 < 25 % HP: beschädigter Rumpf');
