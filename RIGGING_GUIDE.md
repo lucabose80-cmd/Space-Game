@@ -5,6 +5,8 @@
 
 ---
 
+> **Sieht eine Pose mit den vorhandenen Bildern nicht gut aus oder gefällt sie dem Projektinhaber nicht → neues/ersetzendes Sheet in `SPRITE_QUEUE.md` bestellen** statt Einzelbilder per Code zu drehen/strecken (`AGENTS.md` Regel 14, `SPRITE_QUEUE.md` §0). Credits sind kein Grund dagegen.
+
 ## 1. Idee in 30 Sekunden
 Ein Boss besteht nicht mehr aus **einem** Bild, sondern aus **Teilen** (Rumpf, Kopf, Arme, Beine …), die der Code pro Frame zusammensetzt (`src/engine/rig.ts`). Jedes Teil hat ein **Gelenk** (Pivot) und hängt an einem Elternteil. Zwei Arten von Bewegung:
 1. **Drehen/Verschieben** (prozedural): Atmen, Pendeln, Beinschritte — `rot`, `dx`, `dy`, `sx`, `sy`.
