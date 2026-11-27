@@ -229,6 +229,18 @@
           "fx_dust"
         ],
         "holes": true
+      },
+      {
+        "file": "krall_arms_L4",
+        "mode": "limb",
+        "ids": [
+          "clawL_19",
+          "clawL_20",
+          "clawL_21",
+          "clawL_22",
+          "clawL_23",
+          "clawL_24"
+        ]
       }
     ]
   },
@@ -504,7 +516,13 @@
         "clawL_15",
         "clawL_16",
         "clawL_17",
-        "clawL_18"
+        "clawL_18",
+        "clawL_19",
+        "clawL_20",
+        "clawL_21",
+        "clawL_22",
+        "clawL_23",
+        "clawL_24"
       ],
       "offset": [
         -14.4,
