@@ -16,7 +16,7 @@ module.exports = async ({ page, PORT, scratch }) => {
   await page.waitForTimeout(700);
   const a = await page.evaluate(() => { const d = window.__game.dungeonScene; const b = d.enemies.find((e) => e.kind === 'boss_leviathan'); return { arena: d.currentRoom.arenaKind, bounds: d.currentRoom.bounds, boss: !!b && !!b.levArena, banner: d.arenaBanner?.title ?? null, info: document.querySelector('#boss-lab .bl-info').textContent, locked: window.__game.state.saveLocked, sel: !!document.querySelector('#boss-lab [data-lab="arena:boss_leviathan"].sel') }; });
   assert.deepStrictEqual([a.arena, a.boss, a.locked, a.sel], ['boss_leviathan', true, true, true], JSON.stringify(a));
-  assert.deepStrictEqual(a.bounds, { l: 68, r: 756, t: 46, b: 398 });
+  assert.deepStrictEqual(a.bounds, { l: 68, r: 756, t: 46, b: 398, vt: 46 - 112 });
   assert.ok(a.banner && a.info.includes('🏟'), 'Auftritt läuft, Info nennt die Arena: ' + a.info);
   await page.waitForTimeout(3200);
   await page.locator('#game-canvas').screenshot({ path: `${scratch}/m12p6_lab_arena.png` });

@@ -36,8 +36,11 @@ export const LEVIATHAN_ARENA: ArenaDef = {
     '...........................................', // 20
     '...........................................', // 21
   ],
-  bossAnchor: { x: 344, y: 30 },
+  bossAnchor: { x: 344, y: 4 }, // Kern-Linse bei y = 10 (vom Sockelrand aus mit der Klinge erreichbar)
   bgSprite: 'arenaLeviathanBg',
   wallSprite: 'arenaLeviathanWall',
   wallHeight: 96,
+  // Boss-Körper (arena_leviathan_body.png, 300×167 logisch) ragt bis ~102 px über die Spielfläche
+  viewAbove: 112,
+  cameraBiasY: 40,
 };

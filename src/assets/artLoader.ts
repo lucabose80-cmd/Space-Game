@@ -79,6 +79,11 @@ export interface HDArtAssets {
   /** M12 Phase C: Arena-Boden & Boss-Wand (optional, Fallback arenaFloor.ts) */
   arenaLeviathanBg: HTMLCanvasElement | null;
   arenaLeviathanWall: HTMLCanvasElement | null;
+  arenaLeviathanBody: HTMLCanvasElement | null;
+  arenaLeviathanBodyP2: HTMLCanvasElement | null;
+  arenaLeviathanBodyP3: HTMLCanvasElement | null;
+  arenaLeviathanBodyDead: HTMLCanvasElement | null;
+  arenaLeviathanVault: HTMLCanvasElement | null;
   npcPilgrim: HTMLCanvasElement | null;
   npcFoundryWorker: HTMLCanvasElement | null;
   npcElderScholar: HTMLCanvasElement | null;
@@ -243,6 +248,11 @@ const art: HDArtAssets = {
   propTrophyLeviathan: null,
   arenaLeviathanBg: null,
   arenaLeviathanWall: null,
+  arenaLeviathanBody: null,
+  arenaLeviathanBodyP2: null,
+  arenaLeviathanBodyP3: null,
+  arenaLeviathanBodyDead: null,
+  arenaLeviathanVault: null,
   npcPilgrim: null,
   npcFoundryWorker: null,
   npcElderScholar: null,
@@ -387,6 +397,12 @@ export const M12_OPTIONAL_SPRITES = {
   // Phase C: Endboss-Arena (SPRITE_QUEUE P1-03/P1-04) — Fallback: prozedural in src/dungeon/arenaFloor.ts
   arenaLeviathanBg: 'arena_leviathan_bg',
   arenaLeviathanWall: 'arena_leviathan_wall',
+  // Boss-Körper in der Nordwand (P1-10) + Zustände (P1-11) + Schatzkammer (P1-12) — Fallback: prozeduraler Körper / Tönung
+  arenaLeviathanBody: 'arena_leviathan_body',
+  arenaLeviathanBodyP2: 'arena_leviathan_body_p2',
+  arenaLeviathanBodyP3: 'arena_leviathan_body_p3',
+  arenaLeviathanBodyDead: 'arena_leviathan_body_dead',
+  arenaLeviathanVault: 'arena_leviathan_vault',
 } as const;
 
 export type M12SpriteKey = keyof typeof M12_OPTIONAL_SPRITES;

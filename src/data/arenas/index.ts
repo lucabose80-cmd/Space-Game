@@ -85,7 +85,7 @@ const NORTH_GAP = 3;
 export function applyArena(room: DungeonRoom, def: ArenaDef): void {
   const l = ROOM_LEFT;
   const t = ROOM_TOP;
-  room.bounds = { l, r: l + def.size.w, t, b: t + def.size.h };
+  room.bounds = { l, r: l + def.size.w, t, b: t + def.size.h, ...(def.viewAbove ? { vt: t - def.viewAbove } : {}) };
   room.arenaKind = def.kind;
   const cols = def.size.w / ARENA_TILE;
   const midC = Math.floor(cols / 2);

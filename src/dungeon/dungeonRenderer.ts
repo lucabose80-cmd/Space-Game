@@ -18,7 +18,7 @@ import { getInfusionDef, RIFT_MUTATORS } from '../data/infusions';
 import { getItemDef } from '../data/items';
 import { VIRTUAL_HEIGHT, VIRTUAL_WIDTH, type InputManager } from '../engine/input';
 import { renderArenaFloor } from './arenaFloor';
-import { drawArenaBanner, drawLeviathanArena } from './bosses/leviathanArena';
+import { BODY_SHOULDER_DX, BODY_SHOULDER_DY, drawArenaBanner, drawLeviathanArena, drawLeviathanBody } from './bosses/leviathanArena';
 import { drawEdgeMarkers, offscreenMarkers } from './edgeIndicators';
 import {
   roomKey,
@@ -2679,6 +2679,9 @@ export class DungeonRenderer {
     const cx = e.x;
     const cy = e.y + breath;
 
+    // M12: in der Arena der Boss-Körper als Sprite (P1-10) — der prozedurale Körper bleibt Rückfall
+    const spriteBody = e.levArena ? drawLeviathanBody(ctx, this.scene, e) : false;
+    if (!spriteBody) {
     // 1. Massive Armored Titan Hull Chassis spanning top of Reactor Core Arena!
     ctx.save();
     drawPixelShadow(ctx, cx, cy + 28, 84, 14, 0.58);
@@ -2766,12 +2769,13 @@ export class DungeonRenderer {
     ctx.fill();
     ctx.restore();
 
+    }
     // 2. Articulated Segmented Chain Arms + Massive Hydraulic Giant Gauntlets!
     if (e.levArms) {
       for (const arm of e.levArms) {
         if (arm.dead) continue; // M12: zerstörter Kranarm
-        const shX = cx + arm.side * 66;
-        const shY = cy + 6;
+        const shX = spriteBody ? e.x + arm.side * BODY_SHOULDER_DX : cx + arm.side * 66;
+        const shY = spriteBody ? e.y + 6 + BODY_SHOULDER_DY : cy + 6;
         const grounded = arm.state === 'grounded';
         const slamming = arm.state === 'slamming';
 

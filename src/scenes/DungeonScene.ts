@@ -45,7 +45,7 @@ import { DungeonEnemyAi } from '../dungeon/enemyAi';
 import { RoomMechanicsSystem } from '../dungeon/roomMechanics';
 import { NavGrid } from '../dungeon/navGrid';
 import { DungeonCamera } from '../dungeon/camera';
-import { arenaEnabled, attachArenas } from '../data/arenas';
+import { ARENAS, arenaEnabled, attachArenas } from '../data/arenas';
 import {
   arenaAimPoint,
   arenaAimPoints,
@@ -99,8 +99,9 @@ export class DungeonScene {
   public readonly camera = new DungeonCamera();
   /** M12 Phase D: Titel-Banner (Auftritt/Sieg eines Arena-Endbosses), Bildschirmkoordinaten */
   public arenaBanner: { title: string; sub: string; t: number; max: number } | null = null;
-  public get cameraTarget(): { playerX: number; playerY: number; roomBounds: DungeonRoom['bounds'] } {
-    return { playerX: this.playerX, playerY: this.playerY, roomBounds: this.currentRoom?.bounds };
+  public get cameraTarget(): { playerX: number; playerY: number; roomBounds: DungeonRoom['bounds']; biasY?: number } {
+    const arena = this.currentRoom?.arenaKind ? ARENAS[this.currentRoom.arenaKind] : undefined;
+    return { playerX: this.playerX, playerY: this.playerY, roomBounds: this.currentRoom?.bounds, biasY: arena?.cameraBiasY };
   }
   public get bounds(): Readonly<RoomBounds> {
     return roomBounds(this.currentRoom);

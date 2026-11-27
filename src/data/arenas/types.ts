@@ -24,6 +24,10 @@ export interface ArenaDef {
   wallSprite?: string;
   /** Höhe der Boss-Wand über der Spielfläche + Sockel (logische px), passend zum Wand-Sprite */
   wallHeight: number;
+  /** Kamera darf so weit über die Spielfläche schauen (logische px, Standard 46 = wie Standardraum) */
+  viewAbove?: number;
+  /** Kamera hält den Spieler um so viel tiefer im Bild (Boss sichtbar) */
+  cameraBiasY?: number;
 }
 
 export const ARENA_TILE = 16;

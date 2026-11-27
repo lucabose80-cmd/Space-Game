@@ -205,6 +205,8 @@ export interface RoomBoundsDef {
   r: number;
   t: number;
   b: number;
+  /** M12: oberster sichtbarer Welt-Punkt für die Kamera (Arena mit hohem Boss); fehlt = `t - ROOM_TOP` wie im Standardraum */
+  vt?: number;
 }
 
 /** M12: Raumgrenzen inkl. Mittelpunkt — Rückgabe von `roomBounds()`. */

@@ -154,6 +154,41 @@ function build(room: DungeonRoom, sector: number): CacheEntry | null {
   return { key: `${room.key}|${b.l},${b.r},${b.t},${b.b}|${sector}`, canvas, x, y, w, h };
 }
 
+let footTile: HTMLCanvasElement | null = null;
+let footFrom: HTMLCanvasElement | null = null;
+
+/**
+ * Wandfuß: durchgehender Sockel (Ausschnitt aus dem Boss-Körper-Sprite, gekachelt) + Kontaktschatten auf dem Boden,
+ * damit Wand und Boden sauber ineinander übergehen. Ohne Körper-Sprite: einfacher gezeichneter Sockel.
+ */
+function drawWallFoot(ctx: CanvasRenderingContext2D, art: HDArtAssets, l: number, r: number, footY: number): void {
+  const body = art.arenaLeviathanBody;
+  if (body && footFrom !== body && typeof document !== 'undefined') {
+    // Sockel-Segment im Körper-Sprite (Bild-px 168…300 × 296…324)
+    const c = document.createElement('canvas');
+    c.width = 132;
+    c.height = 28;
+    c.getContext('2d')?.drawImage(body, 168, 296, 132, 28, 0, 0, 132, 28);
+    footTile = c;
+    footFrom = body;
+  }
+  // Kontaktschatten
+  const sh = ctx.createLinearGradient(0, footY, 0, footY + 14);
+  sh.addColorStop(0, 'rgba(0, 0, 0, 0.55)');
+  sh.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = sh;
+  ctx.fillRect(l, footY, r - l, 14);
+  const h = 14;
+  if (footTile) {
+    for (let x = l; x < r; x += 66) ctx.drawImage(footTile, 0, 0, Math.min(132, (r - x) * 2), 28, x, footY - h + 2, Math.min(66, r - x), h);
+  } else {
+    ctx.fillStyle = '#3f3c3a';
+    ctx.fillRect(l, footY - h + 2, r - l, h);
+    ctx.fillStyle = '#6b6560';
+    ctx.fillRect(l, footY - h + 2, r - l, 4);
+  }
+}
+
 /** Zeichnet den Arena-Boden in Weltkoordinaten (Kamera-Translation liegt schon auf ctx). */
 export function renderArenaFloor(ctx: CanvasRenderingContext2D, room: DungeonRoom, sector: number, viewX: number, viewY: number, viewW: number, viewH: number): void {
   const b = room.bounds;
@@ -171,6 +206,18 @@ export function renderArenaFloor(ctx: CanvasRenderingContext2D, room: DungeonRoo
     const bg = def.bgSprite ? art[def.bgSprite as keyof HDArtAssets] : null;
     if (bg instanceof HTMLCanvasElement) ctx.drawImage(bg, b.l, b.t, b.r - b.l, b.b - b.t);
     const wall = def.wallSprite ? art[def.wallSprite as keyof HDArtAssets] : null;
-    if (wall instanceof HTMLCanvasElement) ctx.drawImage(wall, b.l, b.t + 48 - def.wallHeight, b.r - b.l, def.wallHeight);
+    if (wall instanceof HTMLCanvasElement) {
+      // Dunkelheit über der Wand (Kamera darf in der Arena höher schauen)
+      const top = b.t + 48 - def.wallHeight;
+      const g = ctx.createLinearGradient(0, top - 70, 0, top + 6);
+      g.addColorStop(0, '#05080d');
+      g.addColorStop(1, 'rgba(5, 8, 13, 0)');
+      ctx.fillStyle = '#05080d';
+      ctx.fillRect(b.l - 60, viewY, b.r - b.l + 120, Math.max(0, top - 70 - viewY));
+      ctx.drawImage(wall, b.l, top, b.r - b.l, def.wallHeight);
+      ctx.fillStyle = g;
+      ctx.fillRect(b.l - 60, top - 70, b.r - b.l + 120, 76);
+      drawWallFoot(ctx, art, b.l, b.r, b.t + 48);
+    }
   }
 }

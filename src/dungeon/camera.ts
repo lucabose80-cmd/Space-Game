@@ -17,6 +17,8 @@ export interface CameraTarget {
   playerY: number;
   /** eigene Raumgrenzen (Arena); fehlt = Standardraum */
   roomBounds: RoomBoundsDef | undefined;
+  /** Arena: Kamera schaut um so viele px weiter nach oben (hoher Boss in der Nordwand) */
+  biasY?: number;
 }
 
 export class DungeonCamera {
@@ -30,7 +32,7 @@ export class DungeonCamera {
   public static range(b: RoomBoundsDef): { minX: number; maxX: number; minY: number; maxY: number } {
     let minX = b.l - ROOM_LEFT;
     let maxX = b.r - ROOM_RIGHT;
-    let minY = b.t - ROOM_TOP;
+    let minY = b.vt ?? b.t - ROOM_TOP;
     let maxY = b.b - ROOM_BOTTOM;
     // Raum schmaler/niedriger als ein Bildschirm: mittig
     if (maxX < minX) minX = maxX = (minX + maxX) / 2;
@@ -62,7 +64,7 @@ export class DungeonCamera {
       this.y = 0;
       return;
     }
-    const c = this.clamp(t.roomBounds, t.playerX - VIRTUAL_WIDTH / 2, t.playerY - VIRTUAL_HEIGHT / 2);
+    const c = this.clamp(t.roomBounds, t.playerX - VIRTUAL_WIDTH / 2, t.playerY - (t.biasY ?? 0) - VIRTUAL_HEIGHT / 2);
     this.x = c.x;
     this.y = c.y;
   }
@@ -83,7 +85,7 @@ export class DungeonCamera {
     } else {
       // Totzone um die Bildschirmmitte
       const sx = t.playerX - (this.x + VIRTUAL_WIDTH / 2);
-      const sy = t.playerY - (this.y + VIRTUAL_HEIGHT / 2);
+      const sy = t.playerY - (t.biasY ?? 0) - (this.y + VIRTUAL_HEIGHT / 2);
       const hw = CAMERA_DEADZONE_W / 2;
       const hh = CAMERA_DEADZONE_H / 2;
       tx = this.x + (sx > hw ? sx - hw : sx < -hw ? sx + hw : 0);

@@ -303,7 +303,7 @@ export function updateLeviathanArena(scene: DungeonScene, e: Enemy, dt: number):
       const first = !scene.state.sector1Cleared;
       const dur = first ? ENDBOSS_ARENA.introSecFirst : ENDBOSS_ARENA.introSecRepeat;
       L.timer = dur;
-      scene.camera.focus(e.x, e.y + 70, dur);
+      scene.camera.focus(e.x, e.y - 6, dur);
       scene.arenaBanner = { title: 'A.E.G.I.S. LEVIATHAN', sub: 'Reaktorhalle · Sektor 1', t: dur + 0.8, max: dur + 0.8 };
       sound.playBossRoar();
       scene.triggerShake(0.4, 3);
@@ -755,6 +755,49 @@ export function drawLeviathanArena(ctx: CanvasRenderingContext2D, scene: Dungeon
     }
   }
   ctx.restore();
+}
+
+/** Boss-Körper-Sprite (P1-10, 300×167 logisch): Kern-Linse bei (150 | 111,5) im Bild. */
+export const BODY_W = 300;
+export const BODY_H = 167;
+const BODY_LENS_X = 150;
+const BODY_LENS_Y = 111.5;
+/** Schulter-Sockel der Kran-Arme relativ zur Linse (Sprite) */
+export const BODY_SHOULDER_DX = 70;
+export const BODY_SHOULDER_DY = -42;
+
+/**
+ * Zeichnet den Boss-Körper als Sprite (Zustand je Phase; fehlt ein Zustands-Bild → Grundbild + Tönung).
+ * Rückgabe false = kein Sprite vorhanden → Renderer zeichnet den alten prozeduralen Körper.
+ */
+export function drawLeviathanBody(ctx: CanvasRenderingContext2D, scene: DungeonScene, e: Enemy): boolean {
+  const L = e.levArena;
+  const art = getHDArt();
+  const base = art.arenaLeviathanBody;
+  if (!L || !base) return false;
+  const dead = L.state === 'dead' || e.hp <= 0;
+  const variant = dead ? art.arenaLeviathanBodyDead : L.phase === 3 ? art.arenaLeviathanBodyP3 : L.phase === 2 ? art.arenaLeviathanBodyP2 : null;
+  const img = variant ?? base;
+  const x = Math.round(e.x - BODY_LENS_X);
+  const y = Math.round(e.y + LENS_DY - BODY_LENS_Y);
+  const t = scene.time;
+  ctx.save();
+  if (e.flashTimer > 0) ctx.filter = 'brightness(1.9)';
+  else if (dead && !variant) ctx.filter = 'brightness(0.55) saturate(0.6)';
+  ctx.drawImage(img, x, y, BODY_W, BODY_H);
+  ctx.filter = 'none';
+  // Ohne eigenes Zustands-Bild: Phase II = rote Überhitzung, Phase III = gleißender Kern
+  if (!variant && !dead && L.phase >= 2) {
+    ctx.globalCompositeOperation = 'lighter';
+    const a = L.phase === 3 ? 0.22 + 0.12 * Math.sin(t * 9) : 0.12 + 0.08 * Math.sin(t * 6);
+    const g = ctx.createRadialGradient(e.x, e.y + LENS_DY, 6, e.x, e.y + LENS_DY, L.phase === 3 ? 120 : 90);
+    g.addColorStop(0, `rgba(251, 113, 133, ${a + 0.25})`);
+    g.addColorStop(1, 'rgba(251, 113, 133, 0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(x, y, BODY_W, BODY_H);
+  }
+  ctx.restore();
+  return true;
 }
 
 /** Titel-Banner (Bildschirmkoordinaten, ohne Kamera). */

@@ -60,9 +60,9 @@ module.exports = async ({ page, scratch, PORT }) => {
   assert.deepStrictEqual(r.obsKinds, ['bulkhead_wall', 'conduit', 'pillar']);
   assert.strictEqual(r.calls[0], r.calls[1], 'attachArenas verbraucht kein Math.random');
   assert.deepStrictEqual(r.diffKeys, [r.bossKey], 'nur der Bossraum ändert sich');
-  assert.deepStrictEqual(r.boss.bounds, { l: 68, r: 756, t: 46, b: 398 });
+  assert.deepStrictEqual(r.boss.bounds, { l: 68, r: 756, t: 46, b: 398, vt: 46 - 112 });
   assert.strictEqual(r.boss.arenaKind, 'boss_leviathan');
-  assert.deepStrictEqual(r.boss.spawns, [{ kind: 'boss_leviathan', x: 68 + 344, y: 46 + 30 }]);
+  assert.deepStrictEqual(r.boss.spawns, [{ kind: 'boss_leviathan', x: 68 + 344, y: 46 + 4 }]);
   assert.deepStrictEqual([r.boss.pods, r.boss.chasms, r.boss.chest], [0, 0, null]);
   assert.deepStrictEqual(r.others, [false, false, false, false, false, false], 'nur S1 Ebene III bekommt (vorerst) eine Arena');
   assert.strictEqual(r.northGap, false, 'Nordtür: Durchgang im Boss-Sockel');
@@ -115,7 +115,7 @@ module.exports = async ({ page, scratch, PORT }) => {
   const on = await run(`http://127.0.0.1:${PORT}/?arena`);
   console.log(JSON.stringify({ ...on, url: undefined, url2: undefined }));
   assert.strictEqual(on.arena, true, 'mit ?arena: Arena-Bossraum');
-  assert.deepStrictEqual(on.boss, [412, 76], 'Leviathan am Anker');
+  assert.deepStrictEqual(on.boss, [412, 50], 'Leviathan am Anker');
   assert.ok(!on.err, 'Arena-Kampf ohne Fehler: ' + on.err);
   assert.ok(on.inside, 'alle Gegner in der Arena');
   assert.ok(on.playerFree, 'Spieler steht nicht in einem Hindernis');
