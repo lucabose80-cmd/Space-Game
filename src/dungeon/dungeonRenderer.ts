@@ -3,6 +3,7 @@ import { drawGlow, drawPixelShadow } from '../assets/pixelArt';
 import { drawBossLook } from './bosses/bossLooks';
 import { getBossPose, getRigFacing, smoothBossBody } from './anim/bossAnims';
 import { drawDetached, spawnPhase2Parts } from './anim/detached';
+import { spitterDeathPose, updateSpitterGhosts } from './anim/rigs/spore_spitter';
 import { enemyMotion, wantsMotion } from './anim/motion';
 import { drawRig } from '../engine/rig';
 import { RIG_BY_KIND, RIGS } from '../data/rigs';
@@ -549,6 +550,10 @@ export class DungeonRenderer {
           ctx.restore();
           }),
       });
+    }
+    // M11 (Sporenspucker): Todes-Animation des Rigs (nur Darstellung; der Gegner selbst ist längst entfernt)
+    for (const g of updateSpitterGhosts(this.scene.enemies, this.scene.time, this.scene.playerX)) {
+      drawables.push({ y: g.y, draw: () => this.drawSpitterGhost(ctx, g) });
     }
     // Milestone 10-A: solide Kristall-Prismen (S2) y-sortiert zwischen Gegnern & Held
     for (const d of getMechanicsDrawables(ctx, this.scene)) drawables.push(d);
@@ -2363,6 +2368,14 @@ export class DungeonRenderer {
     return true;
   }
 
+  /** M11 (Sporenspucker): Todes-Animation — Körper sackt zusammen, Kapseln/Auge/Spore platzen weg. Fehlt das Rig, nichts zu zeichnen. */
+  private drawSpitterGhost(ctx: CanvasRenderingContext2D, g: { x: number; y: number; t0: number; facing: number; dir: number }): void {
+    const rigId = RIG_BY_KIND.spore_spitter;
+    const images = rigId ? getHDArt().rigs[rigId] : undefined;
+    if (!rigId || !images) return;
+    drawRig(ctx, RIGS[rigId], images, g.x, g.y + 11, spitterDeathPose(g, this.scene.time - g.t0), { flipX: g.facing < 0 });
+  }
+
   private renderBreacherBoss(ctx: CanvasRenderingContext2D, e: Enemy): void {
     const art = getHDArt();
     const state = e.bossState ?? 'stalk';
@@ -3050,6 +3063,12 @@ export class DungeonRenderer {
       this.renderShieldArc(ctx, e, hover, 14, 1.08, '#38e8d4', 2.6);
       drawGlow(ctx, e.x, e.y + hover, 17, '#38e8d4', 0.28);
     } else if (e.kind === 'spore_spitter') {
+      if (this.tryDrawEnemyRig(ctx, e, false)) {
+        // M11: Rig (Körper + Auge + Kapseln + Spore) statt Einzelbild; Leuchten wie zuvor, nur dezenter (das Rig glüht selbst)
+        drawGlow(ctx, e.x, e.y - 2, e.telegraphTimer > 0 ? 20 : 13, e.telegraphTimer > 0 ? '#a3e635' : '#34d399', e.telegraphTimer > 0 ? 0.4 : 0.16);
+        this.renderEnemyMiniHp(ctx, e);
+        return;
+      }
       const pulse = Math.sin(this.scene.time * 7 + e.id) * 0.1;
       const spr = e.flashTimer > 0 ? art.sporeSpitterFlash : art.sporeSpitter;
       if (spr) {

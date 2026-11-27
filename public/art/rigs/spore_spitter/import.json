@@ -1,0 +1,72 @@
+{
+ "rig": "spore_spitter",
+ "scale": 0.14232,
+ "resample": "lanczos",
+ "torsoDisplayH": 19,
+ "pixelRatio": 2,
+ "sheets": {
+  "spore_spitter_rig.png": "a1887ab7f5229966"
+ },
+ "parts": {
+  "body": {
+   "w": 42,
+   "h": 38,
+   "srcW": 296,
+   "srcH": 267
+  },
+  "eye": {
+   "w": 16,
+   "h": 16,
+   "srcW": 112,
+   "srcH": 110
+  },
+  "podShut": {
+   "w": 14,
+   "h": 19,
+   "srcW": 101,
+   "srcH": 132
+  },
+  "podOpen": {
+   "w": 18,
+   "h": 19,
+   "srcW": 123,
+   "srcH": 137
+  },
+  "spore": {
+   "w": 15,
+   "h": 14,
+   "srcW": 102,
+   "srcH": 98
+  },
+  "burrowed": {
+   "w": 42,
+   "h": 29,
+   "srcW": 296,
+   "srcH": 207
+  },
+  "sp_body": {
+   "w": 42,
+   "h": 48,
+   "mode": "swap",
+   "set": "spore_spitter_rig"
+  },
+  "sp_burrowed": {
+   "w": 42,
+   "h": 48,
+   "mode": "swap",
+   "set": "spore_spitter_rig"
+  },
+  "pod_shut": {
+   "w": 18,
+   "h": 36,
+   "mode": "swap",
+   "set": "spore_spitter_rig"
+  },
+  "pod_open": {
+   "w": 18,
+   "h": 36,
+   "mode": "swap",
+   "set": "spore_spitter_rig"
+  }
+ }
+}
