@@ -204,6 +204,8 @@ export const CHATTER_LINES: ChatterLine[] = [
   { text: 'Gold bis unters Dach: die Suite des Kapitäns.', minChapter: 0, needs: 'quarters_2' },
   { text: 'Astro-Barter glänzt wie ein Flaggschiff-Basar.', minChapter: 0, needs: 'shop_2' },
   { text: 'Lyras kleiner Droide piept nach jedem Pflaster.', minChapter: 2, needs: 'pip' },
+  { text: 'Pings Antenne dreht sich im Takt des Echos.', minChapter: 3, needs: 'ping' },
+  { text: 'Nyx’ Katze schaut mich an, als wüsste sie was.', minChapter: 4, needs: 'midnight' },
   // Kapitel 4
   { text: 'Der Obelisk summt nachts. Beruhigend.', minChapter: 4, maxChapter: 4 },
   { text: 'Vier Siegel … und das Tor ist offen.', minChapter: 4, maxChapter: 4 },

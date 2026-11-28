@@ -10,7 +10,22 @@ export type HubCutsceneId =
   | 'celebration_s3'
   | 'celebration_s4'
   | 'celebration_omega'
-  | 'story_mina_arrives';
+  | 'story_mina_arrives'
+  | 'story_pip_arrives'
+  | 'story_ping_arrives'
+  | 'story_midnight_arrives';
+
+/** Einzug eines Begleiters/Gehilfen an einem Hub-Laden. */
+interface ArrivalDef {
+  companion: 'pip' | 'ping' | 'midnight';
+  hostName: string;
+  hostPos: { x: number; y: number };
+  hostSprite: 'npcLyra' | 'npcVex' | 'npcNyx';
+  start: { x: number; y: number };
+  rest: { x: number; y: number };
+  glow: string;
+  tag: string;
+}
 
 interface CutsceneBeat {
   speaker: string;
@@ -20,7 +35,7 @@ interface CutsceneBeat {
   /** Optionaler Effekt beim Start dieses Beats */
   onStart?: 'fanfare' | 'lights_on' | 'firework' | 'hammer' | 'chime';
   /** Wer hüpft/jubelt in diesem Beat? */
-  cheerActor?: 'all' | 'kael' | 'lyra' | 'nyx' | 'vex' | 'mina' | 'player';
+  cheerActor?: 'all' | 'kael' | 'lyra' | 'nyx' | 'vex' | 'mina' | 'player' | 'host' | 'companion';
 }
 
 interface HubCutsceneDef {
@@ -31,6 +46,8 @@ interface HubCutsceneDef {
   confettiColors: string[];
   fireworks: boolean;
   focusForge: boolean;
+  /** Begleiter-Einzug (Pip, Ping, Mitternacht) statt Feier-/Mina-Bühne */
+  arrival?: ArrivalDef;
   beats: CutsceneBeat[];
 }
 
@@ -198,6 +215,141 @@ const HUB_CUTSCENES: Record<HubCutsceneId, HubCutsceneDef> = {
         durationSec: 4.8,
         onStart: 'firework',
         cheerActor: 'all',
+      },
+    ],
+  },
+  story_pip_arrives: {
+    id: 'story_pip_arrives',
+    eyebrow: 'MED-BAY · NEUER ASSISTENT',
+    bannerTitle: 'PIP ASSISTIERT DR. LYRA!',
+    accent: '#34d399',
+    confettiColors: ['#34d399', '#99f6e4', '#fde047'],
+    fireworks: false,
+    focusForge: false,
+    arrival: {
+      companion: 'pip',
+      hostName: 'Dr. Lyra',
+      hostPos: { x: 348, y: 130 },
+      hostSprite: 'npcLyra',
+      start: { x: 430, y: 60 },
+      rest: { x: 322, y: 132 },
+      glow: '#2dd4bf',
+      tag: 'PIP',
+    },
+    beats: [
+      {
+        speaker: 'Dr. Lyra',
+        speakerColor: '#34d399',
+        text: 'Seit dem Echo-Fieber stapeln sich meine Patienten. Also habe ich mir Hilfe gebaut. {captain}, darf ich vorstellen?',
+        durationSec: 5.0,
+        onStart: 'chime',
+        cheerActor: 'host',
+      },
+      {
+        speaker: 'Pip',
+        speakerColor: '#2dd4bf',
+        text: 'Piep! Pip, medizinischer Assistent, Baureihe M-1. Ich zähle Pflaster, Pulsschläge und Sternschnuppen.',
+        durationSec: 4.8,
+        onStart: 'chime',
+        cheerActor: 'companion',
+      },
+      {
+        speaker: 'Dr. Lyra',
+        speakerColor: '#34d399',
+        text: 'Er hat deine Vitalwerte gespeichert. Wenn du angeschlagen heimkehrst, ist er schneller beim Verband als ich.',
+        durationSec: 4.8,
+        onStart: 'fanfare',
+        cheerActor: 'host',
+      },
+    ],
+  },
+  story_ping_arrives: {
+    id: 'story_ping_arrives',
+    eyebrow: 'TECH-LABOR · NEUE ECHO-SONDE',
+    bannerTitle: 'PING FOLGT DEM SIGNAL!',
+    accent: '#38bdf8',
+    confettiColors: ['#38bdf8', '#fb923c', '#fde047'],
+    fireworks: false,
+    focusForge: false,
+    arrival: {
+      companion: 'ping',
+      hostName: 'Vex',
+      hostPos: { x: 295, y: 178 },
+      hostSprite: 'npcVex',
+      start: { x: 440, y: 200 },
+      rest: { x: 318, y: 180 },
+      glow: '#38bdf8',
+      tag: 'PING',
+    },
+    beats: [
+      {
+        speaker: 'Vex',
+        speakerColor: '#38bdf8',
+        text: 'Aus den Gießerei-Wracks habe ich Sensorreste gefischt und etwas gebaut, das das Echo hören kann. {captain}, das ist Ping!',
+        durationSec: 5.2,
+        onStart: 'chime',
+        cheerActor: 'host',
+      },
+      {
+        speaker: 'Ping',
+        speakerColor: '#fb923c',
+        text: 'Bip-bip! Signal gefunden! Neunundvierzig Sekunden … nein, siebenundvierzig!',
+        durationSec: 4.4,
+        onStart: 'hammer',
+        cheerActor: 'companion',
+      },
+      {
+        speaker: 'Vex',
+        speakerColor: '#38bdf8',
+        text: 'Er zählt schon mit mir! Ab jetzt kalibriert Ping deine Module, und mein Labor brummt endlich im Takt.',
+        durationSec: 4.8,
+        onStart: 'fanfare',
+        cheerActor: 'host',
+      },
+    ],
+  },
+  story_midnight_arrives: {
+    id: 'story_midnight_arrives',
+    eyebrow: 'SCHWARZMARKT · EIN UNGEBETENER GAST',
+    bannerTitle: 'MITTERNACHT BLEIBT!',
+    accent: '#c084fc',
+    confettiColors: ['#c084fc', '#e9d5ff', '#fde047'],
+    fireworks: false,
+    focusForge: false,
+    arrival: {
+      companion: 'midnight',
+      hostName: 'Nyx',
+      hostPos: { x: 185, y: 178 },
+      hostSprite: 'npcNyx',
+      start: { x: 40, y: 214 },
+      rest: { x: 208, y: 184 },
+      glow: '#c084fc',
+      tag: 'MITTERNACHT',
+    },
+    beats: [
+      {
+        speaker: 'Nyx',
+        speakerColor: '#c084fc',
+        text: 'Seit der Obelisk leuchtet, sitzt sie auf meinem Tresen. Niemand weiß, woher sie kam. Nicht im Katalog.',
+        durationSec: 5.0,
+        onStart: 'chime',
+        cheerActor: 'host',
+      },
+      {
+        speaker: 'Mitternacht',
+        speakerColor: '#e9d5ff',
+        text: 'Mrrp.',
+        durationSec: 2.6,
+        onStart: 'chime',
+        cheerActor: 'companion',
+      },
+      {
+        speaker: 'Nyx',
+        speakerColor: '#c084fc',
+        text: 'Sie stiehlt nur, was nicht festgenagelt ist. Also alles. Sie mag dich, {captain} — das ist ein Kompliment.',
+        durationSec: 5.0,
+        onStart: 'fanfare',
+        cheerActor: 'host',
       },
     ],
   },
@@ -530,7 +682,9 @@ export class HubCutsceneOverlay {
     ctx.save();
 
     // 1. Live-Regie auf der Promenade: Versammelte NPCs & Effekte
-    if (this.def.focusForge) {
+    if (this.def.arrival) {
+      this.renderCompanionArrivalStage(ctx, art, cheer, this.def.arrival);
+    } else if (this.def.focusForge) {
       this.renderMinaArrivalStage(ctx, art, cheer);
     } else {
       this.renderCelebrationStage(ctx, art, cheer);
@@ -671,6 +825,47 @@ export class HubCutsceneOverlay {
         ctx.fillText(a.id === 'player' ? '★' : '!', a.x, Math.round(a.y - a.h + 2 + jy));
       }
     }
+  }
+
+  /** Einzug eines Begleiters: Er fliegt/läuft von außen zum Laden, der Gastgeber begrüßt ihn, der Kapitän schaut zu. */
+  private renderCompanionArrivalStage(
+    ctx: CanvasRenderingContext2D,
+    art: ReturnType<typeof getHDArt>,
+    cheer: CutsceneBeat['cheerActor'],
+    a: ArrivalDef,
+  ): void {
+    drawGlow(ctx, a.rest.x, a.rest.y - 8, 56, a.glow, 0.18 + Math.sin(this.totalElapsed * 4) * 0.05);
+    const walkT = this.beatIdx === 0 ? Math.min(1, this.beatElapsed / 1.6) : 1;
+    const e = walkT * walkT * (3 - 2 * walkT);
+    const cx = a.start.x + (a.rest.x - a.start.x) * e;
+    const cy = a.start.y + (a.rest.y - a.start.y) * e;
+    const hop = (who: 'host' | 'companion'): number =>
+      cheer === who && walkT >= 1 ? -Math.abs(Math.sin(this.totalElapsed * 6.4)) * 4 : 0;
+
+    // Gastgeber
+    const host = art[a.hostSprite];
+    drawPixelShadow(ctx, a.hostPos.x, a.hostPos.y + 6, 9, 3.5);
+    if (host) ctx.drawImage(host, Math.round(a.hostPos.x - 14), Math.round(a.hostPos.y - 22 + hop('host')), 28, 28);
+
+    // Begleiter (Droiden schweben, die Katze springt auf den Platz)
+    const spr = a.companion === 'pip' ? art.npcPip : a.companion === 'ping' ? art.npcPing : art.npcMidnight;
+    const floaty = a.companion !== 'midnight';
+    const bob = floaty ? Math.sin(this.totalElapsed * 3.8) * 1.6 : 0;
+    const arcY = walkT < 1 ? -Math.sin(walkT * Math.PI) * (floaty ? 14 : 8) : 0;
+    drawPixelShadow(ctx, cx, a.rest.y + 8, floaty ? 6 : 8, 2.4, floaty ? 0.35 : 0.5);
+    if (floaty) drawGlow(ctx, cx, cy - 6 + arcY + bob, 10, a.glow, 0.2);
+    if (spr) ctx.drawImage(spr, Math.round(cx - 12), Math.round(cy - 26 + arcY + bob + hop('companion')), 24, 24);
+
+    ctx.font = 'bold 6.5px monospace';
+    ctx.fillStyle = a.glow;
+    ctx.textAlign = 'center';
+    ctx.fillText(a.tag, Math.round(cx), Math.round(cy - 30 + arcY + bob + hop('companion')));
+
+    // Kapitän schaut zu
+    const heroX = a.rest.x < 240 ? a.rest.x + 34 : a.rest.x - 34;
+    drawPixelShadow(ctx, heroX, a.rest.y + 14, 8, 3);
+    const hero = a.rest.x < 240 ? art.heroLeft : art.heroRight;
+    if (hero) ctx.drawImage(hero, Math.round(heroX - 13), Math.round(a.rest.y - 17), 26, 30);
   }
 
   private renderMinaArrivalStage(

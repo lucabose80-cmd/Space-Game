@@ -202,11 +202,6 @@ export class HubScene {
       sound.playUpgradeReveal();
     }
     this.state.pendingHubReveals = [];
-    if (this.state.isPipPresent() && !this.state.hasSeenCutscene('pip_arrives')) {
-      this.state.markCutsceneSeen('pip_arrives');
-      this.callbacks.onToast('🤖 Dr. Lyra: „Darf ich vorstellen — Pip, mein neuer Assistent. Er zählt jetzt deine Pflaster mit.“', 'good');
-      this.state.save();
-    }
     this.chatter = null;
     this.chatterTimer = 8 + Math.random() * 6;
     // Omega-Fest: einmalig, nur auf Wunsch überspringbar (siehe main.ts)
@@ -582,7 +577,7 @@ export class HubScene {
     if (this.chatter && !force) return false;
     if (this.activePrompt && !force) return false;
     const tiers = this.state.getHubTiers();
-    const facts: string[] = [...(this.state.isPipPresent() ? ['pip'] : []), `shop_${tiers.shop}`, `quarters_${this.state.upgrades.quartersTier ?? 0}`];
+    const facts: string[] = [...(this.state.isPipPresent() ? ['pip'] : []), ...(this.state.isPingPresent() ? ['ping'] : []), ...(this.state.isMidnightPresent() ? ['midnight'] : []), `shop_${tiers.shop}`, `quarters_${this.state.upgrades.quartersTier ?? 0}`];
     for (const id of ['techlab', 'blackmarket', 'terrace'] as const) facts.push(`${id}_${this.state.isHubBuildingOpen(id) ? 'open' : 'locked'}`);
     const pool = getChatterPool(this.state.story.chapter, this.state.story.flags, facts);
     if (pool.length === 0) return false;
@@ -933,6 +928,36 @@ export class HubScene {
             drawPixelShadow(ctx, pipX, pipY + 8, 6 - hover * 0.3, 2.2, 0.4);
             drawGlow(ctx, pipX, pipY - 4 + hover, 9, '#2dd4bf', 0.14 + Math.sin(this.time * 5) * 0.04);
             ctx.drawImage(art.npcPip as HTMLCanvasElement, pipX - 11, pipY - 24 + hover, 22, 22);
+          },
+        });
+      }
+
+      // Ping, Vex' Echo-Sonde (ab Kapitel 3) schwebt neben dem Tech-Labor
+      if (this.state.isPingPresent() && this.state.isHubBuildingOpen('techlab') && art.npcPing) {
+        const px = TECHLAB_NPC_POS.x + 22;
+        const py = TECHLAB_NPC_POS.y + 2;
+        drawables.push({
+          y: py,
+          draw: () => {
+            const hover = Math.sin(this.time * 4.1 + 2.0) * 1.5;
+            drawPixelShadow(ctx, px, py + 8, 6 - hover * 0.3, 2.2, 0.4);
+            drawGlow(ctx, px, py - 6 + hover, 9, '#38bdf8', 0.14 + Math.sin(this.time * 6) * 0.05);
+            ctx.drawImage(art.npcPing as HTMLCanvasElement, px - 12, py - 26 + hover, 24, 24);
+          },
+        });
+      }
+
+      // Mitternacht, Nyx' Void-Katze (ab Kapitel 4) sitzt am Schwarzmarkt
+      if (this.state.isMidnightPresent() && this.state.isHubBuildingOpen('blackmarket') && art.npcMidnight) {
+        const mx = NYX_NPC_POS.x + 23;
+        const my = NYX_NPC_POS.y + 7;
+        drawables.push({
+          y: my,
+          draw: () => {
+            const sway = Math.sin(this.time * 1.7) * 0.6;
+            drawPixelShadow(ctx, mx, my + 1, 8, 2.6, 0.5);
+            ctx.drawImage(art.npcMidnight as HTMLCanvasElement, mx - 11 + sway * 0.3, my - 21, 22, 22);
+            drawGlow(ctx, mx + 2, my - 14, 5, '#c084fc', 0.12 + Math.sin(this.time * 3.3) * 0.05);
           },
         });
       }

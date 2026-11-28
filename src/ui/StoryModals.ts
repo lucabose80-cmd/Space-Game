@@ -435,6 +435,8 @@ export interface ChronicleWorld {
   openBuildings: readonly string[];
   minaPresent: boolean;
   pipPresent: boolean;
+  pingPresent: boolean;
+  midnightPresent: boolean;
   quartersTier: number;
   shopTier: number;
 }
@@ -446,7 +448,9 @@ function worldGrowthHtml(w: ChronicleWorld): string {
   const rows = HUB_BUILDINGS.map((b) => row(w.openBuildings.includes(b.id), `${b.name} eröffnet`, b.lockedHint)).join('');
   const crew =
     row(w.minaPresent, 'Mina arbeitet in Kaels Schmiede', 'zieht nach Sektor 1 ein') +
-    row(w.pipPresent, 'Pip assistiert Dr. Lyra in der Med-Bay', 'kommt in Kapitel II');
+    row(w.pipPresent, 'Pip assistiert Dr. Lyra in der Med-Bay', 'kommt in Kapitel II') +
+    row(w.pingPresent, 'Ping lauscht dem Echo im Tech-Labor', 'kommt in Kapitel III') +
+    row(w.midnightPresent, 'Mitternacht wacht am Schwarzmarkt', 'kommt in Kapitel IV');
   const grow =
     row(w.shopTier >= 1, `Astro-Barter ausgebaut (Stufe ${w.shopTier + 1}/3)`, 'Shop-Ausbau im Laden') +
     row(w.quartersTier >= 1, `Kapitäns-Quartier ausgebaut (Stufe ${w.quartersTier + 1}/3)`, 'Quartier-Ausbau im Shop-Ausbau-Terminal');

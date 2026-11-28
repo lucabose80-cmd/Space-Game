@@ -12,7 +12,10 @@ export type ReplayableCutsceneId =
   | 'celebration_s3'
   | 'celebration_s4'
   | 'celebration_omega'
-  | 'story_mina_arrives';
+  | 'story_mina_arrives'
+  | 'story_pip_arrives'
+  | 'story_ping_arrives'
+  | 'story_midnight_arrives';
 
 export interface CutsceneCatalogEntry {
   id: ReplayableCutsceneId;
@@ -50,6 +53,14 @@ export const CUTSCENE_CATALOG: CutsceneCatalogEntry[] = [
     icon: '🔨',
   },
   {
+    id: 'story_pip_arrives',
+    kind: 'hub',
+    chapter: 2,
+    title: 'Lyras neuer Assistent',
+    subtitle: 'Med-Bay · Pip übernimmt Pflaster, Pulsschläge und Sternschnuppen',
+    icon: '🤖',
+  },
+  {
     id: 'celebration_s2',
     kind: 'hub',
     chapter: 2,
@@ -64,6 +75,22 @@ export const CUTSCENE_CATALOG: CutsceneCatalogEntry[] = [
     title: 'Funken der Sonnenschmiede',
     subtitle: 'Kapitel III · Solar-Wimpel & Jubel nach dem Vulkan-Titan',
     icon: '🔥',
+  },
+  {
+    id: 'story_ping_arrives',
+    kind: 'hub',
+    chapter: 3,
+    title: 'Vex baut eine Echo-Sonde',
+    subtitle: 'Tech-Labor · Ping hört, was das Echo flüstert',
+    icon: '📡',
+  },
+  {
+    id: 'story_midnight_arrives',
+    kind: 'hub',
+    chapter: 4,
+    title: 'Ein Gast aus dem Nichts',
+    subtitle: 'Schwarzmarkt · Mitternacht, die Katze aus dem Katalog der Sterne',
+    icon: '🐈‍⬛',
   },
   {
     id: 'celebration_s4',

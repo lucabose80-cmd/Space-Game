@@ -796,6 +796,20 @@ class StarlighterGame {
     }
     if (this.state.isMinaPresent() && !this.state.hasSeenCutscene('story_mina_arrives')) {
       this.playHubCutscene('story_mina_arrives');
+      return;
+    }
+    // Alt: Pip wurde früher nur per Toast vorgestellt → nicht erneut als Cutscene zeigen
+    if (this.state.hasSeenCutscene('pip_arrives')) this.state.markCutsceneSeen('story_pip_arrives');
+    const arrivals: Array<[boolean, 'story_pip_arrives' | 'story_ping_arrives' | 'story_midnight_arrives']> = [
+      [this.state.isPipPresent(), 'story_pip_arrives'],
+      [this.state.isPingPresent(), 'story_ping_arrives'],
+      [this.state.isMidnightPresent(), 'story_midnight_arrives'],
+    ];
+    for (const [present, id] of arrivals) {
+      if (present && !this.state.hasSeenCutscene(id)) {
+        this.playHubCutscene(id);
+        return;
+      }
     }
   }
 

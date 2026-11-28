@@ -2091,6 +2091,16 @@ export class GameState {
     }
   }
 
+  /** Vex' Echo-Sonde Ping (ab Kapitel 3, nach dem Gießerei-Sektor) im Tech-Labor. */
+  public isPingPresent(): boolean {
+    return this.story.chapter >= 3 || this.story.seenScenes.includes('vex_c3');
+  }
+
+  /** Nyx' Void-Katze Mitternacht (ab Kapitel 4, seit der Obelisk leuchtet) am Schwarzmarkt. */
+  public isMidnightPresent(): boolean {
+    return this.story.chapter >= 4 || this.story.seenScenes.includes('nyx_c4');
+  }
+
   /** Lyras Assistenz-Droide Pip arbeitet ab Kapitel 2 (nach dem Echo-Fieber) in der Med-Bay. */
   public isPipPresent(): boolean {
     return this.story.chapter >= 2 || this.story.seenScenes.includes('lyra_c2');

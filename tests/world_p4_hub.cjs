@@ -51,6 +51,17 @@ module.exports = async ({ page }) => {
     s.story.chapter = 2; out.pip2 = s.isPipPresent();
     s.seenCutscenes = s.seenCutscenes.filter((k) => k !== 'pip_arrives'); hub.onEnter('shop'); out.pipSeen = s.hasSeenCutscene('pip_arrives');
     { const c = document.createElement('canvas').getContext('2d'); hub.render(c); }
+    s.story.chapter = 2; out.ping2 = s.isPingPresent(); s.story.chapter = 3; out.ping3 = s.isPingPresent(); out.mid3 = s.isMidnightPresent();
+    s.story.chapter = 4; out.mid4 = s.isMidnightPresent();
+    // Einzugs-Cutscenes laufen & markieren sich als gesehen
+    out.arrivals = [];
+    for (const id of ['story_pip_arrives', 'story_ping_arrives', 'story_midnight_arrives']) {
+      g.playHubCutscene(id);
+      g.hubCutscene.seek(1, 2.0);
+      const c = document.createElement('canvas'); c.width = 960; c.height = 540; g.hubCutscene.render(c.getContext('2d'));
+      g.hubCutscene.dispose(); g.hubCutscene = null; g.hubCutsceneOnDone = null; g.setHudVisible(true);
+      out.arrivals.push(id);
+    }
     s.story.chapter = 0;
     // Alt-Save ohne Feld → alles offen
     const payload = s.buildSavePayload(); delete payload.hubUnlocks;
@@ -67,7 +78,8 @@ module.exports = async ({ page }) => {
   assert.strictEqual(r.pending, 3);
   assert.strictEqual(r.pendingAfterEnter, 0);
   assert.ok(r.colliders >= 6, JSON.stringify(r));
-  assert.deepStrictEqual([r.pip0, r.pip2, r.pipSeen], [false, true, true], JSON.stringify(r));
+  assert.deepStrictEqual([r.ping2, r.ping3, r.mid3, r.mid4, r.arrivals.length], [false, true, false, true, 3], JSON.stringify(r));
+  assert.deepStrictEqual([r.pip0, r.pip2], [false, true], JSON.stringify(r));
   assert.strictEqual(r.legacy, 3, JSON.stringify(r));
   assert.strictEqual(r.tier0, '{"forge":0,"med":0,"tech":0,"shop":0}', r.tier0);
   assert.strictEqual(r.tier1, '{"forge":2,"med":1,"tech":2,"shop":1}', r.tier1);

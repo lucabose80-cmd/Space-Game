@@ -973,6 +973,8 @@ export class UIManager {
             openBuildings: this.state.hubUnlocks,
             minaPresent: this.state.isMinaPresent(),
             pipPresent: this.state.isPipPresent(),
+            pingPresent: this.state.isPingPresent(),
+            midnightPresent: this.state.isMidnightPresent(),
             quartersTier: this.state.upgrades.quartersTier ?? 0,
             shopTier: this.state.upgrades.shopTier ?? 0,
           })}
@@ -989,7 +991,13 @@ export class UIManager {
                   this.state.hasSeenCutscene(entry.id) ||
                   (entry.id === 'story_mina_arrives'
                     ? this.state.isMinaPresent()
-                    : this.state.story.chapter >= entry.chapter && entry.chapter > 0);
+                    : entry.id === 'story_pip_arrives'
+                      ? this.state.isPipPresent()
+                      : entry.id === 'story_ping_arrives'
+                        ? this.state.isPingPresent()
+                        : entry.id === 'story_midnight_arrives'
+                          ? this.state.isMidnightPresent()
+                          : this.state.story.chapter >= entry.chapter && entry.chapter > 0);
                 return `
                   <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 8px;border:1px solid ${unlocked ? 'rgba(56,232,212,0.35)' : 'var(--border-steel)'};background:rgba(10,16,30,0.75);opacity:${unlocked ? '1' : '0.55'}">
                     <div style="min-width:0">
