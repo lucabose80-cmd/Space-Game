@@ -42,7 +42,7 @@
       "parent": "torso",
       "attach": [0.06, 0.36],
       "pivot": [0.55, 0.415],
-      "offset": [-14, -2],
+      "offset": [-28, -2],
       "z": 2,
       "variants": ["armIdle", "armRaise", "armSlam", "armDmg", "armCrit"]
     },
@@ -52,7 +52,7 @@
       "parent": "torso",
       "attach": [0.94, 0.36],
       "pivot": [0.55, 0.415],
-      "offset": [14, -2],
+      "offset": [28, -2],
       "z": 2,
       "flipX": true,
       "variants": ["armIdle", "armRaise", "armSlam", "armDmg", "armCrit"]

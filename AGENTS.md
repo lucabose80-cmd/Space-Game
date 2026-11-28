@@ -56,6 +56,8 @@
 
 18. **Ein Besitzer pro Bereich (Claim-Regel, gilt für alle Agenten & Chats):** Vor jeder Arbeit `git fetch`, [`handoff/README.md`](handoff/README.md) (Claim-Liste) und offene `[~]`-Zeilen in `SPRITE_QUEUE.md` prüfen; ist der Bereich/die Datei belegt → nicht anfangen. Eigenen Claim vor der ersten Code-Zeile eintragen und pushen, beim Ende freigeben; Sprite-Dateinamen nur mit eigener `[~]`-Zeile. Kollisionen ohne blindes Mergen auflösen (Sicherungs-Branch, beide Ergebnisse ansehen, bessere behalten, Inhaber informieren) — Ablauf: `PARALLEL_WORK.md` §5. Praxis-Learnings in das Status-Blatt des Bereichs schreiben.
 
+19. **Alles Gelernte sofort dokumentieren — Chatwechsel-sicher (gilt für jeden Agenten, jede Arbeit):** Jede Erkenntnis, die ein nachfolgender Chat sonst neu herausfinden müsste, wird **im selben Arbeitsschritt** ins Status-Blatt des Bereichs (`handoff/<bereich>.md`, Abschnitt „Praxis-Learnings“, fortlaufend nummeriert) geschrieben und im **selben Commit** gepusht — nicht erst am Ende: (a) Fehlerursachen & wie sie behoben wurden (z. B. „Posen am Zellraster zerschnitten“), (b) Fallen/Stolpersteine, (c) Befehle/Skripte, die funktioniert haben (Ort nennen; wiederverwendbare Skripte nach `scripts/` statt in den Scratchpad), (d) Entscheidungen des Inhabers & Maße/Werte (Pivot, Offsets, Schwellen), (e) was **bewusst nicht** gemacht wurde und warum, (f) offene Punkte mit konkretem nächsten Schritt. Allgemeingültiges (nicht bereichsspezifisch) zusätzlich in `AGENTS.md`/Pipeline-Dokument. Vor dem Ende einer Sitzung und vor jedem möglichen Abbruch gilt: Was nur in deinem Kopf steht, ist verloren.
+
 „Gut genug“ oder „Rest später“ ist **kein** Grund — offene Punkte stehen sonst mit Begründung in der Abschlussmeldung und im Status-Blatt.
 
 ---
