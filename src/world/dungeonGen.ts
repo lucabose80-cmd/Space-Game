@@ -171,6 +171,10 @@ export interface DungeonRoom {
   flameJets?: FlameJet[];
   magnetPlates?: MagnetPlate[];
   teleporters?: TeleportPad[];
+  /** P7b: Sonderraum mit eigenem Hintergrund-Sprite: Käfig-Kammer ('cell') oder Heilquelle vor dem Boss ('spring') — ohne Gegner/Hindernisse */
+  special?: 'cell' | 'spring';
+  /** P7b: Heilquelle (Mitte des Raums); `used` = bereits geheilte HP dieser Quelle */
+  spring?: { x: number; y: number; used: number };
   /** P7: gefangener Crew-Begleiter im Käfig (nur Kampfraum, Ebene II) */
   captive?: { crew: 'mina' | 'pip' | 'ping' | 'midnight'; x: number; y: number; freed: boolean };
   hasHealStation?: boolean;

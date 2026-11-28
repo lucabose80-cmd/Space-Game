@@ -89,6 +89,8 @@ export interface HDArtAssets {
   hubLockTech: HTMLCanvasElement | null;
   npcPip: HTMLCanvasElement | null;
   propCrewCage: HTMLCanvasElement | null;
+  /** P7b: Hintergründe der Sonderräume (Käfig-Kammer / Heilquelle), je Sektor S1–S4; fehlt → Standard-Hintergrund */
+  roomBgs: Record<string, HTMLImageElement | null>;
   npcPing: HTMLCanvasElement | null;
   propWorkbench2: HTMLCanvasElement | null;
   npcMidnight: HTMLCanvasElement | null;
@@ -349,6 +351,7 @@ const art: HDArtAssets = {
   hubLockTech: null,
   npcPip: null,
   propCrewCage: null,
+  roomBgs: {},
   npcPing: null,
   propWorkbench2: null,
   npcMidnight: null,
@@ -647,6 +650,9 @@ export const M12_OPTIONAL_SPRITES = {
 } as const;
 
 export type M12SpriteKey = keyof typeof M12_OPTIONAL_SPRITES;
+
+/** P7b: Sonderraum-Hintergründe `public/art/rooms/<kind>_s<N>.png` (960×540). */
+export const SPECIAL_ROOM_BGS: string[] = ['cell', 'spring'].flatMap((k) => [1, 2, 3, 4].map((n) => `${k}_s${n}`));
 
 /** Meilenstein 10-C: optionale Boss-Sprites (128×128). Fehlt die Datei → eingefärbter Fallback + Merkmale (bossLooks.ts). */
 export const BOSS_OPTIONAL_SPRITES = {
@@ -1011,6 +1017,11 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
   const worldImgs = await Promise.all(worldKeys.map((k) => loadImage(`/art/sprites/${WORLD_OPTIONAL_SPRITES[k]}.png`)));
   worldKeys.forEach((k, i) => {
     art[k] = imgToCanvas(worldImgs[i]);
+  });
+
+  const roomImgs = await Promise.all(SPECIAL_ROOM_BGS.map((n) => loadImage(`/art/rooms/${n}.png`)));
+  SPECIAL_ROOM_BGS.forEach((n, i) => {
+    art.roomBgs[n] = roomImgs[i];
   });
 
   const m12Keys = Object.keys(M12_OPTIONAL_SPRITES) as M12SpriteKey[];

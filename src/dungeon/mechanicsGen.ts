@@ -318,8 +318,9 @@ export function findFreeSpotSpiral(
  */
 export function placeExtractBeacon(rooms: Map<string, DungeonRoom>, sector: SectorId, floorIndex: 1 | 2 | 3): void {
   if (sector > 4 || floorIndex < 2) return;
+  if ([...rooms.values()].some((r) => r.extractBeacon)) return;
   const cands = [...rooms.values()]
-    .filter((r) => r.type === 'combat' && !r.isRiftChamber && !r.secretParentKey)
+    .filter((r) => r.type === 'combat' && !r.isRiftChamber && !r.secretParentKey && !r.special)
     .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
   if (cands.length === 0) return;
   const rng = mulberry32(hashString(`m10c:beacon:${sector}:${floorIndex}:${cands.map((c) => c.key).join('|')}`));
@@ -369,7 +370,7 @@ export function placeCaptive(
 ): boolean {
   if (floorIndex !== 2) return false;
   const all = [...rooms.values()]
-    .filter((r) => r.type === 'combat' && !r.isRiftChamber && !r.secretParentKey)
+    .filter((r) => r.type === 'combat' && !r.isRiftChamber && !r.secretParentKey && !r.special)
     .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
   if (all.length === 0) return false;
   const maxDepth = Math.max(...all.map((r) => r.depth));

@@ -160,6 +160,7 @@
 - **Boss-Labor (`?bosslab` → Bosse → „LEVIATHAN · ANGRIFFE“ / „PHASEN & SCHÄDEN“):** `⏭ Nächster` (auch oben in der Kopfzeile), `▶▶ Auto` (Liste durchspielen), je Angriff ein Knopf; Schadensstufen `P1 100/85/70 · P2 60/48/36 · P3 25/12`, `Arm L/R ab`. Zurück in eine frühere Phase lädt die Arena neu (Phasen gehen nur vorwärts).
 
 ## Nächster Schritt
+0. **NEU (Inhaber 2026-11-28): A16/A17 für alle Sektor-Endbosse, zuerst Leviathan.** ⬜ **A16 Erwachen-Cutscene** (heute nur Kamerafahrt + Banner in `leviathanArena.ts`) → echte Cutscene mit Textboxen/Erwachen-Posen, überspringbar, Kino-Chronik-Eintrag. ⬜ **A17 Sieg-Cutscene** (heute öffnet sich die Schatzkammer ohne Inszenierung, `arenaVault.ts`) → Kamera-Schwenk, Boden/Wand öffnet sich, Schatzebene fährt auf, Crew-Textboxen. Muster: `DungeonScene.rescueCine` (Letterbox + Textbox + eingefrorenes Spiel, siehe `handoff/world_overhaul.md` #31). Fehlende Sprites → `SPRITE_QUEUE.md`. Jede Szene braucht einen Test.
 1. **Abnahme Pilot A.E.G.I.S. Leviathan im echten Spiel** (Stufe 8 — live in Sektor 1 Ebene III oder `?bosslab` → ARENEN → 🏟 Leviathan): Kampfgefühl, alle 4 Körper-Phasen, Plattenbruch/Dampf/Trümmer, Schatzkammer & Mobil-Check (A9). Notfall-Rückweg: `ENDBOSS_ARENA_LIVE = false` in `balance.ts`.
 2. Phase A/B-Marker entfernen, sobald der Projektinhaber die Standardräume abgenommen hat.
 3. Nach Pilot-Abnahme: nächste Sektor-Endboss-Arena (**Prisma-Archon**, S2 Spiegel-Kathedrale) nach Checkliste **A1–A15** starten.

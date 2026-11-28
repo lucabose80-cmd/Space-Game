@@ -14,7 +14,8 @@ import { RIG_BY_KIND, RIGS } from '../data/rigs';
 import { getAtlas } from '../assets/sprites';
 import { shakeFactor } from '../systems/deviceSettings';
 import { COMPANION_DEFS, SUIT_THEMES } from '../data/companions';
-import { CREW_DEFS } from '../data/crew';
+import { CREW_DEFS, CREW_RESCUE_BEATS } from '../data/crew';
+import { SPRING_HEAL_FRACTION } from './specialRooms';
 import { getInfusionDef, RIFT_MUTATORS } from '../data/infusions';
 import { getItemDef } from '../data/items';
 import { VIRTUAL_HEIGHT, VIRTUAL_WIDTH, type InputManager } from '../engine/input';
@@ -71,7 +72,11 @@ export class DungeonRenderer {
           : visSec === 2
             ? art.dungeonBgS2 ?? art.dungeonBg
             : art.dungeonBg;
-    if (arena) {
+    const specKey = this.scene.currentRoom.special ? `${this.scene.currentRoom.special}_s${Math.max(1, Math.min(4, visSec))}` : '';
+    const specBg = specKey ? art.roomBgs[specKey] : null;
+    if (specBg) {
+      ctx.drawImage(specBg, 0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+    } else if (arena) {
       renderArenaFloor(ctx, this.scene.currentRoom, visSec, camX, camY, VIRTUAL_WIDTH, VIRTUAL_HEIGHT, this.scene.time);
     } else if (roomBg) {
       ctx.drawImage(roomBg, 0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
@@ -266,6 +271,7 @@ export class DungeonRenderer {
 
     this.renderDoors(ctx);
     this.renderCaptiveCage(ctx);
+    this.renderHealSpring(ctx);
 
     if (this.scene.currentRoom.type === 'start') {
       this.renderWarpPad(ctx, this.scene.bounds.cx, this.scene.bounds.cy - 12, this.scene.currentSector === 2 ? '#c084fc' : '#38e8d4');
@@ -949,6 +955,8 @@ export class DungeonRenderer {
       this.renderPrompt(ctx, this.scene.activePrompt.label, this.scene.activePrompt.x - camX, this.scene.activePrompt.y - camY);
     }
 
+    this.renderRescueCine(ctx);
+
     if (this.scene.roomFade > 0) {
       ctx.fillStyle = `rgba(10, 14, 24, ${Math.min(1, this.scene.roomFade / 0.22)})`;
       ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
@@ -1361,6 +1369,75 @@ export class DungeonRenderer {
     ctx.restore();
   }
 
+  /** P7b: Heilquelle — Glühen & aufsteigende Funken über dem Becken (das Becken selbst steckt im Raum-Sprite). */
+  private renderHealSpring(ctx: CanvasRenderingContext2D): void {
+    const sp = this.scene.currentRoom.spring;
+    if (!sp) return;
+    const maxHp = this.scene.state.getStats().maxHp;
+    const left = Math.max(0, Math.round(maxHp * SPRING_HEAL_FRACTION) - sp.used) / Math.max(1, Math.round(maxHp * SPRING_HEAL_FRACTION));
+    const t = this.scene.time;
+    const a = (0.12 + 0.2 * left) + Math.sin(t * 2.2) * 0.03;
+    drawGlow(ctx, sp.x, sp.y, 44, '#86efac', a);
+    ctx.fillStyle = '#d9f99d';
+    const n = Math.round(2 + 6 * left);
+    for (let i = 0; i < n; i++) {
+      const ph = (t * 0.45 + i / n) % 1;
+      const px = sp.x + Math.sin(i * 7.3 + t) * 14;
+      const py = sp.y - ph * 26;
+      ctx.globalAlpha = (1 - ph) * 0.8;
+      ctx.fillRect(Math.round(px), Math.round(py), 1.5, 1.5);
+    }
+    ctx.globalAlpha = 1;
+    if (left <= 0) {
+      ctx.fillStyle = 'rgba(8, 12, 24, 0.55)';
+      ctx.beginPath();
+      ctx.ellipse(sp.x, sp.y, 26, 17, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  /** P7b: Befreiungs-Szene — Letterbox + Textbox über der laufenden Szene. */
+  private renderRescueCine(ctx: CanvasRenderingContext2D): void {
+    const c = this.scene.rescueCine;
+    if (!c) return;
+    const beats = CREW_RESCUE_BEATS[c.crew];
+    const beat = beats[Math.min(beats.length - 1, c.beat)];
+    const k = Math.min(1, c.t / 0.6);
+    ctx.fillStyle = 'rgba(4, 7, 16, 0.92)';
+    ctx.fillRect(0, 0, VIRTUAL_WIDTH, 22 * k);
+    const boxH = 62;
+    if (c.t > 1.0) {
+      const boxY = VIRTUAL_HEIGHT - boxH;
+      ctx.fillStyle = 'rgba(6, 11, 24, 0.94)';
+      ctx.fillRect(0, boxY, VIRTUAL_WIDTH, boxH);
+      ctx.fillStyle = beat.color;
+      ctx.fillRect(0, boxY, VIRTUAL_WIDTH, 1.5);
+      ctx.font = 'bold 7.5px monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText(beat.speaker.toUpperCase(), 18, boxY + 13);
+      const text = beat.text.replace(/\{captain\}/g, this.scene.state.captainName || 'Kapitän');
+      const shown = text.slice(0, Math.floor(Math.max(0, c.beatT - 0.1) * 60));
+      ctx.font = '8.5px monospace';
+      ctx.fillStyle = '#f1f5f9';
+      const words = shown.split(' ');
+      let line = '';
+      let row = 0;
+      for (const w of words) {
+        const cand = line ? `${line} ${w}` : w;
+        if (ctx.measureText(cand).width > VIRTUAL_WIDTH - 36 && line) {
+          ctx.fillText(line, 18, boxY + 26 + row * 11);
+          row += 1;
+          line = w;
+        } else line = cand;
+      }
+      if (line) ctx.fillText(line, 18, boxY + 26 + row * 11);
+      ctx.font = '6.5px monospace';
+      ctx.fillStyle = 'rgba(148, 163, 184, 0.85)';
+      ctx.textAlign = 'right';
+      ctx.fillText('[E] WEITER', VIRTUAL_WIDTH - 14, VIRTUAL_HEIGHT - 6);
+    }
+  }
+
   /** P7: Käfig mit gefangenem Crew-Begleiter (Energiestäbe; offen nach der Befreiung). */
   private renderCaptiveCage(ctx: CanvasRenderingContext2D): void {
     const cage = this.scene.currentRoom.captive;
@@ -1370,23 +1447,31 @@ export class DungeonRenderer {
     const spr =
       cage.crew === 'mina' ? art.npcMina : cage.crew === 'pip' ? art.npcPip : cage.crew === 'ping' ? art.npcPing : art.npcMidnight;
     const t = this.scene.time;
+    const cine = this.scene.rescueCine && this.scene.rescueCine.crew === cage.crew ? this.scene.rescueCine : null;
     const locked = !cage.freed && !this.scene.currentRoom.cleared;
+    const onDais = this.scene.currentRoom.special === 'cell';
     const x = Math.round(cage.x);
     const y = Math.round(cage.y);
     const cageSpr = art.propCrewCage;
     const barCol = locked ? '#f87171' : '#67e8f9';
-    drawPixelShadow(ctx, x, y + 12, 17, 5, 0.55);
-    drawFloorGlow(ctx, x, y + 12, 24, def.color, cage.freed ? 0.1 : 0.22 + Math.sin(t * 3) * 0.05);
-    const bob = cage.freed ? 0 : Math.sin(t * 2.4) * 1.2;
+    if (!onDais) {
+      drawPixelShadow(ctx, x, y + 12, 17, 5, 0.55);
+      drawFloorGlow(ctx, x, y + 12, 24, def.color, cage.freed ? 0.1 : 0.22 + Math.sin(t * 3) * 0.05);
+    } else if (!cage.freed) {
+      drawFloorGlow(ctx, x, y + 12, 26, def.color, 0.18 + Math.sin(t * 3) * 0.05);
+    }
+    const cineT = cine ? cine.t : 0;
+    const bob = cage.freed ? 0 : cine ? -Math.abs(Math.sin(cineT * 5)) * Math.min(5, cineT * 4) : Math.sin(t * 2.4) * 1.2;
     if (cageSpr) {
       // Gefangene Figur hinter den Stäben, Käfig-Sprite davor (Innenraum ist transparent)
       if (spr && !cage.freed) ctx.drawImage(spr, x - 10, Math.round(y - 22 + bob), 20, 20);
       if (!cage.freed) {
         ctx.save();
         if (locked) ctx.globalAlpha = 0.88;
+        if (cine) ctx.globalAlpha = Math.max(0, 1 - cineT / 1.0);
         ctx.drawImage(cageSpr, x - 17, y - 22, 34, 33);
         ctx.restore();
-        drawGlow(ctx, x, y - 8, 28, barCol, 0.14 + Math.sin(t * 5) * 0.03);
+        drawGlow(ctx, x, y - 8, 28, barCol, (cine ? 0.35 : 0.14) + Math.sin(t * 5) * 0.03);
         if (locked) {
           ctx.globalAlpha = 0.18 + Math.sin(t * 6) * 0.06;
           ctx.fillStyle = '#f87171';

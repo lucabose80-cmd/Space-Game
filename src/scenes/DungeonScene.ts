@@ -14,6 +14,7 @@ import {
 } from '../systems/inventory';
 import type {
   CompanionId,
+  CrewId,
   Direction,
   RiftMutatorId,
   RunSummary,
@@ -59,8 +60,10 @@ import {
 } from '../dungeon/bosses/leviathanArena';
 import { BossFx } from '../dungeon/bosses/bossFx';
 import { BOSS_HP, ENDBOSS_ARENA, ENEMY_SHIELDS, RIFT_SCALING } from '../data/balance';
-import { findFreeSpotSpiral, placeCaptive } from '../dungeon/mechanicsGen';
-import { CREW_DEFS, crewForSector } from '../data/crew';
+import { findFreeSpotSpiral } from '../dungeon/mechanicsGen';
+import { placeSpecialRooms } from '../dungeon/specialRooms';
+import { CREW_DEFS, CREW_RESCUE_BEATS, crewForSector, SPRING_TUTORIAL } from '../data/crew';
+import { SPRING_HEAL_FRACTION, SPRING_HEAL_RATE, SPRING_RADIUS } from '../dungeon/specialRooms';
 import { DungeonRenderer } from '../dungeon/dungeonRenderer';
 import type {
   Afterimage,
@@ -244,6 +247,9 @@ export class DungeonScene {
   /** Cutscene-Helfer: Spieler während In-Map-Landung/Extraktion/Bergung ausblenden */
   public hidePlayerForCutscene = false;
   /** Gelandete geöffnete Absetzkapsel im Startraum (bleibt als Prop stehen) */
+  /** P7b: laufende Befreiungs-Szene (friert das Spiel ein) */
+  private springCarry = 0;
+  public rescueCine: { crew: CrewId; t: number; beat: number; beatT: number } | null = null;
   public landedPod: { x: number; y: number; roomKey: string } | null = null;
 
   public activePrompt: { label: string; x: number; y: number } | null = null;
@@ -435,10 +441,14 @@ export class DungeonScene {
       // M12 (Phase C): Endboss-Arena an den Bossraum hängen — nach der Generierung, ohne Math.random.
       // Wochen-Prüfung: nie vor TRIAL_ARENA_FROM_WEEK (kommt mit Phase D).
       if (arenaEnabled()) attachArenas(this.floor);
-      // P7: gefangener Crew-Begleiter (Ebene II) — nach der Generierung, eigener PRNG, nie in Spirale/Prüfung
-      const crew = !this.isEndlessRift ? crewForSector(sector) : null;
-      if (crew && !this.state.isCrewRescued(crew)) placeCaptive(this.floor.rooms, sector, floorIndex, crew);
+      // P7/P7b: Sonderräume (Heilquelle vor dem Boss, Käfig-Kammer für gefangene Crew) — nach der Generierung, eigener PRNG, nie in Spirale/Prüfung
+      if (!this.isEndlessRift) {
+        const crew = crewForSector(sector);
+        placeSpecialRooms(this.floor, { crew: crew && !this.state.isCrewRescued(crew) ? crew : null, springs: true });
+      }
     }
+    this.rescueCine = null;
+    this.springCarry = 0;
     this.floorBossDefeated = false;
     this.invulnTimer = 0.55;
     this.dashCooldown = 0;
@@ -593,6 +603,8 @@ export class DungeonScene {
     this.detached.length = 0;
     this.aimTargetId = null;
     this.roomFade = 0.22;
+    this.springCarry = 0;
+    this.tutorialForRoom(room);
 
     const rb = this.bounds; // M12: Türen/Eintritt relativ zu den Raumgrenzen
     if (enteredFrom === 'north') {
@@ -1151,6 +1163,12 @@ export class DungeonScene {
       this.shakeTimer = Math.max(0, this.shakeTimer - dt);
     }
 
+    if (this.rescueCine) {
+      this.updateRescueCine(dt, input);
+      this.updateEffects(dt);
+      return;
+    }
+
     if (this.hitStop > 0 || this.heavyStop > 0) {
       if (this.hitStop > 0) this.hitStop -= dt;
       if (this.heavyStop > 0) this.heavyStop -= dt;
@@ -1238,7 +1256,83 @@ export class DungeonScene {
     this.updateDiscs(dt);
     this.updateDrops(dt);
     this.updateRoomInteractions(input);
+    this.updateHealSpring(dt);
     this.updateEffects(dt);
+  }
+
+  /** P7b: Befreiungs-Szene — Käfig öffnet sich, 3 Textboxen, danach die eigentliche Rettung. E/Klick = weiter. */
+  private updateRescueCine(dt: number, input: InputManager): void {
+    const c = this.rescueCine;
+    if (!c) return;
+    c.t += dt;
+    c.beatT += dt;
+    const beats = CREW_RESCUE_BEATS[c.crew];
+    if (c.t > 1.1 && (input.interactPressed() || c.beatT > 5.2)) {
+      c.beat += 1;
+      c.beatT = 0;
+      sound.playUiClick();
+    }
+    if (c.beat >= beats.length) this.finishRescueCine();
+  }
+
+  private finishRescueCine(): void {
+    const c = this.rescueCine;
+    this.rescueCine = null;
+    const cage = this.currentRoom.captive;
+    if (!c || !cage || cage.freed) return;
+    const def = CREW_DEFS[c.crew];
+    cage.freed = true;
+    if (this.state.rescueCrew(c.crew)) {
+      sound.playCompanionUnlock();
+      this.spawnBurst(cage.x, cage.y - 6, def.color, 26);
+      this.floats.push({ x: cage.x, y: cage.y - 26, text: `${def.name} befreit!`, color: def.color, life: 1.8, maxLife: 1.8 });
+      this.callbacks.onToast(`🔓 ${def.name} ist frei! ${def.ownerName} wartet auf Port Solaris — ${def.effectText}`, 'good');
+      this.callbacks.onHudDirty();
+    }
+  }
+
+  /** P7b: Heilquelle (Raum vor dem Boss): heilt allmählich, insgesamt nur einen Teil der max. HP. */
+  private updateHealSpring(dt: number): void {
+    const sp = this.currentRoom.spring;
+    if (!sp || this.isWeeklyTrial) return;
+    const stats = this.state.getStats();
+    const budget = Math.max(0, Math.round(stats.maxHp * SPRING_HEAL_FRACTION) - sp.used);
+    if (Math.hypot(this.playerX - sp.x, this.playerY - sp.y) > SPRING_RADIUS) return;
+    if (budget <= 0) {
+      this.activePrompt = { label: 'Die Quelle ist versiegt', x: sp.x, y: sp.y - 34 };
+      return;
+    }
+    if (this.state.hp >= stats.maxHp) {
+      this.activePrompt = { label: 'Heilquelle: du bist bei voller Gesundheit', x: sp.x, y: sp.y - 34 };
+      return;
+    }
+    this.springCarry += Math.min(budget, stats.maxHp * SPRING_HEAL_RATE * dt);
+    const whole = Math.floor(this.springCarry);
+    if (whole >= 1) {
+      const heal = Math.min(whole, budget, Math.round(stats.maxHp - this.state.hp));
+      this.springCarry -= whole;
+      if (heal > 0) {
+        this.state.hp = Math.min(stats.maxHp, this.state.hp + heal);
+        sp.used += heal;
+        this.floats.push({ x: this.playerX, y: this.playerY - 16, text: `+${heal}`, color: '#86efac', life: 0.8, maxLife: 0.8 });
+        this.spawnBurst(this.playerX, this.playerY + 4, '#86efac', 3);
+        this.callbacks.onHudDirty();
+      }
+    }
+    const left = Math.max(0, Math.round(stats.maxHp * SPRING_HEAL_FRACTION) - sp.used);
+    this.activePrompt = { label: `💧 Heilquelle · noch ${left} HP`, x: sp.x, y: sp.y - 34 };
+  }
+
+  /** Einmaliger Lern-Hinweis beim ersten Betreten von Sonderräumen (Tutorial, in Story-Reihenfolge). */
+  private tutorialForRoom(room: DungeonRoom): void {
+    if (this.isWeeklyTrial) return;
+    if (room.special === 'spring' && !this.state.hasSeenCutscene('tut_spring')) {
+      this.state.markCutsceneSeen('tut_spring');
+      this.callbacks.onToast(SPRING_TUTORIAL.toast, 'info');
+    } else if (room.special === 'cell' && !this.state.hasSeenCutscene('tut_cell')) {
+      this.state.markCutsceneSeen('tut_cell');
+      this.callbacks.onToast(SPRING_TUTORIAL.cellToast, 'info');
+    }
   }
 
   public triggerShieldBreak(): void {
@@ -4111,14 +4205,8 @@ export class DungeonScene {
       } else {
         this.activePrompt = { label: `[E] Käfig öffnen: ${def.name} befreien`, x: cage.x, y: cage.y - 34 };
         if (input.interactPressed()) {
-          cage.freed = true;
-          if (this.state.rescueCrew(cage.crew)) {
-            sound.playCompanionUnlock();
-            this.spawnBurst(cage.x, cage.y - 6, def.color, 26);
-            this.floats.push({ x: cage.x, y: cage.y - 26, text: `${def.name} befreit!`, color: def.color, life: 1.8, maxLife: 1.8 });
-            this.callbacks.onToast(`🔓 ${def.name} ist frei! ${def.ownerName} wartet schon auf Port Solaris — ${def.effectText}`, 'good');
-            this.callbacks.onHudDirty();
-          }
+          this.rescueCine = { crew: cage.crew, t: 0, beat: 0, beatT: 0 };
+          sound.playDoorUnlock();
         }
       }
       return;

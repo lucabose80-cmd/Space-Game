@@ -4,7 +4,7 @@ import { getAtlas } from './assets/sprites';
 import { MARKET_EVENT_META } from './data/companions';
 import { NPC_META, TRUST_PERKS } from './data/story/storyChapters';
 import { STORY_SCENES } from './data/story/storyScenes';
-import { CREW_DEFS, crewHintScene } from './data/crew';
+import { CREW_DEFS, crewHintScene, SPRING_TUTORIAL } from './data/crew';
 import { sound } from './engine/audio';
 import { InputManager, VIRTUAL_HEIGHT, VIRTUAL_WIDTH } from './engine/input';
 import { BackroomScene } from './scenes/BackroomScene';
@@ -486,8 +486,33 @@ class StarlighterGame {
     });
   }
 
-  /** P7: Der Shop-Besitzer verrät, wo sein vermisster Begleiter gefangen ist (einmal je Tag & Besuch, bis befreit). */
+  /** P7: Der Shop-Besitzer verrät, wo sein vermisster Begleiter gefangen ist (einmal je Tag & Besuch, bis befreit). Lyra erklärt zuvor einmalig die Heilquellen (Tutorial). */
   private withCrewHint(npc: StoryNpcId, open: () => void): void {
+    if (npc === 'lyra' && !this.state.hasSeenCutscene('tut_spring_hint')) {
+      this.state.markCutsceneSeen('tut_spring_hint');
+      this.ui.openStoryScene(
+        {
+          id: 'tutorial_spring',
+          npc: 'lyra',
+          chapter: 0,
+          title: SPRING_TUTORIAL.lyraTitle,
+          start: 'n1',
+          nodes: { n1: { speaker: 'lyra', text: SPRING_TUTORIAL.lyra, next: 'end' } },
+        },
+        {
+          replay: true,
+          banner: '💧 Tutorial: Heilquellen vor Bossen',
+          closeLabel: 'Verstanden ▸ Weiter',
+          onClose: () => this.showCrewHint(npc, open),
+          onFinish: () => this.showCrewHint(npc, open),
+        },
+      );
+      return;
+    }
+    this.showCrewHint(npc, open);
+  }
+
+  private showCrewHint(npc: StoryNpcId, open: () => void): void {
     const crew = this.state.getMissingCrewFor(npc);
     if (!crew || this.crewHintShownDay[crew] === this.state.day) {
       open();
