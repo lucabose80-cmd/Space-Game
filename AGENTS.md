@@ -101,7 +101,7 @@
   2. Persist & restore in `src/systems/gameState.ts`, map in `firebaseService.buildLeaderboardEntry()` (`src/services/firebaseService.ts`), and display in `UIManager.renderGuildBoardModal()`.
 
 ### Subagents (Token-sparend, in `.claude/agents/`)
-- `verify-runner` (haiku): `npm run verify`/Teiltests, meldet nur Fehler kompakt. `sprite-qa` (sonnet): prüft PNGs/Sheets per `art:check` + Sichtprüfung. `rig-tester` (haiku): m11-Tests + Checklisten-Abgleich gegen `handoff/`. Alle read-only.
+- `verify-runner` (haiku): `npm run verify`/Teiltests, meldet nur Fehler kompakt. `sprite-qa` (sonnet): prüft PNGs/Sheets per `art:check` + Sichtprüfung. `rig-tester` (haiku): m11-Tests + Checklisten-Abgleich gegen `handoff/`. `doc-keeper` (haiku): trägt vorgegebene Learnings/Checklisten ins `handoff/`-Blatt ein (schreibt nur dort). Die anderen drei sind read-only.
 - Regel: lange Ausgaben/Prüfläufe an sie delegieren, Code ändern und pushen (`npm run ship`) nur der Hauptchat. Parallele Subagents nie auf dieselben Dateien schreiben lassen (Regel 18).
 
 ---
