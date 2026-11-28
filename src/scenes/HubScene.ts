@@ -1,4 +1,5 @@
 import { getHDArt } from '../assets/artLoader';
+import { HUB_BUILDINGS, type HubBuildingDef, type HubBuildingId } from '../data/hubBuildings';
 import { drawContactShadow, drawGlow, drawPixelShadow } from '../assets/pixelArt';
 import { getAtlas } from '../assets/sprites';
 import { sound } from '../engine/audio';
@@ -87,6 +88,9 @@ export class HubScene {
   public chatter: { strollerIndex: number; text: string; life: number } | null = null;
   /** Sekunden bis zum Omega-Fest (-1 = nicht fällig). */
   private festivalTimer = -1;
+
+  /** Enthüllungs-Effekt frisch geöffneter Gebäude (Baustellen-Patch blendet aus). */
+  private reveals: Array<{ id: HubBuildingId; t: number }> = [];
 
   public activePrompt: { label: string; x: number; y: number } | null = null;
   /** Blendet während Live-Promenaden-Cutscenes doppelte NPCs, Spieler, !-Marker & Prompts aus. */
@@ -185,6 +189,17 @@ export class HubScene {
     this.dashCooldown = 0;
     this.particles = [];
     this.syncStrollers();
+    // P4: Gebäude öffnen durch Ereignisse (erste Expedition, Verkäufe, Sektor-Sieg)
+    this.state.checkHubUnlocks();
+    this.reveals = [];
+    for (const id of this.state.pendingHubReveals) {
+      const def = HUB_BUILDINGS.find((b) => b.id === id);
+      if (!def) continue;
+      this.reveals.push({ id, t: 0 });
+      this.callbacks.onToast(def.openToast, 'good');
+      sound.playUpgradeReveal();
+    }
+    this.state.pendingHubReveals = [];
     this.chatter = null;
     this.chatterTimer = 8 + Math.random() * 6;
     // Omega-Fest: einmalig, nur auf Wunsch überspringbar (siehe main.ts)
@@ -209,6 +224,17 @@ export class HubScene {
   public update(dt: number, input: InputManager): void {
     this.time += dt;
     this.lastDt = dt;
+    // Enthüllung geöffneter Gebäude: Funken über der Baustelle, dann ist sie weg
+    for (let i = this.reveals.length - 1; i >= 0; i--) {
+      const r = this.reveals[i];
+      const def = HUB_BUILDINGS.find((b) => b.id === r.id);
+      const prev = r.t;
+      r.t += dt;
+      if (def && Math.floor(prev * 12) !== Math.floor(r.t * 12)) {
+        this.spawnBurst(def.rect.x / 2 + (Math.random() * def.rect.w) / 2, def.rect.y / 2 + (Math.random() * def.rect.h) / 2, '#fde047', 3);
+      }
+      if (r.t >= 1.5) this.reveals.splice(i, 1);
+    }
 
     if (this.festivalTimer >= 0) {
       this.festivalTimer -= dt;
@@ -454,6 +480,7 @@ export class HubScene {
     }
 
     // 4. Nyx' Schwarzmarkt-Stand (accessible from beside Nyx OR right in front of the canopy!)
+    if (this.lockedNear('blackmarket', input)) return;
     const nearNyx =
       Math.hypot(this.playerX - NYX_NPC_POS.x, this.playerY - NYX_NPC_POS.y) < 34 ||
       (this.playerX >= 76 && this.playerX <= 184 && this.playerY >= 139 && this.playerY <= 156);
@@ -471,6 +498,7 @@ export class HubScene {
     }
 
     // 5. Vex' Tech-Labor (accessible from beside Vex OR along the front counter!)
+    if (this.lockedNear('techlab', input)) return;
     const nearVex =
       Math.hypot(this.playerX - TECHLAB_NPC_POS.x, this.playerY - TECHLAB_NPC_POS.y) < 34 ||
       (this.playerX >= 298 && this.playerX <= 400 && this.playerY >= 139 && this.playerY <= 156);
@@ -489,6 +517,7 @@ export class HubScene {
 
     // 6. South Gateway to Marktplatz-Terrasse (Milo's Alchemie-Bar, Händler-Gilde & Solaris-Handelsbank!)
     if (Math.hypot(this.playerX - MARKET_TERRACE_POS.x, this.playerY - MARKET_TERRACE_POS.y) < 32) {
+      if (this.lockedNear('terrace', input, true)) return;
       const readyNote =
         this.state.hasReadyBankPayout()
           ? ' ★ Auszahlung!'
@@ -649,13 +678,63 @@ export class HubScene {
   }
 
   /** „!“ über NPCs mit neuem Gespräch; nach „Später“ nur ein ruhiger Punkt. */
+  /** Gesperrtes Gebäude: Prompt mit Hinweis statt Funktion. `force` = Position wurde bereits geprüft. */
+  private lockedNear(id: HubBuildingId, input: InputManager, force = false): boolean {
+    if (this.state.isHubBuildingOpen(id)) return false;
+    const def = HUB_BUILDINGS.find((b) => b.id === id) as HubBuildingDef;
+    let near = force;
+    if (!near) {
+      if (id === 'blackmarket') {
+        near =
+          Math.hypot(this.playerX - NYX_NPC_POS.x, this.playerY - NYX_NPC_POS.y) < 34 ||
+          (this.playerX >= 76 && this.playerX <= 184 && this.playerY >= 139 && this.playerY <= 156);
+      } else if (id === 'techlab') {
+        near =
+          Math.hypot(this.playerX - TECHLAB_NPC_POS.x, this.playerY - TECHLAB_NPC_POS.y) < 34 ||
+          (this.playerX >= 298 && this.playerX <= 400 && this.playerY >= 139 && this.playerY <= 156);
+      }
+    }
+    if (!near) return false;
+    const x = id === 'blackmarket' ? 152 : id === 'techlab' ? 332 : MARKET_TERRACE_POS.x;
+    const y = id === 'terrace' ? MARKET_TERRACE_POS.y - 22 : 148;
+    this.activePrompt = { label: `🔒 ${def.name} — ${def.lockedHint}`, x, y };
+    if (input.interactPressed()) {
+      sound.playUiClick();
+      this.callbacks.onToast(`${def.name}: ${def.lockedHint}.`, 'info');
+    }
+    return true;
+  }
+
+  /** Baustellen-Patches der noch geschlossenen Gebäude (und das Ausblenden beim Öffnen). */
+  private renderLockPatches(ctx: CanvasRenderingContext2D): void {
+    const art = getHDArt();
+    const sprites: Record<HubBuildingId, HTMLCanvasElement | null> = {
+      techlab: art.hubLockTech,
+      blackmarket: art.hubLockBlack,
+      terrace: art.hubLockTerr,
+    };
+    for (const def of HUB_BUILDINGS) {
+      const spr = sprites[def.id];
+      if (!spr) continue;
+      const reveal = this.reveals.find((r) => r.id === def.id);
+      let alpha = 0;
+      if (reveal) alpha = 1 - Math.min(1, reveal.t / 1.4);
+      else if (!this.state.isHubBuildingOpen(def.id)) alpha = 1;
+      if (alpha <= 0.01) continue;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.drawImage(spr, def.rect.x / 2, def.rect.y / 2, def.rect.w / 2, def.rect.h / 2);
+      ctx.restore();
+    }
+  }
+
   private renderStoryMarkers(ctx: CanvasRenderingContext2D): void {
     const spots: Array<{ npc: StoryNpcId; x: number; y: number }> = [
       { npc: 'kael', x: FORGE_POS.x, y: FORGE_POS.y - 31 },
       { npc: 'lyra', x: MEDBAY_POS.x, y: MEDBAY_POS.y - 30 },
-      { npc: 'nyx', x: NYX_NPC_POS.x, y: NYX_NPC_POS.y - 26 },
-      { npc: 'vex', x: TECHLAB_NPC_POS.x, y: TECHLAB_NPC_POS.y - 26 },
     ];
+    if (this.state.isHubBuildingOpen('blackmarket')) spots.push({ npc: 'nyx', x: NYX_NPC_POS.x, y: NYX_NPC_POS.y - 26 });
+    if (this.state.isHubBuildingOpen('techlab')) spots.push({ npc: 'vex', x: TECHLAB_NPC_POS.x, y: TECHLAB_NPC_POS.y - 26 });
     for (const sp of spots) {
       const scene = this.state.getPendingScene(sp.npc);
       if (!scene) continue;
@@ -722,6 +801,7 @@ export class HubScene {
       ctx.fillStyle = '#182032';
       ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
     }
+    this.renderLockPatches(ctx);
 
     // Real Day / Night Atmospheric Lighting across Port Solaris Promenade
     if (isNight) {
@@ -830,6 +910,7 @@ export class HubScene {
       });
 
       // Schwarzmarkt-Händlerin Nyx standing beside her integrated Black Market booth
+      if (this.state.isHubBuildingOpen('blackmarket'))
       drawables.push({
         y: NYX_NPC_POS.y,
         draw: () => {
@@ -842,6 +923,7 @@ export class HubScene {
       });
 
       // Ingenieurin Vex standing beside her integrated Tech-Labor pavilion
+      if (this.state.isHubBuildingOpen('techlab'))
       drawables.push({
         y: TECHLAB_NPC_POS.y,
         draw: () => {
@@ -909,14 +991,16 @@ export class HubScene {
       { text: 'SCHMIEDE', x: 144, y: 40, color: '#fb923c' },
       { text: '★ KAPITÄNS-TAFEL', x: GUILD_BOARD_POS.x, y: 48, color: '#fde047' },
       { text: 'MED-BAY', x: 356, y: 24, color: '#34d399' },
-      { text: 'SCHWARZMARKT', x: 120, y: 148, color: '#c084fc' },
-      { text: 'TECH-LABOR', x: 358, y: 148, color: '#38e8d4' },
+      { text: this.state.isHubBuildingOpen('blackmarket') ? 'SCHWARZMARKT' : '🔒 GESCHLOSSEN', x: 120, y: 148, color: this.state.isHubBuildingOpen('blackmarket') ? '#c084fc' : '#94a3b8' },
+      { text: this.state.isHubBuildingOpen('techlab') ? 'TECH-LABOR' : '🔒 IM AUFBAU', x: 358, y: 148, color: this.state.isHubBuildingOpen('techlab') ? '#38e8d4' : '#94a3b8' },
       { text: 'RAUMHAFEN →', x: 416, y: 90, color: '#38e8d4' },
       {
         text:
           this.state.hasReadyBankPayout() || this.state.hasReadyBigOrder()
             ? '↓ TERRASSE · ★ BEREIT!'
-            : '↓ MARKTPLATZ-TERRASSE',
+            : this.state.isHubBuildingOpen('terrace')
+              ? '↓ MARKTPLATZ-TERRASSE'
+              : '🔒 TERRASSE GESPERRT',
         x: 240,
         y: 222,
         color: this.state.hasReadyBankPayout() ? '#4ade80' : '#fbbf24',

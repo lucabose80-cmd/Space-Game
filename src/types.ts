@@ -462,6 +462,8 @@ export interface SaveData {
   story?: StoryProgress;
   /** Gesehene Story-, Intro-, Feier- & Gehilfin-Cutscenes (optional, rückwärtskompatibel zu Save v11) */
   seenCutscenes?: string[];
+  /** Geöffnete Hub-Gebäude (Tech-Labor, Schwarzmarkt, Terrasse); fehlt in Altspielständen → alles offen */
+  hubUnlocks?: string[];
   /** M10-C: Preise einmalig auf SELL_PRICE_MULT skaliert (optional, Altspielstände → false) */
   priceScaleV2?: boolean;
   // Milestone 9: Galaktisches Netzwerk (Save v10)

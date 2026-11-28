@@ -16,6 +16,7 @@ import { getInfusionDef } from '../data/infusions';
 import { getItemDef, ITEMS } from '../data/items';
 import { computeStoryChapter, createEmptyStory, STORY_CHAPTERS } from '../data/story/storyChapters';
 import type { StoryChoice, StoryScene } from '../data/story/storyTypes';
+import { HUB_BUILDING_IDS, type HubBuildingId } from '../data/hubBuildings';
 import { getPlayerCombatStats, UPGRADE_TRACKS } from '../data/upgrades';
 import { firebaseService, formatDurationSec } from '../services/firebaseService';
 import type {
@@ -261,6 +262,10 @@ export class GameState {
   public story: StoryProgress = createEmptyStory();
   /** Gesehene Intro-, Feier-, Gehilfin- & Story-Cutscenes (optional, Save-v11-kompatibel) */
   public seenCutscenes: string[] = [];
+  /** Geöffnete Hub-Gebäude (P4). Neues Spiel: leer → Gebäude im Aufbau. */
+  public hubUnlocks: HubBuildingId[] = [];
+  /** Nur Laufzeit: gerade geöffnete Gebäude, die der Hub mit Enthüllungs-Effekt zeigt. */
+  public pendingHubReveals: HubBuildingId[] = [];
   /** M10-C: gelernte Codex-/Podest-Preise wurden einmalig auf den neuen Preisfaktor skaliert (Altspielstände) */
   public priceScaleV2 = true;
   public ghostGreeting = '';
@@ -359,6 +364,8 @@ export class GameState {
     this.activeTrial = null;
     this.story = createEmptyStory();
     this.seenCutscenes = [];
+    this.hubUnlocks = [];
+    this.pendingHubReveals = [];
     this.pedestals = [];
     this.syncShopCapacity();
 
@@ -1704,6 +1711,7 @@ export class GameState {
       haggleWinsTotal: this.haggleWinsTotal,
       story: this.story,
       seenCutscenes: [...this.seenCutscenes],
+      hubUnlocks: [...this.hubUnlocks],
       priceScaleV2: this.priceScaleV2,
       ghostGreeting: this.ghostGreeting,
       weeklyTrial: this.weeklyTrial ?? undefined,
@@ -2019,6 +2027,11 @@ export class GameState {
       if (!Array.isArray(parsed.seenCutscenes) && (this.day > 1 || this.totalSold > 0 || this.bossDefeatedCount > 0)) {
         this.seenCutscenes.push('intro_arrival');
       }
+      // P4: Altspielstände (Feld fehlt) behalten alle Gebäude offen
+      this.hubUnlocks = Array.isArray(parsed.hubUnlocks)
+        ? parsed.hubUnlocks.filter((k): k is HubBuildingId => (HUB_BUILDING_IDS as string[]).includes(k))
+        : [...HUB_BUILDING_IDS];
+      this.pendingHubReveals = [];
       this.refreshStoryChapter(false);
 
       this.prunePinnedRecipes();
@@ -2029,6 +2042,29 @@ export class GameState {
     } catch {
       return false;
     }
+  }
+
+  public isHubBuildingOpen(id: HubBuildingId): boolean {
+    return this.hubUnlocks.includes(id);
+  }
+
+  /** Prüft die Öffnungs-Bedingungen der Hub-Gebäude; gibt die neu geöffneten zurück (für Toast & Enthüllung). */
+  public checkHubUnlocks(): HubBuildingId[] {
+    const cond: Record<HubBuildingId, boolean> = {
+      techlab: this.totalEnemiesDefeated > 0 || this.deepestFloor > 1 || this.sector1Cleared || this.bossDefeatedCount > 0,
+      blackmarket: this.totalSold >= 3 || this.sector1Cleared,
+      terrace: this.sector1Cleared || this.bossDefeatedCount > 0,
+    };
+    const opened: HubBuildingId[] = [];
+    for (const id of HUB_BUILDING_IDS) {
+      if (cond[id] && !this.hubUnlocks.includes(id)) {
+        this.hubUnlocks.push(id);
+        this.pendingHubReveals.push(id);
+        opened.push(id);
+      }
+    }
+    if (opened.length > 0) this.save();
+    return opened;
   }
 
   public hasSeenCutscene(id: string): boolean {

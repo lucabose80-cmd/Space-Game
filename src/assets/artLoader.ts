@@ -83,6 +83,9 @@ export interface HDArtAssets {
   marketBar: HTMLCanvasElement | null;
   marketGuild: HTMLCanvasElement | null;
   marketBank: HTMLCanvasElement | null;
+  hubLockTech: HTMLCanvasElement | null;
+  hubLockBlack: HTMLCanvasElement | null;
+  hubLockTerr: HTMLCanvasElement | null;
   propTrophyLeviathan: HTMLCanvasElement | null;
   /** M12 Phase C: Arena-Boden & Boss-Wand (optional, Fallback arenaFloor.ts) */
   arenaLeviathanBg: HTMLCanvasElement | null;
@@ -332,6 +335,9 @@ const art: HDArtAssets = {
   marketBar: null,
   marketGuild: null,
   marketBank: null,
+  hubLockTech: null,
+  hubLockBlack: null,
+  hubLockTerr: null,
   propTrophyLeviathan: null,
   arenaLeviathanBg: null,
   arenaLeviathanWall: null,
@@ -554,6 +560,9 @@ export const WORLD_OPTIONAL_SPRITES = {
   marketBar: 'market_bar',
   marketGuild: 'market_guild',
   marketBank: 'market_bank',
+  hubLockTech: 'hub_lock_tech',
+  hubLockBlack: 'hub_lock_black',
+  hubLockTerr: 'hub_lock_terr',
 } as const;
 export type WorldSpriteKey = keyof typeof WORLD_OPTIONAL_SPRITES;
 
