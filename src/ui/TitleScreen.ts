@@ -306,6 +306,7 @@ export class TitleScreen {
 
         <div class="ts-body">
           <section class="ts-hero">
+            <div class="ts-term-head"><span class="ts-led"></span><span>DOCKING-TERMINAL · PORT SOLARIS</span><span class="ts-term-id">${user ? '☁ VERBUNDEN' : 'OFFLINE-PROFIL'}</span></div>
             <div class="ts-kicker">COZY RETRO-SCI-FI ACTION-RPG &amp; SPACE-SHOP</div>
             <h1 class="ts-logo" aria-label="STARLIGHTER">
               <span class="ts-logo-main">STARLIGHTER</span>
@@ -340,6 +341,7 @@ export class TitleScreen {
 
             ${confirmHtml}
             ${clearHtml}
+            <div class="ts-term-foot">▸ Welt wählen: Planeten rechts unten anklicken</div>
           </section>
 
           ${this.renderAccountDrawer()}
