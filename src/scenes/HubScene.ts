@@ -907,6 +907,16 @@ export class HubScene {
       if (this.state.isMinaPresent()) {
         const minaX = FORGE_POS.x + 22;
         const minaY = FORGE_POS.y + 4;
+        // Minas zweite Werkbank (Sprite) steht vor ihr
+        if (art.propWorkbench2) {
+          drawables.push({
+            y: minaY + 5,
+            draw: () => {
+              drawContactShadow(ctx, art.propWorkbench2, minaX - 15, minaY - 10, 30, 20, 0.6);
+              ctx.drawImage(art.propWorkbench2 as HTMLCanvasElement, minaX - 15, minaY - 10, 30, 20);
+            },
+          });
+        }
         drawables.push({
           y: minaY,
           draw: () => {

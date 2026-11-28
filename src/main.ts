@@ -709,7 +709,12 @@ class StarlighterGame {
 
   public playHubCutscene(id: HubCutsceneId, onDone?: () => void): void {
     this.hubCutscene?.dispose();
-    this.hubCutscene = new HubCutsceneOverlay(id, this.state.captainName);
+    this.hubCutscene = new HubCutsceneOverlay(id, this.state.captainName, {
+      mina: this.state.isMinaPresent() && id !== 'story_mina_arrives',
+      pip: this.state.isPipPresent() && id !== 'story_pip_arrives',
+      ping: this.state.isPingPresent() && id !== 'story_ping_arrives',
+      midnight: this.state.isMidnightPresent() && id !== 'story_midnight_arrives',
+    });
     this.hubCutsceneOnDone = () => {
       this.state.markCutsceneSeen(id);
       this.state.save();
