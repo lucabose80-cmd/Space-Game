@@ -11,6 +11,9 @@ export interface BossZone {
   r0?: number; // ring: Innenradius
   gapA?: number; // ring: Mitte der Lücke (rad)
   gapHalf?: number; // ring: halbe Lückenbreite (rad)
+  /** ring: Boden-Perspektive — Ellipse mit Höhenfaktor `sy` (Treffer & Optik), Zeichnung auf `clip` (Raumrechteck) beschnitten */
+  sy?: number;
+  clip?: { l: number; t: number; r: number; b: number };
   w?: number; // rect (zentriert)
   h?: number;
   x2?: number; // line: Kapsel von (x,y) nach (x2,y2)
@@ -68,10 +71,11 @@ export function zoneContains(z: BossZone, px: number, py: number, pr = PLAYER_R)
     case 'circle':
       return Math.hypot(px - z.x, py - z.y) <= (z.r ?? 0) + pr;
     case 'ring': {
-      const d = Math.hypot(px - z.x, py - z.y);
+      const sy = z.sy ?? 1;
+      const d = Math.hypot(px - z.x, (py - z.y) / sy);
       if (d > (z.r ?? 0) + pr || d < (z.r0 ?? 0) - pr) return false;
       if (z.gapA !== undefined && z.gapHalf !== undefined) {
-        let diff = Math.atan2(py - z.y, px - z.x) - z.gapA;
+        let diff = Math.atan2((py - z.y) / sy, px - z.x) - z.gapA;
         while (diff > Math.PI) diff -= Math.PI * 2;
         while (diff < -Math.PI) diff += Math.PI * 2;
         if (Math.abs(diff) <= z.gapHalf) return false;
@@ -198,6 +202,17 @@ export class BossFx {
     for (const z of this.zones) {
       const warn = !z.active;
       const prog = warn ? 1 - Math.max(0, z.delay) / Math.max(0.01, z.maxDelay ?? 1) : 1;
+      ctx.save();
+      if (z.clip) {
+        ctx.beginPath();
+        ctx.rect(z.clip.l, z.clip.t, z.clip.r - z.clip.l, z.clip.b - z.clip.t);
+        ctx.clip();
+      }
+      if (z.sy) {
+        ctx.translate(z.x, z.y);
+        ctx.scale(1, z.sy);
+        ctx.translate(-z.x, -z.y);
+      }
       const pulse = 0.5 + 0.5 * Math.sin(time * 14);
       const spriteBacked = !warn && (z.fx === 'beam' || z.fx === 'whip' || z.fx === 'flame' || z.fx === 'vortex' || z.fx === 'steam');
       const subtleWarn = warn && z.fx === 'beam';
@@ -224,6 +239,7 @@ export class BossFx {
         this.path(ctx, z);
         ctx.stroke();
       }
+      ctx.restore();
     }
     for (const b of this.beams) {
       ctx.globalCompositeOperation = 'lighter';
@@ -696,10 +712,34 @@ export class BossFx {
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
       if (warn) {
-        if (art.arenaLeviathanMuzzle && r0 < 50) {
+        if (art.arenaLeviathanMuzzle && r0 < 50 && !z.sy) {
           ctx.globalAlpha = 0.25 + 0.55 * prog;
           sprite(art.arenaLeviathanMuzzle, z.x, z.y, 18 + 20 * prog, time * 4);
         }
+      } else if (z.sy) {
+        // Boden-Schockwelle: glühende Vorderkante + staubig-dunkler Wellenkörper, liegt flach auf dem Boden (keine Leuchtringe)
+        const a = Math.max(0, 1 - kAct);
+        const rm = (r + r0) / 2;
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.strokeStyle = '#1c1917';
+        ctx.lineWidth = (r - r0) * 0.9;
+        ctx.globalAlpha = 0.4 * a;
+        ctx.beginPath();
+        ctx.arc(z.x, z.y, rm - 3, a0, a1);
+        ctx.stroke();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = '#fb923c';
+        ctx.lineWidth = (r - r0) * 0.38;
+        ctx.globalAlpha = 0.75 * a;
+        ctx.beginPath();
+        ctx.arc(z.x, z.y, r - 3, a0, a1);
+        ctx.stroke();
+        ctx.strokeStyle = '#fef3c7';
+        ctx.lineWidth = Math.max(1.2, (r - r0) * 0.12);
+        ctx.globalAlpha = 0.9 * a;
+        ctx.beginPath();
+        ctx.arc(z.x, z.y, r - 1, a0, a1);
+        ctx.stroke();
       } else {
         const a = Math.max(0, 1 - kAct);
         ctx.strokeStyle = '#ffffff';

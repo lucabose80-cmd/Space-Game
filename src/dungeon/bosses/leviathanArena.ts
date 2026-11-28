@@ -413,6 +413,26 @@ export function startMoveForTest(scene: DungeonScene, e: Enemy, move: LevArenaMo
   startMove(scene, e, move, scene.bounds);
 }
 
+/** Schockwelle trifft eine Raumwand: Welle endet dort, Wand bröckelt (Staub & Brocken), nichts läuft über die Wand hinaus. */
+function crumbleAtWalls(scene: DungeonScene, ox: number, oy: number, R: number, sy: number, rb: DungeonScene['bounds']): void {
+  const bit = (x: number, y: number): void => {
+    scene.spawnBurst(x, y, '#a8a29e', 4);
+    scene.spawnBurst(x, y + 2, '#78716c', 3);
+  };
+  for (const wx of [rb.l, rb.r]) {
+    const dx = Math.abs(wx - ox);
+    if (dx < R) {
+      const dy = sy * Math.sqrt(R * R - dx * dx);
+      if (oy + dy < rb.b) bit(wx + (wx === rb.l ? 3 : -3), oy + dy);
+    }
+  }
+  const dyS = rb.b - oy;
+  if (dyS < R * sy) {
+    const dx = R * Math.sqrt(1 - (dyS / (R * sy)) ** 2);
+    for (const sx of [-1, 1]) if (ox + sx * dx > rb.l && ox + sx * dx < rb.r) bit(ox + sx * dx, rb.b - 3);
+  }
+}
+
 function startMove(scene: DungeonScene, e: Enemy, move: LevArenaMove, rb: DungeonScene['bounds']): void {
   const L = e.levArena!;
   const k = speed(L);
@@ -481,17 +501,22 @@ function startMove(scene: DungeonScene, e: Enemy, move: LevArenaMove, rb: Dungeo
       }
       const oy = e.y + SLAM_DY - 4;
       const rings = 7;
+      const SY = 0.6; // flach auf dem Boden (Perspektive)
+      const clip = { l: rb.l, t: rb.t + 3 * ARENA_TILE, r: rb.r, b: rb.b }; // Wand-Sockel (3 Kachelreihen) bleibt frei
       for (const side of [-1, 1]) {
         const ox = e.x + side * SLAM_DX;
-        const aim = Math.atan2(py - oy, px - ox);
+        const aim = Math.atan2((py - oy) / SY, px - ox);
         for (let i = 0; i < rings; i++) {
           const r0 = 14 + i * 50;
+          const rr = r0 + 30;
           fx(scene).add({
             shape: 'ring',
             x: ox,
             y: oy,
             r0,
-            r: r0 + 30,
+            r: rr,
+            sy: SY,
+            clip,
             // Lücke zeigt zum Spieler — der Weg dazwischen ist immer frei (wechselt leicht, damit man nicht stehen bleiben kann)
             gapA: aim + (i % 2 === 0 ? 0.28 : -0.28),
             gapHalf: 0.5,
@@ -500,7 +525,13 @@ function startMove(scene: DungeonScene, e: Enemy, move: LevArenaMove, rb: Dungeo
             burst: 14,
             color: '#fb923c',
             fx: 'pulse',
-            onFire: i === 0 ? (s2) => { s2.triggerShake(0.5, 6); sound.playBossSlam(); s2.spawnBurst(ox, oy, '#fbbf24', 18); } : undefined,
+            onFire: (s2) => {
+              if (i === 0) {
+                s2.triggerShake(0.5, 6);
+                sound.playBossSlam();
+              }
+              crumbleAtWalls(s2, ox, oy, (r0 + rr) / 2, SY, rb);
+            },
           });
         }
       }

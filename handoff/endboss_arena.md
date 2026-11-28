@@ -110,6 +110,8 @@
 - **Neuer Zug `quake` („DOPPELSCHLAG!“)** in allen Phasen (Ende der Zugfolge; fehlt ein Arm → Rückfall `hammer`): beide Arme heben und schlagen gleichzeitig (Arm-Zustand `'whip'`), von beiden Fäusten laufen 7 Schockwellen-Ringe (`ring`/`pulse`, je 30 px breit, Abstand 50 px, 0,26 s Takt) über die gesamte Halle; je Ring Lücke Richtung Spieler (±0,28 rad wechselnd, `gapHalf 0.5`).
 - **Phase-II-Abgrund:** statt einer riesigen Fläche brechen **4 kleine Blöcke** (5×4 Kacheln) weg, Kreuz-Gang (3 Kacheln breit) bleibt — nur `src/data/arenas/leviathan.ts` (`p`-Kacheln). Hintergrund-Bild zeigt weiter das Glutgitter darunter.
 
+- **Doppelschlag-Optik (Inhaber-Feedback):** Wellen liefen über Wand/Boss. Neu: `BossZone.sy` (Boden-Perspektive 0,6, Treffer & Optik als Ellipse) + `BossZone.clip` (Zeichnung nur auf dem Boden: `rb.t + 3·ARENA_TILE` = Wand-Sockel-Unterkante, die `W`-Kachelreihen liegen INNERHALB `rb`!), eigene Boden-Welle (dunkler Körper + glühende Kante statt Leuchtringe), Wand bröckelt an den Kontaktpunkten (`crumbleAtWalls`: Staub/Brocken an Seitenwänden & Süd, nicht darüber hinaus).
+
 ## Nächster Schritt
 1. **Abnahme Pilot A.E.G.I.S. Leviathan im echten Spiel** (Stufe 8 — live in Sektor 1 Ebene III oder `?bosslab` → ARENEN → 🏟 Leviathan): Kampfgefühl, alle 4 Körper-Phasen, Plattenbruch/Dampf/Trümmer, Schatzkammer & Mobil-Check (A9). Notfall-Rückweg: `ENDBOSS_ARENA_LIVE = false` in `balance.ts`.
 2. Phase A/B-Marker entfernen, sobald der Projektinhaber die Standardräume abgenommen hat.
