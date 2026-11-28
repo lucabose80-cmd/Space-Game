@@ -205,6 +205,14 @@ export interface HDArtAssets {
   shipSolarDockedOpen: HTMLCanvasElement | null;
   shipMonolithDocked: HTMLCanvasElement | null;
   shipMonolithDockedOpen: HTMLCanvasElement | null;
+  /** Story-/Intro-Kino-Panels & Kaels Gehilfin Mina (optional, Fallback aktiv) */
+  cutsceneIntro1: HTMLCanvasElement | null;
+  cutsceneIntro2: HTMLCanvasElement | null;
+  cutsceneIntro3: HTMLCanvasElement | null;
+  cutsceneIntro4: HTMLCanvasElement | null;
+  cutsceneStoryGate5: HTMLCanvasElement | null;
+  cutsceneStoryOmega: HTMLCanvasElement | null;
+  npcMina: HTMLCanvasElement | null;
 }
 
 const art: HDArtAssets = {
@@ -418,6 +426,13 @@ const art: HDArtAssets = {
   shipSolarDockedOpen: null,
   shipMonolithDocked: null,
   shipMonolithDockedOpen: null,
+  cutsceneIntro1: null,
+  cutsceneIntro2: null,
+  cutsceneIntro3: null,
+  cutsceneIntro4: null,
+  cutsceneStoryGate5: null,
+  cutsceneStoryOmega: null,
+  npcMina: null,
 };
 
 function loadImage(src: string): Promise<HTMLImageElement | null> {
@@ -572,6 +587,13 @@ export const CUTSCENE_OPTIONAL_SPRITES = {
   shipSolarDockedOpen: 'ship_solar_docked_open',
   shipMonolithDocked: 'ship_monolith_docked',
   shipMonolithDockedOpen: 'ship_monolith_docked_open',
+  cutsceneIntro1: 'cutscene_intro_1',
+  cutsceneIntro2: 'cutscene_intro_2',
+  cutsceneIntro3: 'cutscene_intro_3',
+  cutsceneIntro4: 'cutscene_intro_4',
+  cutsceneStoryGate5: 'cutscene_story_gate5',
+  cutsceneStoryOmega: 'cutscene_story_omega',
+  npcMina: 'npc_mina',
 } as const;
 
 export type CutsceneSpriteKey = keyof typeof CUTSCENE_OPTIONAL_SPRITES;

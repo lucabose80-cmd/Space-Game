@@ -14,6 +14,13 @@ import { DungeonMapCutscene } from './dungeon/dungeonCutscene';
 import { MarketTerraceScene } from './scenes/MarketTerraceScene';
 import { SectorApproachCutscene } from './scenes/SectorApproachCutscene';
 import { SectorReturnCutscene } from './scenes/SectorReturnCutscene';
+import { HubCutsceneOverlay, type HubCutsceneId } from './scenes/HubCutsceneOverlay';
+import {
+  StoryPanelCutscene,
+  type PanelCutsceneId,
+  type ReplayableCutsceneId,
+} from './scenes/StoryPanelCutscene';
+import { UpgradeCutsceneOverlay, type UpgradeCutsceneConfig } from './scenes/UpgradeCutsceneOverlay';
 import { ShopScene } from './scenes/ShopScene';
 import { firebaseService } from './services/firebaseService';
 import { galacticNetwork } from './services/galacticNetwork';
@@ -50,6 +57,15 @@ class StarlighterGame {
   private mapCutscene: DungeonMapCutscene | null = null;
   /** Rückkehr-Cutscene (Extraktion oder verletzte Med-Evac-Bergung → Port Solaris) */
   private returnCutscene: SectorReturnCutscene | null = null;
+  /** 16:9 Kino-Panel-Cutscene (Spielstart-Intro, 5. Tor, Omega-Finale) */
+  private storyPanelCutscene: StoryPanelCutscene | null = null;
+  private storyPanelOnDone: (() => void) | null = null;
+  /** Live-Regie auf Port Solaris (Sektor-Siegesfeiern, Omega-Fest, Kaels Gehilfin Mina) */
+  private hubCutscene: HubCutsceneOverlay | null = null;
+  private hubCutsceneOnDone: (() => void) | null = null;
+  /** Knackige Upgrade-Cutscene (Waffe geschmiedet, Laden-Ausbau, Stufen-Upgrades) */
+  private upgradeCutscene: UpgradeCutsceneOverlay | null = null;
+  private upgradeCutsceneOnDone: (() => void) | null = null;
   private pendingReturnSummary: RunSummary | null = null;
 
   private activeScene: SceneId = 'shop';
@@ -120,10 +136,12 @@ class StarlighterGame {
         this.syncMusic();
         this.ui.renderHud();
         this.syncTouch();
-        this.ui.toast(
-          'Willkommen in Astro-Barter! Hinten links: Kapitäns-Quartier (Bett, Truhen, Drohnen & Logbuch), rechts: Port Solaris!',
-          'good',
-        );
+        this.playPanelCutscene('intro_arrival', () => {
+          this.ui.toast(
+            'Willkommen in Astro-Barter! Hinten links: Kapitäns-Quartier (Bett, Truhen, Drohnen & Logbuch), rechts: Port Solaris!',
+            'good',
+          );
+        });
       },
       onContinueGame: () => {
         this.state.load();
@@ -154,6 +172,9 @@ class StarlighterGame {
         if (!open) {
           window.focus();
           this.canvas.focus({ preventScroll: true });
+          if (this.activeScene === 'hub' && !this.hasActiveCutscene()) {
+            this.checkPendingHubCutscenes();
+          }
         }
       },
       onMuteToggle: () => {
@@ -167,6 +188,12 @@ class StarlighterGame {
         this.state.musicMuted = musicMuted;
         this.state.save();
         this.ui.renderHud();
+      },
+      onReplayCutscene: (id) => {
+        this.replayCutscene(id);
+      },
+      onUpgradeCutscene: (config, onDone) => {
+        this.playUpgradeCutscene(config, onDone);
       },
     });
 
@@ -583,16 +610,109 @@ class StarlighterGame {
     }
   }
 
+  private hasActiveCutscene(): boolean {
+    return (
+      this.approachCutscene !== null ||
+      this.mapCutscene !== null ||
+      this.returnCutscene !== null ||
+      this.storyPanelCutscene !== null ||
+      this.hubCutscene !== null ||
+      this.upgradeCutscene !== null
+    );
+  }
+
+  public playPanelCutscene(id: PanelCutsceneId, onDone?: () => void): void {
+    this.storyPanelCutscene?.dispose();
+    this.storyPanelCutscene = new StoryPanelCutscene(id, this.state.captainName);
+    this.storyPanelOnDone = () => {
+      this.state.markCutsceneSeen(id);
+      this.state.save();
+      onDone?.();
+    };
+    this.setHudVisible(false);
+    this.syncTouch();
+  }
+
+  public playHubCutscene(id: HubCutsceneId, onDone?: () => void): void {
+    this.hubCutscene?.dispose();
+    this.hubCutscene = new HubCutsceneOverlay(id, this.state.captainName);
+    this.hubCutsceneOnDone = () => {
+      this.state.markCutsceneSeen(id);
+      this.state.save();
+      onDone?.();
+    };
+    this.setHudVisible(false);
+    this.syncTouch();
+  }
+
+  public playUpgradeCutscene(config: UpgradeCutsceneConfig, onDone?: () => void): void {
+    this.upgradeCutscene?.dispose();
+    this.upgradeCutscene = new UpgradeCutsceneOverlay(config);
+    this.upgradeCutsceneOnDone = onDone ?? null;
+    if (config.major) this.setHudVisible(false);
+    this.syncTouch();
+  }
+
+  public replayCutscene(id: ReplayableCutsceneId): void {
+    if (id === 'intro_arrival' || id === 'story_gate5' || id === 'story_omega_finale') {
+      this.playPanelCutscene(id);
+      return;
+    }
+    const startHub = (): void => {
+      this.playHubCutscene(id);
+    };
+    if (this.activeScene === 'hub') {
+      startHub();
+    } else {
+      this.transitionDir = 0;
+      this.transitionAlpha = 0;
+      this.transitionTo('hub', this.activeScene, startHub);
+    }
+  }
+
+  private checkPendingHubCutscenes(): void {
+    if (this.ui.titleVisible || this.ui.modalOpen || this.hasActiveCutscene() || this.activeScene !== 'hub') {
+      return;
+    }
+    if (this.state.sector1Cleared && !this.state.hasSeenCutscene('celebration_s1')) {
+      this.playHubCutscene('celebration_s1');
+      return;
+    }
+    if (this.state.sector2Cleared && !this.state.hasSeenCutscene('celebration_s2')) {
+      this.playHubCutscene('celebration_s2');
+      return;
+    }
+    if (this.state.sector3Cleared && !this.state.hasSeenCutscene('celebration_s3')) {
+      this.playHubCutscene('celebration_s3');
+      return;
+    }
+    if (this.state.sector4Cleared && !this.state.hasSeenCutscene('celebration_s4')) {
+      this.playHubCutscene('celebration_s4', () => {
+        if (!this.state.hasSeenCutscene('story_gate5')) {
+          this.playPanelCutscene('story_gate5');
+        }
+      });
+      return;
+    }
+    if (this.state.omegaCleared && !this.state.hasSeenCutscene('celebration_omega')) {
+      this.playHubCutscene('celebration_omega', () => {
+        if (!this.state.hasSeenCutscene('story_omega_finale')) {
+          this.playPanelCutscene('story_omega_finale');
+        }
+      });
+      return;
+    }
+    if (this.state.isMinaPresent() && !this.state.hasSeenCutscene('story_mina_arrives')) {
+      this.playHubCutscene('story_mina_arrives');
+    }
+  }
+
   private syncTouch(): void {
     if (!this.touch || !this.ui) return;
     this.touch.setState(
       this.activeScene,
       this.activeScene === 'shop' && this.shopScene?.shopOpen,
-      this.ui.modalOpen ||
-        this.ui.titleVisible ||
-        this.approachCutscene !== null ||
-        this.mapCutscene !== null ||
-        this.returnCutscene !== null,
+      this.ui.modalOpen || this.ui.titleVisible || this.hasActiveCutscene(),
       this.state.equippedWeapon,
       this.state.secondaryWeapon !== null,
     );
@@ -643,6 +763,9 @@ class StarlighterGame {
               ? 'market_terrace'
               : 'shop',
         );
+        if (!afterSwitch) {
+          this.checkPendingHubCutscenes();
+        }
       } else if (scene === 'backroom') {
         this.ui.shopIsOpen = false;
         this.backroomScene.onEnter();
@@ -802,7 +925,7 @@ class StarlighterGame {
   }
 
   private handleGlobalShortcuts(): void {
-    if (this.ui.titleVisible || this.approachCutscene || this.mapCutscene || this.returnCutscene) return;
+    if (this.ui.titleVisible || this.hasActiveCutscene()) return;
 
     if (this.input.wasPressed('Escape', true)) {
       if (this.ui.modalOpen) {
@@ -884,6 +1007,36 @@ class StarlighterGame {
         const wasSkipped = this.returnCutscene.skipped;
         this.finishReturnCutscene(wasSkipped);
       }
+    } else if (this.storyPanelCutscene) {
+      const done = this.storyPanelCutscene.update(dt, this.input);
+      if (done) {
+        const cb = this.storyPanelOnDone;
+        this.storyPanelCutscene = null;
+        this.storyPanelOnDone = null;
+        this.setHudVisible(true);
+        this.syncTouch();
+        cb?.();
+      }
+    } else if (this.hubCutscene) {
+      const done = this.hubCutscene.update(dt, this.input);
+      if (done) {
+        const cb = this.hubCutsceneOnDone;
+        this.hubCutscene = null;
+        this.hubCutsceneOnDone = null;
+        this.setHudVisible(true);
+        this.syncTouch();
+        cb?.();
+      }
+    } else if (this.upgradeCutscene) {
+      const done = this.upgradeCutscene.update(dt, this.input);
+      if (done) {
+        const cb = this.upgradeCutsceneOnDone;
+        this.upgradeCutscene = null;
+        this.upgradeCutsceneOnDone = null;
+        this.setHudVisible(true);
+        this.syncTouch();
+        cb?.();
+      }
     } else if (this.activeScene === 'shop') {
       if (!this.ui.modalOpen && !this.ui.titleVisible) this.shopScene.update(dt, this.input);
     } else if (this.activeScene === 'backroom') {
@@ -908,11 +1061,14 @@ class StarlighterGame {
       this.approachCutscene.render(this.ctx);
     } else if (this.returnCutscene) {
       this.returnCutscene.render(this.ctx);
+    } else if (this.storyPanelCutscene) {
+      this.storyPanelCutscene.render(this.ctx);
     } else if (this.activeScene === 'shop') {
       this.shopScene.render(this.ctx);
     } else if (this.activeScene === 'backroom') {
       this.backroomScene.render(this.ctx);
     } else if (this.activeScene === 'hub') {
+      this.hubScene.hideActorsForCutscene = this.hubCutscene !== null;
       this.hubScene.render(this.ctx);
     } else if (this.activeScene === 'market_terrace') {
       this.marketTerraceScene.render(this.ctx);
@@ -923,6 +1079,13 @@ class StarlighterGame {
       if (this.mapCutscene) {
         this.mapCutscene.render(this.ctx);
       }
+    }
+
+    if (this.hubCutscene && !this.storyPanelCutscene) {
+      this.hubCutscene.render(this.ctx);
+    }
+    if (this.upgradeCutscene && !this.storyPanelCutscene) {
+      this.upgradeCutscene.render(this.ctx);
     }
 
     if (this.transitionAlpha > 0) {

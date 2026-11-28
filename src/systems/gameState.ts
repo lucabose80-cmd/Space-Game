@@ -258,6 +258,8 @@ export class GameState {
   // Milestone 9: Galaktisches Netzwerk (Save v10)
   // Milestone 10-A: Story (Save v11)
   public story: StoryProgress = createEmptyStory();
+  /** Gesehene Intro-, Feier-, Gehilfin- & Story-Cutscenes (optional, Save-v11-kompatibel) */
+  public seenCutscenes: string[] = [];
   /** M10-C: gelernte Codex-/Podest-Preise wurden einmalig auf den neuen Preisfaktor skaliert (Altspielstände) */
   public priceScaleV2 = true;
   public ghostGreeting = '';
@@ -354,6 +356,7 @@ export class GameState {
     this.trialBadgeHistory = {};
     this.activeTrial = null;
     this.story = createEmptyStory();
+    this.seenCutscenes = [];
     this.pedestals = [];
     this.syncShopCapacity();
 
@@ -1698,6 +1701,7 @@ export class GameState {
       lastPedestalItems: this.lastPedestalItems,
       haggleWinsTotal: this.haggleWinsTotal,
       story: this.story,
+      seenCutscenes: [...this.seenCutscenes],
       priceScaleV2: this.priceScaleV2,
       ghostGreeting: this.ghostGreeting,
       weeklyTrial: this.weeklyTrial ?? undefined,
@@ -2002,6 +2006,13 @@ export class GameState {
 
       // Milestone 10-A: Defensives Laden für nahtlose v10 -> v11 Migration
       this.story = sanitizeStory(parsed.story);
+      this.seenCutscenes = Array.isArray(parsed.seenCutscenes)
+        ? parsed.seenCutscenes.filter((k): k is string => typeof k === 'string')
+        : [];
+      // Altspielstände mit bereits vorhandenem Fortschritt nicht nachträglich mit dem Intro überraschen
+      if (!Array.isArray(parsed.seenCutscenes) && (this.day > 1 || this.totalSold > 0 || this.bossDefeatedCount > 0)) {
+        this.seenCutscenes.push('intro_arrival');
+      }
       this.refreshStoryChapter(false);
 
       this.prunePinnedRecipes();
@@ -2012,6 +2023,25 @@ export class GameState {
     } catch {
       return false;
     }
+  }
+
+  public hasSeenCutscene(id: string): boolean {
+    return this.seenCutscenes.includes(id);
+  }
+
+  public markCutsceneSeen(id: string): void {
+    if (!this.seenCutscenes.includes(id)) {
+      this.seenCutscenes.push(id);
+    }
+  }
+
+  /** Kaels Schmiede-Gehilfin Mina steht dauerhaft an der 2. Werkbank nach Sektor 1 + Kaels Kapitel-1-Gespräch (oder ab Kapitel 2). */
+  public isMinaPresent(): boolean {
+    return (
+      this.story.chapter >= 2 ||
+      (this.sector1Cleared && this.story.seenScenes.includes('kael_c1')) ||
+      this.seenCutscenes.includes('story_mina_arrives')
+    );
   }
 
   public resetSave(): void {

@@ -93,6 +93,8 @@ import {
 } from './NetworkModals';
 import { bindLoadout, renderLoadoutHtml } from './LoadoutPanel';
 import { renderChronicleHtml, StoryDialogController, type StoryDialogOptions, type StoryHost } from './StoryModals';
+import { CUTSCENE_CATALOG, type ReplayableCutsceneId } from '../scenes/StoryPanelCutscene';
+import type { UpgradeCutsceneConfig } from '../scenes/UpgradeCutsceneOverlay';
 
 export interface UIHooks {
   onStartNewGame: () => void;
@@ -102,6 +104,8 @@ export interface UIHooks {
   onModalStateChange: (open: boolean) => void;
   onMuteToggle: () => void;
   onMusicToggle: () => void;
+  onReplayCutscene?: (id: ReplayableCutsceneId) => void;
+  onUpgradeCutscene?: (config: UpgradeCutsceneConfig, onDone?: () => void) => void;
 }
 
 export type GuildTab = 'leaderboard' | 'feed' | 'trial' | 'account' | 'file';
@@ -645,6 +649,10 @@ export class UIManager {
           <div style="font-size:12px"><strong>Vibration</strong> <span class="m9-file-sub">(Handy: Treffer &amp; Parade)</span></div>
           <div class="m10-setting-btns">${[true, false].map((v) => btn('data-dev-vibe', v ? 'on' : 'off', v ? 'An' : 'Aus', s.vibration === v)).join('')}</div>
         </div>
+        <div class="m10-setting-row">
+          <div style="font-size:12px"><strong>Kurze Cutscenes</strong> <span class="m9-file-sub">(Upgrades &amp; Wiederholungen zügiger)</span></div>
+          <div class="m10-setting-btns">${[false, true].map((v) => btn('data-dev-short-cut', v ? 'on' : 'off', v ? 'Kurz' : 'Normal', s.shortCutscenes === v)).join('')}</div>
+        </div>
         <div class="m9-file-sub">Diese Einstellungen gelten nur für dieses Gerät und werden nicht in der Cloud gespeichert.</div>
       </div>`;
   }
@@ -955,6 +963,36 @@ export class UIManager {
 
           ${renderChronicleHtml(this.state.story)}
 
+          <div class="inspector-box" style="gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-family:var(--font-pixel);font-size:11px;color:#38e8d4">🎬 KINO-CHRONIK (CUTSCENES)</span>
+              <span style="font-size:11px;color:var(--text-muted)">Freigeschaltete Szenen erneut ansehen</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:6px">
+              ${CUTSCENE_CATALOG.map((entry) => {
+                const unlocked =
+                  entry.id === 'intro_arrival' ||
+                  this.state.hasSeenCutscene(entry.id) ||
+                  (entry.id === 'story_mina_arrives'
+                    ? this.state.isMinaPresent()
+                    : this.state.story.chapter >= entry.chapter && entry.chapter > 0);
+                return `
+                  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 8px;border:1px solid ${unlocked ? 'rgba(56,232,212,0.35)' : 'var(--border-steel)'};background:rgba(10,16,30,0.75);opacity:${unlocked ? '1' : '0.55'}">
+                    <div style="min-width:0">
+                      <div style="font-size:11.5px;font-weight:700;color:${unlocked ? '#f8fafc' : 'var(--text-muted)'}">${entry.icon} ${unlocked ? entry.title : '??? (Noch nicht erlebt)'}</div>
+                      <div style="font-size:10.5px;color:var(--text-muted)">${unlocked ? entry.subtitle : `Kapitel ${entry.chapter}`}</div>
+                    </div>
+                    ${
+                      unlocked
+                        ? `<button class="btn" style="padding:4px 8px;font-size:10px;white-space:nowrap" data-replay-cutscene="${entry.id}">▶ Ansehen</button>`
+                        : `<span style="font-size:11px;color:var(--text-muted)">🔒</span>`
+                    }
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+
           <div class="inspector-box" style="gap:8px;border-color:${canNgPlus ? 'rgba(250,204,21,0.5)' : 'var(--border-steel)'}">
             <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
               <div>
@@ -1066,11 +1104,28 @@ export class UIManager {
         this.renderInventoryModal();
       });
     });
+    this.modalEl.querySelectorAll<HTMLElement>('[data-dev-short-cut]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        sound.playUiClick();
+        saveDeviceSettings({ shortCutscenes: btn.dataset.devShortCut === 'on' });
+        this.renderInventoryModal();
+      });
+    });
     this.modalEl.querySelectorAll<HTMLElement>('[data-dev-text]').forEach((btn) => {
       btn.addEventListener('click', () => {
         sound.playUiClick();
         saveDeviceSettings({ textSpeed: btn.dataset.devText as (typeof TEXT_SPEEDS)[number] });
         this.renderInventoryModal();
+      });
+    });
+
+    this.modalEl.querySelectorAll<HTMLElement>('[data-replay-cutscene]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const cid = btn.dataset.replayCutscene as ReplayableCutsceneId | undefined;
+        if (!cid) return;
+        sound.playUiClick();
+        this.closeModal();
+        this.hooks.onReplayCutscene?.(cid);
       });
     });
 
@@ -1720,10 +1775,26 @@ export class UIManager {
       btn.addEventListener('click', () => {
         const wid = btn.dataset.wid as WeaponId;
         if (this.state.craftWeapon(wid)) {
-          sound.playUpgrade();
-          this.toast(`${WEAPON_META[wid].name} geschmiedet! Wechsle jederzeit mit [C].`, 'good');
-          this.openStationShopModal(shop);
+          const meta = WEAPON_META[wid];
+          this.toast(`${meta.name} geschmiedet! Wechsle jederzeit mit [C].`, 'good');
           this.renderHud();
+          if (this.hooks.onUpgradeCutscene) {
+            this.closeModal();
+            this.hooks.onUpgradeCutscene(
+              {
+                kind: 'weapon',
+                title: meta.name.toUpperCase(),
+                subtitle: 'Neu geschmiedet · Wechsle jederzeit mit [C]',
+                accent: meta.accentColor,
+                major: true,
+                minaPresent: this.state.isMinaPresent(),
+              },
+              () => this.openStationShopModal(shop),
+            );
+          } else {
+            sound.playUpgrade();
+            this.openStationShopModal(shop);
+          }
         }
       });
     });
@@ -1739,12 +1810,13 @@ export class UIManager {
     this.modalEl.querySelectorAll<HTMLElement>('.btn-buy-upgrade').forEach((btn) => {
       btn.addEventListener('click', () => {
         const key = btn.dataset.key as UpgradeKey;
+        const prevLevel = this.state.upgrades[key];
         if (this.state.purchaseUpgrade(key)) {
-          sound.playUpgrade();
+          const nextLevel = this.state.upgrades[key];
+          const track = UPGRADE_TRACKS.find((t) => t.key === key);
           if (key === 'shopTier') {
-            const lvl = this.state.upgrades.shopTier;
             this.toast(
-              lvl === 1
+              nextLevel === 1
                 ? '★ Stufe II erreicht! 6 Holo-Podeste, Sale-Box & 2 Lagertruhen (36 Slots) im Hinterzimmer!'
                 : '★ Stufe III erreicht! 8 Podeste & 3 Lagertruhen (48 Slots) im Kapitäns-Quartier!',
               'good',
@@ -1759,8 +1831,29 @@ export class UIManager {
               'good',
             );
           }
-          this.openStationShopModal(shop);
           this.renderHud();
+          if (this.hooks.onUpgradeCutscene) {
+            const isMajor = key === 'shopTier';
+            this.closeModal();
+            this.hooks.onUpgradeCutscene(
+              {
+                kind: isMajor ? 'shop' : isForge ? 'forge_step' : 'tech_step',
+                title: (track?.title ?? 'UPGRADE').toUpperCase(),
+                subtitle: isMajor
+                  ? nextLevel === 1
+                    ? 'Stufe II · 6 Podeste & Sale-Box freigeschaltet'
+                    : 'Stufe III · 8 Podeste & 3 Lagertruhen freigeschaltet'
+                  : `Stufe ${prevLevel} → Stufe ${nextLevel}`,
+                accent: isMajor ? '#fbbf24' : isForge ? '#fb923c' : isTechLab ? '#38bdf8' : '#34d399',
+                major: isMajor,
+                minaPresent: this.state.isMinaPresent(),
+              },
+              () => this.openStationShopModal(shop),
+            );
+          } else {
+            sound.playUpgrade();
+            this.openStationShopModal(shop);
+          }
         }
       });
     });

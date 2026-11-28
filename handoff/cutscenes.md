@@ -78,10 +78,18 @@
 > - **Upgrade-Cutscenes:** Knackig (~2 s, überspringbar) bei großen Meilensteinen (neue Waffe, Laden-Ausbau, neues Schiff) + schnelle Funken-Mini-Animation (~1 s) bei normalen Stufen-Upgrades + optionaler Kurz-Modus in den Geräte-Einstellungen.
 
 ### Checkliste (Etappen 1–4)
-- [ ] **Etappe 0 (Sprites `P3-48`–`P3-54`):** 4 Intro-Panels (`cutscene_intro_1..4.png`), 2 Story-Panels (`cutscene_story_gate5.png`, `cutscene_story_omega.png`), 1 NPC-Sprite (`npc_mina.png`) generiert, geprüft & in `artLoader.ts` registriert.
-- [ ] **Etappe 1 (Kino-Panel-Player & Spielstart-Intro):** `src/scenes/StoryPanelCutscene.ts`, `SaveData.seenCutscenes?`, `DeviceSettings.shortCutscenes`, Intro beim Neustart + Chronik-Wiederholung im Logbuch.
-- [ ] **Etappe 2 (Live-Regie auf Port Solaris — Siegesfeiern & Story-Höhepunkte):** `src/scenes/HubCutsceneOverlay.ts` für Sektor-1-Siegesfeier nach A.E.G.I.S. Leviathan (Lichterketten gehen an, NPCs versammeln sich, Trophäe, Konfetti/Feuerwerk) + S2–S4-Feiern + Omega-Fest + 5.-Tor-/Omega-Panels.
-- [ ] **Etappe 3 (Kaels Gehilfin Mina):** Dauerhaftes Sprite `npc_mina.png` an Kaels zweiter Werkbank in `HubScene.ts`/`hubEvolution.ts` + Live-Einzugs-Cutscene (`story_mina_arrives`) nach Sektor 1 / `kael_c1`.
-- [ ] **Etappe 4 (Upgrade-Cutscenes):** `src/scenes/UpgradeCutsceneOverlay.ts` (Amboss-Hämmern & Waffen-Enthüllung, Laden-Ausbau, Schiff-Enthüllung, schnelle Stufen-Funken-Mini-Animation) verdrahtet in `UIManager.ts`/`main.ts`.
-- [ ] **Tests & Sichtprüfung:** Eigener Playwright-Test `tests/cutscene_story.cjs` + `npm run verify` grün + Screenshots in `tests/out/` geprüft.
+- [ ] **Etappe 0 (Sprites `P3-48`–`P3-54`):** 7 optionale Sprites in `artLoader.ts` (`CUTSCENE_OPTIONAL_SPRITES`) & `SPRITE_QUEUE.md` (`[ ]`) registriert. Antigravity-Bild-Quota erschöpft & kein lokaler Gemini-Key → hochwertige Pixel-Art-Fallbacks aktiv (sobald PNGs liegen, automatisch aktiv ohne Codeänderung).
+- [x] **Etappe 1 (Kino-Panel-Player & Spielstart-Intro):** `src/scenes/StoryPanelCutscene.ts`, `SaveData.seenCutscenes?` (Save-v11-kompatibel), `DeviceSettings.shortCutscenes`, Intro beim Neustart (`onStartNewGame`) + **🎬 Kino-Chronik** im Logbuch.
+- [x] **Etappe 2 (Live-Regie auf Port Solaris — Siegesfeiern & Story-Höhepunkte):** `src/scenes/HubCutsceneOverlay.ts` für Sektor-1-Siegesfeier nach A.E.G.I.S. Leviathan (Lichterketten gehen an, NPCs versammeln sich & jubeln, Konfetti/Feuerwerk) + S2–S4-Feiern + Omega-Fest + 5.-Tor-/Omega-Panels (`story_gate5`, `story_omega_finale`).
+- [x] **Etappe 3 (Kaels Gehilfin Mina):** Dauerhaftes Sprite `drawMinaSprite()` (`npc_mina.png` oder 16-Bit-Pixel-Fallback) an Kaels zweiter Werkbank in `HubScene.ts` (`state.isMinaPresent()`) + Live-Einzugs-Cutscene (`story_mina_arrives`) nach Sektor 1 + `kael_c1`.
+- [x] **Etappe 4 (Upgrade-Cutscenes):** `src/scenes/UpgradeCutsceneOverlay.ts` (Amboss-Hämmern mit Kael & Mina + Waffen-Enthüllung, Laden-Ausbau, Schiff-Enthüllung, schnelle Stufen-Funken-Mini-Animation) verdrahtet in `UIManager.ts`/`main.ts` inkl. automatischem Wiederöffnen des Stations-Modals.
+- [x] **Tests & Sichtprüfung:** `tests/cutscene_story.cjs` + `npm run verify` grün + alle Screenshots in `tests/out/` visuell geprüft (`cutscene_intro_p1/p3.png`, `cutscene_celebration_s1.png`, `cutscene_mina_arrives.png`, `hub_with_mina.png`, `cutscene_upgrade_weapon.png`).
+
+### Praxis-Learnings (Story-/Feier-/Gehilfin-/Upgrade-Cutscenes)
+16. **Kael-Sprite-Key in `artLoader.ts` heißt `art.npcKael`** (nicht `npcBlacksmith`). Immer exakte Keys aus `HDArtAssets` prüfen.
+17. **HTML-Modal vs. Canvas-Upgrade-Cutscene:** Da `#modal-layer` über `<canvas>` liegt, schließt `UIManager` das Stations-Modal während `UpgradeCutsceneOverlay` kurz und öffnet es über `onDone` automatisch wieder — so bleibt der Spielfluss beim Mehrfach-Upgraden nahtlos.
+18. **Rückwärtskompatibles `seenCutscenes`:** Altspielstände (`day > 1 || totalSold > 0 || bossDefeatedCount > 0`) ohne `seenCutscenes`-Feld bekommen beim Laden automatisch `'intro_arrival'` eingetragen, damit bestehende Saves nicht nachträglich vom Intro unterbrochen werden.
+19. **`HubScene.hideActorsForCutscene = true` während Live-Promenaden-Cutscenes:** Ohne dieses Flag zeichnet `HubScene` unter `HubCutsceneOverlay` weiterhin Kael/Lyra/Nyx/Vex/Spieler, `!`-Marker und `[E]`-Prompts doppelt. Durch das passive Flag bleibt die echte Promenade inkl. Evolution & Passanten erhalten, während nur die choreografierten Cutscene-Figuren sichtbar sind.
+
+
 

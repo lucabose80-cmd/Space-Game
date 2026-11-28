@@ -647,6 +647,35 @@ export class SoundEngine {
     this.playTone(740, 520, 0.22, 'sawtooth', 0.07, 0.28);
     this.playNoise(0.16, 1200, 0.07);
   }
+
+  /** Siegesfeier auf Port Solaris: festliche Fanfare */
+  public playCelebrationFanfare(): void {
+    const notes = [523.25, 659.25, 783.99, 1046.5];
+    notes.forEach((n, i) => {
+      this.playTone(n, n, i === 3 ? 0.42 : 0.16, i === 3 ? 'triangle' : 'sine', 0.09, i * 0.11);
+    });
+    this.playTone(261.63, 261.63, 0.45, 'triangle', 0.06, 0.33);
+  }
+
+  /** Schmiede-Upgrade / Mina: metallischer Amboss-Hammerschlag */
+  public playForgeHammer(): void {
+    this.playNoise(0.08, 2200, 0.13);
+    this.playTone(880, 1320, 0.09, 'triangle', 0.11, 0);
+    this.playTone(1760, 1180, 0.22, 'sine', 0.08, 0.02);
+  }
+
+  /** Upgrade-Enthüllung: strahlender Akkord */
+  public playUpgradeReveal(): void {
+    this.playTone(440, 554.37, 0.14, 'triangle', 0.08, 0);
+    this.playTone(554.37, 659.25, 0.16, 'triangle', 0.08, 0.09);
+    this.playTone(880, 880, 0.34, 'sine', 0.1, 0.18);
+  }
+
+  /** Kino-Panel-Wechsel: sanfter Story-Klang */
+  public playStoryChime(): void {
+    this.playTone(392, 523.25, 0.2, 'sine', 0.06, 0);
+    this.playTone(587.33, 783.99, 0.26, 'triangle', 0.05, 0.09);
+  }
 }
 
 export const sound = new SoundEngine();

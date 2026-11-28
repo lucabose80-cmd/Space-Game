@@ -458,6 +458,8 @@ export interface SaveData {
   haggleWinsTotal?: number;
   // Milestone 10-A: Story (Save v11)
   story?: StoryProgress;
+  /** Gesehene Story-, Intro-, Feier- & Gehilfin-Cutscenes (optional, rückwärtskompatibel zu Save v11) */
+  seenCutscenes?: string[];
   /** M10-C: Preise einmalig auf SELL_PRICE_MULT skaliert (optional, Altspielstände → false) */
   priceScaleV2?: boolean;
   // Milestone 9: Galaktisches Netzwerk (Save v10)
