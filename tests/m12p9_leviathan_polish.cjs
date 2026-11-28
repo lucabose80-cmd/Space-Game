@@ -44,6 +44,39 @@ module.exports = async ({ page }) => {
     out.blocks = blocks;
     return out;
   });
+  // Treffer-Reaktion auf Panzer & Wrack-Arm (echte Arena)
+  const w = await page.evaluate(async () => {
+    const { DungeonScene } = await import('/src/scenes/DungeonScene.ts');
+    const { GameState } = await import('/src/systems/gameState.ts');
+    const { InputManager } = await import('/src/engine/input.ts');
+    const { getBossPose } = await import('/src/dungeon/anim/bossAnims.ts');
+    const g = new GameState(); g.saveLocked = true; g.sector1Cleared = true;
+    const d = new DungeonScene(g, { onReturnToHub() {}, onToast() {}, onHudDirty() {} });
+    d.startRun(1); d.startFloor(3, false, 1); d.enterRoom(d.floor.bossKey, 'south');
+    const boss = d.enemies.find((e) => e.kind === 'boss_leviathan'); const L = boss.levArena;
+    const input = new InputManager(document.getElementById('game-canvas'));
+    L.state = 'idle'; L.timer = 99; d.roomFade = 0; d.invulnTimer = 99;
+    const out = {};
+    const hitAt = (x, y, amt) => { d.getClosestEnemyHitPoint(boss, x, y); d.damageEnemy(boss, amt, 0, 1, 0, true, false); };
+    const base = getBossPose('boss_leviathan', boss, d.time, d.playerX, d.playerY).torso.dy;
+    hitAt(boss.x, boss.y - 10, 20); // Panzer
+    out.armorKick = L.hitKick;
+    d.update(0.02, input);
+    out.armorPose = getBossPose('boss_leviathan', boss, d.time + 0.02, d.playerX, d.playerY).torso.dy - base;
+    // Arm zerstören
+    const arm = boss.levArms[0]; arm.state = 'grounded'; arm.x = boss.x - 37; arm.y = boss.y + 48; L.armHp[0] = 1;
+    hitAt(arm.x, arm.y, 500);
+    out.armKick = L.armKick[0];
+    out.dead = arm.dead;
+    out.wrecks = (d.currentRoom.levWrecks || []).length;
+    for (let i = 0; i < 90; i++) { d.invulnTimer = 99; d.update(1 / 60, input); }
+    const wr = d.currentRoom.levWrecks[0];
+    out.landed = Math.abs(wr.x - (boss.x - 78)) < 4 && wr.y > boss.y + 40;
+    return out;
+  });
+  assert.ok(w.armorKick > 0.4, 'Panzer-Treffer löst Rückstoß aus');
+  assert.ok(Math.abs(w.armorPose) > 0.3, 'Rückstoß verschiebt den Torso sichtbar: ' + w.armorPose);
+  assert.ok(w.dead && w.wrecks === 1 && w.landed, 'abgerissener Arm bleibt als Wrack liegen ' + JSON.stringify(w));
   assert.deepStrictEqual(r.sprites, [], 'Rig-Teile geladen: ' + r.sprites.join(','));
   assert.deepStrictEqual(r.fx, [], 'FX-Sprites geladen: ' + r.fx.join(','));
   assert.deepStrictEqual(r.stages, [0, 4, 5, 1, 6, 7, 2], 'Beschädigungsstufen nach HP: ' + JSON.stringify(r.stages));

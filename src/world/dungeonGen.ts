@@ -203,6 +203,8 @@ export interface DungeonRoom {
   /** M12: Schatzkammer nach dem Sieg (Öffnungs-Zustand) + ursprünglicher oberer Rand der Spielfläche */
   arenaVault?: ArenaVaultState;
   arenaOriginT?: number;
+  /** M12 Leviathan: abgerissene Kranarme, die als Wrack auf dem Boden liegen bleiben (Fallweg: Schulter `sx,sy` → Boden `x,y`) */
+  levWrecks?: Array<{ x: number; y: number; sx: number; sy: number; side: -1 | 1; t0: number }>;
 }
 
 /** M12: Raumgrenzen (logische Koordinaten, wie `ROOM_LEFT/RIGHT/TOP/BOTTOM`). */
