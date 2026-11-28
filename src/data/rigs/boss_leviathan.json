@@ -1,0 +1,61 @@
+{
+  "id": "boss_leviathan",
+  "kind": "boss",
+  "ratio": 2,
+  "sheet": {
+    "file": "boss_leviathan",
+    "cols": 3,
+    "rows": 2,
+    "pixelRatio": 2
+  },
+  "parts": [
+    {
+      "id": "carriage",
+      "image": "carriage",
+      "pivot": [0.5, 0.5],
+      "offset": [0, -34],
+      "z": -2
+    },
+    {
+      "id": "torso",
+      "image": "torso",
+      "parent": "carriage",
+      "attach": [0.5, 0.72],
+      "pivot": [0.5, 0.35],
+      "offset": [0, 6],
+      "z": 0,
+      "variants": ["torso", "torsoP2", "torsoP3", "torsoDead"]
+    },
+    {
+      "id": "head",
+      "image": "head",
+      "parent": "torso",
+      "attach": [0.5, 0.14],
+      "pivot": [0.5, 0.65],
+      "offset": [0, 6],
+      "z": 3,
+      "variants": ["head", "headP2"]
+    },
+    {
+      "id": "armL",
+      "image": "armIdle",
+      "parent": "torso",
+      "attach": [0.06, 0.38],
+      "pivot": [0.76, 0.34],
+      "offset": [-2, 0],
+      "z": 2,
+      "variants": ["armIdle", "armRaise", "armSlam", "armDmg", "armCrit"]
+    },
+    {
+      "id": "armR",
+      "image": "armIdle",
+      "parent": "torso",
+      "attach": [0.94, 0.38],
+      "pivot": [0.76, 0.34],
+      "offset": [2, 0],
+      "z": 2,
+      "flipX": true,
+      "variants": ["armIdle", "armRaise", "armSlam", "armDmg", "armCrit"]
+    }
+  ]
+}

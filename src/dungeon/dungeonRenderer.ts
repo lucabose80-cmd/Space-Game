@@ -2979,7 +2979,15 @@ export class DungeonRenderer {
         const armFrac = L ? L.armHp[armIdx] / Math.max(1, L.armMax) : 1;
 
         if (spriteBody) {
-          // Im Ruhezustand / Laser / Rückkehr sind beide Arme 100 % Teil der geschlossenen Vollpose — nichts drübermalen!
+          // Mit M11-Schienen-Kran-Rig sind beide Arme das echte Rig — NIEMALS eine dritte Hand zeichnen, nur den Einschlagskrater unter der echten Faust!
+          if (art.rigs.boss_leviathan) {
+            if ((slamming || grounded) && art.arenaLeviathanCrater) {
+              ctx.save();
+              ctx.drawImage(art.arenaLeviathanCrater, arm.x - 36, arm.y - 8, 72, 48);
+              ctx.restore();
+            }
+            return;
+          }
           if (!tracking && !slamming && !grounded) return;
           ctx.save();
           if (tracking || slamming) {

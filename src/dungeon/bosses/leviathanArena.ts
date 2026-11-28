@@ -9,6 +9,9 @@
 // (≥ 0,4 s, Arena-Änderungen ≥ 0,8 s). Kein globaler Zufall (Trümmer-Positionen: mulberry32 je Boss/Zug).
 import { getHDArt } from '../../assets/artLoader';
 import { sound } from '../../engine/audio';
+import { drawRig } from '../../engine/rig';
+import { RIGS } from '../../data/rigs';
+import { getBossPose } from '../anim/bossAnims';
 import { startArenaVault } from '../arenaVault';
 import { ENDBOSS_ARENA } from '../../data/balance';
 import { ARENAS, ARENA_TILE, arenaTileRects } from '../../data/arenas';
@@ -622,47 +625,71 @@ function startPhase3(scene: DungeonScene, e: Enemy): void {
   scene.callbacks.onToast('🔥 PHASE III: Der Panzer fällt — die Kern-Linse liegt frei!', 'warn');
 }
 
-/** Kran-Arme: Schweben, Verfolgen, Zuschlagen, Feststecken (angreifbar), Laser-Schuss, Zurückkehren. */
+/** Schienen-Kran-Koloss: fährt auf der Nordwand-Schiene zum Ziel und schlägt mit dem echten M11-Rig-Arm direkt vor sich auf den Boden (+ Erdbeben-Welle nach Süden). */
 function updateArms(scene: DungeonScene, e: Enemy, dt: number): void {
   const L = e.levArena!;
+  const rb = scene.bounds;
+  const railMin = rb.l + 150;
+  const railMax = rb.r - 150;
+
+  // Schienen-Fahrt: wenn ein Arm ausholt (tracking), fährt der gesamte Koloss wuchtig zur Spieler-X-Position!
+  const trackingArm = (e.levArms ?? []).find((a) => !a.dead && a.state === 'tracking');
+  const slammedArm = (e.levArms ?? []).find((a) => !a.dead && (a.state === 'slamming' || a.state === 'grounded'));
+  let targetRailX = e.x;
+  let railSpeed = 0;
+  if (L.state !== 'intro' && L.state !== 'dead') {
+    if (trackingArm && trackingArm.timer > 0.25) {
+      targetRailX = Math.max(railMin, Math.min(railMax, scene.playerX - trackingArm.side * 72));
+      railSpeed = 165;
+    } else if (!slammedArm && L.state === 'idle') {
+      targetRailX = rb.cx;
+      railSpeed = 75;
+    }
+  }
+  const prevX = e.x;
+  if (railSpeed > 0 && Math.abs(targetRailX - e.x) > 1) {
+    const step = Math.sign(targetRailX - e.x) * Math.min(Math.abs(targetRailX - e.x), railSpeed * dt);
+    e.x = Math.max(railMin, Math.min(railMax, e.x + step));
+  }
+  e.vx = dt > 0 ? (e.x - prevX) / dt : 0;
+
   (e.levArms ?? []).forEach((arm, idx) => {
     if (arm.dead) return;
-    // Beschädigungs-Funken an angeschlagenen Fäusten (< 55 % HP)
+    arm.homeX = e.x + arm.side * 74;
+    arm.homeY = e.y + 16;
+    // Beschädigungs-Funken an angeschlagenen Fäusten (< 70 % HP)
     const armFrac = L.armHp[idx] / Math.max(1, L.armMax);
-    if (armFrac < 0.55) {
-      const rate = armFrac < 0.25 ? 6 : 2.5;
+    if (armFrac < 0.7) {
+      const rate = armFrac < 0.35 ? 6 : 2.5;
       const pTick = Math.floor((scene.time - dt) * rate);
       const cTick = Math.floor(scene.time * rate);
       if (cTick !== pTick) {
-        scene.spawnBurst(arm.x + ((cTick % 3) - 1) * 6, arm.y - 4, armFrac < 0.25 ? '#fb923c' : '#fde047', 2);
+        scene.spawnBurst(arm.x + ((cTick % 3) - 1) * 8, arm.y - 4, armFrac < 0.35 ? '#fb923c' : '#fde047', 2);
       }
     }
     if (arm.state === 'beam') {
       arm.timer -= dt;
-      const targetAng = arm.timer < 1.15 ? (arm.side < 0 ? 1.18 : Math.PI - 1.18) : (arm.side < 0 ? 0.62 : Math.PI - 0.62);
-      arm.beamAngle += (targetAng - arm.beamAngle) * Math.min(1, dt * 8);
-      const aimX = arm.homeX - Math.cos(arm.beamAngle) * 3;
-      const aimY = arm.homeY + 12 + Math.sin(scene.time * 28 + arm.side) * 1.5;
-      arm.x += (aimX - arm.x) * Math.min(1, dt * 10);
-      arm.y += (aimY - arm.y) * Math.min(1, dt * 10);
+      arm.x = arm.homeX + arm.side * 10;
+      arm.y = arm.homeY - 6;
       if (arm.timer <= 0) arm.state = 'returning';
     } else if (arm.state === 'idle' || arm.state === 'returning') {
-      const hoverY = arm.homeY + Math.sin(scene.time * 3.0 + arm.side) * 4;
-      arm.x += (arm.homeX - arm.x) * Math.min(1, dt * 6);
-      arm.y += (hoverY - arm.y) * Math.min(1, dt * 6);
+      const hoverY = arm.homeY + Math.sin(scene.time * 2.5 + arm.side) * 3;
+      arm.x += (arm.homeX - arm.x) * Math.min(1, dt * 10);
+      arm.y += (hoverY - arm.y) * Math.min(1, dt * 10);
       if (arm.state !== 'idle' && Math.hypot(arm.x - arm.homeX, arm.y - hoverY) < 4) arm.state = 'idle';
     } else if (arm.state === 'tracking') {
       arm.timer -= dt;
-      if (arm.timer > 0.3) {
-        arm.targetX += (scene.playerX - arm.targetX) * Math.min(1, dt * 7);
-        arm.targetY += (Math.max(scene.bounds.t + 70, Math.min(scene.bounds.b - 22, scene.playerY)) - arm.targetY) * Math.min(1, dt * 7);
-      } else if (!arm.locked) {
-        // Ziel fest → Vorwarnung am Boden (0,3 s + 0,16 s Schlag ≥ 0,4 s)
+      // Zielpunkt liegt exakt dort, wo die echte Rig-Faust vor dem Koloss einschlägt!
+      arm.targetX = e.x + arm.side * 74;
+      arm.targetY = e.y + 44;
+      if (arm.timer <= 0.32 && !arm.locked) {
         arm.locked = true;
-        fx(scene).add({ shape: 'circle', x: arm.targetX, y: arm.targetY, r: 34, delay: arm.timer + 0.16, life: 0.12, burst: 22, color: '#fb923c', fx: 'blast' });
+        fx(scene).add({ shape: 'circle', x: arm.targetX, y: arm.targetY, r: 36, delay: arm.timer + 0.16, life: 0.14, burst: 22, color: '#fb923c', fx: 'blast' });
+        // Erdbeben-Spalt schießt vom Einschlag direkt nach Süden durch die gesamte Halle!
+        fx(scene).add({ shape: 'line', x: arm.targetX, y: arm.targetY, x2: arm.targetX, y2: rb.b - 16, width: 32, delay: arm.timer + 0.32, life: 0.28, burst: 18, color: '#fb923c', fx: 'whip' });
       }
-      arm.x += (arm.targetX - arm.x) * Math.min(1, dt * 5);
-      arm.y += (arm.targetY - 38 - arm.y) * Math.min(1, dt * 5);
+      arm.x = arm.targetX;
+      arm.y = arm.homeY - 16;
       if (arm.timer <= 0) {
         arm.state = 'slamming';
         arm.timer = 0.16;
@@ -670,7 +697,7 @@ function updateArms(scene: DungeonScene, e: Enemy, dt: number): void {
       }
     } else if (arm.state === 'slamming') {
       arm.timer -= dt;
-      arm.x += (arm.targetX - arm.x) * Math.min(1, dt * 22);
+      arm.x = arm.targetX;
       arm.y += (arm.targetY - arm.y) * Math.min(1, dt * 24);
       if (arm.timer <= 0) {
         arm.x = arm.targetX;
@@ -678,14 +705,16 @@ function updateArms(scene: DungeonScene, e: Enemy, dt: number): void {
         arm.state = 'grounded';
         arm.timer = ENDBOSS_ARENA.leviathan.armStuckSec;
         sound.playBossSlam();
-        scene.triggerShake(0.32, 5.2);
-        scene.decals.push({ x: arm.x, y: arm.y + 6, r: 22, color: 'rgba(15, 23, 42, 0.58)', life: 6, maxLife: 6 });
-        scene.shockwaves.push({ x: arm.x, y: arm.y + 2, maxRadius: 58, color: '#fb923c', life: 0.32, maxLife: 0.32 });
-        scene.spawnBurst(arm.x, arm.y + 4, '#fbbf24', 22);
-        scene.floats.push({ x: arm.x, y: arm.y - 22, text: 'ARM STECKT FEST!', color: '#fde047', life: 0.9, maxLife: 0.9 });
+        scene.triggerShake(0.36, 5.5);
+        scene.decals.push({ x: arm.x, y: arm.y + 6, r: 24, color: 'rgba(15, 23, 42, 0.58)', life: 6, maxLife: 6 });
+        scene.shockwaves.push({ x: arm.x, y: arm.y + 2, maxRadius: 68, color: '#fb923c', life: 0.34, maxLife: 0.34 });
+        scene.spawnBurst(arm.x, arm.y + 4, '#fbbf24', 24);
+        scene.floats.push({ x: arm.x, y: arm.y - 24, text: 'ARM STECKT FEST!', color: '#fde047', life: 0.9, maxLife: 0.9 });
       }
     } else if (arm.state === 'grounded') {
       arm.timer -= dt;
+      arm.x = arm.targetX;
+      arm.y = arm.targetY;
       if (arm.timer <= 0) arm.state = 'returning';
     }
   });
@@ -903,81 +932,87 @@ const BODY_LENS_Y = 118;
 export const BODY_SHOULDER_DX = 96;
 export const BODY_SHOULDER_DY = -8;
 
+/** Zeichnet die feste, unbewegliche Schwerlast-Laufschiene an der Nordwand (wackelt NIE mit!). */
+function drawCraneRail(ctx: CanvasRenderingContext2D, leftX: number, rightX: number, railY: number): void {
+  const w = rightX - leftX;
+  ctx.save();
+  // Dunkler Stahlträger-Schatten
+  ctx.fillStyle = '#0f172a';
+  ctx.fillRect(leftX, railY - 7, w, 15);
+  // Haupt-I-Träger (rostiger Industriestahl)
+  ctx.fillStyle = '#334155';
+  ctx.fillRect(leftX, railY - 5, w, 10);
+  ctx.fillStyle = '#475569';
+  ctx.fillRect(leftX, railY - 5, w, 2);
+  ctx.fillStyle = '#1e293b';
+  ctx.fillRect(leftX, railY + 3, w, 2);
+  // Nieten & Schienen-Streben alle 28 px
+  ctx.fillStyle = '#64748b';
+  for (let x = leftX + 12; x < rightX - 8; x += 28) {
+    ctx.fillRect(x, railY - 3, 2, 2);
+    ctx.fillRect(x, railY + 1, 2, 2);
+  }
+  ctx.restore();
+}
+
 /**
- * Zeichnet den kompletten Leviathan als geschlossene Moonlighter-Vollpose (Ruhe / Arm hoch / Arm ins Deck / Phase II / Phase III / Besiegt).
- * Rückgabe false = kein Sprite vorhanden → Renderer zeichnet den alten prozeduralen Körper.
+ * Zeichnet den Leviathan als dynamisches M11-Schienen-Kran-Rig (wie Kern-Wächter & Krall):
+ * feste Nordwand-Schiene + starrer Schlitten + atmender/neigender Torso + Spieler-verfolgender Kopf + 2 massive Pose-Set-Arme.
  */
 export function drawLeviathanBody(ctx: CanvasRenderingContext2D, scene: DungeonScene, e: Enemy): boolean {
   const L = e.levArena;
   const art = getHDArt();
-  const base = art.arenaLeviathanBody;
-  if (!L || !base) return false;
-  const dead = L.state === 'dead' || e.hp <= 0;
-  const t = scene.time;
-
-  // Aktive Arm-Pose prüfen (Ausholen = raise, Ins Deck gerammt = plunge; für rechten Arm horizontal spiegeln!)
-  let activeImg: HTMLCanvasElement | null = null;
-  let flipX = false;
-  let isActionPose = false;
-  if (!dead && e.levArms) {
-    const raising = e.levArms.find((a) => !a.dead && a.state === 'tracking');
-    const plunging = e.levArms.find((a) => !a.dead && (a.state === 'slamming' || a.state === 'grounded'));
-    if (plunging && art.arenaLeviathanPosePlunge) {
-      activeImg = art.arenaLeviathanPosePlunge;
-      flipX = plunging.side > 0;
-      isActionPose = true;
-    } else if (raising && art.arenaLeviathanPoseRaise) {
-      activeImg = art.arenaLeviathanPoseRaise;
-      flipX = raising.side > 0;
-      isActionPose = true;
-    }
+  const rigImgs = art.rigs.boss_leviathan;
+  const rigDef = RIGS.boss_leviathan;
+  if (!L) return false;
+  if (rigImgs && rigDef) {
+    const rb = scene.bounds;
+    drawCraneRail(ctx, rb.l + 24, rb.r - 24, e.y - 34);
+    const pose = getBossPose('boss_leviathan', e, scene.time, scene.playerX, scene.playerY);
+    drawRig(ctx, rigDef, rigImgs, e.x, e.y, pose, { flash: e.flashTimer > 0 });
+    return true;
   }
-
+  // Rückfall auf Vollposen-Sprite falls Rig noch nicht geladen
+  const base = art.arenaLeviathanBody;
+  if (!base) return false;
+  const dead = L.state === 'dead' || e.hp <= 0;
   const phaseImg = dead ? art.arenaLeviathanBodyDead : L.phase === 3 ? art.arenaLeviathanBodyP3 : L.phase === 2 ? art.arenaLeviathanBodyP2 : null;
-  const img = activeImg ?? phaseImg ?? base;
-
-  const attacking = !dead && L.state === 'move' && (L.move === 'beam' || L.move === 'pulse' || L.move === 'glow' || L.move === 'grab');
-  const breathY = dead ? 0 : Math.sin(t * (L.critical ? 7.5 : L.phase === 3 ? 5.0 : 2.4)) * (L.critical ? 2.0 : 1.2);
-  const vibX = attacking ? Math.sin(t * 48) * 1.4 : L.critical && !dead ? Math.sin(t * 36) * 0.8 : 0;
-  const recoilY = attacking ? Math.sin(t * 14) * 1.4 : 0;
-  const cx = Math.round(e.x + vibX);
-  const topY = Math.round(e.y + LENS_DY - BODY_LENS_Y + breathY + recoilY);
-
+  const img = phaseImg ?? base;
   ctx.save();
   if (e.flashTimer > 0) ctx.filter = 'brightness(1.9)';
-  else if (dead && !phaseImg) ctx.filter = 'brightness(0.55) saturate(0.6)';
-  ctx.translate(cx, topY);
-  if (flipX) ctx.scale(-1, 1);
-  ctx.drawImage(img, -BODY_LENS_X, 0, BODY_W, BODY_H);
-  ctx.filter = 'none';
-  // Wenn eine Phase-I-Action-Pose in Phase II/III gezeigt wird: warmes Reaktor-Glühen drüberlegen
-  if (isActionPose && !dead && L.phase >= 2) {
-    ctx.globalCompositeOperation = 'lighter';
-    const a = L.phase === 3 ? 0.2 + 0.1 * Math.sin(t * 9) : 0.14 + 0.06 * Math.sin(t * 6);
-    const g = ctx.createRadialGradient(0, BODY_LENS_Y, 8, 0, BODY_LENS_Y, 130);
-    g.addColorStop(0, `rgba(251, 113, 133, ${a + 0.2})`);
-    g.addColorStop(0.5, `rgba(251, 146, 60, ${a})`);
-    g.addColorStop(1, 'rgba(251, 146, 60, 0)');
-    ctx.fillStyle = g;
-    ctx.fillRect(-BODY_LENS_X, 0, BODY_W, BODY_H);
-  }
+  ctx.drawImage(img, Math.round(e.x - BODY_LENS_X), Math.round(e.y + LENS_DY - BODY_LENS_Y), BODY_W, BODY_H);
   ctx.restore();
   return true;
 }
 
-/** Nach dem Sieg (Boss entfernt): erloschener Körper bleibt Teil der Wand (Zustand P1-11 „besiegt“ bzw. abgedunkeltes Grundbild). */
+/** Nach dem Sieg (Boss entfernt): erloschener Schienen-Kran-Koloss hängt abgeschaltet an der Nordwand-Schiene. */
 export function drawLeviathanBodyStatic(ctx: CanvasRenderingContext2D, room: DungeonRoom): void {
   const art = getHDArt();
-  const base = art.arenaLeviathanBody;
   const def = ARENAS.boss_leviathan;
-  if (!base || !def || !room.bounds) return;
-  const img = art.arenaLeviathanBodyDead ?? base;
+  if (!def || !room.bounds) return;
   const t = room.arenaOriginT ?? room.bounds.t;
   const lx = room.bounds.l + def.bossAnchor.x;
-  const ly = t + def.bossAnchor.y + LENS_DY;
+  const ly = t + def.bossAnchor.y;
+  const rigImgs = art.rigs.boss_leviathan;
+  const rigDef = RIGS.boss_leviathan;
+  if (rigImgs && rigDef) {
+    drawCraneRail(ctx, room.bounds.l + 24, room.bounds.r - 24, ly - 34);
+    const deadPose = {
+      carriage: { dx: 0, dy: 0, rot: 0 },
+      torso: { dx: 0, dy: 4, rot: 0, variant: 3 },
+      head: { dx: 0, dy: 5, rot: 0.14, variant: 1 },
+      armL: { rot: -0.1, dy: 8, variant: 3 },
+      armR: { rot: 0.1, dy: 8, variant: 3 },
+    };
+    drawRig(ctx, rigDef, rigImgs, lx, ly, deadPose);
+    return;
+  }
+  const base = art.arenaLeviathanBody;
+  if (!base) return;
+  const img = art.arenaLeviathanBodyDead ?? base;
   ctx.save();
   if (!art.arenaLeviathanBodyDead) ctx.filter = 'brightness(0.55) saturate(0.6)';
-  ctx.drawImage(img, Math.round(lx - BODY_LENS_X), Math.round(ly - BODY_LENS_Y), BODY_W, BODY_H);
+  ctx.drawImage(img, Math.round(lx - BODY_LENS_X), Math.round(ly + LENS_DY - BODY_LENS_Y), BODY_W, BODY_H);
   ctx.restore();
 }
 
