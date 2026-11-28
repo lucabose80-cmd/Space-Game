@@ -9,6 +9,8 @@ export interface HDArtAssets {
   shopBg: HTMLImageElement | null;
   shopBgT2: HTMLImageElement | null;
   shopBgT3: HTMLImageElement | null;
+  backroomBgT1: HTMLImageElement | null;
+  backroomBgT3: HTMLImageElement | null;
   backroomBg: HTMLImageElement | null;
   hubBg: HTMLImageElement | null;
   hangarBg: HTMLImageElement | null;
@@ -238,6 +240,8 @@ const art: HDArtAssets = {
   shopBg: null,
   shopBgT2: null,
   shopBgT3: null,
+  backroomBgT1: null,
+  backroomBgT3: null,
   backroomBg: null,
   hubBg: null,
   hangarBg: null,
@@ -963,6 +967,8 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
   });
 
   art.marketTerraceBg = await loadImage('/art/market_terrace_bg.png');
+  art.backroomBgT1 = await loadImage('/art/backroom_bg_t1.png');
+  art.backroomBgT3 = await loadImage('/art/backroom_bg_t3.png');
   const worldKeys = Object.keys(WORLD_OPTIONAL_SPRITES) as WorldSpriteKey[];
   const worldImgs = await Promise.all(worldKeys.map((k) => loadImage(`/art/sprites/${WORLD_OPTIONAL_SPRITES[k]}.png`)));
   worldKeys.forEach((k, i) => {

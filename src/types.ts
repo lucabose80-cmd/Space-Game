@@ -163,6 +163,8 @@ export interface UpgradeLevels {
   stimpack: number; // 0..3
   bioRegen: number; // 0..3 (Dr. Lyra Med-Bay)
   shopTier: number; // 0..2
+  /** Kapitäns-Quartier-Ausbau: 0 = Notkoje (Drohnen-Dock & Jukebox gesperrt), 1 = Kajüte, 2 = Flaggschiff-Suite */
+  quartersTier: number; // 0..2
   shopAura: number; // 0..2
   shopScanner: number; // 0..2
   shopAssistant: number; // 0..2

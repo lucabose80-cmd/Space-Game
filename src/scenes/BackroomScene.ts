@@ -196,6 +196,11 @@ export class BackroomScene {
     return false;
   }
 
+  /** Quartier-Ausbaustufe 0..2 (Notkoje → Kajüte → Flaggschiff-Suite). */
+  private get qTier(): number {
+    return Math.max(0, Math.min(2, this.state.upgrades.quartersTier ?? 0));
+  }
+
   private updateInteraction(input: InputManager, moveY: number): void {
     this.activePrompt = null;
 
@@ -218,6 +223,18 @@ export class BackroomScene {
 
     // 2. Eingebaute Drohnen-Docking-Konsole (Companion Bots / Familiars!)
     if (Math.hypot(this.playerX - BOT_DOCK_POS.x, this.playerY - BOT_DOCK_POS.y) < 30) {
+      if (this.qTier < 1) {
+        this.activePrompt = {
+          label: '🔒 Drohnen-Dock noch nicht gebaut — Quartier-Ausbau Stufe II (Shop-Ausbau-Terminal im Laden)',
+          x: BOT_DOCK_POS.x,
+          y: BOT_DOCK_POS.y - 28,
+        };
+        if (input.interactPressed()) {
+          sound.playUiClick();
+          this.callbacks.onToast('Unter der Plane liegt nur eine stillgelegte Dock-Luke. Baue dein Quartier im Shop-Ausbau aus (Stufe II).', 'info');
+        }
+        return;
+      }
       const unlockedCount = Object.values(this.state.unlockedCompanions).filter(Boolean).length;
       this.activePrompt = {
         label: `[E] Drohnen-Dock (${unlockedCount}/4 Begleiter-Bots)`,
@@ -286,6 +303,18 @@ export class BackroomScene {
 
     // 4. Eingebaute Sternen-Jukebox (Retro-Synth Soundtrack!)
     if (Math.hypot(this.playerX - JUKEBOX_POS.x, this.playerY - JUKEBOX_POS.y) < 32) {
+      if (this.qTier < 1) {
+        this.activePrompt = {
+          label: '🔒 Jukebox noch nicht installiert — Quartier-Ausbau Stufe II (Shop-Ausbau-Terminal im Laden)',
+          x: JUKEBOX_POS.x,
+          y: JUKEBOX_POS.y - 28,
+        };
+        if (input.interactPressed()) {
+          sound.playUiClick();
+          this.callbacks.onToast('Das verschnürte Bündel ist noch verpackt. Baue dein Quartier im Shop-Ausbau aus (Stufe II).', 'info');
+        }
+        return;
+      }
       this.activePrompt = {
         label: '[E] Sternen-Jukebox (Musik wählen)',
         x: JUKEBOX_POS.x,
@@ -347,8 +376,10 @@ export class BackroomScene {
     const pulse = 0.5 + 0.5 * Math.sin(this.time * 3.8);
     const nightBoost = isNight ? 0.12 : 0;
 
-    if (art.backroomBg) {
-      ctx.drawImage(art.backroomBg, 0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+    const bg =
+      this.qTier >= 2 ? (art.backroomBgT3 ?? art.backroomBg) : this.qTier === 1 ? art.backroomBg : (art.backroomBgT1 ?? art.backroomBg);
+    if (bg) {
+      ctx.drawImage(bg, 0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
     } else {
       ctx.fillStyle = '#231b16';
       ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
@@ -374,12 +405,17 @@ export class BackroomScene {
     drawGlow(ctx, 108, 56, 36, '#fbbf24', 0.16 + nightBoost + pulse * 0.05);
     drawGlow(ctx, 404, 56, 36, '#fbbf24', 0.16 + nightBoost + pulse * 0.05);
     drawGlow(ctx, 86, 94, 30, isNight ? '#818cf8' : '#38e8d4', 0.14 + pulse * 0.06);
-    drawGlow(ctx, 164, 114, 30, '#38e8d4', 0.2 + pulse * 0.09);
-    drawGlow(ctx, 326, 108, 28, '#fbbf24', 0.16 + pulse * 0.08);
+    if (this.qTier >= 1) {
+      drawGlow(ctx, 164, 114, 30, '#38e8d4', 0.2 + pulse * 0.09);
+      drawGlow(ctx, 326, 108, 28, '#fbbf24', 0.16 + pulse * 0.08);
+    } else {
+      // gesperrtes Dock: nur das kleine rote LOCKED-Licht blinkt
+      drawGlow(ctx, 190, 112, 5, '#ef4444', 0.25 + pulse * 0.25);
+    }
     drawGlow(ctx, EXIT_DOOR_POS.x, 236, 26, '#fbbf24', 0.16 + pulse * 0.06);
 
     // Active equipped Companion Bot hovering gently inside the glowing cyan Drone Bay dome!
-    const activeBot = this.state.equippedCompanion;
+    const activeBot = this.qTier >= 1 ? this.state.equippedCompanion : null;
     if (activeBot) {
       const botSpr = art.companions[activeBot];
       const bob = Math.sin(this.time * 4.0) * 2.0;
@@ -391,7 +427,7 @@ export class BackroomScene {
     }
 
     // Radiant multi-sector victory auras over the built-in trophy altar!
-    if (this.state.sector1Cleared) {
+    if (this.state.sector1Cleared && this.qTier >= 1) {
       drawGlow(ctx, 240, 100, 32, '#fbbf24', 0.34 + pulse * 0.14);
       for (let i = 0; i < 4; i++) {
         const phase = (this.time * 0.65 + i * 0.25) % 1;
@@ -401,13 +437,13 @@ export class BackroomScene {
         ctx.fillRect(sx, sy, 1.8, 1.8);
       }
     }
-    if (this.state.sector2Cleared) {
+    if (this.state.sector2Cleared && this.qTier >= 1) {
       drawGlow(ctx, 240, 96, 36, '#c084fc', 0.28 + pulse * 0.12);
     }
-    if (this.state.sector3Cleared) {
+    if (this.state.sector3Cleared && this.qTier >= 1) {
       drawGlow(ctx, 240, 94, 40, '#f97316', 0.28 + pulse * 0.12);
     }
-    if (this.state.sector4Cleared || this.state.omegaCleared) {
+    if ((this.state.sector4Cleared || this.state.omegaCleared) && this.qTier >= 1) {
       drawGlow(ctx, 240, 90, 44, this.state.omegaCleared ? '#fde047' : '#38e8d4', 0.36 + pulse * 0.16);
       for (let i = 0; i < 5; i++) {
         const phase = (this.time * 0.85 + i * 0.2) % 1;
@@ -419,7 +455,7 @@ export class BackroomScene {
     }
 
     // Floating musical notes rising softly from the built-in Retro-Jukebox when music is on!
-    if (!sound.isMuted() && !sound.isMusicMuted()) {
+    if (this.qTier >= 1 && !sound.isMuted() && !sound.isMusicMuted()) {
       ctx.save();
       ctx.font = 'bold 6px Silkscreen, monospace';
       ctx.textAlign = 'center';
@@ -496,9 +532,9 @@ export class BackroomScene {
 
     const badges = [
       { text: 'RUHEKOJE', x: 86, y: 66, color: '#38e8d4' },
-      { text: 'DROHNEN', x: 164, y: 80, color: '#38bdf8' },
+      { text: this.qTier >= 1 ? 'DROHNEN' : '🔒 DROHNEN', x: 164, y: 80, color: this.qTier >= 1 ? '#38bdf8' : '#94a3b8' },
       { text: trophyText, x: 240, y: 74, color: trophyCol },
-      { text: 'JUKEBOX', x: 326, y: 74, color: '#e879f9' },
+      { text: this.qTier >= 1 ? 'JUKEBOX' : '🔒 JUKEBOX', x: 326, y: 74, color: this.qTier >= 1 ? '#e879f9' : '#94a3b8' },
       { text: 'STIL & LOGBUCH', x: 84, y: 150, color: '#fb923c' },
       { text: 'LAGERTRUHE', x: 400, y: 150, color: '#fbbf24' },
       { text: '▼ ASTRO-BARTER', x: EXIT_DOOR_POS.x, y: 252, color: '#fde047' },

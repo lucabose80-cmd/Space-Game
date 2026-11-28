@@ -15,7 +15,8 @@
 - [x] Truhen: futuristische Panzer-Kiste (offen/zu), Glut solange Beute drin ist; ⬜ Öffnen-Animation (Deckel springt auf)
 - [x] Offset-Audit erledigt (Hub-Props, Laden, Truhen, Pods, Kapsel, Marktterrasse). Rest: Quartier & Hangar-Schiffe sind in Hintergrund/Sprites verankert (geprüft, ok). Alt: Pods/Drops/Kristall-Spire/Backroom/Markt-Terrasse/Hangar-Schiffe (nächster Schritt: weitere `drawPixelShadow` neben `drawImage` auf `drawContactShadow` umstellen)
 - [x] Marktterrasse komplett neu: `public/art/market_terrace_bg.png` + Sprites `market_bar/guild/bank.png` (vorher nur Rechtecke im Nichts); Deck-Grenzen an Geländer angepasst (`DECK_BOTTOM 186`), HUD-Hinweis für `market_terrace`; Hangar-Tür neu (Statuslicht, Schild).
-- [ ] P3 … P6 (siehe oben)
+- [x] **P3 Quartier in Stufen** (`upgrades.quartersTier` 0..2, Track „Quartier-Ausbau“ im Shop-Ausbau-Terminal: Stufe II 420 Cr + 3 scrap_coil + 1 alien_prism, Stufe III 1100 Cr + aegis_plate + 3 reactor_shard): Stufe 0 = Notkoje (Drohnen-Dock & Jukebox abgedeckt/gesperrt, nackter Trophäen-Sockel, `backroom_bg_t1.png`), Stufe 1 = bisheriges Quartier (`backroom_bg.png`), Stufe 2 = Flaggschiff-Suite (`backroom_bg_t3.png`). Alt-Saves ohne Feld: Begleiter/Sektor 1/Tag > 3 → Stufe 1. Test `world_p3_quarters`. ⬜ Trophäen-Vitrinen/Aura-Anpassung in Stufe 3, Quartier-Cutscene (aktuell generische Upgrade-Cutscene `shop`), Bett-/Matratzen-Visual je Stufe nur im Hintergrund
+- [ ] P4 … P6 (siehe oben)
 
 ## Praxis-Learnings
 1. Portale sind **in die Hintergrund-PNGs eingebacken** (`hub_bg`, `hangar_bg`, `shop_bg*`) → Entfernen = Hintergrund neu erzeugen/übermalen (`npm run art:gen`), nicht nur Code.
@@ -29,3 +30,4 @@
 9. Bodenverankerung = (a) frontale Kamera, (b) Sprite-Unterkante exakt auf Fußpunkt, (c) `drawContactShadow` (3 Lagen, breiter als die Standfläche, Alpha ~0.7), (d) Leuchten am Boden als flache Ellipse `drawFloorGlow` statt Kugel-`drawGlow`.
 10. Vitrine: Ware schwebt IM Glaswürfel; Glas-Overlay (obere 56 % des Sprites, Alpha 0.28) wird über die Ware gelegt.
 11. Hintergrund-Rezept für neue Szenen: Szene als 16:9-Bild mit Rahmen wie `hub_bg` erzeugen (Prompt: Layout in %-Angaben, „deck EMPTY where counters go“), Theken/Props separat als frontale Sprites auf Weiß (`scripts/white-to-alpha.py`-Logik), im Code zweigeteilt zeichnen (oberer Teil → NPC → unterer Teil), damit der NPC hinter der Theke steht. `gen-sheet.py` kennt kein Seitenverhältnis 2:1 (→ 3:2 nehmen).
+12. Ausbaustufen eines Raums = je Stufe ein eigenes 16:9-Hintergrundbild aus dem Original per art:gen („keep layout pixel-identical, convert to <Variante>“) — Interaktionspunkte bleiben gültig. Gesperrtes Feature = sichtbar abgedeckt (Plane/LOCKED-Licht) + Prompt „🔒 … Stufe II“, nie unsichtbar.

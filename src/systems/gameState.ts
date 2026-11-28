@@ -230,6 +230,7 @@ export class GameState {
     stimpack: 0,
     bioRegen: 0,
     shopTier: 0,
+    quartersTier: 0,
     shopAura: 0,
     shopScanner: 0,
     shopAssistant: 0,
@@ -327,6 +328,7 @@ export class GameState {
       stimpack: 0,
       bioRegen: 0,
       shopTier: 0,
+      quartersTier: 0,
       shopAura: 0,
       shopScanner: 0,
       shopAssistant: 0,
@@ -1819,6 +1821,10 @@ export class GameState {
         stimpack: parsed.upgrades?.stimpack ?? 0,
         bioRegen: parsed.upgrades?.bioRegen ?? 0,
         shopTier: parsed.upgrades?.shopTier ?? 0,
+        // Alt-Saves ohne Feld: wer schon Begleiter/Sektor 1 hat, behält Drohnen-Dock & Jukebox (Stufe 1)
+        quartersTier:
+          parsed.upgrades?.quartersTier ??
+          (Object.values(parsed.unlockedCompanions ?? {}).some(Boolean) || parsed.sector1Cleared || (parsed.day ?? 1) > 3 ? 1 : 0),
         shopAura: parsed.upgrades?.shopAura ?? 0,
         shopScanner: parsed.upgrades?.shopScanner ?? 0,
         shopAssistant: parsed.upgrades?.shopAssistant ?? 0,

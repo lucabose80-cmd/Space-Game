@@ -1825,6 +1825,13 @@ export class UIManager {
                 : '★ Stufe III erreicht! 8 Podeste & 3 Lagertruhen (48 Slots) im Kapitäns-Quartier!',
               'good',
             );
+          } else if (key === 'quartersTier') {
+            this.toast(
+              nextLevel === 1
+                ? '★ Quartier Stufe II! Drohnen-Dock & Sternen-Jukebox sind installiert — schau in deiner Kajüte vorbei!'
+                : '★ Quartier Stufe III! Die Flaggschiff-Suite mit Trophäen-Vitrinen steht bereit!',
+              'good',
+            );
           } else {
             this.toast(
               isShopTerm
@@ -1837,13 +1844,17 @@ export class UIManager {
           }
           this.renderHud();
           if (this.hooks.onUpgradeCutscene) {
-            const isMajor = key === 'shopTier';
+            const isMajor = key === 'shopTier' || key === 'quartersTier';
             this.closeModal();
             this.hooks.onUpgradeCutscene(
               {
                 kind: isMajor ? 'shop' : isForge ? 'forge_step' : 'tech_step',
                 title: (track?.title ?? 'UPGRADE').toUpperCase(),
-                subtitle: isMajor
+                subtitle: key === 'quartersTier'
+                  ? nextLevel === 1
+                    ? 'Stufe II · Drohnen-Dock & Jukebox installiert'
+                    : 'Stufe III · Flaggschiff-Suite eingerichtet'
+                  : isMajor
                   ? nextLevel === 1
                     ? 'Stufe II · 6 Podeste & Sale-Box freigeschaltet'
                     : 'Stufe III · 8 Podeste & 3 Lagertruhen freigeschaltet'

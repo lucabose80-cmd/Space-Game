@@ -216,7 +216,7 @@ const TRIAL_ALL_WEAPONS = ['blade', 'spear', 'fists', 'discus', 'blaster', 'hamm
 
 /** Durchschnittliche Schadens-pro-Sekunde-Schätzung aller Waffen auf einer Stufe (Basis der Boss-Kalibrierung). */
 export function averageWeaponDps(level: number): number {
-  const zero = { blade: 0, spear: 0, fists: 0, discus: 0, blaster: 0, hammer: 0, suit: 0, stimpack: 0, bioRegen: 0, shopTier: 0, shopAura: 0, shopScanner: 0, shopAssistant: 0, modCrit: 0, modThruster: 0, modLuck: 0 };
+  const zero = { blade: 0, spear: 0, fists: 0, discus: 0, blaster: 0, hammer: 0, suit: 0, stimpack: 0, bioRegen: 0, shopTier: 0, quartersTier: 0, shopAura: 0, shopScanner: 0, shopAssistant: 0, modCrit: 0, modThruster: 0, modLuck: 0 };
   let sum = 0;
   for (const w of TRIAL_ALL_WEAPONS) {
     const stats = getPlayerCombatStats({ ...zero, [w]: level });

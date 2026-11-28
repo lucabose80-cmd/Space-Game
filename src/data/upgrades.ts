@@ -962,6 +962,39 @@ export const UPGRADE_TRACKS: UpgradeTrack[] = [
     ],
   },
   {
+    key: 'quartersTier',
+    shop: 'shop_terminal',
+    title: 'Quartier-Ausbau (Kapitäns-Kajüte)',
+    subtitle: 'Vom Notlager zur Flaggschiff-Suite: Drohnen-Dock, Jukebox, Trophäen-Vitrinen',
+    iconUrl: '/art/sprites/prop_sleep_pod.png',
+    tiers: [
+      {
+        level: 1,
+        name: 'Stufe II · Kapitäns-Kajüte',
+        description:
+          'Baut dein Quartier aus: Drohnen-Dock (Begleiter-Bots) und Sternen-Jukebox werden installiert, die Koje bekommt eine echte Matratze, ein Teppich liegt im Raum.',
+        creditCost: 420,
+        materials: [
+          { itemId: 'scrap_coil', qty: 3 },
+          { itemId: 'alien_prism', qty: 1 },
+        ],
+        statLabel: 'Drohnen-Dock · Jukebox · Teppich',
+      },
+      {
+        level: 2,
+        name: 'Stufe III · Flaggschiff-Suite',
+        description:
+          'Goldene Beschläge, Baldachin-Bett, Trophäen-Vitrinen und eine Panzerglas-Waffenkammer: die Suite eines Sektor-Bezwingers.',
+        creditCost: 1100,
+        materials: [
+          { itemId: 'aegis_plate', qty: 1 },
+          { itemId: 'reactor_shard', qty: 3 },
+        ],
+        statLabel: 'Suite · Trophäen-Vitrinen · Waffenkammer',
+      },
+    ],
+  },
+  {
     key: 'shopAura',
     shop: 'shop_terminal',
     title: 'Shop-Atmosphäre & Deko',
@@ -1128,7 +1161,7 @@ export function getPlayerCombatStats(upgrades: UpgradeLevels) {
 // Credit-Kosten bleiben (Geld ist nicht knapp). Die Schadens-Angaben der Labels folgen den abgeflachten Tabellen.
 const DEFAULT_LEVELS: UpgradeLevels = {
   blade: 0, spear: 0, fists: 0, discus: 0, blaster: 0, hammer: 0, suit: 0, stimpack: 0, bioRegen: 0,
-  shopTier: 0, shopAura: 0, shopScanner: 0, shopAssistant: 0, modCrit: 0, modThruster: 0, modLuck: 0,
+  shopTier: 0, quartersTier: 0, shopAura: 0, shopScanner: 0, shopAssistant: 0, modCrit: 0, modThruster: 0, modLuck: 0,
 };
 
 (() => {
