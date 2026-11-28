@@ -127,6 +127,21 @@
 | Alle 21 normalen Gegner (Tab Gegner) | „⚔ Angriff jetzt“ (löst den nächsten Angriff sofort aus) + Stufen 100/66/33/10 %, 💥 Treffer, ☠ Tod | ⬜ | ⬜ |
 > Hinweis: Gegner-Angriff „jetzt“ setzt nur den KI-Timer auf 0 — der Gegner greift an, sobald er in Reichweite ist (steht nahe der Spielfigur). Beschädigungsstufen gibt es nur bei Bossen (Regel 11), Gegner haben Treffer-Zucken + Tod.
 
+## L. Hafenverkehr · Rolltor · Käfig-Abholung (neu — Test `t12_cutscene_traffic`, Doku `handoff/cutscenes.md` §5)
+> Prüfen am **PC** und am **Handy** (`915×412`, `844×390` quer, `390×844` hoch). Alles testbar in `?cutscenelab` (Buttons „Laden öffnen/Ladenschluss“, Befreiung je Begleiter, Flüge) bzw. Logbuch → 🎬 Kino-Chronik.
+| # | Prüfpunkt | PC | Handy |
+| :-- | :-- | :-: | :-: |
+| L1 | **Startscreen:** kleine Schiffe fliegen in die Hangar-Schleuse, kommen heraus, ziehen vorbei — wirken zum Key-Art passend (Größe/Stil, nicht „drübergelegt“), stören Menü/Slots nicht | ⬜ | ⬜ |
+| L2 | **Intro Panel 2 „Port Solaris“:** Verkehr sichtbar, Korvette links unten fliegt ungestört ein (keine Überschneidung) | ⬜ | ⬜ |
+| L3 | **„Weiterspielen“-Anflug** (alle 3 Ausbau-Stufen des Spielstands): Verkehr ok, Helden-Schiff kollidiert nicht | ⬜ | ⬜ |
+| L4 | **Rückflug Extraktion & Not-Rückflug (Med-Evac):** Verkehr nur wo Platz ist (Rettung: nur obere Bahnen), Schiff/Drohne ungestört | ⬜ | ⬜ |
+| L5 | **Laden öffnen [O]:** Rolltor fährt hoch, Neon „OFFEN“, danach läuft die Schicht normal; überspringbar; „Kurze Cutscenes“ verkürzt | ⬜ | ⬜ |
+| L6 | **Ladenschluss:** Rolltor fährt herunter, „GESCHLOSSEN“ + Schicht-Bilanz (Relikte/Cr, „Morgen bricht an“), danach öffnet sich die Schicht-Zusammenfassung | ⬜ | ⬜ |
+| L7 | **Käfig-Raum (Mina S1, Pip S2, Ping S3, Mitternacht S4):** nach dem Befreiungs-Dialog holt die Rettungsdrohne (Mina: dein Schiff) den Begleiter im Strahl direkt im Raum ab; danach geht der Run normal weiter | ⬜ | ⬜ |
+| L8 | **Sektor-Szene alt (Chronik/Lab „… wird abgeholt“):** Dialog im Wrack → Abholung → Heimflug zur Schleuse, Hafenverkehr, Skip per Klick/ESC | ⬜ | ⬜ |
+| L9 | Hub-Einzug von Mina/Pip/Ping/Mitternacht läuft danach wie gewohnt (Cutscene E3) | ⬜ | ⬜ |
+| L10 | Text/Dialogbox in den Rettungs-Szenen auf dem Handy lesbar, nichts abgeschnitten | — | ⬜ |
+
 ## H. Noch NICHT zur Abnahme (erst bauen / gesperrt)
 - **NG+-Aura, ∞ Spirale, Echo-Pilot:** Sprites da, Code wartet auf Startsignal; Echo-Serie nach Pilot-Abnahme.
 - **P4 weitere Boss-Rigs** (STOP-GATE bis A1–A7 ✅) · **nächste Arena Prisma-Archon** (bis B ✅).
