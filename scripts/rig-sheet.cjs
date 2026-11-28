@@ -37,14 +37,14 @@ const CASES = {
       const { drawRig } = await import('/src/engine/rig.ts');
       const { RIGS } = await import('/src/data/rigs.ts');
       const { getBossPose } = await import('/src/dungeon/anim/bossAnims.ts');
-      const art = getHDArt(); const Z = 4, cw = 120, ch = 110, cols = 4;
+      const art = getHDArt(); const LEV = rigId === 'boss_leviathan'; const Z = LEV ? 3 : 4, cw = LEV ? 300 : 120, ch = LEV ? 215 : 110, cols = LEV ? 3 : 4;
       const cv = document.createElement('canvas'); cv.width = cw * Z * cols; cv.height = ch * Z * Math.ceil(cases.length / cols);
       const ctx = cv.getContext('2d'); ctx.imageSmoothingEnabled = false; ctx.fillStyle = '#334'; ctx.fillRect(0, 0, cv.width, cv.height);
       cases.forEach(([name, extra, lookDx, lookDy], i) => {
         const e = Object.assign({ id: 1, vx: 0, vy: 0, flashTimer: 0, kind: 'x', bossPhase2: false, hp: 100, maxHp: 100 }, extra);
         ctx.save(); ctx.translate((i % cols) * cw * Z, Math.floor(i / cols) * ch * Z); ctx.scale(Z, Z);
         ctx.fillStyle = '#2a2a3a'; ctx.fillRect(0, 0, cw, ch);
-        drawRig(ctx, RIGS[rigId], art.rigs[rigId], cw / 2, ch - 25, getBossPose(rigId, e, name === 'blink' ? 0 : 0.3, lookDx ?? 0, lookDy ?? 0), {});
+        drawRig(ctx, RIGS[rigId], art.rigs[rigId], cw / 2, LEV ? ch - 75 : ch - 25, getBossPose(rigId, e, name === 'blink' ? 0 : 0.3, lookDx ?? 0, lookDy ?? 0), {});
         ctx.fillStyle = '#fff'; ctx.font = '5px monospace'; ctx.fillText(name, 3, 7); ctx.restore();
       });
       return cv.toDataURL('image/png');

@@ -5,6 +5,8 @@
 // Hinweis: bewusst außerhalb der Spielwelt — bleibt ein Dev-Werkzeug und wird vor einem Release wieder entfernt.
 import { getHDArt } from '../assets/artLoader';
 import { ARENAS, attachArenas } from '../data/arenas';
+import { labDestroyArm, startMoveForTest, type LevArenaMove } from '../dungeon/bosses/leviathanArena';
+import { ENDBOSS_ARENA } from '../data/balance';
 import { RIG_BY_KIND } from '../data/rigs';
 import type { Enemy } from '../dungeon/dungeonTypes';
 import type { DungeonScene } from '../scenes/DungeonScene';
@@ -21,7 +23,10 @@ interface LabBoss {
   floor: 1 | 2 | 3;
 }
 
-export const LAB_BOSSES: LabBoss[] = [
+export /** Leviathan-Labor: Angriffe (Reihenfolge der Wiedergabe) und Schadensstufen (HP-Anteil → Phase/Rumpf-Variante) */
+const LEV_MOVES: Array<[LevArenaMove, string]> = [['hammer', 'Hammer'], ['whip', 'Welle'], ['quake', 'Doppelschlag'], ['steam', 'Dampf'], ['beam', 'Strahl'], ['debris', 'Trümmer'], ['grab', 'Griff'], ['pulse', 'Puls'], ['glow', 'Glut']];
+const LEV_STAGES: Array<[number, string]> = [[1, 'P1 100'], [0.85, 'P1 85'], [0.7, 'P1 70'], [0.6, 'P2 60'], [0.48, 'P2 48'], [0.36, 'P2 36'], [0.25, 'P3 25'], [0.12, 'P3 12']];
+const LAB_BOSSES: LabBoss[] = [
   { kind: 'boss_breacher', name: 'Krall', sector: 1, floor: 1 },
   { kind: 'boss', name: 'Kern-Wächter', sector: 1, floor: 2 },
   { kind: 'boss_leviathan', name: 'Leviathan', sector: 1, floor: 3 },
@@ -84,6 +89,9 @@ export class BossLab {
   private loaded: { sector: SectorId; floor: 1 | 2 | 3 } | null = null;
   private tab: 'bosse' | 'gegner' | 'mehr' = 'bosse';
   private timeScale = 1;
+  /** Leviathan-Labor: Zug-Wiedergabe */
+  private levMoveIdx = 0;
+  private levAuto = false;
   private paused = false;
   private bossImmortal = true;
   private playerImmortal = true;
@@ -130,6 +138,11 @@ export class BossLab {
       for (const e of this.dng.enemies) {
         if (this.dng.isBossKind(e.kind) && e.hp < e.maxHp * 0.05) e.hp = e.maxHp * 0.05;
       }
+    }
+    // Leviathan-Labor: Auto-Wiedergabe — sobald der Boss ruht, kommt der nächste Zug der Liste
+    if (this.levAuto) {
+      const be = this.bossEntity();
+      if (be?.levArena && be.levArena.state === 'idle') this.levPlayNext();
     }
     this.infoTimer -= dt;
     if (this.infoTimer <= 0) {
@@ -256,6 +269,45 @@ export class BossLab {
     else this.refreshButtons();
   }
 
+  // ---------- Leviathan-Labor ----------
+  private levPlay(move: LevArenaMove): void {
+    const e = this.bossEntity();
+    const L = e?.levArena;
+    if (!e || !L) return;
+    if (L.state === 'intro' || L.state === 'transition' || L.state === 'dead') {
+      L.state = 'idle';
+      this.dng.camera.cancelFocus();
+    }
+    this.dng.bossFx.clear();
+    for (const a of e.levArms ?? []) if (!a.dead) a.state = 'returning';
+    startMoveForTest(this.dng, e, move);
+  }
+
+  private levPlayNext(): void {
+    const m = LEV_MOVES[this.levMoveIdx % LEV_MOVES.length];
+    this.levMoveIdx++;
+    this.levPlay(m[0]);
+  }
+
+  /** Boss auf eine Schadensstufe setzen (HP-Anteil). Niedrigere Phase als aktuell → Arena neu laden (Phasen gehen nur vorwärts). */
+  private levStage(frac: number): void {
+    let e = this.bossEntity();
+    if (!e?.levArena) return;
+    const target = frac <= ENDBOSS_ARENA.leviathan.phase3At ? 3 : frac <= ENDBOSS_ARENA.leviathan.phase2At ? 2 : 1;
+    if (e.levArena.phase > target || e.levArena.state === 'dead') {
+      this.selectArena('boss_leviathan');
+      e = this.bossEntity();
+      if (!e?.levArena) return;
+      this.dng.camera.cancelFocus();
+      this.dng.arenaBanner = null;
+    }
+    const L = e.levArena;
+    if (L.state === 'intro') L.state = 'idle';
+    L.timer = 0.4;
+    e.hp = Math.max(1, Math.round(e.maxHp * frac));
+    this.dng.invulnTimer = 5;
+  }
+
   private bossEntity(): Enemy | undefined {
     return this.dng.enemies.find((e) => this.dng.isBossKind(e.kind));
   }
@@ -304,6 +356,7 @@ export class BossLab {
     head.appendChild(toggle);
     // immer sichtbar (auch eingeklappt): die Knöpfe, die man beim Zusehen ständig braucht
     head.appendChild(this.btn('⏸', () => { this.paused = !this.paused; this.refreshButtons(); }, 'pause'));
+    head.appendChild(this.btn('⏭', () => this.levPlayNext(), 'lev:next-head'));
     head.appendChild(this.btn('PII', () => { const e = this.bossEntity(); if (e) e.hp = Math.min(e.hp, e.maxHp * 0.45); }, 'phase2'));
     head.appendChild(this.btn('↻', () => (this.selectedArena ? this.selectArena(this.selectedArena) : this.selected ? this.select(this.selected) : this.selectedEnemy && this.spawnEnemy(this.selectedEnemy)), 'respawn'));
     head.appendChild(this.btn('✕', () => (window.location.href = window.location.pathname)));
@@ -395,6 +448,15 @@ export class BossLab {
       const lb = LAB_BOSSES.find((x) => x.kind === kind);
       ga.appendChild(this.btn(`🏟 ${lb?.name ?? kind}`, () => this.selectArena(kind), `arena:${kind}`));
     }
+    // Leviathan-Labor: alle Angriffe nacheinander abspielen & alle Schadensstufen/Phasen anspringen
+    const gl = this.section(pb, 'LEVIATHAN · ANGRIFFE');
+    gl.appendChild(this.btn('⏭ Nächster', () => this.levPlayNext(), 'lev:next'));
+    gl.appendChild(this.btn('▶▶ Auto', () => { this.levAuto = !this.levAuto; this.refreshButtons(); }, 'lev:auto'));
+    for (const [m, label] of LEV_MOVES) gl.appendChild(this.btn(label, () => this.levPlay(m), `lev:${m}`));
+    const gs = this.section(pb, 'LEVIATHAN · PHASEN & SCHÄDEN');
+    for (const [frac, label] of LEV_STAGES) gs.appendChild(this.btn(label, () => this.levStage(frac), `levs:${frac}`));
+    gs.appendChild(this.btn('Arm L ab', () => { const e = this.bossEntity(); if (e?.levArena) labDestroyArm(this.dng, e, 0); }, 'lev:armL'));
+    gs.appendChild(this.btn('Arm R ab', () => { const e = this.bossEntity(); if (e?.levArena) labDestroyArm(this.dng, e, 1); }, 'lev:armR'));
     for (const sec of [1, 2, 3, 4, 5] as SectorId[]) {
       const g = this.section(pb, sec === 5 ? 'Ω OMEGA' : `SEKTOR ${sec}`);
       for (const b of LAB_BOSSES.filter((x) => x.sector === sec)) {
@@ -419,6 +481,7 @@ export class BossLab {
   private refreshButtons(): void {
     const set = (id: string, on: boolean) => this.panel.querySelector(`[data-lab="${id}"]`)?.classList.toggle('on', on);
     set('pause', this.paused);
+    set('lev:auto', this.levAuto);
     this.panel.querySelectorAll('[data-pane]').forEach((el) => el.classList.toggle('show', (el as HTMLElement).dataset.pane === this.tab));
     for (const t of ['bosse', 'gegner', 'mehr']) this.panel.querySelector(`[data-lab="tab:${t}"]`)?.classList.toggle('sel', this.tab === t);
     set('biom:auto', this.biom === null);

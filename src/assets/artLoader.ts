@@ -101,6 +101,12 @@ export interface HDArtAssets {
   arenaLeviathanHammerLaser: HTMLCanvasElement | null;
   arenaLeviathanStump: HTMLCanvasElement | null;
   arenaLeviathanBeam: HTMLCanvasElement | null;
+  arenaLeviathanChunk1: HTMLCanvasElement | null;
+  arenaLeviathanChunk2: HTMLCanvasElement | null;
+  arenaLeviathanChunk3: HTMLCanvasElement | null;
+  arenaLeviathanChunk4: HTMLCanvasElement | null;
+  arenaLeviathanChunk5: HTMLCanvasElement | null;
+  arenaLeviathanChunk6: HTMLCanvasElement | null;
   arenaLeviathanFxBeamHead: HTMLCanvasElement | null;
   arenaLeviathanFxBeamBody: HTMLCanvasElement | null;
   arenaLeviathanFxBeamImpact: HTMLCanvasElement | null;
@@ -335,6 +341,12 @@ const art: HDArtAssets = {
   arenaLeviathanHammerLaser: null,
   arenaLeviathanStump: null,
   arenaLeviathanBeam: null,
+  arenaLeviathanChunk1: null,
+  arenaLeviathanChunk2: null,
+  arenaLeviathanChunk3: null,
+  arenaLeviathanChunk4: null,
+  arenaLeviathanChunk5: null,
+  arenaLeviathanChunk6: null,
   arenaLeviathanFxBeamHead: null,
   arenaLeviathanFxBeamBody: null,
   arenaLeviathanFxBeamImpact: null,
@@ -550,6 +562,12 @@ export const M12_OPTIONAL_SPRITES = {
   arenaLeviathanHammerLaser: 'arena_leviathan_hammer_laser',
   arenaLeviathanStump: 'arena_leviathan_stump',
   arenaLeviathanBeam: 'arena_leviathan_beam',
+  arenaLeviathanChunk1: 'arena_leviathan_chunk_1',
+  arenaLeviathanChunk2: 'arena_leviathan_chunk_2',
+  arenaLeviathanChunk3: 'arena_leviathan_chunk_3',
+  arenaLeviathanChunk4: 'arena_leviathan_chunk_4',
+  arenaLeviathanChunk5: 'arena_leviathan_chunk_5',
+  arenaLeviathanChunk6: 'arena_leviathan_chunk_6',
   arenaLeviathanFxBeamHead: 'arena_leviathan_fx_beam_head',
   arenaLeviathanFxBeamBody: 'arena_leviathan_fx_beam_body',
   arenaLeviathanFxBeamImpact: 'arena_leviathan_fx_beam_impact',
