@@ -288,3 +288,10 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 ## Archiv — Bereits erledigte M11-Sheets (nicht neu generieren)
 - **Kern-Wächter (12/12 komplett):** `core_warden_parts.png`, `core_warden_arms_R.png`, `core_warden_arms_L.png`, `core_warden_heads.png`, `core_warden_torsos.png`, `core_warden_torsos2.png`, `core_warden_fists.png`, `core_warden_arms_R2.png`, `core_warden_arms_L2.png`, `core_warden_heads2.png`, `core_warden_arms_R3.png` *(S6)*, `core_warden_arms_L3.png` *(S6)*
 - **Krall (7/7 komplett):** `krall_parts.png`, `krall_arms_R.png`, `krall_arms_L.png`, `krall_torsos.png`, `krall_legs_R.png`, `krall_legs_L.png`, `krall_effects.png`
+
+## Welt-Überarbeitung (2026-11-28, Chat „Story & Maps Überarbeitung“, `handoff/world_overhaul.md`)
+- [x] **W-01** `public/art/hub_bg.png` ersetzt — Portal → Airlock-Tür, Kompass → bündiges Boden-Medaillon (Original: `art_source/_raw/hub_bg_*_OLD.png`)
+- [x] **W-02** `hangar_bg.png` ersetzt — 2 Portale → 1 Airlock-Tür (Hangar-Tür sitzt etwas „im Boden“, ggf. neu)
+- [x] **W-03** `shop_bg.png`, `shop_bg_t2.png`, `shop_bg_t3.png` ersetzt — Portal → Airlock-Tür
+- [x] **W-04** `vitrine_t1.png`, `vitrine_t2.png`, `vitrine_t3.png` (64×64) — Holo-Vitrinen je Laden-Stufe (optional, Fallback `pedestal.png`)
+- [x] **W-05** `chest_closed.png`, `chest_open.png` (64×64) ersetzt — futuristische Panzer-Kiste (Originale `art_source/_raw/chest_*_OLD.png`)

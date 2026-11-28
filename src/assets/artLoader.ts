@@ -75,6 +75,9 @@ export interface HDArtAssets {
   propNyxFreeLantern: HTMLCanvasElement | null;
   propVexBeacon: HTMLCanvasElement | null;
   propVexClassboard: HTMLCanvasElement | null;
+  vitrineT1: HTMLCanvasElement | null;
+  vitrineT2: HTMLCanvasElement | null;
+  vitrineT3: HTMLCanvasElement | null;
   propTrophyLeviathan: HTMLCanvasElement | null;
   /** M12 Phase C: Arena-Boden & Boss-Wand (optional, Fallback arenaFloor.ts) */
   arenaLeviathanBg: HTMLCanvasElement | null;
@@ -316,6 +319,9 @@ const art: HDArtAssets = {
   propNyxFreeLantern: null,
   propVexBeacon: null,
   propVexClassboard: null,
+  vitrineT1: null,
+  vitrineT2: null,
+  vitrineT3: null,
   propTrophyLeviathan: null,
   arenaLeviathanBg: null,
   arenaLeviathanWall: null,
@@ -523,6 +529,9 @@ export const M10_OPTIONAL_SPRITES = {
   propNyxFreeLantern: 'prop_nyx_free_lantern',
   propVexBeacon: 'prop_vex_beacon',
   propVexClassboard: 'prop_vex_classboard',
+  vitrineT1: 'vitrine_t1',
+  vitrineT2: 'vitrine_t2',
+  vitrineT3: 'vitrine_t3',
   npcPilgrim: 'npc_pilgrim',
   npcFoundryWorker: 'npc_foundry_worker',
   npcElderScholar: 'npc_elder_scholar',

@@ -10,10 +10,16 @@
 ## Checkliste
 - [x] P1a Kontaktschatten: `drawContactShadow` (`pixelArt.ts`) misst die sichtbare Unterkante/Standbreite; angewandt auf Kapitäns-Tafel (Hub), Truhe & Pods (Dungeon). ⬜ noch offen: übrige Props/Drops/Kristall-Spire, Hangar-Schiffe prüfen, Nachtschicht-Look
 - [x] P1b Portale → Airlock-Türen: `hub_bg`, `hangar_bg` (2 Portale → 1 Tür), `shop_bg`/`_t2`/`_t3` neu per art:gen; Originale in `art_source/_raw/*_portal_OLD.png`. ⬜ Hangar-Tür sitzt etwas „im Boden“ → ggf. neu in die Wand setzen; Hub-Beschriftung „Raumhafen →“ prüfen
-- [ ] P2 … P6 (siehe oben)
+- [x] P1c Kompass-Hologramm → bündiges Boden-Medaillon (`hub_bg`); `drawSpriteFoot` (`hubEvolution.ts`) setzt die sichtbare Unterkante exakt auf den Fußpunkt + Kontaktschatten (`spriteFootBottom`); SaleBox, gelandete Kapsel ebenfalls
+- [x] P2 Laden: Vitrinen je Stufe (`vitrine_t1..3`, `renderPedestal`), Intro-Look; ⬜ Sternenlampe/Schlüssel aus Intro-Panel als Deko, `shop_bg_t2` prüfen
+- [x] Truhen: futuristische Panzer-Kiste (offen/zu), Glut solange Beute drin ist; ⬜ Öffnen-Animation (Deckel springt auf)
+- [ ] ⬜ Offset-Audit: Pods/Drops/Kristall-Spire/Backroom/Markt-Terrasse/Hangar-Schiffe (nächster Schritt: weitere `drawPixelShadow` neben `drawImage` auf `drawContactShadow` umstellen)
+- [ ] P3 … P6 (siehe oben)
 
 ## Praxis-Learnings
 1. Portale sind **in die Hintergrund-PNGs eingebacken** (`hub_bg`, `hangar_bg`, `shop_bg*`) → Entfernen = Hintergrund neu erzeugen/übermalen (`npm run art:gen`), nicht nur Code.
 2. Bild-Edit-Rezept: `art:gen --ref <bg.png> --aspect 16:9 --size 2K` mit Prompt „keep everything pixel-identical, ONE change only …“ → Layout bleibt erhalten, Ausgabe 2752×1536 → mit PIL LANCZOS auf 960×540 (Kollisionen/Prompts bleiben passend). 4 Hintergründe parallel in ~1 Min.
 3. Screenshot-Skript für Szenen: `__game.transitionTo('hub'|'backroom'|'hangar'|'shop','hub')` + 1,8 s warten; Dungeon: `dng.startRun(1)`, `dng.enterRoom(key,null)` (rooms ist eine Map).
 4. Push nur auf den Session-Branch (`git push origin HEAD`), nicht `npm run ship` (würde main pushen).
+5. Weiß → Alpha: `scripts/white-to-alpha.py <in> <out> <W> <H>` (Flood-Fill vom Rand, BBox, unten mittig). Paar-Sprites (zu/offen) mit gemeinsamem Maßstab zuschneiden (Truhe: Skala aus der geschlossenen Version).
+6. Sprites mit Leerrand unten schweben optisch: immer `drawContactShadow`/`spriteFootBottom` statt fixer Schatten-Offsets.

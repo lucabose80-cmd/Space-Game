@@ -7,7 +7,7 @@
  * Keine neuen Hub-Hintergründe: Kollisionen & Prompts hängen an hub_bg.png.
  */
 import { getHDArt, type M10SpriteKey, type M12SpriteKey } from '../assets/artLoader';
-import { drawGlow, drawPixelShadow } from '../assets/pixelArt';
+import { drawContactShadow, drawGlow, drawPixelShadow, spriteFootBottom } from '../assets/pixelArt';
 import { SUIT_THEMES } from '../data/companions';
 import type { GameState } from '../systems/gameState';
 import type { StoryFlagId } from '../types';
@@ -62,7 +62,11 @@ function poly(ctx: CanvasRenderingContext2D, pts: Array<[number, number]>, fill:
 
 /** Zeichnet ein Sprite mit Fuß-Mitte bei (x, footY). */
 function drawSpriteFoot(ctx: CanvasRenderingContext2D, spr: HTMLCanvasElement, x: number, footY: number, w: number, h: number): void {
-  ctx.drawImage(spr, Math.round(x - w / 2), Math.round(footY - h), w, h);
+  // Sichtbare Unterkante landet exakt auf footY (Leerrand im PNG erzeugt sonst Schweben) + Kontaktschatten dort
+  const dy = Math.round(footY - h * spriteFootBottom(spr));
+  const dx = Math.round(x - w / 2);
+  drawContactShadow(ctx, spr, dx, dy, w, h, 0.5);
+  ctx.drawImage(spr, dx, dy, w, h);
 }
 
 export class HubEvolutionRenderer {
@@ -289,8 +293,8 @@ export class HubEvolutionRenderer {
   // ---------- Objekte (Sprite oder Fallback) ----------
   private drawCrystalLantern(ctx: CanvasRenderingContext2D, x: number, y: number, time: number): void {
     const glow = 0.3 + 0.1 * Math.sin(time * 2.4 + x);
-    drawPixelShadow(ctx, x, y, 6, 2.2, 0.42);
     const spr = this.sprite('propHubCrystalLantern');
+    if (!spr) drawPixelShadow(ctx, x, y, 6, 2.2, 0.42);
     if (spr) {
       drawSpriteFoot(ctx, spr, x, y, 22, 30);
     } else {
@@ -305,8 +309,8 @@ export class HubEvolutionRenderer {
   }
 
   private drawObelisk(ctx: CanvasRenderingContext2D, x: number, y: number, time: number): void {
-    drawPixelShadow(ctx, x, y + 1, 10, 3.2, 0.5);
     const spr = this.sprite('propHubElderObelisk');
+    if (!spr) drawPixelShadow(ctx, x, y + 1, 10, 3.2, 0.5);
     if (spr) {
       drawSpriteFoot(ctx, spr, x, y, 34, 44);
     } else {
@@ -370,8 +374,8 @@ export class HubEvolutionRenderer {
   }
 
   private drawCycleHolo(ctx: CanvasRenderingContext2D, x: number, y: number, time: number): void {
-    drawPixelShadow(ctx, x, y, 6, 2, 0.35);
     const spr = this.sprite('propHubCycleHolo');
+    if (!spr) drawPixelShadow(ctx, x, y, 6, 2, 0.35);
     if (spr) {
       drawSpriteFoot(ctx, spr, x, y, 26, 26);
     } else {
@@ -398,8 +402,8 @@ export class HubEvolutionRenderer {
   }
 
   private drawMemorial(ctx: CanvasRenderingContext2D, x: number, y: number, time: number): void {
-    drawPixelShadow(ctx, x, y, 9, 3, 0.45);
     const spr = this.sprite('propKaelMemorial');
+    if (!spr) drawPixelShadow(ctx, x, y, 9, 3, 0.45);
     const flick = 0.85 + 0.15 * Math.sin(time * 9 + 1);
     if (spr) {
       drawSpriteFoot(ctx, spr, x, y, 26, 26);
@@ -461,8 +465,8 @@ export class HubEvolutionRenderer {
   }
 
   private drawBeacon(ctx: CanvasRenderingContext2D, x: number, y: number, time: number): void {
-    drawPixelShadow(ctx, x, y + 1, 7, 2.6, 0.45);
     const spr = this.sprite('propVexBeacon');
+    if (!spr) drawPixelShadow(ctx, x, y + 1, 7, 2.6, 0.45);
     const blink = Math.sin(time * 4) > 0;
     if (spr) {
       drawSpriteFoot(ctx, spr, x, y, 30, 40);
@@ -517,8 +521,8 @@ export class HubEvolutionRenderer {
 
   /** M12 (E): Vitrine mit der A.E.G.I.S.-Herzlinse. Sprite `prop_trophy_leviathan` optional, sonst prozedural. */
   private drawLeviathanVitrine(ctx: CanvasRenderingContext2D, x: number, y: number, time: number): void {
-    drawPixelShadow(ctx, x, y + 1, 9, 2.8, 0.45);
     const spr = this.sprite('propTrophyLeviathan');
+    if (!spr) drawPixelShadow(ctx, x, y + 1, 9, 2.8, 0.45);
     const pulse = 0.5 + 0.5 * Math.sin(time * 2.4);
     if (spr) {
       drawSpriteFoot(ctx, spr, x, y, 26, 26);
@@ -540,8 +544,8 @@ export class HubEvolutionRenderer {
   }
 
   private drawClassboard(ctx: CanvasRenderingContext2D, x: number, y: number, time: number): void {
-    drawPixelShadow(ctx, x, y + 1, 8, 2.6, 0.45);
     const spr = this.sprite('propVexClassboard');
+    if (!spr) drawPixelShadow(ctx, x, y + 1, 8, 2.6, 0.45);
     if (spr) {
       drawSpriteFoot(ctx, spr, x, y, 26, 24);
     } else {

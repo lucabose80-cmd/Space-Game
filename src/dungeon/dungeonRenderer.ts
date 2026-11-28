@@ -424,8 +424,8 @@ export class DungeonRenderer {
       const ch = this.scene.currentRoom.chest;
       const chestSpr = ch.opened ? art.chestOpen : art.chestClosed;
       if (chestSpr) {
-        drawContactShadow(ctx, chestSpr, ch.x - 14, ch.y - 13, 28, 25, 0.6);
-        ctx.drawImage(chestSpr, ch.x - 14, ch.y - 13, 28, 25);
+        drawContactShadow(ctx, chestSpr, ch.x - 20, ch.y - 25, 40, 40, 0.6);
+        ctx.drawImage(chestSpr, ch.x - 20, ch.y - 25, 40, 40);
       } else {
         drawPixelShadow(ctx, ch.x, ch.y + 10, 14, 4.5, 0.5);
         ctx.drawImage(
@@ -436,6 +436,9 @@ export class DungeonRenderer {
       }
       if (!ch.opened) {
         drawGlow(ctx, ch.x, ch.y - 2, 28, '#fbbf24', 0.34 + Math.sin(this.scene.time * 4) * 0.08);
+      } else if (ch.slots?.some((sl) => sl)) {
+        // Geöffnet, aber noch Beute drin: warmes Glühen aus der Öffnung
+        drawGlow(ctx, ch.x, ch.y - 9, 18, '#fbbf24', 0.26 + Math.sin(this.scene.time * 3) * 0.07);
       }
     }
 
@@ -624,7 +627,8 @@ export class DungeonRenderer {
         y: landed.y,
         draw: () => {
           const pod = getHDArt().cutsceneDropPodOpen;
-          drawPixelShadow(ctx, landed.x, landed.y + 18, 20, 7, 0.44);
+          if (pod) drawContactShadow(ctx, pod, landed.x - 23, landed.y - 24, 46, 46, 0.5);
+          else drawPixelShadow(ctx, landed.x, landed.y + 18, 20, 7, 0.44);
           if (pod) ctx.drawImage(pod, Math.round(landed.x - 23), Math.round(landed.y - 24), 46, 46);
         },
       });

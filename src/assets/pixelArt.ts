@@ -173,3 +173,8 @@ export function drawContactShadow(
   drawPixelShadow(ctx, cx, by - 0.5, baseW * 0.62, Math.max(2.2, baseW * 0.2), alpha * 0.55);
   drawPixelShadow(ctx, cx, by - 1.5, baseW * 0.46, Math.max(1.6, baseW * 0.12), alpha);
 }
+
+/** Untere sichtbare Kante eines Sprites als Anteil der Bildhöhe (0..1) — für exakt bodenbündiges Zeichnen. */
+export function spriteFootBottom(img: CanvasImageSource): number {
+  return measureFootprint(img).bottom;
+}

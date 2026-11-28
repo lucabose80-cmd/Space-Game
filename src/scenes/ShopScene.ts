@@ -1,5 +1,5 @@
 import { getHDArt } from '../assets/artLoader';
-import { drawGlow, drawPixelShadow } from '../assets/pixelArt';
+import { drawContactShadow, drawGlow, drawPixelShadow } from '../assets/pixelArt';
 import { getAtlas } from '../assets/sprites';
 import { COMPANION_DEFS, MARKET_EVENT_META, SUIT_THEMES } from '../data/companions';
 import { PATRON_DEFS, PATRON_ORDER } from '../data/guildMarket';
@@ -1669,7 +1669,8 @@ export class ShopScene {
     const y = SALE_BOX_POS.y;
     const count = this.state.countSaleBoxItems();
 
-    drawPixelShadow(ctx, x, y + 9, 11, 3.6, 0.46);
+    if (art.propSaleBox) drawContactShadow(ctx, art.propSaleBox, x - 11, y - 14, 22, 23, 0.55);
+    else drawPixelShadow(ctx, x, y + 9, 11, 3.6, 0.46);
     drawGlow(ctx, x, y - 2, 18, '#fb923c', (count > 0 ? 0.3 : 0.14) + pulse * 0.08);
     if (art.propSaleBox) {
       ctx.drawImage(art.propSaleBox, x - 11, y - 14, 22, 23);
@@ -1904,10 +1905,17 @@ export class ShopScene {
     const atlas = getAtlas();
     const active = p.itemId !== null && p.qty > 0;
 
-    drawPixelShadow(ctx, p.x, p.y + 11, 14, 4.5, 0.45);
-    if (art.pedestal) {
+    // Vitrine je Laden-Ausbaustufe (Intro-Look: Holo-Glasvitrine → Messing → Gold/Kristall); Fallback: alter Sockel
+    const tierIdx = Math.max(0, Math.min(2, this.state.upgrades.shopTier ?? 0));
+    const vitrine = [art.vitrineT1, art.vitrineT2, art.vitrineT3][tierIdx];
+    if (vitrine) {
+      drawContactShadow(ctx, vitrine, p.x - 16, p.y - 20, 32, 32, 0.55);
+      ctx.drawImage(vitrine, p.x - 16, p.y - 20, 32, 32);
+    } else if (art.pedestal) {
+      drawPixelShadow(ctx, p.x, p.y + 11, 14, 4.5, 0.45);
       ctx.drawImage(art.pedestal, p.x - 14, p.y - 14, 28, 28);
     } else {
+      drawPixelShadow(ctx, p.x, p.y + 11, 14, 4.5, 0.45);
       ctx.drawImage(
         active ? atlas.props.pedestalActive : atlas.props.pedestalEmpty,
         Math.round(p.x - 12),
