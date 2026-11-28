@@ -28,6 +28,18 @@
 | **Push-Rechte auf `main`** | Eigenen Branch pushen, im Status-Blatt „nicht gemergt“ vermerken, Inhaber informieren. |
 | **Lange Sitzung / Limit-Warnung** | Sofort: committen, `npm run ship` (oder WIP-Push), Status-Blatt auf „nächster Schritt“ bringen, Claim freigeben. Erst dann weiterarbeiten. |
 
+## 3b. Besonderheiten einzelner Werkzeuge
+**GitHub Copilot (Coding-Agent / Chat in VS Code):**
+- Liest `.github/copilot-instructions.md` (Wegweiser) und `AGENTS.md`. Der Cloud-Agent arbeitet auf einem eigenen Branch und öffnet Pull Requests — er hat **kein** Recht auf `main`: `SHIP_BRANCH_ONLY=1 npm run ship` (pusht nur den Branch, der Inhaber mergt den PR). Umgebung (Node, Playwright, Python+Pillow) richtet `.github/workflows/copilot-setup-steps.yml` ein.
+- Hat in der Regel **keinen Gemini-Key** und kann Bilder nicht ansehen → Sprite-Arbeit nur als Bestellung (Abschnitt 3). Key ggf. als Copilot-Environment-Secret `GEMINI_API_KEY` hinterlegen (Repo → Settings → Environments → copilot).
+- Vercel baut Pull-Request-Branches **nicht** (nur `main`, `vercel.json`) — Ansehen daher über `?bosslab`/Tests oder nach dem Merge.
+
+**Replit (Agent / Workspace):**
+- Liest `replit.md` (Wegweiser) → `KI_WECHSEL.md`. **Nicht** auf Replit deployen: Deployment läuft ausschließlich über `main` → Vercel; Replit dient nur zum Arbeiten. Dev-Server: `npm run dev -- --host 0.0.0.0` (Port 5173).
+- Secrets: `GEMINI_API_KEY` im Replit-Secrets-Tab (nicht im Repo). Git-Push braucht dort GitHub-Verbindung/Token; sonst Branch-only (siehe oben).
+- Playwright-Chromium braucht in Replit evtl. System-Pakete (`npx playwright install --with-deps chromium`); klappt das nicht: Tests auslassen, `build` + `check:*` laufen immer, im Status-Blatt „Tests nicht gelaufen“ vermerken.
+- Kleiner Arbeitsspeicher/Disk: `npm test` mit weniger Workern (`npm test -- <einzelner Test>`), `dist/` nicht committen.
+
 ## 4. Übergabe-Pflichten (Kurzfassung von `AGENTS.md` Regel 8/17/18/19)
 - Status-Blatt `handoff/<bereich>.md` in **jedem** Push-Commit aktuell: Checkliste ✅/⬜, bei jedem ⬜ **Datei + Funktion + Befehl** des nächsten Schritts, laufende `[~]`-Zeilen, bekannte Fehler.
 - **Alles Gelernte sofort** als nummerierten Punkt unter „Praxis-Learnings“ (Fehlerursache, Falle, funktionierender Befehl, Maße/Entscheidung, bewusst Weggelassenes). Nützliche Skripte nach `scripts/`, nicht in einen Temp-Ordner.

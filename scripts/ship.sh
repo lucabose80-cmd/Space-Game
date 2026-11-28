@@ -9,6 +9,7 @@
 # wird nur `check:invariants` + `check:sprites` geprüft; bringt er Code, läuft eine Schnellprüfung (Build + Invarianten +
 # Sprite-Check + die vom Merge geänderten/neuen Tests + Regressionstest t5, ≈ 1–2 min) und dann sofort der Push.
 # Die Commits der anderen Seite haben ihren vollen `verify` vor ihrem eigenen Push bereits bestanden.
+# Kein Push-Recht auf main (Copilot-Agent, Fork)? SHIP_BRANCH_ONLY=1 npm run ship → pusht nur den eigenen Branch.
 # Erzwingen eines vollen Laufs bei jedem Versuch: SHIP_FULL_VERIFY=1 npm run ship
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -55,7 +56,10 @@ for attempt in 1 2 3 4 5; do
     npm run check:invariants && npm run check:sprites
   fi
   verified="$(git rev-parse HEAD)"
-  if git push origin HEAD:main; then
+  if [ "${SHIP_BRANCH_ONLY:-0}" = "1" ]; then
+    # Werkzeuge ohne Push-Recht auf main (z. B. Copilot-Agent): nur den eigenen Branch pushen → Inhaber mergt per Pull Request.
+    git push -u origin "HEAD:$branch" && { echo "✔ Auf Branch '$branch' gepusht (SHIP_BRANCH_ONLY) — main NICHT verändert."; exit 0; }
+  elif git push origin HEAD:main; then
     [ "$branch" != "main" ] && git push origin "HEAD:$branch" || true
     echo "✔ Auf main gepusht ($(git rev-parse --short HEAD))."
     exit 0
