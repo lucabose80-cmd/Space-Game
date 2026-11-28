@@ -1,5 +1,5 @@
 // M12 Phase C: Reaktorhalle des A.E.G.I.S. Leviathan (Sektor 1, Ebene III) — MILESTONE_12_ARCHITECTURE.md §6.
-// 688 × 352 logisch = 43 × 22 Kacheln. Norden: Boss-Wand (Sockel `W`, 3 Reihen). Mitte: Plattenfläche `p` mit 4 Pfeilern `#`.
+// 688 × 352 logisch = 43 × 22 Kacheln. Norden: Boss-Wand (Sockel `W`, 3 Reihen). Mitte: 4 kleine Bodenplatten-Blöcke `p` (brechen in Phase II zu 4 kleinen Gruben weg, Kreuz-Gang bleibt begehbar) + 4 Pfeiler `#`.
 // Seiten: Kühlaggregat mit je 2 Kühlventilen `v`. Türen werden vom Grundriss des Stockwerks bestimmt (Süden üblich) — eine Nordtür
 // bekommt einen Durchgang durch den Sockel (siehe `attachArenas`).
 import type { ArenaDef } from './types';
@@ -18,18 +18,18 @@ export const LEVIATHAN_ARENA: ArenaDef = {
     'WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW', // 2
     '...........................................', // 3
     '.............##.............##.............', // 4
-    '.............##.ppppppppppp.##.............', // 5
-    '................ppppppppppp................', // 6
-    'VVVVV.........ppppppppppppppp.........VVVVV', // 7
-    'VVVVV.........ppppppppppppppp.........VVVVV', // 8
-    'VVVVv.........ppppppppppppppp.........vVVVV', // 9
-    'VVVVV.........ppppppppppppppp.........VVVVV', // 10
-    'VVVVV.........ppppppppppppppp.........VVVVV', // 11
-    'VVVVv.........ppppppppppppppp.........vVVVV', // 12
-    'VVVVV.........ppppppppppppppp.........VVVVV', // 13
-    'VVVVV.........ppppppppppppppp.........VVVVV', // 14
-    '................ppppppppppp................', // 15
-    '.............##.ppppppppppp.##.............', // 16
+    '.............##.............##.............', // 5
+    '...............ppppp...ppppp...............', // 6
+    'VVVVV..........ppppp...ppppp..........VVVVV', // 7
+    'VVVVV..........ppppp...ppppp..........VVVVV', // 8
+    'VVVVv..........ppppp...ppppp..........vVVVV', // 9
+    'VVVVV.................................VVVVV', // 10
+    'VVVVV.................................VVVVV', // 11
+    'VVVVv.................................vVVVV', // 12
+    'VVVVV..........ppppp...ppppp..........VVVVV', // 13
+    'VVVVV..........ppppp...ppppp..........VVVVV', // 14
+    '...............ppppp...ppppp...............', // 15
+    '.............##ppppp...ppppp##.............', // 16
     '.............##.............##.............', // 17
     '...........................................', // 18
     '...........................................', // 19

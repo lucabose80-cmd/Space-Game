@@ -21,7 +21,7 @@ import type { DetachedPart } from '../anim/detached';
 import type { DungeonRoom } from '../../world/dungeonGen';
 import type { Enemy, LeviathanArm } from '../dungeonTypes';
 
-export type LevArenaMove = 'hammer' | 'whip' | 'steam' | 'beam' | 'debris' | 'grab' | 'pulse' | 'glow';
+export type LevArenaMove = 'hammer' | 'whip' | 'steam' | 'beam' | 'debris' | 'grab' | 'pulse' | 'glow' | 'quake';
 export type LevArenaState = 'intro' | 'idle' | 'move' | 'transition' | 'dead';
 
 export interface LevVent {
@@ -59,9 +59,9 @@ export interface LevArena {
 
 /** Zugfolgen je Phase (zyklisch). */
 const SEQ: Record<1 | 2 | 3, LevArenaMove[]> = {
-  1: ['hammer', 'whip', 'steam', 'hammer', 'whip', 'hammer', 'steam'],
-  2: ['beam', 'debris', 'hammer', 'steam', 'debris', 'whip'],
-  3: ['pulse', 'glow', 'grab', 'debris', 'pulse', 'whip'],
+  1: ['hammer', 'whip', 'steam', 'hammer', 'whip', 'hammer', 'steam', 'quake'],
+  2: ['beam', 'debris', 'hammer', 'steam', 'debris', 'whip', 'quake'],
+  3: ['pulse', 'glow', 'grab', 'quake', 'debris', 'pulse', 'whip'],
 };
 
 const PHASE_NAME: Record<1 | 2 | 3, string> = { 1: 'PHASE I · WACHE', 2: 'PHASE II · ÜBERLAST', 3: 'PHASE III · KERN FREI' };
@@ -403,6 +403,7 @@ export function updateLeviathanArena(scene: DungeonScene, e: Enemy, dt: number):
   let move = seq[L.seq % seq.length];
   L.seq++;
   const liveArm = e.levArms?.some((a) => !a.dead);
+  if (move === 'quake' && !(e.levArms ?? []).every((a) => !a.dead)) move = 'hammer';
   if (move === 'hammer' && !liveArm) move = 'grab';
   startMove(scene, e, move, rb);
 }
@@ -467,6 +468,44 @@ function startMove(scene: DungeonScene, e: Enemy, move: LevArenaMove, rb: Dungeo
       }
       L.timer = 1.5 * k;
       e.bossStatusText = 'TITANEN-WELLE!';
+      sound.playBossCharge();
+      break;
+    }
+    case 'quake': {
+      // Doppelschlag: beide Fäuste hämmern gleichzeitig auf den Boden — von beiden Einschlagstellen laufen Schockwellen-Ringe über die ganze Arena
+      const fireAt = 1.0 * k;
+      for (const arm of e.levArms ?? []) {
+        if (arm.dead) continue;
+        arm.state = 'whip';
+        arm.timer = fireAt + 0.4;
+      }
+      const oy = e.y + SLAM_DY - 4;
+      const rings = 7;
+      for (const side of [-1, 1]) {
+        const ox = e.x + side * SLAM_DX;
+        const aim = Math.atan2(py - oy, px - ox);
+        for (let i = 0; i < rings; i++) {
+          const r0 = 14 + i * 50;
+          fx(scene).add({
+            shape: 'ring',
+            x: ox,
+            y: oy,
+            r0,
+            r: r0 + 30,
+            // Lücke zeigt zum Spieler — der Weg dazwischen ist immer frei (wechselt leicht, damit man nicht stehen bleiben kann)
+            gapA: aim + (i % 2 === 0 ? 0.28 : -0.28),
+            gapHalf: 0.5,
+            delay: fireAt + i * 0.26 * k,
+            life: 0.26,
+            burst: 14,
+            color: '#fb923c',
+            fx: 'pulse',
+            onFire: i === 0 ? (s2) => { s2.triggerShake(0.5, 6); sound.playBossSlam(); s2.spawnBurst(ox, oy, '#fbbf24', 18); } : undefined,
+          });
+        }
+      }
+      L.timer = fireAt + rings * 0.26 * k + 0.7;
+      e.bossStatusText = 'DOPPELSCHLAG!';
       sound.playBossCharge();
       break;
     }

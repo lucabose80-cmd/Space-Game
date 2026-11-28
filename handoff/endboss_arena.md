@@ -105,6 +105,11 @@
 - **Diagnose-Skripte:** `node scripts/lev-shots.cjs <phase> <zug>:<sek> …` (Arena-Screenshots je Zug/Phase → `tests/out/lev_p*_*.png`; nutzt `startMoveForTest`), `node scripts/lev-measure.cjs` (Rig-Maße).
 - Offen: Der Koloss wirkt im 688×352-Raum eher klein (~110 logische px breit) — falls gewünscht größere Rig-Skalierung bzw. neues, größeres Sheet bestellen (Regel 14); Glut-Welle (`glow`) kommt weiterhin von beiden Seitenwänden (Vorwarnung unverändert).
 
+
+### Runde 3: Doppelschlag + 4 kleine Gruben
+- **Neuer Zug `quake` („DOPPELSCHLAG!“)** in allen Phasen (Ende der Zugfolge; fehlt ein Arm → Rückfall `hammer`): beide Arme heben und schlagen gleichzeitig (Arm-Zustand `'whip'`), von beiden Fäusten laufen 7 Schockwellen-Ringe (`ring`/`pulse`, je 30 px breit, Abstand 50 px, 0,26 s Takt) über die gesamte Halle; je Ring Lücke Richtung Spieler (±0,28 rad wechselnd, `gapHalf 0.5`).
+- **Phase-II-Abgrund:** statt einer riesigen Fläche brechen **4 kleine Blöcke** (5×4 Kacheln) weg, Kreuz-Gang (3 Kacheln breit) bleibt — nur `src/data/arenas/leviathan.ts` (`p`-Kacheln). Hintergrund-Bild zeigt weiter das Glutgitter darunter.
+
 ## Nächster Schritt
 1. **Abnahme Pilot A.E.G.I.S. Leviathan im echten Spiel** (Stufe 8 — live in Sektor 1 Ebene III oder `?bosslab` → ARENEN → 🏟 Leviathan): Kampfgefühl, alle 4 Körper-Phasen, Plattenbruch/Dampf/Trümmer, Schatzkammer & Mobil-Check (A9). Notfall-Rückweg: `ENDBOSS_ARENA_LIVE = false` in `balance.ts`.
 2. Phase A/B-Marker entfernen, sobald der Projektinhaber die Standardräume abgenommen hat.
