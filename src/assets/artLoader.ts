@@ -179,6 +179,13 @@ export interface HDArtAssets {
 
   items: Record<string, HTMLCanvasElement>;
   itemUrls: Record<string, string>;
+
+  /** Sektor-Anflug-Cutscene: optionale Pixel-Art-Hintergründe (Fallback prozedural in SectorApproachCutscene.ts) */
+  cutsceneBgS1: HTMLCanvasElement | null;
+  cutsceneBgS2: HTMLCanvasElement | null;
+  cutsceneBgS3: HTMLCanvasElement | null;
+  cutsceneBgS4: HTMLCanvasElement | null;
+  cutsceneBgS5: HTMLCanvasElement | null;
 }
 
 const art: HDArtAssets = {
@@ -368,6 +375,11 @@ const art: HDArtAssets = {
   bossStarArchonFlash: null,
   items: {},
   itemUrls: Object.fromEntries(ITEMS.map((i) => [i.id, `/art/sprites/item_${i.id}.png`])),
+  cutsceneBgS1: null,
+  cutsceneBgS2: null,
+  cutsceneBgS3: null,
+  cutsceneBgS4: null,
+  cutsceneBgS5: null,
 };
 
 function loadImage(src: string): Promise<HTMLImageElement | null> {
@@ -495,6 +507,17 @@ export const BOSS_OPTIONAL_SPRITES = {
 } as const;
 
 export type BossSpriteKey = keyof typeof BOSS_OPTIONAL_SPRITES;
+
+/** Sektor-Anflug-Cutscene: optionale 16:9 Pixel-Art-Hintergründe (960×540). Fehlt die Datei → prozedurale Weltall-Szenerie. */
+export const CUTSCENE_OPTIONAL_SPRITES = {
+  cutsceneBgS1: 'cutscene_bg_s1',
+  cutsceneBgS2: 'cutscene_bg_s2',
+  cutsceneBgS3: 'cutscene_bg_s3',
+  cutsceneBgS4: 'cutscene_bg_s4',
+  cutsceneBgS5: 'cutscene_bg_s5',
+} as const;
+
+export type CutsceneSpriteKey = keyof typeof CUTSCENE_OPTIONAL_SPRITES;
 
 export async function preloadHDArt(): Promise<HDArtAssets> {
   if (art.loaded) return art;
@@ -829,6 +852,15 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
     });
     art.rigs[rigId] = names.every((n) => parts[n]) ? { parts, flash } : null;
   }
+
+  // Sektor-Anflug-Cutscene: optionale Sektor-Vistas
+  const cutsceneKeys = Object.keys(CUTSCENE_OPTIONAL_SPRITES) as CutsceneSpriteKey[];
+  const cutsceneImgs = await Promise.all(
+    cutsceneKeys.map((k) => loadImage(`/art/sprites/${CUTSCENE_OPTIONAL_SPRITES[k]}.png`)),
+  );
+  cutsceneKeys.forEach((k, i) => {
+    art[k] = imgToCanvas(cutsceneImgs[i]);
+  });
 
   art.loaded = true;
   return art;

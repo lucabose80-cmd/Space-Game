@@ -611,6 +611,20 @@ export class SoundEngine {
     this.playTone(987.77, 987.77, 0.16, 'sine', 0.09, 0.18);
     this.playTone(1318.51, 1318.51, 0.32, 'sine', 0.11, 0.28);
   }
+
+  /** Sektor-Anflug-Cutscene: Hyperraum-Schub & sanftes Abbremsen */
+  public playApproachWhoosh(): void {
+    this.playNoise(0.55, 640, 0.11);
+    this.playTone(92, 240, 0.45, 'sawtooth', 0.06, 0);
+    this.playTone(240, 118, 0.65, 'triangle', 0.07, 0.42);
+  }
+
+  /** Sektor-Anflug-Cutscene: Absetz-/Teleport-Strahl */
+  public playDropBeam(): void {
+    this.playTone(392, 784, 0.28, 'sine', 0.08, 0);
+    this.playTone(587.33, 1174.66, 0.34, 'triangle', 0.06, 0.08);
+    this.playTone(784, 523.25, 0.32, 'sine', 0.07, 0.34);
+  }
 }
 
 export const sound = new SoundEngine();

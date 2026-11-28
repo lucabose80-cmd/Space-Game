@@ -11,6 +11,7 @@ import type { DungeonScene } from './scenes/DungeonScene';
 import { HangarScene } from './scenes/HangarScene';
 import { HubScene } from './scenes/HubScene';
 import { MarketTerraceScene } from './scenes/MarketTerraceScene';
+import { SectorApproachCutscene } from './scenes/SectorApproachCutscene';
 import { ShopScene } from './scenes/ShopScene';
 import { firebaseService } from './services/firebaseService';
 import { galacticNetwork } from './services/galacticNetwork';
@@ -41,6 +42,8 @@ class StarlighterGame {
   public dungeonReady: Promise<DungeonScene>;
   /** Behelfsmäßiges Boss-Labor (nur mit ?bosslab in der Adresse) */
   private bossLab: BossLab | null = null;
+  /** Sektor-Anflug-Cutscene (läuft optional zwischen Hangar und Dungeon) */
+  private approachCutscene: SectorApproachCutscene | null = null;
 
   private activeScene: SceneId = 'shop';
   private pendingDungeonSector: SectorId = 1;
@@ -245,44 +248,14 @@ class StarlighterGame {
 
     this.hangarScene = new HangarScene(this.state, {
       onReturnToHub: () => this.transitionTo('hub', 'hangar'),
-      onLaunchSector1: () => {
-        this.pendingDungeonSector = 1;
-        this.pendingEndlessRift = false;
-        this.pendingWeeklyTrial = null;
-        this.transitionTo('dungeon', 'hangar');
-      },
-      onLaunchSector2: () => {
-        this.pendingDungeonSector = 2;
-        this.pendingEndlessRift = false;
-        this.pendingWeeklyTrial = null;
-        this.transitionTo('dungeon', 'hangar');
-      },
-      onLaunchSector3: () => {
-        this.pendingDungeonSector = 3;
-        this.pendingEndlessRift = false;
-        this.pendingWeeklyTrial = null;
-        this.transitionTo('dungeon', 'hangar');
-      },
-      onLaunchSector4: () => {
-        this.pendingDungeonSector = 4;
-        this.pendingEndlessRift = false;
-        this.pendingWeeklyTrial = null;
-        this.transitionTo('dungeon', 'hangar');
-      },
+      onLaunchSector1: () => this.launchSectorWithCutscene(1, false),
+      onLaunchSector2: () => this.launchSectorWithCutscene(2, false),
+      onLaunchSector3: () => this.launchSectorWithCutscene(3, false),
+      onLaunchSector4: () => this.launchSectorWithCutscene(4, false),
       onLaunchOmegaGate: () => {
         this.ui.openOmegaGateModal(
-          () => {
-            this.pendingDungeonSector = 5;
-            this.pendingEndlessRift = false;
-            this.pendingWeeklyTrial = null;
-            this.transitionTo('dungeon', 'hangar');
-          },
-          () => {
-            this.pendingDungeonSector = 5;
-            this.pendingEndlessRift = true;
-            this.pendingWeeklyTrial = null;
-            this.transitionTo('dungeon', 'hangar');
-          },
+          () => this.launchSectorWithCutscene(5, false),
+          () => this.launchSectorWithCutscene(5, true),
           (info) => {
             this.pendingDungeonSector = info.sector;
             this.pendingEndlessRift = false;
@@ -524,12 +497,69 @@ class StarlighterGame {
     }
   }
 
+  private setHudVisible(visible: boolean): void {
+    const v = visible ? '' : 'hidden';
+    const hud = document.getElementById('hud-layer');
+    if (hud) hud.style.visibility = v;
+    const toast = document.getElementById('toast-layer');
+    if (toast) toast.style.visibility = v;
+  }
+
+  private launchSectorWithCutscene(sector: SectorId, endlessRift: boolean): void {
+    if (this.transitionDir !== 0 || this.approachCutscene) return;
+    this.pendingDungeonSector = sector;
+    this.pendingEndlessRift = endlessRift;
+    this.pendingWeeklyTrial = null;
+    this.approachCutscene = new SectorApproachCutscene({
+      sector,
+      endlessRift,
+      isNightRun: this.state.timeOfDay === 'night',
+    });
+    this.setHudVisible(false);
+    this.syncTouch();
+  }
+
+  private finishApproachCutscene(skipped: boolean): void {
+    this.approachCutscene = null;
+    this.setHudVisible(true);
+    if (skipped) {
+      this.transitionTo('dungeon', 'hangar');
+      return;
+    }
+    // Cutscene hat bereits auf Dunkel ausgeblendet → nahtlos in den Dungeon aufblenden
+    const enterDungeon = () => {
+      this.activeScene = 'dungeon';
+      this.ui.currentScene = 'dungeon';
+      this.ui.shopIsOpen = false;
+      if (this.pendingEndlessRift) {
+        this.dng.startEndlessRift();
+      } else {
+        this.dng.startRun(this.pendingDungeonSector);
+      }
+      this.ui.dungeonSector = this.dng.currentSector;
+      this.ui.dungeonFloor = this.dng.currentFloor;
+      this.ui.dungeonEndlessRift = this.dng.isEndlessRift;
+      this.ui.dungeonWeeklyTrial = this.dng.isWeeklyTrial;
+      this.ui.dungeonRiftDepth = this.dng.riftDepth;
+      this.syncMusic();
+      this.ui.renderHud();
+      this.syncTouch();
+      this.transitionAlpha = 1;
+      this.transitionDir = -1;
+    };
+    if (!this.dungeonScene) {
+      void this.dungeonReady.then(enterDungeon);
+    } else {
+      enterDungeon();
+    }
+  }
+
   private syncTouch(): void {
     if (!this.touch || !this.ui) return;
     this.touch.setState(
       this.activeScene,
       this.activeScene === 'shop' && this.shopScene?.shopOpen,
-      this.ui.modalOpen || this.ui.titleVisible,
+      this.ui.modalOpen || this.ui.titleVisible || this.approachCutscene !== null,
       this.state.equippedWeapon,
       this.state.secondaryWeapon !== null,
     );
@@ -633,7 +663,7 @@ class StarlighterGame {
   }
 
   private handleGlobalShortcuts(): void {
-    if (this.ui.titleVisible) return;
+    if (this.ui.titleVisible || this.approachCutscene) return;
 
     if (this.input.wasPressed('Escape', true)) {
       if (this.ui.modalOpen) {
@@ -695,7 +725,13 @@ class StarlighterGame {
       }
     }
 
-    if (this.activeScene === 'shop') {
+    if (this.approachCutscene) {
+      const done = this.approachCutscene.update(dt, this.input);
+      if (done) {
+        const wasSkipped = this.approachCutscene.skipped;
+        this.finishApproachCutscene(wasSkipped);
+      }
+    } else if (this.activeScene === 'shop') {
       if (!this.ui.modalOpen && !this.ui.titleVisible) this.shopScene.update(dt, this.input);
     } else if (this.activeScene === 'backroom') {
       if (!this.ui.modalOpen && !this.ui.titleVisible) this.backroomScene.update(dt, this.input);
@@ -715,7 +751,9 @@ class StarlighterGame {
 
     this.ctx.setTransform(RENDER_SCALE, 0, 0, RENDER_SCALE, 0, 0);
     this.ctx.imageSmoothingEnabled = false;
-    if (this.activeScene === 'shop') {
+    if (this.approachCutscene) {
+      this.approachCutscene.render(this.ctx);
+    } else if (this.activeScene === 'shop') {
       this.shopScene.render(this.ctx);
     } else if (this.activeScene === 'backroom') {
       this.backroomScene.render(this.ctx);
