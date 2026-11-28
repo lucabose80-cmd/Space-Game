@@ -129,10 +129,10 @@ export class TitleScreen {
             </div>
           </div>
           ${feedbackHtml}
-          ${this.state.isCloudSlot() ? '' : '<div class="ts-user-sub">Slot 2/3 sind lokal — nur Slot 1 wird mit der Cloud synchronisiert.</div>'}
+          <div class="ts-user-sub">Alle 3 Slots liegen in der Cloud (Bestenliste &amp; Wochen-Prüfung nur Slot 1).</div>
           <div class="ts-drawer-actions">
-            <button id="btn-title-cloud-load" class="btn btn-sm" type="button" ${this.authBusy || !this.state.isCloudSlot() ? 'disabled' : ''}>⬇ Cloud-Stand laden</button>
-            <button id="btn-title-cloud-save" class="btn btn-sm" type="button" ${this.authBusy || !this.state.hasSave() || !this.state.isCloudSlot() ? 'disabled' : ''}>⬆ Jetzt sichern</button>
+            <button id="btn-title-cloud-load" class="btn btn-sm" type="button" ${this.authBusy ? 'disabled' : ''}>⬇ Cloud-Stand laden</button>
+            <button id="btn-title-cloud-save" class="btn btn-sm" type="button" ${this.authBusy || !this.state.hasSave() ? 'disabled' : ''}>⬆ Jetzt sichern</button>
           </div>
           <button id="btn-title-logout" class="btn btn-sm btn-danger ts-full-btn" type="button" ${this.authBusy ? 'disabled' : ''}>Abmelden</button>
         </aside>
@@ -212,21 +212,26 @@ export class TitleScreen {
       : '';
 
     const slot = this.state.activeSlot;
-    const slotsHtml = `
-      <div class="ts-slots" role="group" aria-label="Spielstand-Slot">
+    // Slots als „Sternbild“ im Hintergrund: jeder Slot ist ein anklickbarer Planet (leer = blasser Stern)
+    const constellationHtml = `
+      <div class="ts-constellation" role="group" aria-label="Spielstand-Slot wählen">
+        <svg class="ts-const-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polyline points="64,80 79,70 92,80" /></svg>
         ${SAVE_SLOTS.map((n) => {
           const pv = GS.peekSlot(n);
-          const body = pv
+          const cap = pv
             ? `<span class="ts-slot-cap">${escapeHtml(pv.captainName)}</span><span class="ts-slot-meta">${pv.isNight ? '🌙' : '☀'} Tag ${pv.day}${pv.ngPlusLevel > 0 ? ` · NG+${pv.ngPlusLevel}` : ''} · ${pv.sectorsCleared}/4 ◆</span>`
-            : `<span class="ts-slot-cap">— Leer —</span><span class="ts-slot-meta">Neue Welt</span>`;
-          return `<button class="ts-slot ${n === slot ? 'active' : ''}" data-slot="${n}" type="button" aria-pressed="${n === slot}"><span class="ts-slot-no">SLOT ${n}${n === 1 ? ' ☁' : ''}</span>${body}</button>`;
+            : `<span class="ts-slot-cap">Unentdeckt</span><span class="ts-slot-meta">Neue Welt starten</span>`;
+          return `<button class="ts-slot-star s${n} ${pv ? 'filled' : 'empty'} ${n === slot ? 'active' : ''}" data-slot="${n}" type="button" aria-pressed="${n === slot}" aria-label="Slot ${n}">
+            <span class="ts-planet">${pv ? '' : '✦'}</span>
+            <span class="ts-slot-label"><span class="ts-slot-no">SLOT ${n}${user ? ' ☁' : ''}</span>${cap}</span>
+          </button>`;
         }).join('')}
       </div>`;
-    const cloudWarn = slot === 1 && user ? ' Dein Cloud-Spielstand wird dabei ebenfalls überschrieben.' : '';
+    const cloudWarn = user ? ` Auch der Cloud-Stand von Slot ${slot} wird dabei überschrieben.` : '';
     const clearHtml = this.confirmClear
       ? `
         <div class="ts-confirm-box">
-          <span>Slot ${slot} (Tag ${this.state.day}) endgültig löschen?</span>
+          <span>Slot ${slot} (Tag ${this.state.day}) endgültig löschen?${user ? ' Auch die Cloud-Kopie wird gelöscht.' : ''}</span>
           <div class="ts-confirm-actions">
             <button id="btn-confirm-clear-yes" class="btn btn-sm btn-danger" type="button">Ja, löschen</button>
             <button id="btn-confirm-clear-no" class="btn btn-sm" type="button">Abbrechen</button>
@@ -287,7 +292,6 @@ export class TitleScreen {
               <em>Astro-Barter</em> auf Port Solaris.
             </p>
 
-            ${slotsHtml}
             ${saveCardHtml}
 
             <div class="ts-actions">
@@ -318,6 +322,8 @@ export class TitleScreen {
           ${this.renderAccountDrawer()}
         </div>
 
+        ${constellationHtml}
+
         <footer class="ts-footer">
           <div class="ts-footer-left">
             <button id="btn-title-controls" class="ts-chip ${this.controlsOpen ? 'active' : ''}" type="button">
@@ -339,7 +345,7 @@ export class TitleScreen {
   }
 
   private bindEvents(hasSave: boolean): void {
-    this.el.querySelectorAll<HTMLButtonElement>('.ts-slot').forEach((btn) => {
+    this.el.querySelectorAll<HTMLButtonElement>('.ts-slot-star').forEach((btn) => {
       btn.addEventListener('click', () => {
         const n = Number(btn.dataset.slot) as SaveSlot;
         if (n === this.state.activeSlot) return;
@@ -515,7 +521,7 @@ export class TitleScreen {
       this.authBusy = true;
       this.authFeedback = { text: 'Suche Cloud-Spielstand…', tone: 'info' };
       this.render();
-      void firebaseService.downloadCloudSave().then((res) => {
+      void firebaseService.downloadCloudSave(this.state.activeSlot).then((res) => {
         this.authBusy = false;
         if (res.ok && res.saveJson) {
           const imp = this.state.importSaveJson(res.saveJson);

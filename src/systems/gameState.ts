@@ -312,13 +312,27 @@ export class GameState {
     this.initFreshState();
   }
 
-  /** Cloud-Sync/Bestenliste gelten nur für den Haupt-Slot 1. */
-  public isCloudSlot(): boolean {
+  /** Bestenliste & Wochen-Prüfung gelten nur für den Haupt-Slot 1 (alle Slots liegen in der Cloud). */
+  public isLeaderboardSlot(): boolean {
     return this.activeSlot === 1;
+  }
+
+  /** Cloud-Spielstand direkt in einen (lokal leeren) Slot schreiben, ohne ihn zu laden. */
+  public static writeSlotRaw(slot: SaveSlot, json: string): void {
+    try {
+      localStorage.setItem(slotKey(slot), json);
+    } catch {
+      // ignore
+    }
+  }
+
+  public static slotHasSave(slot: SaveSlot): boolean {
+    return GameState.peekSlot(slot) !== null;
   }
 
   /** Wechselt den Slot (nur am Startscreen): lädt dessen Stand oder startet leer — speichert dabei NIE. */
   public switchSlot(slot: SaveSlot): void {
+    firebaseService.flushAutoSync(this); // ausstehende Änderung des bisherigen Slots noch hochladen
     this.activeSlot = slot;
     try {
       localStorage.setItem(ACTIVE_SLOT_KEY, String(slot));
@@ -349,7 +363,7 @@ export class GameState {
     }
   }
 
-  /** Slot 2/3 komplett leeren (lokal). Slot 1 wird nur über „Neues Spiel“ zurückgesetzt (sonst holt die Cloud ihn zurück). */
+  /** Slot 2/3 komplett leeren (lokal + Cloud). Slot 1 wird nur über „Neues Spiel“ zurückgesetzt (sonst holt die Cloud ihn zurück). */
   public clearSlot(slot: SaveSlot): void {
     if (slot === 1) return;
     try {
@@ -357,6 +371,7 @@ export class GameState {
     } catch {
       // ignore
     }
+    void firebaseService.deleteCloudSlot(slot);
     if (this.activeSlot === slot) this.initFreshState();
   }
 
@@ -1834,7 +1849,7 @@ export class GameState {
     if (this.saveLocked) return;
     try {
       localStorage.setItem(slotKey(this.activeSlot), JSON.stringify(this.buildSavePayload()));
-      if (this.isCloudSlot()) firebaseService.scheduleAutoSync(this);
+      firebaseService.scheduleAutoSync(this);
     } catch {
       // Ignore storage errors
     }

@@ -26,7 +26,7 @@ import { TitleBackdrop } from './scenes/TitleBackdrop';
 import { ShopScene } from './scenes/ShopScene';
 import { firebaseService } from './services/firebaseService';
 import { galacticNetwork } from './services/galacticNetwork';
-import { GameState } from './systems/gameState';
+import { GameState, SAVE_SLOTS } from './systems/gameState';
 import type { BossLab } from './dev/bossLab';
 import type { StoryResult } from './ui/StoryModals';
 import type { MusicTrack, RunSummary, SceneId, SectorId, StoryNpcId, WeeklyTrialInfo } from './types';
@@ -616,10 +616,22 @@ class StarlighterGame {
     }
   }
 
-  /** Cloud-Abgleich für den Haupt-Slot 1 (Slots 2/3 sind lokal und werden nie mit der Cloud verrechnet). */
+  /** Cloud-Abgleich für den aktiven Slot; danach werden lokal leere Slots still aus der Cloud aufgefüllt. */
   private reconcileCloud(user: { displayName: string }): void {
-    if (!this.state.isCloudSlot()) return;
-    void firebaseService.downloadCloudSave().then((res) => {
+    void firebaseService.downloadAllCloudSlots().then((all) => {
+      let filled = false;
+      for (const n of SAVE_SLOTS) {
+        const j = all[n];
+        if (j && n !== this.state.activeSlot && !GameState.slotHasSave(n)) {
+          GameState.writeSlotRaw(n, j);
+          filled = true;
+        }
+      }
+      if (filled) this.ui.refreshTitle();
+    });
+    const slot = this.state.activeSlot;
+    void firebaseService.downloadCloudSave(slot).then((res) => {
+      if (slot !== this.state.activeSlot) return; // Slot wurde inzwischen gewechselt
       if (res.ok && res.saveJson && (!this.state.hasSave() || firebaseService.isCloudSaveAhead(this.state, res.saveJson))) {
         const imp = this.state.importSaveJson(res.saveJson);
         if (imp.ok) {

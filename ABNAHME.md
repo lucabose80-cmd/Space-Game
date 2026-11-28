@@ -87,21 +87,22 @@
 | G5 | Neues Spiel → weicher Übergang direkt in `intro_arrival` (kein Laden-Flackern) | ⬜ |
 | G6 | Weiterspielen → ~3-s-Anflug (Tag/Nacht, Kapitän, Tag-Banner), per Klick/Taste überspringbar, Kurz-Modus | ⬜ |
 
-## J. Spielstand-Slots & Neu anfangen (neu — Test `t10_save_slots`)
-> **Gab es vorher nicht:** nur einen Spielstand; „Neues Spiel“ (Startscreen) und „Spielstand zurücksetzen“ (Einstellungen im Spiel) überschrieben ihn — **inklusive Cloud**. Jetzt: 3 Slots.
-> Regeln: **Slot 1** = Hauptspielstand (bestehende Saves bleiben dort, wird mit der Cloud synchronisiert). **Slot 2/3** = rein lokal (pro Gerät/Browser), nie in der Cloud/Bestenliste. Wechsel nur am Startscreen, speichert beim Wechseln nichts.
+## J. Spielstand-Slots als Sternbild + Cloud für alle Slots (Test `t10_save_slots`)
+> Vorher: ein Spielstand. Jetzt: **3 Slots als anklickbare Planeten im Startscreen-Hintergrund** (Gold = Slot 1, Türkis = Slot 2, Violett = Slot 3; leer = blasser Stern „Unentdeckt“). **Alle 3 Slots liegen in der Cloud** (`saves/{uid}`: Slot 1 = `saveJson` wie bisher, Slot 2/3 = `slot2Json`/`slot3Json` im selben Dokument — **keine Firestore-Regeländerung nötig**). Bestenliste & Wochen-Prüfung zählen nur Slot 1. Wechsel nur am Startscreen, speichert dabei nichts (ausstehender Upload des alten Slots wird vorher abgeschickt).
 | # | Prüfpunkt | Status |
 | :-- | :-- | :-: |
-| J1 | Startscreen zeigt 3 Slot-Karten (Kapitän, Tag, NG+, Sektoren; „Leer“ bei freien Slots); aktiver Slot hervorgehoben | ⬜ |
+| J1 | 3 Planeten im Hintergrund (rechts unten) mit Beschriftung (Kapitän, Tag, NG+, Sektoren); aktiver Slot mit Ring; leerer Slot als Stern; Hover vergrößert | ⬜ |
 | J2 | Bestehender Spielstand liegt unverändert in Slot 1 (nach Update nichts verloren) | ⬜ |
-| J3 | Slot 2 wählen → „Expedition starten“ → eigene Welt von vorn; Slot 1 danach unverändert | ⬜ |
-| J4 | Zwischen den Slots wechseln, „Weiterspielen“ lädt jeweils den richtigen Stand (Credits/Tag/Inventar) | ⬜ |
-| J5 | „Neues Spiel“ in einem Slot fragt nach; wirkt nur auf diesen Slot. Slot 1 + Konto: Warnung „Cloud wird überschrieben“ | ⬜ |
-| J6 | „🗑 Slot leeren“ (nur Slot 2/3) mit Bestätigung; Slot 1 hat den Button bewusst nicht (sonst holt die Cloud ihn zurück) | ⬜ |
-| J7 | Mit Konto: Slot 2/3 aktiv → „Cloud laden/sichern“ gesperrt + Hinweis; Slot 1 aktiv → wie bisher | ⬜ |
-| J8 | Mit Konto: Slot 1 wählen holt/gleicht den Cloud-Stand ab (wie beim Login) | ⬜ |
+| J3 | Leeren Slot anklicken → „Expedition starten“ → eigene Welt; andere Slots danach unverändert | ⬜ |
+| J4 | Wechsel zwischen Slots, „Weiterspielen“ lädt jeweils den richtigen Stand (Credits/Tag/Inventar) | ⬜ |
+| J5 | „Neues Spiel“ fragt nach, wirkt nur auf den aktiven Slot; mit Konto Warnung „Cloud-Stand von Slot N wird überschrieben“ | ⬜ |
+| J6 | „🗑 Slot leeren“ nur bei Slot 2/3 (Bestätigung); mit Konto wird auch die Cloud-Kopie gelöscht. Slot 1 hat den Knopf bewusst nicht → dort „Neues Spiel“ | ⬜ |
+| J7 | **Cloud:** Mit Konto in Slot 2 spielen → auf anderem Gerät/Browser anmelden → Slot 2 erscheint als Planet (still aus der Cloud aufgefüllt, wenn lokal leer) | ⬜ |
+| J8 | **Cloud:** Planet wählen holt/gleicht den Cloud-Stand dieses Slots ab; „Cloud-Stand laden“/„Jetzt sichern“ wirken auf den aktiven Slot | ⬜ |
 | J9 | Im Spiel: Einstellungen → „Spielstand zurücksetzen“ wirkt nur auf den aktiven Slot | ⬜ |
-| J10 | Komplett von vorn anfangen **mit Konto**: Slot 1 → „Neues Spiel“ (setzt auch Cloud zurück) | ⬜ |
+| J10 | Komplett von vorn **mit Konto**: pro Slot „Neues Spiel“ (setzt dessen Cloud-Kopie zurück) | ⬜ |
+| J11 | Handy/schmal: Planeten als Reihe unter dem Menü, nichts überlappt die Buttons | ⬜ |
+> Grenzen (bewusst): Konflikte zwischen zwei Geräten löst derselbe Fortschritts-Vergleich wie bisher (weiter fortgeschritten gewinnt). Slot leeren auf Gerät A, während Gerät B noch eine lokale Kopie hat → B kann ihn beim Auswählen wieder hochladen (kein Lösch-Marker). Optional später: echte Planeten-Sprites (`SPRITE_QUEUE`) statt CSS-Planeten.
 
 ## K. Boss-Labor: Angriffe & Stati einzeln durchtesten (neu — Test `t11_lab_attacks`)
 > `…/?bosslab` → Tab **Bosse** bzw. **Gegner** → Boss/Gegner wählen → ganz oben **„<NAME> · ANGRIFFE“** (jeder Zug einzeln, `⏭ Nächster` = der Reihe nach) und **„<NAME> · STATI“**. Pro Zeile prüfen: Vorwarnung (≥ 0,4 s sichtbar), Angriffsgrafik, Pose, Erholung; bei Stati: Beschädigungsstufen, Phase-II-Verwandlung, kritisch < 15 %, Treffer-Reaktion, Tod-Animation. Zusätzlich mit Biom-Knöpfen S1–S4/Ω (Boden-Effekte in fremden Sektoren). Ergebnis je Zeile ✅/❌ + Beobachtung.

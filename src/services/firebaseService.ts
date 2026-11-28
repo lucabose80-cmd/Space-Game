@@ -1,7 +1,7 @@
 import type { FirebaseApp } from 'firebase/app';
 import type { Auth, User } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
-import type { GameState } from '../systems/gameState';
+import type { GameState, SaveSlot } from '../systems/gameState';
 import type { ActivityFeedEntry, LeaderboardEntry, SaveData, WeeklyTrialEntry } from '../types';
 import { sanitizeGreeting } from '../data/ghostGreetings';
 import { DEFAULT_FIREBASE_CONFIG } from './firebaseConfig';
@@ -210,7 +210,6 @@ class FirebaseCloudService {
   /** Debounced cloud save + leaderboard update whenever a logged-in player saves locally */
   public scheduleAutoSync(state: GameState): void {
     if (!this.configured || !this.currentUser || !this.db || !this.sdk) return;
-    if (!state.isCloudSlot()) return;
     if (this.syncTimer !== null) {
       window.clearTimeout(this.syncTimer);
     }
@@ -229,9 +228,6 @@ class FirebaseCloudService {
   }
 
   public async syncAllToCloud(state: GameState): Promise<{ ok: boolean; error?: string }> {
-    if (!state.isCloudSlot()) {
-      return { ok: false, error: 'Nur Spielstand-Slot 1 wird mit der Cloud synchronisiert.' };
-    }
     const sdk = this.sdk;
     if (!this.configured || !this.currentUser || !this.db || !sdk) {
       return { ok: false, error: 'Nicht angemeldet.' };
@@ -239,7 +235,20 @@ class FirebaseCloudService {
     this.syncStatus = 'syncing';
     try {
       const now = Date.now();
+      const slot = state.activeSlot;
       const saveJson = state.exportSaveJson();
+      if (slot !== 1) {
+        // Slot 2/3: eigene Felder im selben Dokument (`saves/{uid}`, Regeln unverändert) — keine Bestenliste/Wochen-Prüfung
+        await sdk.setDoc(
+          sdk.doc(this.db, 'saves', this.currentUser.uid),
+          { [`slot${slot}Json`]: saveJson, [`slot${slot}UpdatedAt`]: now },
+          { merge: true },
+        );
+        this.lastSyncAt = now;
+        this.syncStatus = 'synced';
+        this.lastError = null;
+        return { ok: true };
+      }
       await sdk.setDoc(
         sdk.doc(this.db, 'saves', this.currentUser.uid),
         {
@@ -270,7 +279,8 @@ class FirebaseCloudService {
     }
   }
 
-  public async downloadCloudSave(): Promise<{ ok: boolean; saveJson?: string; updatedAt?: number; error?: string }> {
+  /** Cloud-Spielstand eines Slots (Slot 1 = `saveJson`, Slot 2/3 = `slotNJson`). */
+  public async downloadCloudSave(slot: SaveSlot = 1): Promise<{ ok: boolean; saveJson?: string; updatedAt?: number; error?: string }> {
     const sdk = this.sdk;
     if (!this.configured || !this.currentUser || !this.db || !sdk) {
       return { ok: false, error: 'Nicht angemeldet.' };
@@ -280,11 +290,48 @@ class FirebaseCloudService {
       if (!snap.exists()) {
         return { ok: false, error: 'Noch kein Cloud-Spielstand vorhanden.' };
       }
-      const data = snap.data() as { saveJson?: string; updatedAt?: number };
-      if (!data.saveJson) return { ok: false, error: 'Cloud-Spielstand ist leer.' };
-      return { ok: true, saveJson: data.saveJson, updatedAt: data.updatedAt ?? 0 };
+      const data = snap.data() as Record<string, unknown>;
+      const json = slot === 1 ? data.saveJson : data[`slot${slot}Json`];
+      const at = slot === 1 ? data.updatedAt : data[`slot${slot}UpdatedAt`];
+      if (typeof json !== 'string' || !json) {
+        return { ok: false, error: slot === 1 ? 'Cloud-Spielstand ist leer.' : `Kein Cloud-Spielstand in Slot ${slot}.` };
+      }
+      return { ok: true, saveJson: json, updatedAt: typeof at === 'number' ? at : 0 };
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : 'Download fehlgeschlagen' };
+    }
+  }
+
+  /** Alle Slot-Spielstände der Cloud auf einmal (für das Auffüllen leerer lokaler Slots nach dem Login). */
+  public async downloadAllCloudSlots(): Promise<Partial<Record<SaveSlot, string>>> {
+    const sdk = this.sdk;
+    const out: Partial<Record<SaveSlot, string>> = {};
+    if (!this.configured || !this.currentUser || !this.db || !sdk) return out;
+    try {
+      const snap = await sdk.getDoc(sdk.doc(this.db, 'saves', this.currentUser.uid));
+      if (!snap.exists()) return out;
+      const d = snap.data() as Record<string, unknown>;
+      if (typeof d.saveJson === 'string' && d.saveJson) out[1] = d.saveJson;
+      if (typeof d.slot2Json === 'string' && d.slot2Json) out[2] = d.slot2Json;
+      if (typeof d.slot3Json === 'string' && d.slot3Json) out[3] = d.slot3Json;
+    } catch {
+      // offline/Regel — Slots bleiben lokal
+    }
+    return out;
+  }
+
+  /** Slot 2/3 in der Cloud leeren (sonst holt der Abgleich ihn zurück). */
+  public async deleteCloudSlot(slot: SaveSlot): Promise<void> {
+    const sdk = this.sdk;
+    if (slot === 1 || !this.configured || !this.currentUser || !this.db || !sdk) return;
+    try {
+      await sdk.setDoc(
+        sdk.doc(this.db, 'saves', this.currentUser.uid),
+        { [`slot${slot}Json`]: '', [`slot${slot}UpdatedAt`]: Date.now() },
+        { merge: true },
+      );
+    } catch {
+      // ignorieren
     }
   }
 

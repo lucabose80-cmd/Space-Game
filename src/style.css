@@ -2574,15 +2574,50 @@ body.touch-device #touch-deck.touch-stacked .touch-right {
   }
 }
 
-/* Spielstand-Slots (Startscreen) */
-.ts-slots { display: flex; gap: 8px; width: 100%; margin: 10px 0 6px; }
-.ts-slot {
-  flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 2px; text-align: left;
-  padding: 7px 9px; background: rgba(15, 23, 42, 0.78); border: 1px solid rgba(148, 163, 184, 0.4);
-  color: #cbd5e1; font: inherit; font-size: 11px; cursor: pointer; backdrop-filter: blur(4px);
+/* Spielstand-Slots als Sternbild im Hintergrund (Startscreen) */
+.ts-constellation { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+.ts-const-lines { position: absolute; inset: 0; width: 100%; height: 100%; }
+.ts-const-lines polyline { fill: none; stroke: rgba(253, 230, 138, 0.28); stroke-width: 0.25; stroke-dasharray: 1.2 1.2; vector-effect: non-scaling-stroke; stroke-width: 1; }
+.ts-slot-star {
+  position: absolute; transform: translate(-50%, -50%); pointer-events: auto;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  background: none; border: 0; padding: 4px; cursor: pointer; font: inherit; color: #cbd5e1;
 }
-.ts-slot:hover { border-color: rgba(251, 191, 36, 0.7); }
-.ts-slot.active { border-color: #fbbf24; background: rgba(60, 40, 8, 0.82); color: #fff7e0; }
+.ts-slot-star.s1 { left: 64%; top: 80%; }
+.ts-slot-star.s2 { left: 79%; top: 70%; }
+.ts-slot-star.s3 { left: 92%; top: 80%; }
+.ts-planet {
+  width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-size: 16px; color: #fde68a;
+  box-shadow: 0 0 14px 2px rgba(253, 230, 138, 0.35); transition: transform 0.18s, box-shadow 0.18s;
+  animation: ts-twinkle 3.4s ease-in-out infinite;
+}
+.ts-slot-star.s1 .ts-planet { background: radial-gradient(circle at 32% 30%, #fef3c7 0%, #f59e0b 38%, #92400e 78%, #451a03 100%); }
+.ts-slot-star.s2 .ts-planet { background: radial-gradient(circle at 32% 30%, #ccfbf1 0%, #14b8a6 40%, #115e59 80%, #042f2e 100%); }
+.ts-slot-star.s3 .ts-planet { background: radial-gradient(circle at 32% 30%, #ede9fe 0%, #8b5cf6 40%, #4c1d95 80%, #1e1b4b 100%); }
+.ts-slot-star.empty .ts-planet {
+  width: 30px; height: 30px; background: rgba(15, 23, 42, 0.55); border: 1px dashed rgba(253, 230, 138, 0.6); box-shadow: 0 0 10px rgba(253, 230, 138, 0.25);
+}
+.ts-slot-star:hover .ts-planet, .ts-slot-star:focus-visible .ts-planet { transform: scale(1.14); box-shadow: 0 0 22px 5px rgba(253, 230, 138, 0.6); }
+.ts-slot-star.active .ts-planet { transform: scale(1.22); box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.9), 0 0 26px 6px rgba(251, 191, 36, 0.55); }
+.ts-slot-star.active .ts-planet::after { content: ''; position: absolute; width: 74px; height: 74px; border-radius: 50%; border: 1px solid rgba(251, 191, 36, 0.5); }
+.ts-planet { position: relative; }
+.ts-slot-label {
+  display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 4px 8px; font-size: 11px;
+  background: rgba(8, 12, 28, 0.72); border: 1px solid rgba(148, 163, 184, 0.3); backdrop-filter: blur(3px); min-width: 104px;
+}
+.ts-slot-star.active .ts-slot-label { border-color: #fbbf24; color: #fff7e0; }
 .ts-slot-no { font-size: 9px; letter-spacing: 0.1em; opacity: 0.8; }
-.ts-slot-cap { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ts-slot-meta { font-size: 10px; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ts-slot-cap { font-weight: 700; max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ts-slot-meta { font-size: 10px; opacity: 0.85; white-space: nowrap; }
+@keyframes ts-twinkle { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.22); } }
+@media (max-width: 720px), (max-height: 520px) {
+  /* Schmal/niedrig: Sternbild als Reihe im Fluss statt über der Grafik */
+  .ts-constellation { position: relative; inset: auto; display: flex; justify-content: space-around; align-items: flex-start; min-height: 96px; }
+  .ts-const-lines { display: none; }
+  .ts-slot-star { position: static; transform: none; }
+  .ts-planet, .ts-slot-star.empty .ts-planet { width: 30px; height: 30px; }
+  .ts-slot-star.empty .ts-planet { width: 22px; height: 22px; }
+  .ts-slot-star.active .ts-planet::after { width: 50px; height: 50px; }
+  .ts-slot-label { min-width: 0; font-size: 10px; }
+  .ts-slot-meta { display: none; }
+}

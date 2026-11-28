@@ -3692,7 +3692,7 @@ export class UIManager {
 
     this.modalEl.querySelector('#btn-cloud-download')?.addEventListener('click', () => {
       sound.playUiClick();
-      void firebaseService.downloadCloudSave().then((res) => {
+      void firebaseService.downloadCloudSave(this.state.activeSlot).then((res) => {
         if (res.ok && res.saveJson) {
           const imp = this.state.importSaveJson(res.saveJson);
           if (imp.ok) {

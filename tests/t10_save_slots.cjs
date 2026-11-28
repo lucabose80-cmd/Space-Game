@@ -18,16 +18,16 @@ module.exports = async ({ page }) => {
     g.state.save();
     g.ui.refreshTitle();
   });
-  await page.waitForSelector('.ts-slot');
-  assert.strictEqual(await page.locator('.ts-slot').count(), 3, '3 Slots erwartet');
+  await page.waitForSelector('.ts-slot-star');
+  assert.strictEqual(await page.locator('.ts-slot-star').count(), 3, '3 Slots erwartet');
 
   // Wechsel auf leeren Slot 2 → Frischstart, Slot 1 bleibt unangetastet
-  await page.click('.ts-slot[data-slot="2"]');
+  await page.click('.ts-slot-star[data-slot="2"]');
   let s = await page.evaluate(() => ({
     slot: window.__game.state.activeSlot,
     hasSave: window.__game.state.hasSave(),
     hasContinue: !!document.querySelector('#btn-continue'),
-    cloud: window.__game.state.isCloudSlot(),
+    cloud: window.__game.state.isLeaderboardSlot(),
     credits: window.__game.state.credits,
   }));
   assert.deepStrictEqual(s, { slot: 2, hasSave: false, hasContinue: false, cloud: false, credits: 120 }, JSON.stringify(s));
@@ -44,7 +44,7 @@ module.exports = async ({ page }) => {
   await page.screenshot({ path: path.join(outDir, 'title_slots.png') });
 
   // Zurück auf Slot 1: Alpha unverändert; Slot 2 Vorschau bleibt
-  await page.click('.ts-slot[data-slot="1"]');
+  await page.click('.ts-slot-star[data-slot="1"]');
   s = await page.evaluate(() => ({
     cap: window.__game.state.captainName,
     day: window.__game.state.day,
@@ -58,7 +58,7 @@ module.exports = async ({ page }) => {
   assert.strictEqual(await page.locator('#btn-slot-clear').count(), 0);
 
   // Slot 2 leeren mit Bestätigung
-  await page.click('.ts-slot[data-slot="2"]');
+  await page.click('.ts-slot-star[data-slot="2"]');
   await page.click('#btn-slot-clear');
   await page.waitForSelector('#btn-confirm-clear-yes');
   await page.click('#btn-confirm-clear-no');
@@ -74,8 +74,8 @@ module.exports = async ({ page }) => {
   // Cloud-Sync gilt nur für Slot 1
   const cloud = await page.evaluate(() => {
     const st = window.__game.state;
-    const in2 = (st.switchSlot(2), st.isCloudSlot());
-    const in1 = (st.switchSlot(1), st.isCloudSlot());
+    const in2 = (st.switchSlot(2), st.isLeaderboardSlot());
+    const in1 = (st.switchSlot(1), st.isLeaderboardSlot());
     return { in2, in1 };
   });
   assert.deepStrictEqual(cloud, { in2: false, in1: true });
