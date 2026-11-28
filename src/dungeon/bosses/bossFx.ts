@@ -493,33 +493,55 @@ export class BossFx {
         ctx.restore();
       } else {
         const a = Math.min(1, (1 - kAct) * 2.8);
+        const wPulse = 0.92 + 0.14 * Math.sin(time * 42);
+        const wCore = (z.width ?? 28) * wPulse;
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
-        ctx.globalAlpha = a;
-        if (art.arenaLeviathanBeam) {
-          ctx.save();
-          ctx.translate(z.x, z.y);
-          ctx.rotate(ang);
-          const segW = Math.max(54, bw * 1.1);
-          const scroll = (time * 260) % segW;
-          for (let sx = -scroll; sx < len; sx += segW) {
-            const x0 = Math.max(0, sx);
-            const x1 = Math.min(len, sx + segW);
-            const w = x1 - x0;
-            if (w <= 0.5) continue;
-            ctx.drawImage(art.arenaLeviathanBeam, x0, -bw / 2, w + 1, bw);
-          }
-          ctx.restore();
-        } else {
-          ctx.strokeStyle = z.color;
-          ctx.lineWidth = z.width ?? 16;
+        ctx.lineCap = 'round';
+        // 1. Weiche äußere Plasma-Aura
+        ctx.globalAlpha = 0.28 * a;
+        ctx.strokeStyle = '#f43f5e';
+        ctx.lineWidth = wCore * 1.9;
+        ctx.beginPath();
+        ctx.moveTo(z.x, z.y);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        // 2. Kräftiger orange-roter Energie-Mantel
+        ctx.globalAlpha = 0.72 * a;
+        ctx.strokeStyle = '#fb923c';
+        ctx.lineWidth = wCore * 1.1;
+        ctx.beginPath();
+        ctx.moveTo(z.x, z.y);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        // 3. Gleißender weiß-heißer Reaktor-Kernstrahl
+        ctx.globalAlpha = 0.95 * a;
+        ctx.strokeStyle = '#fffbeb';
+        ctx.lineWidth = wCore * 0.48;
+        ctx.beginPath();
+        ctx.moveTo(z.x, z.y);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        // 4. Schnell vorbeischießende Energie-Schlieren entlang des Strahls
+        ctx.save();
+        ctx.translate(z.x, z.y);
+        ctx.rotate(ang);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.6;
+        for (let i = 0; i < 6; i++) {
+          const u = ((time * 3.2 + i / 6) % 1);
+          const sx = u * len;
+          const sy = Math.sin(i * 2.1 + time * 18) * (wCore * 0.42);
+          ctx.globalAlpha = 0.75 * a * Math.sin(u * Math.PI);
           ctx.beginPath();
-          ctx.moveTo(z.x, z.y);
-          ctx.lineTo(x2, y2);
+          ctx.moveTo(sx, sy);
+          ctx.lineTo(Math.min(len, sx + 28), sy);
           ctx.stroke();
         }
+        ctx.restore();
         if (art.arenaLeviathanMuzzle) {
-          sprite(art.arenaLeviathanMuzzle, z.x, z.y, muzBase * 1.15 + 14 * Math.sin(time * 40), time * 9);
+          ctx.globalAlpha = a;
+          sprite(art.arenaLeviathanMuzzle, z.x, z.y, muzBase * 1.05 + 10 * Math.sin(time * 40), time * 8);
         }
         ctx.restore();
       }

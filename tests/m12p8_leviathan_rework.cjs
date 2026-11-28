@@ -33,6 +33,8 @@ module.exports = async ({ page }) => {
       'arenaLeviathanCrater',
       'arenaLeviathanIrisClosed',
       'arenaLeviathanIrisP2',
+      'arenaLeviathanPoseRaise',
+      'arenaLeviathanPosePlunge',
       'arenaLeviathanVentIntact',
       'arenaLeviathanVentCharge',
     ];

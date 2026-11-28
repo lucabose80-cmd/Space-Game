@@ -778,7 +778,7 @@ export function drawLeviathanArena(ctx: CanvasRenderingContext2D, scene: Dungeon
       ctx.restore();
     }
   }
-  // Kühlventile: große, integrierte Wand-Kühlaggregate (50×50: intakt / überdruck-glühend / zerstört)
+  // Kühlventile: nahtlos im Hintergrund-Kühlschacht integriert (kein aufgeklebtes Fremd-Kästchen!)
   const steamActive = L.state === 'move' && L.move === 'steam';
   const steamTop = L.moveIdx % 2 === 0;
   for (const v of L.vents) {
@@ -787,159 +787,124 @@ export function drawLeviathanArena(ctx: CanvasRenderingContext2D, scene: Dungeon
       if (art.arenaLeviathanVentBroken) {
         ctx.translate(v.x, v.y);
         if (v.x > scene.bounds.cx) ctx.scale(-1, 1);
-        ctx.drawImage(art.arenaLeviathanVentBroken, -24, -24, 48, 48);
+        ctx.drawImage(art.arenaLeviathanVentBroken, -18, -18, 36, 36);
       } else {
         ctx.fillStyle = '#1e293b';
         ctx.fillRect(v.x - 10, v.y - 12, 20, 24);
       }
       ctx.restore();
       ctx.save();
-      ctx.fillStyle = `rgba(148, 163, 184, ${0.3 + 0.2 * Math.sin(t * 5 + v.y)})`;
+      ctx.fillStyle = `rgba(148, 163, 184, ${0.28 + 0.18 * Math.sin(t * 5 + v.y)})`;
       ctx.beginPath();
-      ctx.arc(v.x + (v.x < scene.bounds.cx ? 10 : -10), v.y - 8 - ((t * 20) % 14), 5, 0, Math.PI * 2);
+      ctx.arc(v.x + (v.x < scene.bounds.cx ? 8 : -8), v.y - 8 - ((t * 20) % 14), 5, 0, Math.PI * 2);
       ctx.fill();
     } else {
       const weak = L.phase >= 2;
       const charging = steamActive && (v.y < scene.bounds.cy) === steamTop;
-      const ventSpr = charging ? (art.arenaLeviathanVentCharge ?? art.arenaLeviathanVentIntact) : art.arenaLeviathanVentIntact;
-      if (ventSpr) {
-        ctx.save();
-        const jx = charging ? Math.sin(t * 55 + v.y) * 1.6 : 0;
-        const jy = charging ? Math.cos(t * 48 + v.x) * 1.2 : 0;
-        ctx.translate(v.x + jx, v.y + jy);
-        if (v.x > scene.bounds.cx) ctx.scale(-1, 1);
-        ctx.drawImage(ventSpr, -25, -25, 50, 50);
-        ctx.restore();
-      } else if (!hasBg) {
+      if (!hasBg) {
         ctx.fillStyle = '#0d2536';
         ctx.fillRect(v.x - 10, v.y - 12, 20, 24);
         ctx.fillStyle = weak ? `rgba(56, 232, 212, ${0.6 + 0.4 * pulse})` : '#1e6f6a';
         for (let k = -6; k <= 4; k += 4) ctx.fillRect(v.x - 7, v.y + k, 14, 2);
       }
-      if (weak) {
-        ctx.strokeStyle = `rgba(253, 224, 71, ${0.5 + 0.5 * pulse})`;
-        ctx.lineWidth = 1.2;
+      // Überdruck-Vorwarnung: weiches Aufglühen direkt im eingebauten Kühlschacht
+      if (charging) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        const g = ctx.createRadialGradient(v.x, v.y, 2, v.x, v.y, 26);
+        g.addColorStop(0, `rgba(224, 242, 254, ${0.55 + 0.35 * pulse})`);
+        g.addColorStop(0.5, `rgba(56, 232, 212, ${0.3 + 0.2 * pulse})`);
+        g.addColorStop(1, 'rgba(56, 232, 212, 0)');
+        ctx.fillStyle = g;
         ctx.beginPath();
-        ctx.arc(v.x, v.y, VENT_R + 7 + pulse * 2, 0, Math.PI * 2);
-        ctx.stroke();
-        // kleine HP-Leiste
-        ctx.fillStyle = '#0b1019';
-        ctx.fillRect(v.x - 12, v.y + 20, 24, 3.5);
+        ctx.arc(v.x, v.y, 26, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+      if (weak) {
+        // Dezente Ziel-Klammern & saubere HP-Leiste am Kühlschacht
+        const br = 13 + pulse * 1.5;
+        ctx.strokeStyle = `rgba(253, 224, 71, ${0.5 + 0.45 * pulse})`;
+        ctx.lineWidth = 1.2;
+        for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) {
+          ctx.beginPath();
+          ctx.moveTo(v.x + sx * br, v.y + sy * (br - 5));
+          ctx.lineTo(v.x + sx * br, v.y + sy * br);
+          ctx.lineTo(v.x + sx * (br - 5), v.y + sy * br);
+          ctx.stroke();
+        }
+        ctx.fillStyle = 'rgba(11, 16, 25, 0.85)';
+        ctx.fillRect(v.x - 11, v.y + 16, 22, 3);
         ctx.fillStyle = '#38e8d4';
-        ctx.fillRect(v.x - 12, v.y + 20, 24 * (v.hp / Math.max(1, v.maxHp)), 3.5);
+        ctx.fillRect(v.x - 10.5, v.y + 16.5, 21 * (v.hp / Math.max(1, v.maxHp)), 2);
       }
     }
     ctx.restore();
   }
-  // Arme: A13 zerstörter Arm = abgerissener Schulter-Stumpf-Sprite; angreifbarer/beschädigter Arm = Ring + HP-Leiste
+  // Arme: zerstörter Arm = dezenter Rauch & Funken an der Arm-Seite; steckende Durchbruch-Faust = saubere HP-Leiste (kein harter gelber Kreis!)
   (e.levArms ?? []).forEach((arm, idx) => {
     if (arm.dead) {
       const shX = e.x + arm.side * BODY_SHOULDER_DX;
-      const shY = e.y + LENS_DY + BODY_SHOULDER_DY;
+      const shY = e.y + LENS_DY + BODY_SHOULDER_DY + 28;
       ctx.save();
-      if (art.arenaLeviathanStump) {
-        ctx.translate(shX, shY + 2);
-        if (arm.side > 0) ctx.scale(-1, 1);
-        ctx.drawImage(art.arenaLeviathanStump, -24, -22, 48, 48);
-      } else {
-        ctx.fillStyle = '#0f172a';
-        ctx.beginPath();
-        ctx.arc(shX, shY, 10, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = '#475569';
-        ctx.lineWidth = 1.2;
-        ctx.stroke();
-      }
-      // funkende abgerissene Kabelenden
       ctx.strokeStyle = pulse > 0.5 ? '#fde047' : '#38e8d4';
-      ctx.lineWidth = 1.2;
+      ctx.lineWidth = 1.1;
       for (let k = -1; k <= 1; k++) {
         ctx.beginPath();
-        ctx.moveTo(shX + k * 3, shY + 5);
-        ctx.lineTo(shX + k * 6 + Math.sin(t * 14 + k) * 2.5, shY + 16 + (k === 0 ? 4 : 0));
+        ctx.moveTo(shX + k * 4, shY);
+        ctx.lineTo(shX + k * 7 + Math.sin(t * 15 + k) * 2.5, shY + 12 + (k === 0 ? 4 : 0));
         ctx.stroke();
       }
       ctx.restore();
       return;
     }
-    const weak = armWeak(L, arm);
+    if (!armWeak(L, arm)) return;
     const frac = Math.max(0, Math.min(1, L.armHp[idx] / Math.max(1, L.armMax)));
-    if (!weak && frac >= 0.99) return;
     ctx.save();
-    if (weak) {
-      ctx.strokeStyle = `rgba(253, 224, 71, ${0.55 + 0.45 * pulse})`;
-      ctx.lineWidth = 1.8;
-      ctx.beginPath();
-      ctx.arc(arm.x, arm.y, ARM_R + 12 + pulse * 2.5, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-    // Arm-HP-Leiste (A13): sichtbar wenn angreifbar ODER bereits beschädigt
-    ctx.fillStyle = '#0b1019';
-    ctx.fillRect(arm.x - 18, arm.y + 30, 36, 4);
+    ctx.fillStyle = 'rgba(11, 16, 25, 0.88)';
+    ctx.fillRect(arm.x - 18, arm.y + 27, 36, 4);
     ctx.fillStyle = frac < 0.35 ? '#fb7185' : frac < 0.7 ? '#fb923c' : '#fbbf24';
-    ctx.fillRect(arm.x - 17.5, arm.y + 30.5, 35 * frac, 3);
+    ctx.fillRect(arm.x - 17.5, arm.y + 27.5, 35 * frac, 3);
     ctx.restore();
   });
-  // Kern-Linse: offen (oder beim Omega-Reaktor-Strahl!) = gleißendes Reaktor-Auge + Flare; verriegelt = passende Iris-Blende (P1 / überhitzte P2)
+  // Kern-Linse: bereits voll im Vollposen-Sprite integriert — nur bei offener Linse / Reaktor-Strahl weiches Energie-Aufleuchten!
   const lx = e.x;
   const ly = e.y + LENS_DY;
   const beamFiring = L.state === 'move' && L.move === 'beam';
-  ctx.save();
   if (lensIsOpen(L) || beamFiring) {
-    const flicker = L.critical ? 0.6 + 0.4 * Math.sin(t * 30) : 1;
+    ctx.save();
+    const flicker = L.critical ? 0.65 + 0.35 * Math.sin(t * 30) : 1;
     ctx.globalAlpha = flicker;
     if (art.arenaLeviathanLensFlare) {
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
       ctx.translate(lx, ly);
-      ctx.rotate(t * 0.9);
-      const fsz = (beamFiring ? 62 : 52) + pulse * 10;
+      ctx.rotate(t * 0.85);
+      const fsz = (beamFiring ? 58 : 48) + pulse * 8;
       ctx.drawImage(art.arenaLeviathanLensFlare, -fsz / 2, -fsz / 2, fsz, fsz);
       ctx.restore();
-    } else {
-      ctx.fillStyle = 'rgba(251, 146, 60, 0.35)';
-      ctx.beginPath();
-      ctx.arc(lx, ly, LENS_R + 8 + pulse * 3, 0, Math.PI * 2);
-      ctx.fill();
     }
-    if (lensIsOpen(L)) {
-      ctx.strokeStyle = `rgba(253, 224, 71, ${0.6 + 0.4 * pulse})`;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.arc(lx, ly, LENS_R + 6, 0, Math.PI * 2);
-      ctx.stroke();
-      if (L.phase === 2 && L.lensOpen > 0) {
-        ctx.fillStyle = '#fde047';
-        ctx.font = 'bold 5px Silkscreen, monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText(`LINSE OFFEN ${L.lensOpen.toFixed(1)}`, lx, ly - LENS_R - 12);
-      }
+    if (lensIsOpen(L) && L.phase === 2 && L.lensOpen > 0) {
+      ctx.fillStyle = '#fde047';
+      ctx.font = 'bold 5px Silkscreen, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(`LINSE OFFEN ${L.lensOpen.toFixed(1)}`, lx, ly - LENS_R - 14);
     }
-  } else {
-    const irisSpr = L.phase === 2 ? (art.arenaLeviathanIrisP2 ?? art.arenaLeviathanIrisClosed) : art.arenaLeviathanIrisClosed;
-    if (irisSpr) {
-      ctx.drawImage(irisSpr, lx - 26, ly - 26, 52, 52);
-    } else {
-      ctx.fillStyle = 'rgba(30, 41, 59, 0.85)';
-      ctx.beginPath();
-      ctx.arc(lx, ly, LENS_R, 0, Math.PI * 2);
-      ctx.fill();
-    }
+    ctx.restore();
   }
-  ctx.restore();
 }
 
-/** Boss-Körper-Sprite (P1-10 v2, 300×167 logisch): Kern-Linse bei (150 | 111,5) im Bild, runde Schulter-Buchsen links/rechts bei ±84 / -11. */
-export const BODY_W = 300;
-export const BODY_H = 167;
-const BODY_LENS_X = 150;
-const BODY_LENS_Y = 111.5;
-/** Schulter-Sockel der Hydraulik-Arme relativ zur Linse (exakt Mitte der runden Buchsen im neuen Body-Sprite) */
-export const BODY_SHOULDER_DX = 84;
-export const BODY_SHOULDER_DY = -11;
+/** Vereinheitlichtes Vollposen-Boss-Sprite (320×178 logisch = 640×356 HD): Körper + beide massiven Arme/Fäuste aus einem Guss! */
+export const BODY_W = 320;
+export const BODY_H = 178;
+const BODY_LENS_X = 160;
+const BODY_LENS_Y = 118;
+/** Schulter-Referenz relativ zur Linse (für Funken/Effekte) */
+export const BODY_SHOULDER_DX = 96;
+export const BODY_SHOULDER_DY = -8;
 
 /**
- * Zeichnet den Boss-Körper als Sprite (Zustand je Phase + lebendiges Reaktor-Atmen & Angriffs-Rückstoß).
+ * Zeichnet den kompletten Leviathan als geschlossene Moonlighter-Vollpose (Ruhe / Arm hoch / Arm ins Deck / Phase II / Phase III / Besiegt).
  * Rückgabe false = kein Sprite vorhanden → Renderer zeichnet den alten prozeduralen Körper.
  */
 export function drawLeviathanBody(ctx: CanvasRenderingContext2D, scene: DungeonScene, e: Enemy): boolean {
@@ -948,29 +913,53 @@ export function drawLeviathanBody(ctx: CanvasRenderingContext2D, scene: DungeonS
   const base = art.arenaLeviathanBody;
   if (!L || !base) return false;
   const dead = L.state === 'dead' || e.hp <= 0;
-  const variant = dead ? art.arenaLeviathanBodyDead : L.phase === 3 ? art.arenaLeviathanBodyP3 : L.phase === 2 ? art.arenaLeviathanBodyP2 : null;
-  const img = variant ?? base;
   const t = scene.time;
+
+  // Aktive Arm-Pose prüfen (Ausholen = raise, Ins Deck gerammt = plunge; für rechten Arm horizontal spiegeln!)
+  let activeImg: HTMLCanvasElement | null = null;
+  let flipX = false;
+  let isActionPose = false;
+  if (!dead && e.levArms) {
+    const raising = e.levArms.find((a) => !a.dead && a.state === 'tracking');
+    const plunging = e.levArms.find((a) => !a.dead && (a.state === 'slamming' || a.state === 'grounded'));
+    if (plunging && art.arenaLeviathanPosePlunge) {
+      activeImg = art.arenaLeviathanPosePlunge;
+      flipX = plunging.side > 0;
+      isActionPose = true;
+    } else if (raising && art.arenaLeviathanPoseRaise) {
+      activeImg = art.arenaLeviathanPoseRaise;
+      flipX = raising.side > 0;
+      isActionPose = true;
+    }
+  }
+
+  const phaseImg = dead ? art.arenaLeviathanBodyDead : L.phase === 3 ? art.arenaLeviathanBodyP3 : L.phase === 2 ? art.arenaLeviathanBodyP2 : null;
+  const img = activeImg ?? phaseImg ?? base;
+
   const attacking = !dead && L.state === 'move' && (L.move === 'beam' || L.move === 'pulse' || L.move === 'glow' || L.move === 'grab');
-  const breathY = dead ? 0 : Math.sin(t * (L.critical ? 7.5 : L.phase === 3 ? 5.0 : 2.6)) * (L.critical ? 2.2 : 1.3);
-  const vibX = attacking ? Math.sin(t * 48) * 1.4 : L.critical && !dead ? Math.sin(t * 36) * 0.9 : 0;
-  const recoilY = attacking ? Math.sin(t * 14) * 1.6 : 0;
-  const x = Math.round(e.x - BODY_LENS_X + vibX);
-  const y = Math.round(e.y + LENS_DY - BODY_LENS_Y + breathY + recoilY);
+  const breathY = dead ? 0 : Math.sin(t * (L.critical ? 7.5 : L.phase === 3 ? 5.0 : 2.4)) * (L.critical ? 2.0 : 1.2);
+  const vibX = attacking ? Math.sin(t * 48) * 1.4 : L.critical && !dead ? Math.sin(t * 36) * 0.8 : 0;
+  const recoilY = attacking ? Math.sin(t * 14) * 1.4 : 0;
+  const cx = Math.round(e.x + vibX);
+  const topY = Math.round(e.y + LENS_DY - BODY_LENS_Y + breathY + recoilY);
+
   ctx.save();
   if (e.flashTimer > 0) ctx.filter = 'brightness(1.9)';
-  else if (dead && !variant) ctx.filter = 'brightness(0.55) saturate(0.6)';
-  ctx.drawImage(img, x, y, BODY_W, BODY_H);
+  else if (dead && !phaseImg) ctx.filter = 'brightness(0.55) saturate(0.6)';
+  ctx.translate(cx, topY);
+  if (flipX) ctx.scale(-1, 1);
+  ctx.drawImage(img, -BODY_LENS_X, 0, BODY_W, BODY_H);
   ctx.filter = 'none';
-  // Ohne eigenes Zustands-Bild: Phase II = rote Überhitzung, Phase III = gleißender Kern
-  if (!variant && !dead && L.phase >= 2) {
+  // Wenn eine Phase-I-Action-Pose in Phase II/III gezeigt wird: warmes Reaktor-Glühen drüberlegen
+  if (isActionPose && !dead && L.phase >= 2) {
     ctx.globalCompositeOperation = 'lighter';
-    const a = L.phase === 3 ? 0.22 + 0.12 * Math.sin(t * 9) : 0.12 + 0.08 * Math.sin(t * 6);
-    const g = ctx.createRadialGradient(e.x, e.y + LENS_DY, 6, e.x, e.y + LENS_DY, L.phase === 3 ? 120 : 90);
-    g.addColorStop(0, `rgba(251, 113, 133, ${a + 0.25})`);
-    g.addColorStop(1, 'rgba(251, 113, 133, 0)');
+    const a = L.phase === 3 ? 0.2 + 0.1 * Math.sin(t * 9) : 0.14 + 0.06 * Math.sin(t * 6);
+    const g = ctx.createRadialGradient(0, BODY_LENS_Y, 8, 0, BODY_LENS_Y, 130);
+    g.addColorStop(0, `rgba(251, 113, 133, ${a + 0.2})`);
+    g.addColorStop(0.5, `rgba(251, 146, 60, ${a})`);
+    g.addColorStop(1, 'rgba(251, 146, 60, 0)');
     ctx.fillStyle = g;
-    ctx.fillRect(x, y, BODY_W, BODY_H);
+    ctx.fillRect(-BODY_LENS_X, 0, BODY_W, BODY_H);
   }
   ctx.restore();
   return true;

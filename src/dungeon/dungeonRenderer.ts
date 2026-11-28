@@ -18,7 +18,7 @@ import { getInfusionDef, RIFT_MUTATORS } from '../data/infusions';
 import { getItemDef } from '../data/items';
 import { VIRTUAL_HEIGHT, VIRTUAL_WIDTH, type InputManager } from '../engine/input';
 import { renderArenaFloor } from './arenaFloor';
-import { BODY_SHOULDER_DX, BODY_SHOULDER_DY, drawArenaBanner, drawLeviathanArena, drawLeviathanBody } from './bosses/leviathanArena';
+import { BODY_SHOULDER_DX, drawArenaBanner, drawLeviathanArena, drawLeviathanBody } from './bosses/leviathanArena';
 import { drawEdgeMarkers, offscreenMarkers } from './edgeIndicators';
 import {
   roomKey,
@@ -2967,168 +2967,108 @@ export class DungeonRenderer {
     ctx.restore();
 
     }
-    // 2. Fixed-Length 2-Bone IK Hydraulic Arms + Moonlighter Reaktor-Boden-Durchbruch + 5-State Rotating Gauntlets!
+    // 2. Leviathan-Arme: In der Arena (spriteBody) sind beide Arme Teil der Vollpose — nur beim Boden-Durchbruch bricht die Faust aus dem Krater!
     if (e.levArms) {
       const art = getHDArt();
       const L = e.levArena;
       e.levArms.forEach((arm, armIdx) => {
-        if (arm.dead) return; // M12: zerstörter Kranarm
-        const shX = spriteBody ? e.x + arm.side * BODY_SHOULDER_DX : cx + arm.side * 66;
-        const shY = spriteBody ? e.y + 6 + BODY_SHOULDER_DY : cy + 6;
+        if (arm.dead) return;
         const grounded = arm.state === 'grounded';
         const slamming = arm.state === 'slamming';
         const tracking = arm.state === 'tracking';
-        const beaming = arm.state === 'beam';
         const armFrac = L ? L.armHp[armIdx] / Math.max(1, L.armMax) : 1;
 
-        // Ist die Faust beim Boden-Durchbruch weit weg in der Halle? Dann rammt der feste Arm vorn ins Deck (KEIN Stretching!)
-        const breachMode = spriteBody && (tracking || slamming || grounded);
-        const plungeX = arm.homeX;
-        const plungeY = tracking ? arm.homeY - 12 + Math.sin(this.scene.time * 24) * 2 : arm.homeY + 18;
-        const handX = breachMode ? plungeX : arm.x;
-        const handY = breachMode ? plungeY : arm.y;
-
-        ctx.save();
-        // Echte 2-Bone-IK mit festen, massiven Titanen-Segmentlängen (L1=46, L2=42) — NIE gestretcht!
-        const L1 = 46;
-        const L2 = 42;
-        const dx = handX - shX;
-        const dy = handY - shY;
-        const rawDist = Math.max(6, Math.hypot(dx, dy));
-        const dist = Math.min(L1 + L2 - 2, rawDist);
-        const baseAng = Math.atan2(dy, dx);
-        const cosA = Math.max(-1, Math.min(1, (L1 * L1 + dist * dist - L2 * L2) / (2 * L1 * dist)));
-        // Ellbogen winkelt realistisch nach außen ab (links: +, rechts: -)
-        const elbAng = baseAng + (arm.side < 0 ? 1 : -1) * Math.acos(cosA);
-        const elbX = shX + Math.cos(elbAng) * L1;
-        const elbY = shY + Math.sin(elbAng) * L1;
-        const wristX = shX + (dx / rawDist) * dist;
-        const wristY = shY + (dy / rawDist) * dist;
-
-        const drawBone = (ax: number, ay: number, bx: number, by: number, thickness: number): void => {
-          const ldx = bx - ax;
-          const ldy = by - ay;
-          const ldist = Math.hypot(ldx, ldy);
-          if (ldist < 2) return;
-          const ang = Math.atan2(ldy, ldx);
-          const segImg = art.arenaLeviathanArmSeg ?? art.arenaLeviathanCable;
-          if (spriteBody && segImg) {
-            ctx.save();
-            ctx.translate(ax, ay);
-            ctx.rotate(ang);
-            ctx.drawImage(segImg, -4, -thickness / 2, ldist + 8, thickness);
-            ctx.restore();
-          } else {
-            ctx.strokeStyle = '#64748b';
-            ctx.lineWidth = 8;
-            ctx.beginPath();
-            ctx.moveTo(ax, ay);
-            ctx.lineTo(bx, by);
-            ctx.stroke();
-            ctx.strokeStyle = enraged ? '#fb7185' : '#38e8d4';
-            ctx.lineWidth = 1.6;
-            ctx.stroke();
-          }
-        };
-
-        // Boden-Durchbruch-Schacht vorn am Leviathan, wenn der Arm ins Deck gerammt ist
-        if (breachMode && (slamming || grounded) && art.arenaLeviathanCrater) {
-          ctx.drawImage(art.arenaLeviathanCrater, wristX - 32, wristY - 12, 64, 44);
-        }
-        // Unterirdische glühende Riss-Spur vom Leviathan-Deck zum Durchbruch-Punkt beim Spieler
-        if (breachMode && (tracking || slamming)) {
+        if (spriteBody) {
+          // Im Ruhezustand / Laser / Rückkehr sind beide Arme 100 % Teil der geschlossenen Vollpose — nichts drübermalen!
+          if (!tracking && !slamming && !grounded) return;
           ctx.save();
-          ctx.globalCompositeOperation = 'lighter';
-          ctx.strokeStyle = '#fb923c';
-          ctx.lineWidth = tracking ? 2.6 : 4.2;
-          ctx.globalAlpha = tracking ? 0.5 : 0.85;
-          ctx.beginPath();
-          ctx.moveTo(wristX, wristY + 4);
-          for (let s = 1; s <= 6; s++) {
-            const u = s / 6;
-            const j = s < 6 ? Math.sin(this.scene.time * 26 + s * 2.3 + arm.side) * 6 : 0;
-            ctx.lineTo(wristX + (arm.targetX - wristX) * u + j, wristY + (arm.targetY - wristY) * u);
-          }
-          ctx.stroke();
-          ctx.restore();
-        }
-
-        // Massiver gepanzerter Oberarm (38 px) + Unterarm (34 px)
-        drawBone(shX, shY, elbX, elbY, 38);
-        drawBone(elbX, elbY, wristX, wristY, 34);
-
-        // Schulter- (44 px) & Ellbogen-Kugelgelenke (36 px)
-        const drawJoint = (jx: number, jy: number, sz: number): void => {
-          if (spriteBody && art.arenaLeviathanArmJoint) {
-            ctx.drawImage(art.arenaLeviathanArmJoint, jx - sz / 2, jy - sz / 2, sz, sz);
-          } else {
-            ctx.fillStyle = '#1e293b';
+          if (tracking || slamming) {
+            // Glühende Riss-Spur läuft unterirdisch von der Brüstung zum Durchbruch-Punkt
+            const ox = e.x + arm.side * BODY_SHOULDER_DX;
+            const oy = e.y + 44;
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.strokeStyle = '#fb923c';
+            ctx.lineWidth = tracking ? 2.2 : 3.6;
+            ctx.globalAlpha = tracking ? 0.5 : 0.85;
             ctx.beginPath();
-            ctx.arc(jx, jy, sz * 0.35, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = enraged ? '#fb7185' : '#94a3b8';
-            ctx.lineWidth = 1.4;
+            ctx.moveTo(ox, oy);
+            for (let s = 1; s <= 6; s++) {
+              const u = s / 6;
+              const j = s < 6 ? Math.sin(this.scene.time * 26 + s * 2.3 + arm.side) * 5 : 0;
+              ctx.lineTo(ox + (arm.targetX - ox) * u + j, oy + (arm.targetY - oy) * u);
+            }
             ctx.stroke();
+            ctx.restore();
           }
-        };
-        drawJoint(shX, shY, 44);
-        drawJoint(elbX, elbY, 36);
-
-        // Faust-Position: im Normal-/Beam-Modus am Handgelenk, bei Boden-Durchbruch (slamming/grounded) bricht die 68-px-Titanenfaust aus dem Boden!
-        const fistX = breachMode && !tracking ? arm.x : wristX;
-        const fistY = breachMode && !tracking ? arm.y : wristY;
-
-        // Einschlagskrater + Bodenschatten unter der gigantischen Faust
-        if (grounded && spriteBody && art.arenaLeviathanCrater) {
-          ctx.drawImage(art.arenaLeviathanCrater, fistX - 42, fistY - 12, 84, 58);
+          if (slamming || grounded) {
+            // Durchbruch-Krater am Boden + hervorschnellende geballte Titanen-Faust mit Schadensstufen
+            const pop = slamming ? Math.max(0, Math.min(1, 1 - arm.timer / 0.16)) : 1;
+            const fx = arm.x;
+            const fy = arm.y + (1 - pop) * 14;
+            if (art.arenaLeviathanCrater) {
+              ctx.drawImage(art.arenaLeviathanCrater, fx - 38, arm.y - 10, 76, 52);
+            }
+            drawPixelShadow(ctx, fx, arm.y + 18, 24, 8, 0.55);
+            const hammerSpr =
+              armFrac < 0.35
+                ? (art.arenaLeviathanHammerCrit ?? art.arenaLeviathanHammerDmg ?? art.arenaLeviathanHammer)
+                : armFrac < 0.7
+                  ? (art.arenaLeviathanHammerDmg ?? art.arenaLeviathanHammer)
+                  : (art.arenaLeviathanHammerGrounded ?? art.arenaLeviathanHammer);
+            if (hammerSpr) {
+              ctx.translate(fx, fy);
+              if (arm.side > 0) ctx.scale(-1, 1);
+              if (flash) ctx.filter = 'brightness(1.9)';
+              const sz = 58;
+              ctx.drawImage(hammerSpr, -sz / 2, -sz / 2, sz, sz);
+              ctx.filter = 'none';
+            }
+          }
+          ctx.restore();
+          return;
         }
-        drawPixelShadow(ctx, fistX, fistY + 24, grounded ? 30 : 22, grounded ? 10 : 6.5, grounded ? 0.6 : 0.38);
 
-        // Gigantische geballte Titanen-Faust (68 px) — Schadensstufen IMMER sichtbar (< 35 % kritisch, < 70 % beschädigt)!
-        const hammerSpr = spriteBody
-          ? armFrac < 0.35
-            ? (art.arenaLeviathanHammerCrit ?? art.arenaLeviathanHammerDmg ?? art.arenaLeviathanHammer)
-            : armFrac < 0.7
-              ? (art.arenaLeviathanHammerDmg ?? art.arenaLeviathanHammer)
-              : grounded
-                ? (art.arenaLeviathanHammerGrounded ?? art.arenaLeviathanHammer)
-                : art.arenaLeviathanHammer
-          : null;
-        if (hammerSpr) {
-          ctx.translate(fistX, fistY);
-          if (arm.side > 0) ctx.scale(-1, 1);
-          if (flash) ctx.filter = 'brightness(2.0)';
-          const sz = grounded ? 72 : 66;
-          ctx.drawImage(hammerSpr, -sz / 2, -sz / 2, sz, sz);
-          ctx.filter = 'none';
-        } else {
-          ctx.translate(fistX, fistY);
-          const fistFill = flash ? '#ffffff' : grounded ? '#92400e' : '#334155';
-          ctx.fillStyle = fistFill;
-          ctx.fillRect(-15, -13, 30, 26);
-          ctx.strokeStyle = slamming || enraged ? '#fb7185' : grounded ? '#fde047' : '#38e8d4';
-          ctx.lineWidth = grounded ? 1.8 : 1.2;
-          ctx.strokeRect(-15, -13, 30, 26);
-          ctx.fillStyle = '#1e293b';
-          ctx.fillRect(-12, 7, 6, 7);
-          ctx.fillRect(-3, 8, 6, 7);
-          ctx.fillRect(6, 7, 6, 7);
-          ctx.fillStyle = enraged ? '#fb7185' : grounded ? '#fde047' : '#38e8d4';
-          ctx.beginPath();
-          ctx.arc(0, -1, 5.5, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(-2, -3, 4, 4);
-        }
+        // Standardraum-Rückfall (ohne Vollposen-Body-Sprite): alter prozeduraler Arm
+        const shX = cx + arm.side * 66;
+        const shY = cy + 6;
+        ctx.save();
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(shX, shY);
+        ctx.lineTo(arm.x, arm.y);
+        ctx.stroke();
+        ctx.strokeStyle = enraged ? '#fb7185' : '#38e8d4';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+        drawPixelShadow(ctx, arm.x, arm.y + 18, grounded ? 21 : 15, grounded ? 7 : 4.5, grounded ? 0.58 : 0.35);
+        ctx.translate(arm.x, arm.y);
+        const fistFill = flash ? '#ffffff' : grounded ? '#92400e' : '#334155';
+        ctx.fillStyle = fistFill;
+        ctx.fillRect(-15, -13, 30, 26);
+        ctx.strokeStyle = slamming || enraged ? '#fb7185' : grounded ? '#fde047' : '#38e8d4';
+        ctx.lineWidth = grounded ? 1.8 : 1.2;
+        ctx.strokeRect(-15, -13, 30, 26);
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(-12, 7, 6, 7);
+        ctx.fillRect(-3, 8, 6, 7);
+        ctx.fillRect(6, 7, 6, 7);
+        ctx.fillStyle = enraged ? '#fb7185' : grounded ? '#fde047' : '#38e8d4';
+        ctx.beginPath();
+        ctx.arc(0, -1, 5.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(-2, -3, 4, 4);
         ctx.restore();
 
         drawGlow(
           ctx,
-          fistX,
-          fistY,
-          beaming ? 34 : grounded ? 32 : 22,
-          beaming ? '#fb7185' : grounded ? '#fde047' : armFrac < 0.35 ? '#fb923c' : enraged ? '#fb7185' : '#38e8d4',
-          beaming ? 0.5 : grounded ? 0.42 : 0.24,
+          arm.x,
+          arm.y,
+          grounded ? 26 : 18,
+          grounded ? '#fde047' : enraged ? '#fb7185' : '#38e8d4',
+          grounded ? 0.45 : 0.25,
         );
       });
     }
