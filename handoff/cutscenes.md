@@ -70,8 +70,18 @@
 
 ---
 
-## 4. Sinnvolle nächste Schritte (erst nach Abnahme / auf Wunsch)
+## 4. Ausbau: Story-, Feier-, Gehilfin- & Upgrade-Cutscenes (in Arbeit · Antigravity)
 
-- **Kurz-Modus ab Run #2:** Optionales Save-Feld `seenCutscenes?: string[]` (kompatibel zu Save v11) + Schalter in den Geräte-Einstellungen, damit häufige Runs auf Wunsch kürzer/direkter laufen.
-- **Spielstart-Intro & Story-Höhepunkte:** Wiederverwendbarer Panel-Cutscene-Player (3–4 Pixel-Art-Panels mit leichtem Zoom, Partikeln & Schreibmaschinen-Text) für Ankunft auf Port Solaris, Öffnen des 5. Tors & Omega-Finale — wieder abspielbar über die Chronik im Logbuch.
-- **Boss-Auftritte (M12 `A6`):** Kino-Balken + `DungeonCamera.focus()` + Boss-Titelbanner bei Erstbegegnung.
+> **Entscheidungen des Projektinhabers (2026-11-28):**
+> - **Stil:** Mix aus 16:9 Pixel-Art-Kino-Panels (Spielstart & große Story-Momente) + Live-Regie auf Port Solaris (Siegesfeiern, Gehilfin, Upgrades).
+> - **Kaels Gehilfin (Mina):** Kommt nach Sektor 1 / Kaels Kapitel-1-Gespräch dauerhaft als eigenes Sprite (`npc_mina.png`) an die zweite Werkbank neben Kael — inkl. eigener Einzugs-Cutscene.
+> - **Upgrade-Cutscenes:** Knackig (~2 s, überspringbar) bei großen Meilensteinen (neue Waffe, Laden-Ausbau, neues Schiff) + schnelle Funken-Mini-Animation (~1 s) bei normalen Stufen-Upgrades + optionaler Kurz-Modus in den Geräte-Einstellungen.
+
+### Checkliste (Etappen 1–4)
+- [ ] **Etappe 0 (Sprites `P3-48`–`P3-54`):** 4 Intro-Panels (`cutscene_intro_1..4.png`), 2 Story-Panels (`cutscene_story_gate5.png`, `cutscene_story_omega.png`), 1 NPC-Sprite (`npc_mina.png`) generiert, geprüft & in `artLoader.ts` registriert.
+- [ ] **Etappe 1 (Kino-Panel-Player & Spielstart-Intro):** `src/scenes/StoryPanelCutscene.ts`, `SaveData.seenCutscenes?`, `DeviceSettings.shortCutscenes`, Intro beim Neustart + Chronik-Wiederholung im Logbuch.
+- [ ] **Etappe 2 (Live-Regie auf Port Solaris — Siegesfeiern & Story-Höhepunkte):** `src/scenes/HubCutsceneOverlay.ts` für Sektor-1-Siegesfeier nach A.E.G.I.S. Leviathan (Lichterketten gehen an, NPCs versammeln sich, Trophäe, Konfetti/Feuerwerk) + S2–S4-Feiern + Omega-Fest + 5.-Tor-/Omega-Panels.
+- [ ] **Etappe 3 (Kaels Gehilfin Mina):** Dauerhaftes Sprite `npc_mina.png` an Kaels zweiter Werkbank in `HubScene.ts`/`hubEvolution.ts` + Live-Einzugs-Cutscene (`story_mina_arrives`) nach Sektor 1 / `kael_c1`.
+- [ ] **Etappe 4 (Upgrade-Cutscenes):** `src/scenes/UpgradeCutsceneOverlay.ts` (Amboss-Hämmern & Waffen-Enthüllung, Laden-Ausbau, Schiff-Enthüllung, schnelle Stufen-Funken-Mini-Animation) verdrahtet in `UIManager.ts`/`main.ts`.
+- [ ] **Tests & Sichtprüfung:** Eigener Playwright-Test `tests/cutscene_story.cjs` + `npm run verify` grün + Screenshots in `tests/out/` geprüft.
+
