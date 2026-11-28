@@ -78,6 +78,9 @@ export interface HDArtAssets {
   vitrineT1: HTMLCanvasElement | null;
   vitrineT2: HTMLCanvasElement | null;
   vitrineT3: HTMLCanvasElement | null;
+  marketBar: HTMLCanvasElement | null;
+  marketGuild: HTMLCanvasElement | null;
+  marketBank: HTMLCanvasElement | null;
   propTrophyLeviathan: HTMLCanvasElement | null;
   /** M12 Phase C: Arena-Boden & Boss-Wand (optional, Fallback arenaFloor.ts) */
   arenaLeviathanBg: HTMLCanvasElement | null;
@@ -322,6 +325,9 @@ const art: HDArtAssets = {
   vitrineT1: null,
   vitrineT2: null,
   vitrineT3: null,
+  marketBar: null,
+  marketGuild: null,
+  marketBank: null,
   propTrophyLeviathan: null,
   arenaLeviathanBg: null,
   arenaLeviathanWall: null,
@@ -541,6 +547,9 @@ export const WORLD_OPTIONAL_SPRITES = {
   vitrineT1: 'vitrine_t1',
   vitrineT2: 'vitrine_t2',
   vitrineT3: 'vitrine_t3',
+  marketBar: 'market_bar',
+  marketGuild: 'market_guild',
+  marketBank: 'market_bank',
 } as const;
 export type WorldSpriteKey = keyof typeof WORLD_OPTIONAL_SPRITES;
 
@@ -953,6 +962,7 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
     art[k] = imgToCanvas(m10Imgs[i]);
   });
 
+  art.marketTerraceBg = await loadImage('/art/market_terrace_bg.png');
   const worldKeys = Object.keys(WORLD_OPTIONAL_SPRITES) as WorldSpriteKey[];
   const worldImgs = await Promise.all(worldKeys.map((k) => loadImage(`/art/sprites/${WORLD_OPTIONAL_SPRITES[k]}.png`)));
   worldKeys.forEach((k, i) => {

@@ -13,7 +13,8 @@
 - [x] P1c Kompass-Hologramm → bündiges Boden-Medaillon (`hub_bg`); `drawSpriteFoot` (`hubEvolution.ts`) setzt die sichtbare Unterkante exakt auf den Fußpunkt + Kontaktschatten (`spriteFootBottom`); SaleBox, gelandete Kapsel ebenfalls
 - [x] P2 Laden: Vitrinen je Stufe (`vitrine_t1..3`, `renderPedestal`), Intro-Look; ⬜ Sternenlampe/Schlüssel aus Intro-Panel als Deko, `shop_bg_t2` prüfen
 - [x] Truhen: futuristische Panzer-Kiste (offen/zu), Glut solange Beute drin ist; ⬜ Öffnen-Animation (Deckel springt auf)
-- [ ] ⬜ Offset-Audit: Pods/Drops/Kristall-Spire/Backroom/Markt-Terrasse/Hangar-Schiffe (nächster Schritt: weitere `drawPixelShadow` neben `drawImage` auf `drawContactShadow` umstellen)
+- [x] Offset-Audit erledigt (Hub-Props, Laden, Truhen, Pods, Kapsel, Marktterrasse). Rest: Quartier & Hangar-Schiffe sind in Hintergrund/Sprites verankert (geprüft, ok). Alt: Pods/Drops/Kristall-Spire/Backroom/Markt-Terrasse/Hangar-Schiffe (nächster Schritt: weitere `drawPixelShadow` neben `drawImage` auf `drawContactShadow` umstellen)
+- [x] Marktterrasse komplett neu: `public/art/market_terrace_bg.png` + Sprites `market_bar/guild/bank.png` (vorher nur Rechtecke im Nichts); Deck-Grenzen an Geländer angepasst (`DECK_BOTTOM 186`), HUD-Hinweis für `market_terrace`; Hangar-Tür neu (Statuslicht, Schild).
 - [ ] P3 … P6 (siehe oben)
 
 ## Praxis-Learnings
@@ -27,3 +28,4 @@
 8. **Koordinaten der Szenen sind logisch 480×270 (Anzeige 2×):** Sprite-Zielgrößen in logischen px wählen (Spieler 24×28; Vitrine 32×42, Truhe 34×34), nicht in Screenshot-px.
 9. Bodenverankerung = (a) frontale Kamera, (b) Sprite-Unterkante exakt auf Fußpunkt, (c) `drawContactShadow` (3 Lagen, breiter als die Standfläche, Alpha ~0.7), (d) Leuchten am Boden als flache Ellipse `drawFloorGlow` statt Kugel-`drawGlow`.
 10. Vitrine: Ware schwebt IM Glaswürfel; Glas-Overlay (obere 56 % des Sprites, Alpha 0.28) wird über die Ware gelegt.
+11. Hintergrund-Rezept für neue Szenen: Szene als 16:9-Bild mit Rahmen wie `hub_bg` erzeugen (Prompt: Layout in %-Angaben, „deck EMPTY where counters go“), Theken/Props separat als frontale Sprites auf Weiß (`scripts/white-to-alpha.py`-Logik), im Code zweigeteilt zeichnen (oberer Teil → NPC → unterer Teil), damit der NPC hinter der Theke steht. `gen-sheet.py` kennt kein Seitenverhältnis 2:1 (→ 3:2 nehmen).

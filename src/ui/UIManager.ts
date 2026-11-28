@@ -514,6 +514,10 @@ export class UIManager {
                     ? `<span><kbd>WASD</kbd>Raumhafen</span>
                        <span><kbd>E</kbd>Schiff besteigen / Docks / 5. Tor</span>
                        <span><kbd>I</kbd>Fracht &amp; Waffen</span>`
+                    : this.currentScene === 'market_terrace'
+                      ? `<span><kbd>WASD</kbd>Terrasse</span>
+                         <span><kbd>E</kbd>Alchemie-Bar / Gilde / Handelsbank / zurück</span>
+                         <span><kbd>I</kbd>Fracht &amp; Codex</span>`
                     : `<span><kbd>LMB/J</kbd>${wMeta.shortName}</span>
                        <span><kbd>RMB/K</kbd>${this.state.equippedWeapon === 'blade' ? 'Schild' : 'Spezial'}</span>
                        <span><kbd>C</kbd>Wechseln</span>

@@ -1,5 +1,5 @@
 import { getHDArt } from '../assets/artLoader';
-import { drawGlow, drawPixelShadow } from '../assets/pixelArt';
+import { drawContactShadow, drawFloorGlow, drawGlow, drawPixelShadow } from '../assets/pixelArt';
 import { getAtlas } from '../assets/sprites';
 import { ALCHEMY_BUFFS } from '../data/guildMarket';
 import { sound } from '../engine/audio';
@@ -28,8 +28,8 @@ interface Particle {
 
 const DECK_LEFT = 68;
 const DECK_RIGHT = 412;
-const DECK_TOP = 104;
-const DECK_BOTTOM = 224;
+const DECK_TOP = 102;
+const DECK_BOTTOM = 186; // Geländer des generierten Hintergrunds liegt bei y ≈ 196
 
 const HUB_RETURN_POS = { x: 240, y: 106 };
 const ALCHEMY_BAR_POS = { x: 132, y: 152 };
@@ -265,18 +265,20 @@ export class MarketTerraceScene {
       ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
     }
 
-    // Twinkling stars in upper & lower starfield vistas
-    for (const s of this.stars) {
+    // Twinkling stars in upper & lower starfield vistas (nur beim prozeduralen Fallback — das Bild hat eigene Sterne)
+    for (const s of art.marketTerraceBg ? [] : this.stars) {
       const a = 0.25 + 0.75 * Math.max(0, Math.sin(this.time * 2.5 + s.phase));
       ctx.fillStyle = `rgba(255, 250, 224, ${a * (isNight ? 1.0 : 0.78)})`;
       ctx.fillRect(s.x, s.y, isNight ? 1.8 : 1.4, isNight ? 1.8 : 1.4);
     }
 
     // Ambient station glows
-    drawGlow(ctx, ALCHEMY_BAR_POS.x, ALCHEMY_BAR_POS.y - 4, 42, '#34d399', 0.24 + pulse * 0.1);
-    drawGlow(ctx, GUILD_SHOWCASE_POS.x, GUILD_SHOWCASE_POS.y - 4, 34, '#fbbf24', 0.22 + pulse * 0.08);
-    drawGlow(ctx, TRADE_BANK_POS.x, TRADE_BANK_POS.y - 4, 42, '#fde047', 0.24 + pulse * 0.1);
-    drawGlow(ctx, HUB_RETURN_POS.x, HUB_RETURN_POS.y - 8, 28, '#38e8d4', 0.22 + pulse * 0.08);
+    if (!art.marketTerraceBg) {
+      drawGlow(ctx, ALCHEMY_BAR_POS.x, ALCHEMY_BAR_POS.y - 4, 42, '#34d399', 0.24 + pulse * 0.1);
+      drawGlow(ctx, GUILD_SHOWCASE_POS.x, GUILD_SHOWCASE_POS.y - 4, 34, '#fbbf24', 0.22 + pulse * 0.08);
+      drawGlow(ctx, TRADE_BANK_POS.x, TRADE_BANK_POS.y - 4, 42, '#fde047', 0.24 + pulse * 0.1);
+      drawGlow(ctx, HUB_RETURN_POS.x, HUB_RETURN_POS.y - 8, 28, '#38e8d4', 0.22 + pulse * 0.08);
+    }
 
     // Depth-sorted entities: NPCs, kiosks, player
     type Drawable = { y: number; draw: () => void };
@@ -389,6 +391,21 @@ export class MarketTerraceScene {
     const y = ALCHEMY_BAR_POS.y;
     const bob = Math.sin(this.time * 3.1) * 0.6;
 
+    if (art.marketBar) {
+      // Sprite: Regal (oberer Teil) → Milo → Thekenkörper (unterer Teil), Unterkante bei y + 12
+      const bw = 88;
+      const bh = Math.round((bw * art.marketBar.height) / art.marketBar.width);
+      const bx = x - bw / 2;
+      const by = y + 12 - bh;
+      const split = 0.5;
+      drawFloorGlow(ctx, x, y + 11, 44, '#34d399', 0.12 + pulse * 0.05);
+      drawContactShadow(ctx, art.marketBar, bx, by, bw, bh, 0.75);
+      ctx.drawImage(art.marketBar, 0, 0, art.marketBar.width, art.marketBar.height * split, bx, by, bw, bh * split);
+      if (art.npcWanderer) ctx.drawImage(art.npcWanderer, x - 12, y - 30 + bob, 24, 28);
+      ctx.drawImage(art.marketBar, 0, art.marketBar.height * split, art.marketBar.width, art.marketBar.height * (1 - split), bx, by + bh * split, bw, bh * (1 - split));
+      return;
+    }
+
     // Barkeeper Milo behind counter
     if (art.npcWanderer) {
       ctx.drawImage(art.npcWanderer, x - 12, y - 34 + bob, 24, 28);
@@ -421,8 +438,18 @@ export class MarketTerraceScene {
   }
 
   private renderGuildShowcase(ctx: CanvasRenderingContext2D, pulse: number): void {
+    const art = getHDArt();
     const x = GUILD_SHOWCASE_POS.x;
     const y = GUILD_SHOWCASE_POS.y;
+    if (art.marketGuild) {
+      const gw = 34;
+      const gh = Math.round((gw * art.marketGuild.height) / art.marketGuild.width);
+      drawFloorGlow(ctx, x, y + 11, 24, '#fbbf24', 0.12 + pulse * 0.05);
+      drawContactShadow(ctx, art.marketGuild, x - gw / 2, y + 12 - gh, gw, gh, 0.75);
+      ctx.drawImage(art.marketGuild, x - gw / 2, y + 12 - gh, gw, gh);
+      drawGlow(ctx, x, y - 14, 12, '#fbbf24', 0.14 + pulse * 0.08);
+      return;
+    }
     drawPixelShadow(ctx, x, y + 10, 22, 5, 0.45);
 
     ctx.fillStyle = '#1e293b';
@@ -445,6 +472,20 @@ export class MarketTerraceScene {
     const x = TRADE_BANK_POS.x;
     const y = TRADE_BANK_POS.y;
     const bob = Math.sin(this.time * 3.6 + 1.2) * 1.4;
+
+    if (art.marketBank) {
+      const bw = 88;
+      const bh = Math.round((bw * art.marketBank.height) / art.marketBank.width);
+      const bx = x - bw / 2;
+      const by = y + 12 - bh;
+      const split = 0.45;
+      drawFloorGlow(ctx, x, y + 11, 44, '#fde047', 0.1 + pulse * 0.05);
+      drawContactShadow(ctx, art.marketBank, bx, by, bw, bh, 0.75);
+      ctx.drawImage(art.marketBank, 0, 0, art.marketBank.width, art.marketBank.height * split, bx, by, bw, bh * split);
+      if (art.botClerk) ctx.drawImage(art.botClerk, x - 11, y - 30 + bob, 22, 25);
+      ctx.drawImage(art.marketBank, 0, art.marketBank.height * split, art.marketBank.width, art.marketBank.height * (1 - split), bx, by + bh * split, bw, bh * (1 - split));
+      return;
+    }
 
     // Bank droid hovering behind vault terminal
     if (art.botClerk) {

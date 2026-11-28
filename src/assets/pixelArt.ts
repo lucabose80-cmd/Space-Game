@@ -170,7 +170,7 @@ export function drawContactShadow(
   const baseW = Math.max(4, (fp.right - fp.left) * dw);
   const cx = dx + ((fp.left + fp.right) / 2) * dw;
   const by = dy + fp.bottom * dh;
-  const ry = Math.max(2.4, baseW * 0.17);
+  const ry = Math.min(7, Math.max(2.4, baseW * 0.17)); // breite Theken: Schattentiefe begrenzen
   // Drei Lagen: weiter Boden-Schatten (deutlich breiter als die Standfläche), mittlerer Schatten, harter Kontaktkern direkt unter der Kante
   drawPixelShadow(ctx, cx, by - ry * 0.2, baseW * 0.74, ry * 1.1, alpha * 0.4);
   drawPixelShadow(ctx, cx, by - ry * 0.45, baseW * 0.6, ry * 0.8, alpha * 0.65);

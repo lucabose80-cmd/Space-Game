@@ -295,3 +295,4 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 - [x] **W-03** `shop_bg.png`, `shop_bg_t2.png`, `shop_bg_t3.png` ersetzt — Portal → Airlock-Tür
 - [x] **W-04** `vitrine_t1.png`, `vitrine_t2.png`, `vitrine_t3.png` (64×64) — Holo-Vitrinen je Laden-Stufe (optional, Fallback `pedestal.png`)
 - [x] **W-05** `chest_closed.png`, `chest_open.png` (64×64) ersetzt — futuristische Panzer-Kiste (Originale `art_source/_raw/chest_*_OLD.png`)
+- [x] **W-06** `public/art/market_terrace_bg.png` (neu), `market_bar.png`, `market_guild.png`, `market_bank.png` (Marktterrasse, vorher prozedural); `hangar_bg.png` Tür erneut überarbeitet
