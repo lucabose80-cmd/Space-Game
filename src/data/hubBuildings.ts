@@ -70,7 +70,7 @@ export const HUB_TIER_PATCHES: HubTierPatchDef[] = [
     { sprite: 'hub_tier_tech2', rect: { x: 582, y: 262, w: 306, h: 250 } },
   ] },
   { id: 'shop', patches: [
-    { sprite: 'hub_tier_shop1', rect: { x: 47, y: 72, w: 181, h: 235 } },
+    { sprite: 'hub_tier_shop1', rect: { x: 43, y: 72, w: 158, h: 226 } },
     { sprite: 'hub_tier_shop2', rect: { x: 41, y: 72, w: 187, h: 236 } },
   ] },
 ];

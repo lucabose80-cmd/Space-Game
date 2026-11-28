@@ -129,6 +129,16 @@ export class HubEvolutionRenderer {
     const out: Array<{ x: number; y: number; r: number }> = [];
     if (this.chapter >= 4) out.push({ x: OBELISK.x, y: OBELISK.y - 2, r: 8 });
     if (this.flag('vex_spiral') || this.flag('vex_stays')) out.push({ x: VEX_DECO.x, y: VEX_DECO.y - 2, r: 6 });
+    // Alle übrigen standfesten Objekte sind ebenfalls solide (keine Geisterobjekte)
+    const a = this.anchors;
+    if (this.chapter >= 2) {
+      out.push({ x: a.forge.x - 22, y: a.forge.y + 6, r: 4 }, { x: a.medbay.x + 22, y: a.medbay.y + 6, r: 4 });
+    }
+    if (this.chapter >= 6) out.push({ x: a.guild.x + 32, y: a.guild.y - 8, r: 6 });
+    if (this.flag('kael_memorial')) out.push({ x: a.forge.x - 30, y: a.forge.y + 8, r: 6 });
+    if (this.flag('lyra_clinic')) out.push({ x: a.medbay.x - 28, y: a.medbay.y - 4, r: 5 });
+    if (this.flag('nyx_redeemed')) out.push({ x: a.nyxNpc.x - 14, y: a.nyxNpc.y - 8, r: 4 });
+    if (this.state.hasLeviathanTrophy()) out.push({ x: TROPHY_VITRINE.x, y: TROPHY_VITRINE.y - 2, r: 8 });
     return out;
   }
 

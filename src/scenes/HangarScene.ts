@@ -28,7 +28,7 @@ export interface HangarCallbacks {
 }
 
 // Exact coordinates aligned pixel-for-pixel to public/art/hangar_bg.png (480x270 logical)
-const PROMENADE_GATE_POS = { x: 100, y: 146 }; // Schleusentür steht in der Wand (x 33–89): man tritt davor, nicht darüber
+const PROMENADE_GATE_POS = { x: 240, y: 238 }; // Ausgangstür unten Mitte (im Hintergrund eingebaut)
 const DOCK1_POS = { x: 146, y: 86 }; // Sektor 1: Verlassene Korvette (Unlocked & Ship Docked!)
 const DOCK2_POS = { x: 364, y: 86 }; // Sektor 2: Kristall-Nebel (Ship docks once Sector 1 cleared!)
 const DOCK3_POS = { x: 146, y: 202 }; // Sektor 3: Solar-Gießerei (Ship docks once Sector 2 cleared!)
@@ -159,10 +159,10 @@ export class HangarScene {
         this.spawnBurst(DOCK1_POS.x, DOCK1_POS.y + 24, '#38e8d4', 18);
       }
     } else {
-      this.playerX = 104;
-      this.playerY = 146;
-      this.facing = 'right';
-      this.spawnBurst(PROMENADE_GATE_POS.x + 8, PROMENADE_GATE_POS.y, '#38e8d4', 14);
+      this.playerX = 240;
+      this.playerY = 222;
+      this.facing = 'up';
+      this.spawnBurst(PROMENADE_GATE_POS.x, PROMENADE_GATE_POS.y, '#38e8d4', 14);
     }
   }
 
@@ -427,7 +427,7 @@ export class HangarScene {
     }
 
     this.movePlayer(vx * dt, vy * dt);
-    this.updateInteraction(input, mv.x);
+    this.updateInteraction(input, mv.y);
     this.updateParticles(dt);
   }
 
@@ -445,7 +445,6 @@ export class HangarScene {
   private isWalkable(x: number, y: number): boolean {
     if (x < 56 || x > 438 || y < 44 || y > 244) return false;
     if (x < 84 && y < 112) return false;
-    if (x < 92 && y > 108 && y < 182) return false; // Tür-Nische (Wandbauteil)
     if (Math.hypot(x - OMEGA_GATE_POS.x, y - OMEGA_GATE_POS.y) < 35) return false;
     if (x > 106 && x < 186 && y > 54 && y < 114) return false;
     if (this.state.sector1Cleared && x > 324 && x < 404 && y > 54 && y < 114) return false;
@@ -454,17 +453,17 @@ export class HangarScene {
     return true;
   }
 
-  private updateInteraction(input: InputManager, moveX: number): void {
+  private updateInteraction(input: InputManager, moveY: number): void {
     this.activePrompt = null;
 
-    // 1. Left Gateway back to Port Solaris Promenade
+    // 1. Ausgangstür (unten Mitte) zurück zur Port Solaris Promenade
     if (Math.hypot(this.playerX - PROMENADE_GATE_POS.x, this.playerY - PROMENADE_GATE_POS.y) < 34) {
       this.activePrompt = {
         label: '[E] Zurück zur Port Solaris Promenade',
-        x: PROMENADE_GATE_POS.x + 46,
-        y: PROMENADE_GATE_POS.y - 40,
+        x: PROMENADE_GATE_POS.x,
+        y: PROMENADE_GATE_POS.y - 34,
       };
-      if (input.interactPressed() || (this.entryCooldown <= 0 && moveX < -0.65 && this.playerX <= 98)) {
+      if (input.interactPressed() || (this.entryCooldown <= 0 && moveY > 0.65 && this.playerY >= 240)) {
         sound.playUiClick();
         this.callbacks.onReturnToHub();
       }
@@ -648,7 +647,7 @@ export class HangarScene {
       drawGlow(ctx, lx, 22, 24, '#fbbf24', 0.2 + pulse * 0.06);
     }
 
-    drawGlow(ctx, 56, 134, 34, '#38e8d4', 0.26 + pulse * 0.1);
+    drawGlow(ctx, PROMENADE_GATE_POS.x, 246, 26, '#38e8d4', 0.16 + pulse * 0.07); // Lichtschein der Ausgangstür unten
 
     // Central 5th Omega Stargate core & 4 Sector Key Seal Sockets
     const keysLit = this.countSectorKeys();
@@ -893,7 +892,7 @@ export class HangarScene {
     const keys = this.countSectorKeys();
 
     const pills = [
-      { text: '◀ PROMENADE', x: 62, y: 190, color: '#38e8d4' },
+      { text: '▼ PROMENADE', x: 240, y: 205, color: '#38e8d4' },
       {
         text: isNight ? 'DOCK I · SEKTOR 1 🌙' : 'DOCK I · SEKTOR 1',
         x: DOCK1_POS.x,

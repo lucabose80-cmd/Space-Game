@@ -42,6 +42,10 @@ module.exports = async ({ page }) => {
     Object.assign(u, { blade: 5, bioRegen: 2, modCrit: 3, modThruster: 3, shopTier: 1 });
     out.tier1 = JSON.stringify(s.getHubTiers());
     { const c = document.createElement('canvas').getContext('2d'); hub.render(c); }
+    // Standfeste Objekte der Stations-Entwicklung haben Kollisionskreise
+    s.story.chapter = 6; s.story.flags = ['kael_memorial', 'lyra_clinic'];
+    out.colliders = hub.getEvolution().getColliders().length;
+    s.story.chapter = 0; s.story.flags = [];
     // Alt-Save ohne Feld → alles offen
     const payload = s.buildSavePayload(); delete payload.hubUnlocks;
     localStorage.setItem('starlighter_save_v2', JSON.stringify(payload));
@@ -56,6 +60,7 @@ module.exports = async ({ page }) => {
   assert.strictEqual(r.again, 0);
   assert.strictEqual(r.pending, 3);
   assert.strictEqual(r.pendingAfterEnter, 0);
+  assert.ok(r.colliders >= 6, JSON.stringify(r));
   assert.strictEqual(r.legacy, 3, JSON.stringify(r));
   assert.strictEqual(r.tier0, '{"forge":0,"med":0,"tech":0,"shop":0}', r.tier0);
   assert.strictEqual(r.tier1, '{"forge":2,"med":1,"tech":2,"shop":1}', r.tier1);

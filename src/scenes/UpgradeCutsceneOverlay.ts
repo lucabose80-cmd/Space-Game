@@ -72,7 +72,7 @@ export class UpgradeCutsceneOverlay {
   constructor(config: UpgradeCutsceneConfig) {
     this.config = config;
     const short = getDeviceSettings().shortCutscenes;
-    if (config.building || config.room) {
+    if (config.building || config.room || config.kind === 'ship') {
       this.duration = config.major ? (short ? 1.5 : 3.0) : short ? 1.0 : 1.9;
     } else if (config.major) {
       this.duration = short ? 1.15 : 2.15;
@@ -87,7 +87,7 @@ export class UpgradeCutsceneOverlay {
       window.addEventListener('pointerdown', this.onPointerDown);
     }
 
-    if (config.building || config.room) {
+    if (config.building || config.room || config.kind === 'ship') {
       // Die Zeitleiste (update) steuert Hämmern & Enthüllung
     } else if (config.kind === 'weapon' || config.kind === 'forge_step') {
       sound.playForgeHammer();
@@ -137,14 +137,17 @@ export class UpgradeCutsceneOverlay {
 
   /** Zeitleiste der Gebäude-/Raum-Animation: Bau-Phase (Hämmern, Staub) → Enthüllung → Halten. */
   private updateTimeline(progress: number, dt: number): void {
-    const revealAt = this.config.building ? 0.4 : 0.3;
+    const revealAt = this.config.building ? 0.4 : this.config.kind === 'ship' ? 0.42 : 0.3;
     const buildFrom = 0.16;
     if (this.config.building && progress >= buildFrom && progress < revealAt) {
       this.strikeTimer -= dt;
       if (this.strikeTimer <= 0) {
         this.strikeTimer = 0.2;
-        sound.playForgeHammer();
-        this.spawnSparks(VIRTUAL_WIDTH / 2 + (Math.random() - 0.5) * 70, VIRTUAL_HEIGHT / 2 + (Math.random() - 0.5) * 40, 7, '#fb923c');
+        if (this.config.building === 'forge') sound.playForgeHammer();
+        else if (this.config.building === 'med') sound.playStoryChime();
+        else sound.playBoardingChime();
+        const sparkCol = this.config.building === 'med' ? '#4ade80' : this.config.building === 'tech' ? '#38e8d4' : '#fb923c';
+        this.spawnSparks(VIRTUAL_WIDTH / 2 + (Math.random() - 0.5) * 70, VIRTUAL_HEIGHT / 2 + (Math.random() - 0.5) * 40, 7, sparkCol);
         this.shake = 1.6;
       }
     }
@@ -170,7 +173,7 @@ export class UpgradeCutsceneOverlay {
 
     const progress = this.elapsed / this.duration;
 
-    if (this.config.building || this.config.room) {
+    if (this.config.building || this.config.room || this.config.kind === 'ship') {
       this.updateTimeline(progress, safeDt);
     } else
     // 2. Hammerschlag + Enthüllung bei großen Waffen-Schmiede-Meilensteinen
@@ -424,7 +427,80 @@ export class UpgradeCutsceneOverlay {
     }
   }
 
+  /** Schiff-Enthüllung im Raumhafen: das neue Schiff setzt auf seinem Dock auf, die Rampe fährt aus. */
+  private renderShip(ctx: CanvasRenderingContext2D): void {
+    const art = getHDArt();
+    const key = this.config.shipKey ?? 'shipCorvette';
+    const docks: Record<string, { x: number; y: number }> = {
+      shipCorvette: { x: 146, y: 86 },
+      shipCrystal: { x: 364, y: 86 },
+      shipSolar: { x: 146, y: 202 },
+      shipMonolith: { x: 364, y: 202 },
+    };
+    const pos = docks[key] ?? docks.shipCorvette;
+    const bankKey = `${key}Bank` as 'shipCorvetteBank';
+    const dockedKey = `${key}Docked` as 'shipCorvetteDocked';
+    const openKey = `${key}DockedOpen` as 'shipCorvetteDockedOpen';
+    const t = Math.min(1, this.elapsed / this.duration);
+    const fadeIn = easeInOut(t / 0.1);
+    const fadeOut = easeInOut((1 - t) / 0.1);
+    const alpha = Math.min(fadeIn, fadeOut);
+    const landT = easeInOut(t / 0.42);
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = '#05070f';
+    ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+    if (art.hangarBg) ctx.drawImage(art.hangarBg, 0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+    // Kamera schiebt leicht auf das Dock
+    const landed = t >= 0.42;
+    const rampOpen = t >= 0.55;
+    const sx = pos.x + (1 - landT) * 120;
+    const sy = pos.y - (1 - landT) * 150;
+    if (!landed) {
+      ctx.save();
+      ctx.globalAlpha = alpha * (0.15 + landT * 0.4);
+      ctx.fillStyle = '#000';
+      ctx.beginPath();
+      ctx.ellipse(pos.x, pos.y + 24, 38 * landT, 12 * landT, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      drawGlow(ctx, sx - 16, sy + 18, 40, '#38e8d4', 0.5);
+      const flySpr = art[bankKey] ?? art.shipCorvetteBank;
+      if (flySpr) ctx.drawImage(flySpr, Math.round(sx - 47), Math.round(sy - 47), 94, 94);
+    } else {
+      const spr = (rampOpen ? art[openKey] : art[dockedKey]) ?? art[dockedKey] ?? art.shipCorvetteDocked;
+      ctx.save();
+      ctx.globalAlpha = alpha * 0.55;
+      ctx.fillStyle = '#05070f';
+      ctx.beginPath();
+      ctx.ellipse(pos.x, pos.y + 24, 40, 12, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      if (spr) ctx.drawImage(spr, Math.round(pos.x - 52), Math.round(pos.y - 52), 104, 104);
+      if (rampOpen) drawGlow(ctx, pos.x + 3, pos.y + 12, 30, '#fde68a', 0.34);
+    }
+    ctx.fillStyle = '#040710';
+    ctx.fillRect(0, 0, VIRTUAL_WIDTH, 14);
+    ctx.fillRect(0, VIRTUAL_HEIGHT - 14, VIRTUAL_WIDTH, 14);
+    this.drawSparksAndFlash(ctx, 1);
+    ctx.restore();
+    this.renderBanner(ctx, easeInOut((t - 0.6) / 0.12) * fadeOut, false);
+    if (t > 0.65 && t < 0.92) {
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.font = '6px monospace';
+      ctx.fillStyle = 'rgba(148, 163, 184, 0.8)';
+      ctx.fillText('[KLICK / TASTE] WEITER', VIRTUAL_WIDTH / 2, 10);
+      ctx.restore();
+    }
+  }
+
   public render(ctx: CanvasRenderingContext2D): void {
+    if (this.config.kind === 'ship') {
+      this.renderShip(ctx);
+      return;
+    }
     if (this.config.building) {
       this.renderZoom(ctx);
       return;
@@ -437,7 +513,7 @@ export class UpgradeCutsceneOverlay {
     const t = Math.min(1, this.elapsed / this.duration);
     const cx = VIRTUAL_WIDTH / 2;
     const cy = VIRTUAL_HEIGHT / 2;
-    const { kind, title, subtitle, accent, major, minaPresent, shipKey } = this.config;
+    const { kind, title, subtitle, accent, major, minaPresent } = this.config;
 
     // Sanfter Ein-/Ausblendfaktor
     const fadeIn = Math.min(1, this.elapsed / 0.14);
@@ -509,17 +585,6 @@ export class UpgradeCutsceneOverlay {
         ctx.fillText('⚔', cx, stageY - 5);
         ctx.restore();
       }
-    } else if (major && kind === 'ship') {
-      const spr = (shipKey ? art[shipKey] : null) ?? art.shipCorvette;
-      if (spr) {
-        ctx.drawImage(spr, Math.round(cx - 26), Math.round(cardY + 14), 52, 52);
-      }
-      // Blueprint-Scan-Linie
-      const scanY = cardY + 14 + ((this.elapsed * 58) % 52);
-      ctx.fillStyle = accent;
-      ctx.globalAlpha = alpha * 0.7;
-      ctx.fillRect(cx - 42, Math.round(scanY), 84, 2);
-      ctx.globalAlpha = alpha;
     } else if (major && (kind === 'shop' || kind === 'quarters')) {
       // Goldene Vitrinen-Ikone
       ctx.fillStyle = '#fbbf24';
@@ -545,11 +610,9 @@ export class UpgradeCutsceneOverlay {
           ? 'KAPITÄNS-QUARTIER · AUSBAU'
           : kind === 'shop'
           ? 'ASTRO-BARTER · LADEN-AUSBAU'
-          : kind === 'ship'
-            ? 'RAUMHAFEN · NEUES SCHIFF'
-            : kind === 'forge_step'
-              ? 'SCHMIEDE-AUFWERTUNG'
-              : 'UPGRADE ABGESCHLOSSEN';
+          : kind === 'forge_step'
+            ? 'SCHMIEDE-AUFWERTUNG'
+            : 'UPGRADE ABGESCHLOSSEN';
     ctx.fillText(kicker, cx, cardY + (major ? 84 : 20));
 
     ctx.font = major ? 'bold 10px monospace' : 'bold 9px monospace';

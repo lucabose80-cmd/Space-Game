@@ -1120,6 +1120,7 @@ class StarlighterGame {
         cb?.();
       }
     } else if (this.upgradeCutscene) {
+      if (this.activeScene === 'hub') this.hubScene.tickAmbient(dt);
       const done = this.upgradeCutscene.update(dt, this.input);
       if (done) {
         const cb = this.upgradeCutsceneOnDone;

@@ -311,7 +311,11 @@ export class UIManager {
           : this.currentScene === 'hub'
             ? isNight
               ? '🌙 Nacht: Laden öffnen (Schicht) oder Nacht-Run (+35 % Rar-Loot, Schicht fällt aus) · Unten: Marktplatz-Terrasse · Rechts: Raumhafen!'
-              : 'Oben: Kael, Kapitäns-Tafel & Lyra · Unten: Nyx, Marktplatz-Terrasse & Vex · Rechts: Raumhafen!'
+              : `Oben: Kael, Kapitäns-Tafel & Lyra · Unten: ${
+                  this.state.isHubBuildingOpen('blackmarket') ? 'Nyx' : 'Schwarzmarkt (bald)'
+                }, ${this.state.isHubBuildingOpen('terrace') ? 'Marktplatz-Terrasse' : 'Terrasse (gesperrt)'} & ${
+                  this.state.isHubBuildingOpen('techlab') ? 'Vex' : 'Tech-Labor (im Aufbau)'
+                } · Rechts: Raumhafen!`
             : this.currentScene === 'market_terrace'
               ? 'Marktplatz-Terrasse: Links Milo’s Alchemie-Bar (Run-Elixiere) · Mitte Händler-Gilde · Rechts Solaris-Handelsbank!'
               : this.currentScene === 'hangar'

@@ -1,6 +1,6 @@
 import { getHDArt } from '../assets/artLoader';
 import { HUB_BUILDINGS, HUB_TIER_PATCHES, type HubBuildingDef, type HubBuildingId } from '../data/hubBuildings';
-import { drawContactShadow, drawGlow, drawPixelShadow } from '../assets/pixelArt';
+import { drawContactShadow, drawFloorGlow, drawGlow, drawPixelShadow } from '../assets/pixelArt';
 import { getAtlas } from '../assets/sprites';
 import { sound } from '../engine/audio';
 import { VIRTUAL_HEIGHT, VIRTUAL_WIDTH, type InputManager } from '../engine/input';
@@ -221,6 +221,11 @@ export class HubScene {
       this.playerY = 138;
       this.facing = 'right';
     }
+  }
+
+  /** Während einer Upgrade-Cutscene läuft die Szene darunter weiter (Kael & Mina arbeiten, Lichter flackern). */
+  public tickAmbient(dt: number): void {
+    this.time += dt;
   }
 
   public update(dt: number, input: InputManager): void {
@@ -838,8 +843,8 @@ export class HubScene {
     const pulse = 0.5 + 0.5 * Math.sin(this.time * 4.2);
     const nightBoost = isNight ? 0.14 : 0;
     drawGlow(ctx, 132, 82, 38, '#fb923c', 0.24 + nightBoost + pulse * 0.1);
-    drawGlow(ctx, GUILD_BOARD_POS.x, GUILD_BOARD_POS.y - 4, 34, '#38e8d4', 0.24 + nightBoost + pulse * 0.1);
-    drawGlow(ctx, GUILD_BOARD_POS.x, GUILD_BOARD_POS.y - 16, 22, '#fbbf24', 0.18 + pulse * 0.08);
+    drawFloorGlow(ctx, GUILD_BOARD_POS.x, GUILD_BOARD_POS.y + 12, 30, '#38e8d4', 0.2 + nightBoost + pulse * 0.08);
+    drawGlow(ctx, GUILD_BOARD_POS.x, GUILD_BOARD_POS.y - 14, 14, '#38e8d4', 0.14 + pulse * 0.06);
     drawGlow(ctx, 354, 72, 36, '#34d399', 0.22 + nightBoost + pulse * 0.08);
     drawGlow(ctx, 120, 194, 42, '#c084fc', 0.22 + nightBoost + pulse * 0.1);
     drawGlow(ctx, 362, 178, 42, '#38e8d4', 0.22 + nightBoost + pulse * 0.08);
@@ -874,8 +879,8 @@ export class HubScene {
       y: GUILD_BOARD_POS.y + 8,
       draw: () => {
         if (art.propScoreboard) {
-          drawContactShadow(ctx, art.propScoreboard, GUILD_BOARD_POS.x - 22, GUILD_BOARD_POS.y - 31, 44, 44, 0.6);
-          ctx.drawImage(art.propScoreboard, GUILD_BOARD_POS.x - 22, GUILD_BOARD_POS.y - 31, 44, 44);
+          drawContactShadow(ctx, art.propScoreboard, GUILD_BOARD_POS.x - 20, GUILD_BOARD_POS.y - 34, 40, 46, 0.75);
+          ctx.drawImage(art.propScoreboard, GUILD_BOARD_POS.x - 20, GUILD_BOARD_POS.y - 34, 40, 46);
         } else {
           drawPixelShadow(ctx, GUILD_BOARD_POS.x, GUILD_BOARD_POS.y + 11, 20, 5.5, 0.54);
         }
