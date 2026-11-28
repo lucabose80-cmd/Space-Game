@@ -11,13 +11,17 @@ interface LevRigState {
   hitDir: number;
   wasFlash: boolean;
   time: number;
+  /** je Arm: letzter Zustand + Sekunden seit dem Wechsel (für weiche Zwischenposen) */
+  armState: [string, string];
+  armSince: [number, number];
+  armWasUp: [boolean, boolean];
 }
 const states = new WeakMap<Enemy, LevRigState>();
 
 function levPose(e: Enemy, time: number, playerX: number): Pose {
   let st = states.get(e);
   if (!st) {
-    st = { hit: 0, hitDir: 1, wasFlash: false, time };
+    st = { hit: 0, hitDir: 1, wasFlash: false, time, armState: ['', ''], armSince: [0, 0], armWasUp: [false, false] };
     states.set(e, st);
   }
   const dt = clamp(time - st.time, 0, 0.1);
@@ -50,8 +54,20 @@ function levPose(e: Enemy, time: number, playerX: number): Pose {
   let torsoLean = 0;
   let torsoDrop = 0;
 
+  // Varianten: 0 Ruhe · 1 Hochriss · 2 Schlag am Boden · 3/4 beschädigt/kritisch · 5 tot · 6 Anlauf (Ellbogen außen) · 7 Schwung nach unten
+  const WIND = 6;
+  const STRIKE = 7;
   const makeArmPose = (idx: 0 | 1): PartPose => {
     const arm = arms[idx];
+    if (arm) {
+      if (st.armState[idx] !== arm.state) {
+        st.armWasUp[idx] = st.armState[idx] === 'tracking' || st.armState[idx] === 'whip' || st.armState[idx] === 'beam';
+        st.armState[idx] = arm.state;
+        st.armSince[idx] = 0;
+      }
+      st.armSince[idx] += dt;
+    }
+    const since = st.armSince[idx];
     if (!arm || arm.dead) return { hidden: true };
     const side = idx === 0 ? -1 : 1;
     const frac = L ? L.armHp[idx] / Math.max(1, L.armMax) : 1;
@@ -67,32 +83,44 @@ function levPose(e: Enemy, time: number, playerX: number): Pose {
       torsoLean += -side * 0.06;
       torsoDrop -= 2;
       const shake = Math.sin(time * 22 + idx) * 0.012;
+      // Ruhe → Anlauf (Ellbogen außen) → Hochriss → kurz vor dem Schlag wieder Anlauf-Pose
+      const v = since < 0.16 ? WIND : arm.timer < 0.14 ? WIND : 1;
       return {
         rot: side * -0.06 + shake,
         dx: side * 2,
         dy: -3 + Math.sin(time * 9) * 0.8,
-        variant: 1, // armRaise
+        variant: v,
       };
     }
-    if (arm.state === 'slamming' || arm.state === 'grounded') {
+    if (arm.state === 'slamming') {
+      // Schwung nach unten: Zwischenpose, Ellbogen bleibt außen
+      torsoLean += side * 0.05;
+      torsoDrop += 2;
+      return { rot: 0, dx: 0, dy: 1, variant: STRIKE };
+    }
+    if (arm.state === 'grounded') {
       torsoLean += side * 0.05;
       torsoDrop += 3;
       return {
         rot: 0,
         dx: 0,
-        dy: arm.state === 'slamming' ? 2 : 3,
+        dy: 3,
         // Im Boden: beschädigt/kritisch sichtbar, sonst armSlam!
         variant: frac < 0.35 ? 4 : frac < 0.7 ? 3 : 2,
       };
     }
     if (arm.state === 'whip') {
       // Schockwelle: Faust fährt hoch (Anlauf) und schlägt auf den Boden, genau dort startet die Welle
-      const striking = arm.timer <= 0.55;
-      if (striking) {
+      if (arm.timer <= 0.4) {
         torsoDrop += 2;
-        return { rot: 0, dx: 0, dy: arm.timer > 0.4 ? 0 : 3, variant: frac < 0.35 ? 4 : frac < 0.7 ? 3 : 2 };
+        return { rot: 0, dx: 0, dy: 3, variant: frac < 0.35 ? 4 : frac < 0.7 ? 3 : 2 };
       }
-      return { rot: side * -0.06, dx: side * 2, dy: -3, variant: 1 };
+      if (arm.timer <= 0.55) {
+        torsoDrop += 1;
+        return { rot: 0, dx: 0, dy: 1, variant: STRIKE };
+      }
+      const v = since < 0.16 || arm.timer <= 0.7 ? WIND : 1;
+      return { rot: side * -0.06, dx: side * 2, dy: -3, variant: v };
     }
     if (arm.state === 'beam' || beamFiring) {
       // Arme werden beim Omega-Reaktor-Strahl hochgerissen — die Brust-Linse liegt frei, der Strahl kommt sichtbar von dort
@@ -100,9 +128,11 @@ function levPose(e: Enemy, time: number, playerX: number): Pose {
         rot: side * -0.1 + Math.sin(time * 20 + idx) * 0.015,
         dx: side * 22,
         dy: -2,
-        variant: 1,
+        variant: since < 0.16 ? WIND : 1,
       };
     }
+    // Zurück aus Hochriss/Schlag: kurz Anlauf-Pose, damit der Ellbogen nicht umklappt
+    if (st.armWasUp[idx] && since < 0.2) return { rot: side * -0.05, dx: side * 2, dy: -2, variant: WIND };
     // Ruhe / Schienenfahrt: kräftiges hydraulisches Schwingen
     const sway = Math.sin(time * breathRate + idx * 1.1) * 0.05;
     const moveLag = clamp(-e.vx / 140, -0.12, 0.12);

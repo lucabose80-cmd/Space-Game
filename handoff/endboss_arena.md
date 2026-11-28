@@ -112,6 +112,13 @@
 
 - **Doppelschlag-Optik (Inhaber-Feedback):** Wellen liefen über Wand/Boss. Neu: `BossZone.sy` (Boden-Perspektive 0,6, Treffer & Optik als Ellipse) + `BossZone.clip` (Zeichnung nur auf dem Boden: `rb.t + 3·ARENA_TILE` = Wand-Sockel-Unterkante, die `W`-Kachelreihen liegen INNERHALB `rb`!), eigene Boden-Welle (dunkler Körper + glühende Kante statt Leuchtringe), Wand bröckelt an den Kontaktpunkten (`crumbleAtWalls`: Staub/Brocken an Seitenwänden & Süd, nicht darüber hinaus).
 
+
+### Runde 4: Effekte am Körper & Ellbogen
+- **Ursache „Laser gehört nicht zum Körper“:** (1) Boss-Rig wird NACH den `bossFx`-Effekten gezeichnet → alles am Rig (Düse an der Linse) wurde vom Körper überdeckt → Düse wird jetzt in `drawLeviathanArena` (über dem Körper) gezeichnet, Linsen-Glühball beim Strahl klein; (2) Strahl/Welle waren Strichlinien bzw. winzige 128×32-Streifen. Neu: Sheet `art_source/rigs/leviathan_fx2.png` → `public/art/sprites/arena_leviathan_fx_{beam_head,beam_body,beam_impact,shockwave,cracks,crackline}.png` (Extraktion `scripts/leviathan-fx-extract.py`; **Falle:** Gemini schreibt trotz „no text“ Beschriftungen unter die Zellen → feste Zuschnitt-Rechtecke; Boden-Welle bekommt Vignette gegen eckige Plattenkante).
+- **Boden-Risse:** Radial-Risse (`FxCracks`, auf den Boden beschnitten) unter dem Faust-Krater; Schockwellen-/Erdbeben-Linie (`fx 'whip'`) = Riss-Spur (`FxCrackLine` gekachelt) + rollende Staub-Welle (`FxShock`), kein Lila mehr.
+- **Ellbogen:** Rig-Posen sprangen hart (Ruhe↔Hochriss↔Schlag) → Ellbogen klappte um. Neue Zwischenposen `armWind`/`armStrike` (Varianten 6/7, Ellbogen außen) und Folge in `anim/rigs/boss_leviathan.ts` (`WIND`/`STRIKE`, Zustandswechsel-Gedächtnis `armState/armSince/armWasUp`). Skript `scripts/leviathan-arm-mid.py` (Ausrichtung am Schulter-Socket (101,107), Skala 0,14 — `armStrike` reicht sonst über den 260er Rahmen).
+- Offen: Boss-Skalierung (siehe oben), ggf. weitere Zwischenposen für Hochriss↔Beam; Kratzer-/Brocken-Sprites für Wand-Bröckeln (derzeit Partikel).
+
 ## Nächster Schritt
 1. **Abnahme Pilot A.E.G.I.S. Leviathan im echten Spiel** (Stufe 8 — live in Sektor 1 Ebene III oder `?bosslab` → ARENEN → 🏟 Leviathan): Kampfgefühl, alle 4 Körper-Phasen, Plattenbruch/Dampf/Trümmer, Schatzkammer & Mobil-Check (A9). Notfall-Rückweg: `ENDBOSS_ARENA_LIVE = false` in `balance.ts`.
 2. Phase A/B-Marker entfernen, sobald der Projektinhaber die Standardräume abgenommen hat.

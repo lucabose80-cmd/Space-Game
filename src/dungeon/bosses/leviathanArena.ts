@@ -1008,7 +1008,29 @@ export function drawLeviathanArena(ctx: CanvasRenderingContext2D, scene: Dungeon
   // Kern-Linse: bereits voll im Vollposen-Sprite integriert — nur bei offener Linse / Reaktor-Strahl weiches Energie-Aufleuchten!
   const lx = e.x;
   const ly = e.y + LENS_DY;
+  const lx0 = e.x;
+  const ly0 = e.y + LENS_DY;
   const beamFiring = L.state === 'move' && L.move === 'beam';
+  // Strahl-Düse sitzt auf der Linse und wird ÜBER dem Körper gezeichnet (sonst verdeckt das Rig sie): Lade-Phase wächst, Feuer-Phase voll
+  if (beamFiring && art.arenaLeviathanFxBeamHead) {
+    const zs = scene.bossFx.zones.filter((z) => z.fx === 'beam');
+    const live = zs.find((z) => z.active) ?? zs.reduce<typeof zs[number] | undefined>((m, z) => (!m || z.delay < m.delay ? z : m), undefined);
+    if (live) {
+      const x2 = live.x2 ?? live.x;
+      const y2 = live.y2 ?? live.y;
+      const ang = Math.atan2(y2 - live.y, x2 - live.x);
+      const prog = live.active ? 1 : 1 - Math.max(0, live.delay) / Math.max(0.01, live.maxDelay ?? 1);
+      const wid = (live.active ? 62 + 6 * Math.sin(t * 40) : 28 + 24 * prog) * 1.0;
+      const img = art.arenaLeviathanFxBeamHead;
+      const h = (wid * img.height) / img.width;
+      ctx.save();
+      ctx.translate(lx0, ly0);
+      ctx.rotate(ang - Math.PI / 2);
+      ctx.globalAlpha = live.active ? 1 : 0.35 + 0.65 * prog;
+      ctx.drawImage(img, -wid / 2, -h * 0.27, wid, h);
+      ctx.restore();
+    }
+  }
   if (lensIsOpen(L) || beamFiring) {
     ctx.save();
     const flicker = L.critical ? 0.65 + 0.35 * Math.sin(t * 30) : 1;
@@ -1018,7 +1040,8 @@ export function drawLeviathanArena(ctx: CanvasRenderingContext2D, scene: Dungeon
       ctx.globalCompositeOperation = 'lighter';
       ctx.translate(lx, ly);
       ctx.rotate(t * 0.85);
-      const fsz = (beamFiring ? 58 : 48) + pulse * 8;
+      const fsz = (beamFiring ? 30 : 48) + pulse * 8; // beim Strahl klein, damit die Düse sichtbar bleibt
+      ctx.globalAlpha *= beamFiring ? 0.55 : 1;
       ctx.drawImage(art.arenaLeviathanLensFlare, -fsz / 2, -fsz / 2, fsz, fsz);
       ctx.restore();
     }
@@ -1081,6 +1104,18 @@ export function drawLeviathanBody(ctx: CanvasRenderingContext2D, scene: DungeonS
     if (art.arenaLeviathanCrater && e.levArms) {
       for (const arm of e.levArms) {
         if (!arm.dead && (arm.state === 'slamming' || arm.state === 'grounded')) {
+          // Radial-Risse (auf den Boden beschnitten) + Krater genau unter der Faust
+          if (art.arenaLeviathanFxCracks) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(rb.l, rb.t + 3 * ARENA_TILE, rb.r - rb.l, rb.b - rb.t - 3 * ARENA_TILE);
+            ctx.clip();
+            const cw = 132;
+            const ch = (cw * art.arenaLeviathanFxCracks.height) / art.arenaLeviathanFxCracks.width;
+            ctx.globalAlpha = arm.state === 'slamming' ? 0.6 : 0.95;
+            ctx.drawImage(art.arenaLeviathanFxCracks, arm.x - cw / 2, arm.y + 8 - ch / 2, cw, ch);
+            ctx.restore();
+          }
           ctx.drawImage(art.arenaLeviathanCrater, arm.x - 36, arm.y - 16, 72, 48);
         }
       }

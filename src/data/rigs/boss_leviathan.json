@@ -92,7 +92,9 @@
         "armSlam",
         "armDmg",
         "armCrit",
-        "armDead"
+        "armDead",
+        "armWind",
+        "armStrike"
       ]
     },
     {
@@ -119,7 +121,9 @@
         "armSlam",
         "armDmg",
         "armCrit",
-        "armDead"
+        "armDead",
+        "armWind",
+        "armStrike"
       ]
     }
   ]
