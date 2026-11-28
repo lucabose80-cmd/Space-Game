@@ -298,3 +298,4 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 - [x] **W-06** `public/art/market_terrace_bg.png` (neu), `market_bar.png`, `market_guild.png`, `market_bank.png` (Marktterrasse, vorher prozedural); `hangar_bg.png` Tür erneut überarbeitet
 - [x] **W-07** `public/art/backroom_bg_t1.png` (Notkoje, Dock/Jukebox gesperrt) und `backroom_bg_t3.png` (Flaggschiff-Suite); Stufe II = bestehendes `backroom_bg.png`
 - [x] **W-08** `hub_lock_tech.png`, `hub_lock_black.png`, `hub_lock_terr.png` (Baustellen-/Gesperrt-Patches für Tech-Labor, Schwarzmarkt, Terrassen-Zugang)
+- [x] **W-09** `hub_tier_{forge,med,tech,shop}{1,2}.png` (8 Ausbau-Patches der Läden auf Port Solaris)

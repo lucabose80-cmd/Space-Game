@@ -1,3 +1,4 @@
+import { HUB_TIER_SPRITES } from '../data/hubBuildings';
 import { RIGS, rigImageNames } from '../data/rigs';
 import type { RigImages } from '../engine/rig';
 import { ITEMS } from '../data/items';
@@ -15,6 +16,8 @@ export interface HDArtAssets {
   hubBg: HTMLImageElement | null;
   hangarBg: HTMLImageElement | null;
   marketTerraceBg: HTMLImageElement | null;
+  /** Hub-Ausbau-Patches (Name → Bild), siehe hubBuildings.ts */
+  hubTiers: Record<string, HTMLCanvasElement | null>;
   dungeonBg: HTMLImageElement | null;
   dungeonBgS2: HTMLImageElement | null;
   dungeonBgS3: HTMLImageElement | null;
@@ -249,6 +252,7 @@ const art: HDArtAssets = {
   hubBg: null,
   hangarBg: null,
   marketTerraceBg: null,
+  hubTiers: {},
   dungeonBg: null,
   dungeonBgS2: null,
   dungeonBgS3: null,
@@ -976,6 +980,10 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
   });
 
   art.marketTerraceBg = await loadImage('/art/market_terrace_bg.png');
+  const tierImgs = await Promise.all(HUB_TIER_SPRITES.map((n) => loadImage(`/art/sprites/${n}.png`)));
+  HUB_TIER_SPRITES.forEach((n, i) => {
+    art.hubTiers[n] = imgToCanvas(tierImgs[i]);
+  });
   art.backroomBgT1 = await loadImage('/art/backroom_bg_t1.png');
   art.backroomBgT3 = await loadImage('/art/backroom_bg_t3.png');
   const worldKeys = Object.keys(WORLD_OPTIONAL_SPRITES) as WorldSpriteKey[];

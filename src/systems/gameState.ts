@@ -2044,6 +2044,20 @@ export class GameState {
     }
   }
 
+  /** Aussehens-Stufe (0..2) der Läden auf Port Solaris aus den Upgrade-Ständen. */
+  public getHubTiers(): Record<'forge' | 'med' | 'tech' | 'shop', number> {
+    const u = this.upgrades;
+    const weaponMax = Math.max(u.blade, u.spear, u.fists, u.discus, u.blaster, u.hammer);
+    const med = Math.max(u.bioRegen ?? 0, u.stimpack ?? 0);
+    const mods = (u.modCrit ?? 0) + (u.modThruster ?? 0) + (u.modLuck ?? 0);
+    return {
+      forge: weaponMax >= 5 ? 2 : weaponMax >= 2 ? 1 : 0,
+      med: med >= 3 ? 2 : med >= 2 ? 1 : 0,
+      tech: mods >= 6 ? 2 : mods >= 3 ? 1 : 0,
+      shop: Math.max(0, Math.min(2, u.shopTier ?? 0)),
+    };
+  }
+
   public isHubBuildingOpen(id: HubBuildingId): boolean {
     return this.hubUnlocks.includes(id);
   }

@@ -1,5 +1,5 @@
 import { getHDArt } from '../assets/artLoader';
-import { HUB_BUILDINGS, type HubBuildingDef, type HubBuildingId } from '../data/hubBuildings';
+import { HUB_BUILDINGS, HUB_TIER_PATCHES, type HubBuildingDef, type HubBuildingId } from '../data/hubBuildings';
 import { drawContactShadow, drawGlow, drawPixelShadow } from '../assets/pixelArt';
 import { getAtlas } from '../assets/sprites';
 import { sound } from '../engine/audio';
@@ -708,6 +708,16 @@ export class HubScene {
   /** Baustellen-Patches der noch geschlossenen Gebäude (und das Ausblenden beim Öffnen). */
   private renderLockPatches(ctx: CanvasRenderingContext2D): void {
     const art = getHDArt();
+    // Läden sehen je Upgrade-Stufe anders aus (Tech-Labor nur, wenn schon geöffnet)
+    const tiers = this.state.getHubTiers();
+    for (const def of HUB_TIER_PATCHES) {
+      const lvl = tiers[def.id];
+      if (lvl <= 0) continue;
+      if (def.id === 'tech' && !this.state.isHubBuildingOpen('techlab')) continue;
+      const patch = def.patches[lvl - 1];
+      const spr = patch ? art.hubTiers[patch.sprite] : null;
+      if (spr) ctx.drawImage(spr, patch.rect.x / 2, patch.rect.y / 2, patch.rect.w / 2, patch.rect.h / 2);
+    }
     const sprites: Record<HubBuildingId, HTMLCanvasElement | null> = {
       techlab: art.hubLockTech,
       blackmarket: art.hubLockBlack,

@@ -46,3 +46,33 @@ export const HUB_BUILDINGS: HubBuildingDef[] = [
 ];
 
 export const HUB_BUILDING_IDS: HubBuildingId[] = HUB_BUILDINGS.map((b) => b.id);
+
+/** Äußere Erscheinung der Läden je Upgrade-Stufe (Patch auf dem Hub-Hintergrund; Stufe 0 = Original-Hintergrund). */
+export type HubTierId = 'forge' | 'med' | 'tech' | 'shop';
+
+export interface HubTierPatchDef {
+  id: HubTierId;
+  /** Index 0 = Stufe 1 (Stufe 0 braucht keinen Patch) */
+  patches: Array<{ sprite: string; rect: { x: number; y: number; w: number; h: number } }>;
+}
+
+export const HUB_TIER_PATCHES: HubTierPatchDef[] = [
+  { id: 'forge', patches: [
+    { sprite: 'hub_tier_forge1', rect: { x: 192, y: 13, w: 216, h: 213 } },
+    { sprite: 'hub_tier_forge2', rect: { x: 189, y: 12, w: 219, h: 233 } },
+  ] },
+  { id: 'med', patches: [
+    { sprite: 'hub_tier_med1', rect: { x: 602, y: 13, w: 189, h: 231 } },
+    { sprite: 'hub_tier_med2', rect: { x: 602, y: 13, w: 189, h: 234 } },
+  ] },
+  { id: 'tech', patches: [
+    { sprite: 'hub_tier_tech1', rect: { x: 582, y: 262, w: 306, h: 250 } },
+    { sprite: 'hub_tier_tech2', rect: { x: 582, y: 262, w: 306, h: 250 } },
+  ] },
+  { id: 'shop', patches: [
+    { sprite: 'hub_tier_shop1', rect: { x: 47, y: 72, w: 181, h: 235 } },
+    { sprite: 'hub_tier_shop2', rect: { x: 41, y: 72, w: 187, h: 236 } },
+  ] },
+];
+
+export const HUB_TIER_SPRITES: string[] = HUB_TIER_PATCHES.flatMap((t) => t.patches.map((p) => p.sprite));

@@ -35,6 +35,13 @@ module.exports = async ({ page }) => {
     hub.onEnter('shop');
     out.pendingAfterEnter = s.pendingHubReveals.length;
     out.revealsRender = (() => { const c = document.createElement('canvas').getContext('2d'); hub.render(c); return true; })();
+    // Läden-Stufen aus Upgrades
+    const u = s.upgrades;
+    Object.assign(u, { blade: 0, spear: 0, fists: 0, discus: 0, blaster: 0, hammer: 0, bioRegen: 0, stimpack: 0, modCrit: 0, modThruster: 0, modLuck: 0, shopTier: 0 });
+    out.tier0 = JSON.stringify(s.getHubTiers());
+    Object.assign(u, { blade: 5, bioRegen: 2, modCrit: 3, modThruster: 3, shopTier: 1 });
+    out.tier1 = JSON.stringify(s.getHubTiers());
+    { const c = document.createElement('canvas').getContext('2d'); hub.render(c); }
     // Alt-Save ohne Feld → alles offen
     const payload = s.buildSavePayload(); delete payload.hubUnlocks;
     localStorage.setItem('starlighter_save_v2', JSON.stringify(payload));
@@ -50,5 +57,7 @@ module.exports = async ({ page }) => {
   assert.strictEqual(r.pending, 3);
   assert.strictEqual(r.pendingAfterEnter, 0);
   assert.strictEqual(r.legacy, 3, JSON.stringify(r));
+  assert.strictEqual(r.tier0, '{"forge":0,"med":0,"tech":0,"shop":0}', r.tier0);
+  assert.strictEqual(r.tier1, '{"forge":2,"med":1,"tech":2,"shop":1}', r.tier1);
   console.log('WELT P4a HUB-GEBAEUDE OK');
 };
