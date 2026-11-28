@@ -1,0 +1,1 @@
+Wegweiser für GitHub Copilot: **Lies zuerst `KI_WECHSEL.md`, dann `AGENTS.md` und `HANDOFF.md`.** Dort stehen alle Projektregeln (deutsche UI-Texte, keine Dungeon-Credits, strikte TypeScript-Regeln, Verifikation vor Push via `npm run ship`) und der Übergabe-Ablauf (`handoff/`).

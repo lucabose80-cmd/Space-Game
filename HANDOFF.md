@@ -1,5 +1,7 @@
 # HANDOFF — Übergabe zwischen Claude Code, Antigravity & Co.
 
+> **Neues/anderes KI-Werkzeug? Zuerst [`KI_WECHSEL.md`](KI_WECHSEL.md)** (werkzeugneutraler Einstieg, Notfall-Matrix).
+
 > **Zweck:** Jedes Werkzeug (und jede neue Sitzung) soll hier in 1 Minute wissen, wo das Projekt steht. **Am Ende jeder Arbeitssitzung aktualisieren** (kurz halten, veraltete Punkte löschen).
 
 ## Stand (2026-11-28)
@@ -28,7 +30,7 @@ npm run verify                           # Build + Invarianten + Sprite-Check + 
 > **Grundhaltung (Inhaber, 2026-11-27): Qualität vor Sparen.** Genug Gemini-Guthaben vorhanden — wenn etwas mit den vorhandenen Bildern nicht gut aussieht, nicht klappt oder nicht gefällt, wird ein neues bzw. ersetzendes Sheet bestellt (`AGENTS.md` Regel 14, `SPRITE_QUEUE.md` §0).
 `npm run check:sprites` listet die aktuelle Lage. Stand: **✔ Alle 17 optionalen M10-Promenaden- & M10-C-Boss-Sprites sind vorhanden** (`P3-01…P3-17` komplett ✅, alle 20 M11-Gegner-Rigs S1–S4 `P1-01…P2-19` + `P2-21` `crystal_crawler_ground.png` geliefert ✅).
 - Prompts & Maße: `ART_AND_DESIGN_GUIDE.md` §7–§8 · Ablage: `public/art/sprites/<datei>.png` (96×96 bzw. 128×128, kein Code nötig).
-- **M12 Arena-Sprites (`P1-03`–`P1-07`):** `P1-03` (`arena_leviathan_bg.png`), `P1-04` (`arena_leviathan_wall.png`) und `P1-07` (Trophäen-Sprites) geliefert ✅ (`handoff/endboss_arena.md`). **STOP-GATE nach P1-03/04:** `P1-05` (`leviathan_arena_parts.png`) und `P1-06` (`leviathan_arena_fx.png`) warten auf Sichtprüfung von `?arena` im echten Spiel.
+- **M12 Arena-Sprites (`P1-03`–`P1-07`):** `P1-03` (`arena_leviathan_bg.png`), `P1-04` (`arena_leviathan_wall.png`) und `P1-07` (Trophäen-Sprites) geliefert ✅ (`handoff/endboss_arena.md`). `P1-05`/`P1-06`/`P1-10`…`P1-12` ebenfalls geliefert ✅ (alle M12-Leviathan-Sprites vorhanden); offen ist nur die **Abnahme im echten Spiel** (`?bosslab` → ARENEN).
 - **NG+ & ∞ Spirale + Echo-Pilot (`P4-01`–`P4-06`):** alle 6 freigegebenen Sheets geliefert ✅ (`ngplus_aura.png`, `spiral_ground.png`, `public/art/dungeon_bg_spiral.png`, `spiral_props.png`, `drone_echo_fx.png`, `phase_stalker_echo_fx.png`). **Echo-Pilot STOP-GATE:** weitere Echo-Varianten erst nach Pilot-Abnahme; Code-Umsetzung auf Startsignal.
 - **Zentrale Warteschlange:** Alle offenen Sprites & M11-Sheets stehen priorisiert (`P0`–`P4`) in [`SPRITE_QUEUE.md`](SPRITE_QUEUE.md). **Wer einen Fallback/Platzhalter oder ein neues M11-Sheet anlegt, sortiert es dort sofort priorisiert ein** (`AGENTS.md` §3 Regel 7) und vermerkt es hier kurz. Aktuell sind alle ungesperrten Einträge erledigt; offen stehen die drei **⛔ STOP-GATES** (`P1-05`/`P1-06` nach `?arena`-Prüfung, Echo-Serie nach Pilot-Abnahme, **P4** weitere Boss-Rigs nach Kern-Wächter-/Krall-Abnahme).
 
@@ -49,7 +51,7 @@ Jeder Bereich hat ein eigenes Status-Blatt in [`handoff/`](handoff/README.md) �
 - **Polish (Teile 1–3) abgenommen & erledigt:** Hintergrund-Pause, Wackeln/Vibration im Hilfe-Tab, Tür-Label · Kern-Wächter-Schritte, Hit-Stop (`heavyStop`), Telegraph-Blitz, Schadenszahlen-Merge · Dungeon-Code lädt nach (`__game.dungeonReady`, Chunk-Gruppe `dungeon` entfernt). Tests `t7`, `t7b`, `t8`.
 - **Aufräumen erledigt** (Audit 2026-11-26, Blöcke C1–C6): Doku auf aktuellem Stand, „Kern-Wächter“ einheitlich, Repo-Hygiene, toter Code entfernt, gemeinsamer `EnemyKind`, `check:sprites` prüft Sheets/Imports, Pose-Sheet-Import (`art_source/poses`) entfernt, `npm run build:single` dokumentiert, Version 1.4.0. **Firebase-SDK lädt nach dem Start nach** (`src/services/firebaseSdk.ts` per `import()`, Service-API unverändert; Test `t6`) — Abweichung vom Plan: nicht der ganze Service, nur das SDK.
 - **Claude Code:** je Bereich siehe `handoff/*.md` (Einbinden der gelieferten S2–S4 Gegner-Rigs + `crystal_crawler_ground.png`; M12-Arena-Plan-Freigabe).
-- **Antigravity:** Alle aktuell freigegebenen `[ ]`-Einträge sind geliefert ✅ (`P0`–`P3` komplett, M12 `P1-03`/`P1-04`/`P1-07`, NG+ & Spirale `P4-01…P4-06`). Wartet auf Freigabe der **STOP-GATES**: `P1-05`/`P1-06` nach `?arena`-Sichtprüfung, Echo-Serie nach Pilot-Abnahme oder P4-Boss-Rigs bzw. neue Zusatz-/Ersatz-Sheets.
+- **Antigravity:** Alle aktuell freigegebenen `[ ]`-Einträge sind geliefert ✅ (`P0`–`P3` komplett, M12 `P1-03`…`P1-12`, NG+ & Spirale `P4-01…P4-06`). Wartet auf Freigabe der **STOP-GATES**: Echo-Serie nach Pilot-Abnahme oder P4-Boss-Rigs bzw. neue Zusatz-/Ersatz-Sheets.
 - Ökonomie & Boss-Kampfgefühl im echten Spiel beobachten und in `src/data/balance.ts` nachjustieren (Berichte: `tests/out/economy.json`, `tests/out/ttk.json`).
 
 ## Offene Punkte
@@ -57,4 +59,4 @@ Jeder Bereich hat ein eigenes Status-Blatt in [`handoff/`](handoff/README.md) �
 - Ideen: siehe `GAME_DESIGN_DOCUMENT.md` §5.
 
 ## M12 Phase E (2026-11-27)
-Waffen-Arten-Sperre (`WEAPON_TYPE_GATES`), Trophäe „A.E.G.I.S.-Herzlinse“, Hub-Vitrine umgesetzt (am bestehenden Leviathan-Sieg). **Neue Sprites benötigt:** `P1-07` (`prop_trophy_leviathan.png`, `item_trophy_leviathan.png`) — Fallbacks aktiv. Status-Blatt: `handoff/endboss_arena.md`.
+Waffen-Arten-Sperre (`WEAPON_TYPE_GATES`), Trophäe „A.E.G.I.S.-Herzlinse“, Hub-Vitrine umgesetzt (am bestehenden Leviathan-Sieg). Sprites `P1-07` (`prop_trophy_leviathan.png`, `item_trophy_leviathan.png`). Status-Blatt: `handoff/endboss_arena.md`.

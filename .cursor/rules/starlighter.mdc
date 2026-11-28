@@ -1,0 +1,5 @@
+---
+description: Projektregeln STARLIGHTER
+alwaysApply: true
+---
+Lies zuerst `KI_WECHSEL.md`, dann `AGENTS.md` und `HANDOFF.md`. Pushen nur per `npm run ship`. Alles Gelernte sofort im Status-Blatt `handoff/<bereich>.md` festhalten (AGENTS.md Regel 19).
