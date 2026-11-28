@@ -356,3 +356,45 @@ export function placeExtractBeacon(rooms: Map<string, DungeonRoom>, sector: Sect
     }
   }
 }
+
+/**
+ * P7: Käfig mit gefangenem Crew-Begleiter — Ebene II, in einem Kampfraum möglichst weit vom Start (tiefste Räume).
+ * Eigener lokaler PRNG; nutzt keinen globalen Zufall (Layouts bleiben identisch). Nie in Wochen-Prüfung/Spirale.
+ */
+export function placeCaptive(
+  rooms: Map<string, DungeonRoom>,
+  sector: SectorId,
+  floorIndex: 1 | 2 | 3,
+  crew: 'mina' | 'pip' | 'ping' | 'midnight',
+): boolean {
+  if (floorIndex !== 2) return false;
+  const all = [...rooms.values()]
+    .filter((r) => r.type === 'combat' && !r.isRiftChamber && !r.secretParentKey)
+    .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+  if (all.length === 0) return false;
+  const maxDepth = Math.max(...all.map((r) => r.depth));
+  const deep = all.filter((r) => r.depth >= maxDepth - 1);
+  const cands = deep.length > 0 ? deep : all;
+  const rng = mulberry32(hashString(`p7:captive:${crew}:${sector}:${cands.map((c) => c.key).join('|')}`));
+  const startRoom = Math.floor(rng() * cands.length);
+  const points = [
+    { x: ROOM_CENTER_X, y: ROOM_CENTER_Y },
+    { x: ROOM_CENTER_X - 96, y: ROOM_CENTER_Y + 20 },
+    { x: ROOM_CENTER_X + 96, y: ROOM_CENTER_Y + 20 },
+    { x: ROOM_CENTER_X, y: ROOM_TOP + 62 },
+  ];
+  for (const pool of [cands, all]) {
+    for (let ri = 0; ri < pool.length; ri++) {
+      const room = pool[(startRoom + ri) % pool.length];
+      for (const pt of points) {
+        const spot = findFreeSpotSpiral(room, pt.x, pt.y, 16, 8, 120);
+        if (!spot) continue;
+        if (room.extractBeacon && Math.hypot(spot.x - room.extractBeacon.x, spot.y - room.extractBeacon.y) < 40) continue;
+        if (room.riftPortal && Math.hypot(spot.x - room.riftPortal.x, spot.y - room.riftPortal.y) < 50) continue;
+        room.captive = { crew, x: spot.x, y: spot.y, freed: false };
+        return true;
+      }
+    }
+  }
+  return false;
+}

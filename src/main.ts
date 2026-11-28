@@ -4,6 +4,7 @@ import { getAtlas } from './assets/sprites';
 import { MARKET_EVENT_META } from './data/companions';
 import { NPC_META, TRUST_PERKS } from './data/story/storyChapters';
 import { STORY_SCENES } from './data/story/storyScenes';
+import { CREW_DEFS, crewHintScene } from './data/crew';
 import { sound } from './engine/audio';
 import { InputManager, VIRTUAL_HEIGHT, VIRTUAL_WIDTH } from './engine/input';
 import { BackroomScene } from './scenes/BackroomScene';
@@ -63,6 +64,8 @@ class StarlighterGame {
   /** Live-Regie auf Port Solaris (Sektor-Siegesfeiern, Omega-Fest, Kaels Gehilfin Mina) */
   private hubCutscene: HubCutsceneOverlay | null = null;
   private hubCutsceneOnDone: (() => void) | null = null;
+  /** P7: pro Begleiter der Tag, an dem der Besitzer seinen Hinweis schon gegeben hat */
+  private crewHintShownDay: Partial<Record<'mina' | 'pip' | 'ping' | 'midnight', number>> = {};
   /** Knackige Upgrade-Cutscene (Waffe geschmiedet, Laden-Ausbau, Stufen-Upgrades) */
   private upgradeCutscene: UpgradeCutsceneOverlay | null = null;
   private upgradeCutsceneOnDone: (() => void) | null = null;
@@ -465,21 +468,39 @@ class StarlighterGame {
   private withNpcScene(npc: StoryNpcId, open: () => void): void {
     const scene = this.state.getPendingScene(npc);
     if (!scene) {
-      open();
+      this.withCrewHint(npc, open);
       return;
     }
     this.ui.openStoryScene(scene, {
       laterLabel: `Später ▸ ${NPC_META[npc].station}`,
       onLater: () => {
         this.state.markSceneSkipped(scene.id);
-        open();
+        this.withCrewHint(npc, open);
       },
       onFinish: (res) => {
         this.announceStoryResult(res);
-        open();
+        this.withCrewHint(npc, open);
       },
       // ESC / ✕ / Hintergrund: wie „Später“, aber ohne die Station zu öffnen
       onClose: () => this.state.markSceneSkipped(scene.id),
+    });
+  }
+
+  /** P7: Der Shop-Besitzer verrät, wo sein vermisster Begleiter gefangen ist (einmal je Tag & Besuch, bis befreit). */
+  private withCrewHint(npc: StoryNpcId, open: () => void): void {
+    const crew = this.state.getMissingCrewFor(npc);
+    if (!crew || this.crewHintShownDay[crew] === this.state.day) {
+      open();
+      return;
+    }
+    this.crewHintShownDay[crew] = this.state.day;
+    const def = CREW_DEFS[crew];
+    this.ui.openStoryScene(crewHintScene(crew, this.state.isCrewSectorReachable(crew)), {
+      replay: true,
+      banner: `📡 Vermisst: ${def.name} · ${def.sectorName}, Ebene II`,
+      closeLabel: `Verstanden ▸ ${NPC_META[npc].station}`,
+      onClose: open,
+      onFinish: open,
     });
   }
 

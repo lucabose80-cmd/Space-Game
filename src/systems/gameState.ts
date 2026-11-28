@@ -1,4 +1,5 @@
 import { BOUNTY_REWARD_MULT, SELL_PRICE_MULT, scaledSellValue, WEAPON_TIER_GATES, WEAPON_TYPE_GATES } from '../data/balance';
+import { CREW_DEFS, CREW_ORDER, crewForOwner } from '../data/crew';
 import { COMPANION_ORDER, evaluateCompanionUnlock, SUIT_THEME_ORDER } from '../data/companions';
 import {
   ALCHEMY_BUFFS,
@@ -37,6 +38,7 @@ import type {
   SaveData,
   SectorId,
   StoryNpcId,
+  CrewId,
   StoryProgress,
   SuitThemeId,
   TimeOfDay,
@@ -264,6 +266,8 @@ export class GameState {
   public seenCutscenes: string[] = [];
   /** Geöffnete Hub-Gebäude (P4). Neues Spiel: leer → Gebäude im Aufbau. */
   public hubUnlocks: HubBuildingId[] = [];
+  /** P7: befreite Crew-Begleiter (Mina, Pip, Ping, Mitternacht) */
+  public rescuedCrew: CrewId[] = [];
   /** Nur Laufzeit: gerade geöffnete Gebäude, die der Hub mit Enthüllungs-Effekt zeigt. */
   public pendingHubReveals: HubBuildingId[] = [];
   /** M10-C: gelernte Codex-/Podest-Preise wurden einmalig auf den neuen Preisfaktor skaliert (Altspielstände) */
@@ -365,6 +369,7 @@ export class GameState {
     this.story = createEmptyStory();
     this.seenCutscenes = [];
     this.hubUnlocks = [];
+    this.rescuedCrew = [];
     this.pendingHubReveals = [];
     this.pedestals = [];
     this.syncShopCapacity();
@@ -620,6 +625,11 @@ export class GameState {
       const r3 = pickFrom(rarePool.length > 0 ? rarePool : commonPool, used);
       if (r3) chosen.push({ def: r3, stock: 1 });
     }
+    // P7: Mitternacht (befreit) lockt ein zusätzliches seltenes Stück an
+    if (this.rescuedCrew.includes('midnight')) {
+      const r4 = pickFrom(rarePool.length > 0 ? rarePool : commonPool, used);
+      if (r4) chosen.push({ def: r4, stock: 1 });
+    }
     const e1 = pickFrom(epicPool.length > 0 ? epicPool : rarePool, used);
     if (e1) chosen.push({ def: e1, stock: 1 });
 
@@ -637,9 +647,8 @@ export class GameState {
   }
 
   public getNyxOfferPrice(offer: BlackMarketOffer): number {
-    if (this.patronProgress?.rix?.bigOrderCompleted) {
-      return Math.max(20, Math.round((offer.price * 0.85) / 5) * 5);
-    }
+    const factor = (this.patronProgress?.rix?.bigOrderCompleted ? 0.85 : 1) * this.getCrewPriceFactor('blackmarket');
+    if (factor < 1) return Math.max(20, Math.round((offer.price * factor) / 5) * 5);
     return offer.price;
   }
 
@@ -1567,8 +1576,12 @@ export class GameState {
 
   /** Kael-Vertrauensbonus „Meisterhand“: −5 % Credits auf Schmiede-Upgrades & Waffen-Fertigung. */
   public getForgeCreditCost(base: number, shop: UpgradeTrack['shop']): number {
-    if (shop === 'forge' && this.hasTrustPerk('kael')) return Math.round(base * 0.95);
-    return base;
+    let factor = 1;
+    if (shop === 'forge' && this.hasTrustPerk('kael')) factor *= 0.95;
+    if (shop === 'forge') factor *= this.getCrewPriceFactor('forge');
+    else if (shop === 'medbay') factor *= this.getCrewPriceFactor('medbay');
+    else if (shop === 'techlab') factor *= this.getCrewPriceFactor('techlab');
+    return factor === 1 ? base : Math.round(base * factor);
   }
 
   // ==================== MEILENSTEIN 9: WÖCHENTLICHE GALAKTISCHE PRÜFUNG ====================
@@ -1712,6 +1725,7 @@ export class GameState {
       story: this.story,
       seenCutscenes: [...this.seenCutscenes],
       hubUnlocks: [...this.hubUnlocks],
+      rescuedCrew: [...this.rescuedCrew],
       priceScaleV2: this.priceScaleV2,
       ghostGreeting: this.ghostGreeting,
       weeklyTrial: this.weeklyTrial ?? undefined,
@@ -2033,6 +2047,10 @@ export class GameState {
         : [...HUB_BUILDING_IDS];
       this.pendingHubReveals = [];
       this.refreshStoryChapter(false);
+      // P7: Crew-Rettung — Altspielstände (Feld fehlt) behalten ihre bisherigen Begleiter
+      this.rescuedCrew = Array.isArray(parsed.rescuedCrew)
+        ? parsed.rescuedCrew.filter((k): k is CrewId => (CREW_ORDER as string[]).includes(k))
+        : CREW_ORDER.filter((id) => this.legacyCrewPresent(id));
 
       this.prunePinnedRecipes();
       this.checkAchievements(false);
@@ -2091,28 +2109,77 @@ export class GameState {
     }
   }
 
-  /** Vex' Echo-Sonde Ping (ab Kapitel 3, nach dem Gießerei-Sektor) im Tech-Labor. */
+  /** Alt-Regeln (vor P7: Begleiter kamen per Kapitel) — nur noch für die Migration alter Spielstände. */
+  private legacyCrewPresent(id: CrewId): boolean {
+    const st = this.story;
+    switch (id) {
+      case 'ping':
+        return st.chapter >= 3 || st.seenScenes.includes('vex_c3');
+      case 'midnight':
+        return st.chapter >= 4 || st.seenScenes.includes('nyx_c4');
+      case 'pip':
+        return st.chapter >= 2 || st.seenScenes.includes('lyra_c2');
+      case 'mina':
+        return (
+          st.chapter >= 2 ||
+          (this.sector1Cleared && st.seenScenes.includes('kael_c1')) ||
+          this.seenCutscenes.includes('story_mina_arrives')
+        );
+    }
+  }
+
+  public isCrewRescued(id: CrewId): boolean {
+    return this.rescuedCrew.includes(id);
+  }
+
+  /** Befreit einen Begleiter (einmalig, sofort gespeichert). Gibt true zurück, wenn neu befreit. */
+  public rescueCrew(id: CrewId): boolean {
+    if (this.rescuedCrew.includes(id)) return false;
+    this.rescuedCrew.push(id);
+    if (id === 'midnight') this.nyxStock = this.generateNyxStock();
+    this.save();
+    return true;
+  }
+
+  /** Ist der Sektor, in dem der Begleiter gefangen ist, schon erreichbar? (Sektor N öffnet nach Sektor N−1) */
+  public isCrewSectorReachable(id: CrewId): boolean {
+    const sector = CREW_DEFS[id].sector;
+    if (sector <= 1) return true;
+    if (sector === 2) return this.sector1Cleared;
+    if (sector === 3) return this.sector2Cleared;
+    return this.sector3Cleared;
+  }
+
+  /** Faktor (≤ 1) auf Preise eines Ladens durch den befreiten Begleiter seines Besitzers. */
+  public getCrewPriceFactor(shop: 'forge' | 'medbay' | 'techlab' | 'blackmarket'): number {
+    const id: CrewId = shop === 'forge' ? 'mina' : shop === 'medbay' ? 'pip' : shop === 'techlab' ? 'ping' : 'midnight';
+    return this.rescuedCrew.includes(id) ? 1 - CREW_DEFS[id].discount : 1;
+  }
+
+  /** Vermisster Begleiter, dessen Besitzer jetzt einen Hinweis geben kann (null = nichts zu melden). */
+  public getMissingCrewFor(npc: StoryNpcId): CrewId | null {
+    const id = crewForOwner(npc);
+    return id && !this.rescuedCrew.includes(id) ? id : null;
+  }
+
+  /** Vex' Echo-Sonde Ping (im Tech-Labor, sobald aus der Solar-Gießerei befreit). */
   public isPingPresent(): boolean {
-    return this.story.chapter >= 3 || this.story.seenScenes.includes('vex_c3');
+    return this.rescuedCrew.includes('ping');
   }
 
-  /** Nyx' Void-Katze Mitternacht (ab Kapitel 4, seit der Obelisk leuchtet) am Schwarzmarkt. */
+  /** Nyx' Void-Katze Mitternacht (am Schwarzmarkt, sobald aus dem Ältesten-Monolith befreit). */
   public isMidnightPresent(): boolean {
-    return this.story.chapter >= 4 || this.story.seenScenes.includes('nyx_c4');
+    return this.rescuedCrew.includes('midnight');
   }
 
-  /** Lyras Assistenz-Droide Pip arbeitet ab Kapitel 2 (nach dem Echo-Fieber) in der Med-Bay. */
+  /** Lyras Assistenz-Droide Pip (in der Med-Bay, sobald aus dem Kristall-Nebel befreit). */
   public isPipPresent(): boolean {
-    return this.story.chapter >= 2 || this.story.seenScenes.includes('lyra_c2');
+    return this.rescuedCrew.includes('pip');
   }
 
-  /** Kaels Schmiede-Gehilfin Mina steht dauerhaft an der 2. Werkbank nach Sektor 1 + Kaels Kapitel-1-Gespräch (oder ab Kapitel 2). */
+  /** Kaels Schmiede-Gehilfin Mina (an der 2. Werkbank, sobald aus dem Wrack-Sektor befreit). */
   public isMinaPresent(): boolean {
-    return (
-      this.story.chapter >= 2 ||
-      (this.sector1Cleared && this.story.seenScenes.includes('kael_c1')) ||
-      this.seenCutscenes.includes('story_mina_arrives')
-    );
+    return this.rescuedCrew.includes('mina');
   }
 
   public resetSave(): void {

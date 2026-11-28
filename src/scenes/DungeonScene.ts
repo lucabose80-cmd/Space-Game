@@ -59,7 +59,8 @@ import {
 } from '../dungeon/bosses/leviathanArena';
 import { BossFx } from '../dungeon/bosses/bossFx';
 import { BOSS_HP, ENDBOSS_ARENA, ENEMY_SHIELDS, RIFT_SCALING } from '../data/balance';
-import { findFreeSpotSpiral } from '../dungeon/mechanicsGen';
+import { findFreeSpotSpiral, placeCaptive } from '../dungeon/mechanicsGen';
+import { CREW_DEFS, crewForSector } from '../data/crew';
 import { DungeonRenderer } from '../dungeon/dungeonRenderer';
 import type {
   Afterimage,
@@ -434,6 +435,9 @@ export class DungeonScene {
       // M12 (Phase C): Endboss-Arena an den Bossraum hängen — nach der Generierung, ohne Math.random.
       // Wochen-Prüfung: nie vor TRIAL_ARENA_FROM_WEEK (kommt mit Phase D).
       if (arenaEnabled()) attachArenas(this.floor);
+      // P7: gefangener Crew-Begleiter (Ebene II) — nach der Generierung, eigener PRNG, nie in Spirale/Prüfung
+      const crew = !this.isEndlessRift ? crewForSector(sector) : null;
+      if (crew && !this.state.isCrewRescued(crew)) placeCaptive(this.floor.rooms, sector, floorIndex, crew);
     }
     this.floorBossDefeated = false;
     this.invulnTimer = 0.55;
@@ -4096,6 +4100,28 @@ export class DungeonScene {
         }
         return;
       }
+    }
+
+    // P7: Käfig mit gefangenem Crew-Begleiter (öffnet erst nach dem Raum-Clear)
+    const cage = this.currentRoom.captive;
+    if (cage && !cage.freed && !this.isWeeklyTrial && Math.hypot(this.playerX - cage.x, this.playerY - cage.y) < 32) {
+      const def = CREW_DEFS[cage.crew];
+      if (!this.currentRoom.cleared) {
+        this.activePrompt = { label: `Käfig verriegelt — besiege zuerst alle Gegner! (${def.name})`, x: cage.x, y: cage.y - 34 };
+      } else {
+        this.activePrompt = { label: `[E] Käfig öffnen: ${def.name} befreien`, x: cage.x, y: cage.y - 34 };
+        if (input.interactPressed()) {
+          cage.freed = true;
+          if (this.state.rescueCrew(cage.crew)) {
+            sound.playCompanionUnlock();
+            this.spawnBurst(cage.x, cage.y - 6, def.color, 26);
+            this.floats.push({ x: cage.x, y: cage.y - 26, text: `${def.name} befreit!`, color: def.color, life: 1.8, maxLife: 1.8 });
+            this.callbacks.onToast(`🔓 ${def.name} ist frei! ${def.ownerName} wartet schon auf Port Solaris — ${def.effectText}`, 'good');
+            this.callbacks.onHudDirty();
+          }
+        }
+      }
+      return;
     }
 
     // M10-C: Notfall-Bake (ab Ebene II, nach Raum-Clear, einmalig) — einziger Teleporter außerhalb von Start-Raum & Bossen

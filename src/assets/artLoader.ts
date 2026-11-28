@@ -88,6 +88,7 @@ export interface HDArtAssets {
   marketBank: HTMLCanvasElement | null;
   hubLockTech: HTMLCanvasElement | null;
   npcPip: HTMLCanvasElement | null;
+  propCrewCage: HTMLCanvasElement | null;
   npcPing: HTMLCanvasElement | null;
   propWorkbench2: HTMLCanvasElement | null;
   npcMidnight: HTMLCanvasElement | null;
@@ -347,6 +348,7 @@ const art: HDArtAssets = {
   marketBank: null,
   hubLockTech: null,
   npcPip: null,
+  propCrewCage: null,
   npcPing: null,
   propWorkbench2: null,
   npcMidnight: null,
@@ -578,6 +580,7 @@ export const WORLD_OPTIONAL_SPRITES = {
   marketBank: 'market_bank',
   hubLockTech: 'hub_lock_tech',
   npcPip: 'npc_pip',
+  propCrewCage: 'prop_crew_cage',
   npcPing: 'npc_ping',
   propWorkbench2: 'prop_workbench2',
   npcMidnight: 'npc_midnight',

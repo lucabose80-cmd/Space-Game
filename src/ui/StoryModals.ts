@@ -49,6 +49,10 @@ export interface StoryDialogOptions {
   laterLabel?: string;
   /** Wiedergabe aus der Chronik: keine Auswirkungen auf Vertrauen/Flags/Gelesen-Status. */
   replay?: boolean;
+  /** Ersetzt den Wiederholungs-Hinweis (z. B. Crew-Hinweis der Shop-Besitzer). */
+  banner?: string;
+  /** Beschriftung des Schließen-Buttons im Replay-Modus. */
+  closeLabel?: string;
   onLater?: () => void;
   onFinish?: (res: StoryResult) => void;
   /** ESC / ✕ / Hintergrund-Klick (oder „Schließen“ im Replay). */
@@ -108,7 +112,7 @@ export class StoryDialogController {
     if (!this.opts.replay) prepareScene(story, this.scene);
 
     const chapter = STORY_CHAPTERS[Math.max(0, Math.min(STORY_CHAPTERS.length - 1, this.scene.chapter))];
-    const title = `📜 ${chapter.title.split(' · ')[0]} · ${this.scene.title}`;
+    const title = this.opts.banner ? `📡 ${this.scene.title}` : `📜 ${chapter.title.split(' · ')[0]} · ${this.scene.title}`;
     this.host.showModalHtml(`
       <div class="modal-window m10-story" style="max-width:640px">
         <div class="modal-header">
@@ -116,7 +120,7 @@ export class StoryDialogController {
           <button id="modal-close-btn" class="modal-close" style="white-space:nowrap">ESC ✕</button>
         </div>
         <div class="modal-body m10-story-body">
-          ${this.opts.replay ? '<div class="m9-file-sub" style="text-align:center">↻ Wiederholung — ohne Auswirkungen auf Vertrauen &amp; Entscheidungen</div>' : ''}
+          ${this.opts.replay ? `<div class="m9-file-sub" style="text-align:center">${this.opts.banner ? escapeHtml(this.opts.banner) : '↻ Wiederholung — ohne Auswirkungen auf Vertrauen &amp; Entscheidungen'}</div>` : ''}
           <div class="m10-story-main">
             <div class="m10-portrait" id="m10-portrait"></div>
             <div class="m10-textbox" id="m10-textbox">
@@ -138,7 +142,7 @@ export class StoryDialogController {
 
     const later = this.host.modalEl.querySelector<HTMLButtonElement>('#m10-later');
     if (later) {
-      later.textContent = this.opts.replay ? 'Schließen' : (this.opts.laterLabel ?? 'Später');
+      later.textContent = this.opts.replay ? (this.opts.closeLabel ?? 'Schließen') : (this.opts.laterLabel ?? 'Später');
       later.addEventListener('click', () => this.skipLater());
     }
     this.host.modalEl.querySelector('#m10-next')?.addEventListener('click', () => {
@@ -447,10 +451,10 @@ function worldGrowthHtml(w: ChronicleWorld): string {
     `<div class="m9-file-sub">${ok ? '✔' : '🔒'} ${escapeHtml(text)}${ok ? '' : ` — ${escapeHtml(hint)}`}</div>`;
   const rows = HUB_BUILDINGS.map((b) => row(w.openBuildings.includes(b.id), `${b.name} eröffnet`, b.lockedHint)).join('');
   const crew =
-    row(w.minaPresent, 'Mina arbeitet in Kaels Schmiede', 'zieht nach Sektor 1 ein') +
-    row(w.pipPresent, 'Pip assistiert Dr. Lyra in der Med-Bay', 'kommt in Kapitel II') +
-    row(w.pingPresent, 'Ping lauscht dem Echo im Tech-Labor', 'kommt in Kapitel III') +
-    row(w.midnightPresent, 'Mitternacht wacht am Schwarzmarkt', 'kommt in Kapitel IV');
+    row(w.minaPresent, 'Mina befreit — Schmiede −10 %', 'gefangen im Wrack-Sektor, Ebene II') +
+    row(w.pipPresent, 'Pip befreit — Med-Bay −10 %', 'gefangen im Kristall-Nebel, Ebene II') +
+    row(w.pingPresent, 'Ping befreit — Tech-Labor −10 %', 'gefangen in der Solar-Gießerei, Ebene II') +
+    row(w.midnightPresent, 'Mitternacht befreit — Schwarzmarkt −10 % & +1 Angebot', 'gefangen im Ältesten-Monolith, Ebene II');
   const grow =
     row(w.shopTier >= 1, `Astro-Barter ausgebaut (Stufe ${w.shopTier + 1}/3)`, 'Shop-Ausbau im Laden') +
     row(w.quartersTier >= 1, `Kapitäns-Quartier ausgebaut (Stufe ${w.quartersTier + 1}/3)`, 'Quartier-Ausbau im Shop-Ausbau-Terminal');

@@ -14,6 +14,7 @@ import { RIG_BY_KIND, RIGS } from '../data/rigs';
 import { getAtlas } from '../assets/sprites';
 import { shakeFactor } from '../systems/deviceSettings';
 import { COMPANION_DEFS, SUIT_THEMES } from '../data/companions';
+import { CREW_DEFS } from '../data/crew';
 import { getInfusionDef, RIFT_MUTATORS } from '../data/infusions';
 import { getItemDef } from '../data/items';
 import { VIRTUAL_HEIGHT, VIRTUAL_WIDTH, type InputManager } from '../engine/input';
@@ -264,6 +265,7 @@ export class DungeonRenderer {
     }
 
     this.renderDoors(ctx);
+    this.renderCaptiveCage(ctx);
 
     if (this.scene.currentRoom.type === 'start') {
       this.renderWarpPad(ctx, this.scene.bounds.cx, this.scene.bounds.cy - 12, this.scene.currentSector === 2 ? '#c084fc' : '#38e8d4');
@@ -1357,6 +1359,68 @@ export class DungeonRenderer {
     // Soft ambient shield glow
     drawGlow(ctx, frontMid.x, frontMid.y, 19, nodeColor, alpha * (0.34 + flash * 0.25));
     ctx.restore();
+  }
+
+  /** P7: Käfig mit gefangenem Crew-Begleiter (Energiestäbe; offen nach der Befreiung). */
+  private renderCaptiveCage(ctx: CanvasRenderingContext2D): void {
+    const cage = this.scene.currentRoom.captive;
+    if (!cage) return;
+    const def = CREW_DEFS[cage.crew];
+    const art = getHDArt();
+    const spr =
+      cage.crew === 'mina' ? art.npcMina : cage.crew === 'pip' ? art.npcPip : cage.crew === 'ping' ? art.npcPing : art.npcMidnight;
+    const t = this.scene.time;
+    const locked = !cage.freed && !this.scene.currentRoom.cleared;
+    const x = Math.round(cage.x);
+    const y = Math.round(cage.y);
+    const cageSpr = art.propCrewCage;
+    const barCol = locked ? '#f87171' : '#67e8f9';
+    drawPixelShadow(ctx, x, y + 12, 17, 5, 0.55);
+    drawFloorGlow(ctx, x, y + 12, 24, def.color, cage.freed ? 0.1 : 0.22 + Math.sin(t * 3) * 0.05);
+    const bob = cage.freed ? 0 : Math.sin(t * 2.4) * 1.2;
+    if (cageSpr) {
+      // Gefangene Figur hinter den Stäben, Käfig-Sprite davor (Innenraum ist transparent)
+      if (spr && !cage.freed) ctx.drawImage(spr, x - 10, Math.round(y - 22 + bob), 20, 20);
+      if (!cage.freed) {
+        ctx.save();
+        if (locked) ctx.globalAlpha = 0.88;
+        ctx.drawImage(cageSpr, x - 17, y - 22, 34, 33);
+        ctx.restore();
+        drawGlow(ctx, x, y - 8, 28, barCol, 0.14 + Math.sin(t * 5) * 0.03);
+        if (locked) {
+          ctx.globalAlpha = 0.18 + Math.sin(t * 6) * 0.06;
+          ctx.fillStyle = '#f87171';
+          ctx.fillRect(x - 13, y - 20, 26, 20);
+          ctx.globalAlpha = 1;
+        }
+      } else {
+        // Befreit: der leere, abgedunkelte Käfig bleibt als Wrack stehen
+        ctx.globalAlpha = 0.4;
+        ctx.drawImage(cageSpr, x - 17, y - 22, 34, 33);
+        ctx.globalAlpha = 1;
+      }
+    } else {
+      // Fallback (ohne Sprite): Sockel + Energiestäbe
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(x - 15, y + 8, 30, 6);
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(x - 15, y + 8, 30, 1.5);
+      if (spr && !cage.freed) ctx.drawImage(spr, x - 11, Math.round(y - 22 + bob), 22, 22);
+      if (!cage.freed) {
+        ctx.globalAlpha = 0.5 + Math.sin(t * 6) * 0.12;
+        ctx.fillStyle = barCol;
+        for (const bx of [-13, -7, -1, 5, 11]) ctx.fillRect(x + bx, y - 26, 1.6, 35);
+        ctx.globalAlpha = 0.9;
+        ctx.fillRect(x - 14, y - 27, 28, 2);
+        ctx.globalAlpha = 1;
+        drawGlow(ctx, x, y - 8, 30, barCol, 0.16);
+      }
+    }
+    if (cage.freed) return;
+    ctx.font = 'bold 5px Silkscreen, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = def.color;
+    ctx.fillText(def.name.toUpperCase(), x, y - 31);
   }
 
   private renderDoors(ctx: CanvasRenderingContext2D): void {

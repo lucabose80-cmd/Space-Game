@@ -80,10 +80,11 @@ module.exports = async ({ page }) => {
   }));
   assert.deepStrictEqual(celDone, { active: false, seen: true }, JSON.stringify(celDone));
 
-  // 3. Kaels Gehilfin Mina: nach kael_c1 freigeschaltet → Einzugs-Cutscene + dauerhaft auf der Promenade
+  // 3. Kaels Gehilfin Mina: nach der Rettung (P7) → Einzugs-Cutscene + dauerhaft auf der Promenade
   await page.evaluate(() => {
     const g = window.__game;
     g.state.markSceneSeen('kael_c1');
+    g.state.rescueCrew('mina'); // P7: Mina erscheint erst nach der Rettung im Dungeon
     g.checkPendingHubCutscenes();
     g.hubCutscene?.seek(1, 2.2);
   });

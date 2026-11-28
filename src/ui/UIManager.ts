@@ -1,5 +1,6 @@
 import { scaledSellValue } from '../data/balance';
 import { getHDArt } from '../assets/artLoader';
+import { CREW_DEFS } from '../data/crew';
 import {
   ACHIEVEMENT_DEFS,
   COMPANION_DEFS,
@@ -72,6 +73,7 @@ import type {
   WeaponId,
   WeeklyTrialEntry,
   WeeklyTrialInfo,
+  CrewId,
 } from '../types';
 import type { RoomChest } from '../world/dungeonGen';
 import {
@@ -1002,7 +1004,7 @@ export class UIManager {
                   <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 8px;border:1px solid ${unlocked ? 'rgba(56,232,212,0.35)' : 'var(--border-steel)'};background:rgba(10,16,30,0.75);opacity:${unlocked ? '1' : '0.55'}">
                     <div style="min-width:0">
                       <div style="font-size:11.5px;font-weight:700;color:${unlocked ? '#f8fafc' : 'var(--text-muted)'}">${entry.icon} ${unlocked ? entry.title : '??? (Noch nicht erlebt)'}</div>
-                      <div style="font-size:10.5px;color:var(--text-muted)">${unlocked ? entry.subtitle : `Kapitel ${entry.chapter}`}</div>
+                      <div style="font-size:10.5px;color:var(--text-muted)">${unlocked ? entry.subtitle : /^story_(mina|pip|ping|midnight)_arrives$/.test(entry.id) ? 'Im Dungeon gefangen — befreie sie' : `Kapitel ${entry.chapter}`}</div>
                     </div>
                     ${
                       unlocked
@@ -1508,6 +1510,16 @@ export class UIManager {
     this.openStationShopModal('techlab');
   }
 
+  /** P7: Zeile „Begleiter-Bonus“ im Laden: aktiv (befreit) oder Hinweis, wo der Begleiter gefangen ist. */
+  private crewBonusHtml(id: CrewId | null): string {
+    if (!id) return '';
+    const def = CREW_DEFS[id];
+    const rescued = this.state.isCrewRescued(id);
+    return rescued
+      ? `<div style="padding:5px 10px;font-size:11px;border:1px solid ${def.color};background:rgba(15,23,42,0.7);color:${def.color}">✔ ${def.name} hilft hier — ${def.effectText}</div>`
+      : `<div style="padding:5px 10px;font-size:11px;border:1px dashed var(--border-steel);color:var(--text-muted)">🔒 ${def.name} ist im ${def.sectorName} (Ebene II) gefangen — befreit: ${def.effectText}</div>`;
+  }
+
   private openStationShopModal(shop: 'forge' | 'medbay' | 'shop_terminal' | 'techlab'): void {
     const tracks = UPGRADE_TRACKS.filter((t) => t.shop === shop);
     const isForge = shop === 'forge';
@@ -1761,6 +1773,7 @@ export class UIManager {
         </div>
         <div class="modal-body">
           ${npcBanner}
+          ${this.crewBonusHtml(shop === 'forge' ? 'mina' : shop === 'medbay' ? 'pip' : shop === 'techlab' ? 'ping' : null)}
           ${isForge ? renderLoadoutHtml(this.state, { compact: true }) : ''}
           <div class="upgrade-list">${cardsHtml}</div>
         </div>
@@ -2623,6 +2636,7 @@ export class UIManager {
               </p>
             </div>
           </div>
+          ${this.crewBonusHtml('midnight')}
           <div class="upgrade-list">${cardsHtml}</div>
         </div>
       </div>

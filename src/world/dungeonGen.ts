@@ -171,6 +171,8 @@ export interface DungeonRoom {
   flameJets?: FlameJet[];
   magnetPlates?: MagnetPlate[];
   teleporters?: TeleportPad[];
+  /** P7: gefangener Crew-Begleiter im Käfig (nur Kampfraum, Ebene II) */
+  captive?: { crew: 'mina' | 'pip' | 'ping' | 'midnight'; x: number; y: number; freed: boolean };
   hasHealStation?: boolean;
   healStationUsed?: boolean;
   chest: RoomChest | null;

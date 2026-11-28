@@ -16,6 +16,7 @@ module.exports = async ({ page, scratch }) => {
   // ---- A: Kael (Antwort B setzt knows_juno, danach öffnet die Schmiede)
   res.A = await page.evaluate(() => {
     const g = window.__game, ui = g.ui; const o = {};
+    g.state.rescuedCrew = ['mina', 'pip', 'ping', 'midnight']; // P7: sonst käme zuerst der Crew-Hinweis der Besitzer
     o.pendingBefore = g.state.getPendingScene('kael')?.id;
     g.hubScene.callbacks.onOpenForge();
     o.storyOpen = !!document.querySelector('.m10-story'); o.title = document.querySelector('.m10-story-title')?.textContent;
@@ -137,6 +138,7 @@ module.exports = async ({ page, scratch }) => {
   });
   // ---- H: Boni
   res.H = await page.evaluate(async () => {
+    window.__game.state.rescuedCrew = []; // P7: Mitternacht würde ein Zusatzangebot erzeugen
     const g = window.__game, ui = g.ui; const o = {};
     const { UPGRADE_TRACKS } = await import('/src/data/upgrades.ts');
     const tr = UPGRADE_TRACKS.find((t) => t.shop === 'forge' && t.weaponId === 'blade');
