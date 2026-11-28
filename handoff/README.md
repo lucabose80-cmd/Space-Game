@@ -7,7 +7,7 @@ Jeder Chat/Agent pflegt **nur die Datei seines Bereichs**. `HANDOFF.md` bleibt d
 
 | Bereich | Besitzer (Werkzeug · Chat) | seit | Umfang (was ist in Arbeit — **was bewusst nicht**) |
 | :--- | :--- | :--- | :--- |
-| Endboss-Arenen M12 (Leviathan-Pilot, künftig S2–S4) | frei — Pilot wartet auf Abnahme im echten Spiel | 2026-11-28 | nächste Arena erst nach Abnahme (Pipeline Stufe 8) |
+| Endboss-Arenen M12 (Leviathan-Pilot, künftig S2–S4) | Claude Code · Chat „Leviathan Optik-Überarbeitung“ | 2026-11-28 | nur Optik/Sauberkeit des Leviathan (Rig, Wand, Effekte); keine neue Arena |
 | Cutscenes | siehe [`cutscenes.md`](cutscenes.md) | — | Besitzer dort eintragen |
 | Gegner-Rigs / Boss-Rigs (M11) | je Gegner: siehe Tabelle unten, Status-Blatt | — | pro Gegner/Boss ein Besitzer |
 | Sprite-Queue (`SPRITE_QUEUE.md`) | Antigravity (offene `[ ]`) · Claude-Chats nur `[~]` für ihre laufende Aufgabe | — | `[~]` = in Arbeit, **nicht** doppelt erzeugen |
