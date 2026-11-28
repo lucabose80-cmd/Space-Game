@@ -107,6 +107,7 @@ export interface HDArtAssets {
   arenaLeviathanVortex: HTMLCanvasElement | null;
   arenaLeviathanCrater: HTMLCanvasElement | null;
   arenaLeviathanIrisClosed: HTMLCanvasElement | null;
+  arenaLeviathanIrisP2: HTMLCanvasElement | null;
   arenaLeviathanVentIntact: HTMLCanvasElement | null;
   arenaLeviathanVentCharge: HTMLCanvasElement | null;
   npcPilgrim: HTMLCanvasElement | null;
@@ -301,6 +302,7 @@ const art: HDArtAssets = {
   arenaLeviathanVortex: null,
   arenaLeviathanCrater: null,
   arenaLeviathanIrisClosed: null,
+  arenaLeviathanIrisP2: null,
   arenaLeviathanVentIntact: null,
   arenaLeviathanVentCharge: null,
   npcPilgrim: null,
@@ -479,6 +481,7 @@ export const M12_OPTIONAL_SPRITES = {
   arenaLeviathanVortex: 'arena_leviathan_vortex',
   arenaLeviathanCrater: 'arena_leviathan_crater',
   arenaLeviathanIrisClosed: 'arena_leviathan_iris_closed',
+  arenaLeviathanIrisP2: 'arena_leviathan_iris_p2',
   arenaLeviathanVentIntact: 'arena_leviathan_vent_intact',
   arenaLeviathanVentCharge: 'arena_leviathan_vent_charge',
 } as const;
