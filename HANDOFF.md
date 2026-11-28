@@ -2,9 +2,10 @@
 
 > **Zweck:** Jedes Werkzeug (und jede neue Sitzung) soll hier in 1 Minute wissen, wo das Projekt steht. **Am Ende jeder Arbeitssitzung aktualisieren** (kurz halten, veraltete Punkte löschen).
 
-## Stand
-- Meilensteine 1–10-C sind umgesetzt, `SAVE_VERSION = 11` (Vercel deployt bei Push auf `main`). **M11 (lebendige Gegner & Bosse) läuft:** Kern-Wächter animiert, Krall vollständig eingebunden (alle P0-Sheets verdrahtet, nur Abnahme im Kampf offen), Geschütz-Rig komplett, Teilen von Quarz-Koloss/Sternen-Archon fertig. **Status je Bereich: [`handoff/README.md`](handoff/README.md).** Übersicht: `MILESTONE_11_ARCHITECTURE.md` §11, `BOSS_ANIMATION_PLAN.md` (Statustabelle §3).
-- **Kristall-Krabbler-Rig (P2-05)** eingebunden (`handoff/enemy_crystal_crawler.md`); Effekt-Sheet P3-21 selbst generiert und verdrahtet (Tod-Splitter, Glühen, Funkenspur).
+## Stand (2026-11-28)
+- Meilensteine 1–10-C sind umgesetzt, `SAVE_VERSION = 11` (Vercel deployt über `vercel.json` **nur** `main` und überspringt reine Doku-/Test-/`art_source`-Commits per `ignoreCommand` → schont das 100-Deploys/Tag-Limit im Free Tier).
+- **M11 (lebendige Gegner & Bosse):** **Alle normalen Gegner in allen 4 Sektoren sind zu 100 % geriggt (G1–G10, Tests `m11p7`–`m11p17`, 59/59 Playwright-Tests grün, 0 fehlende Sprites)**; Kern-Wächter & Krall animiert (warten auf Abnahme im echten Kampf); Teilen von Quarz-Koloss/Sternen-Archon fertig. **Status je Bereich: [`handoff/README.md`](handoff/README.md).**
+- **M12 (Sektor-Endboss-Arenen, Pilot A.E.G.I.S. Leviathan):** Auf **Schienen-Kran-Koloss mit echtem M11-Rig** (`boss_leviathan.json` / `boss_leviathan.ts`) auf fester Nordwand-Laufschiene umgestellt (`m12p8_leviathan_rework`, inkl. Phase-II-Absturz-Respawn-Fix `findSafeFloorPos` und nahtloser Nordwand ohne Geisterkern). **Wichtige Praxis-Learnings & harte Fallen für alle künftigen Endboss-Arenen stehen in [`handoff/endboss_arena.md`](handoff/endboss_arena.md) — vor neuen M12-Arenen unbedingt lesen!**
 - Doku: `GAME_DESIGN_DOCUMENT.md` (Status), `MILESTONE_10_ARCHITECTURE.md` §11 und `MILESTONE_10C_ARCHITECTURE.md` §9 (Umsetzungsnotizen, gemessene Werte, Abweichungen).
 
 ## Arbeitsablauf & Werkzeug-Sync (Antigravity ↔ Claude Code)
