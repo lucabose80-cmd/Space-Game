@@ -19,8 +19,9 @@
    - **`mode: 'extract'` (`1.05 s`):** Teleporter-Ring + Lichtstrahl ziehen den Spieler direkt an seinem Standort auf der Map nach oben heraus → Schnitt auf Weltraum-Rückflug.
    - **`mode: 'rescue'` (`1.50 s`):** Bei 0 HP fliegt **Dr. Lyras Med-Evac-Drohne** (`cutscene_med_drone.png`) auf der echten Map von oben über den verletzten, leicht schräg liegenden Spieler und hebt ihn im roten Stasis-Strahl heraus → Schnitt auf Not-Rückflug.
 4. **Weltraum-Rückflug nach Port Solaris** ([`src/scenes/SectorReturnCutscene.ts`](../src/scenes/SectorReturnCutscene.ts)):
-   - **`mode: 'extract'` (`3.75 s`):** Gold-türkise Abholung am Sektor → Kurvenflug (mit `ship_*_bank.png`) direkt in die leuchtende Hangarbucht von **Port Solaris** (`cutscene_bg_solaris.png`) → Hangar-Landung & Aussteigen.
-   - **`mode: 'rescue'` (`3.95 s`):** Alarm-Glitch (`sound.playEmergencySiren()`), Med-Evac-Drohne mit Rauch-/Funkenspur → Notlandung in **Port Solaris** → Aufwachen in der Koje.
+   - **Kein doppelter Abhol-Strahl mehr:** Da der Kapitän bereits in `DungeonMapCutscene` auf der echten Map hochgebeamt bzw. von der Med-Evac-Drohne geborgen wurde, zeigt Phase 1 direkt den **Abflug aus der Sektor-Schleuse** (Kapitän ist bereits an Bord).
+   - **`mode: 'extract'` (`3.35 s`):** Schiff startet aus der Sektor-Schleuse im echten 3/4-Schräglagen-Flug nach rechts-oben → Warp-Blitz → sauberer Ein-Kurven-Anflug (ohne horizontales Spiegeln) direkt in die Hangarbucht von **Port Solaris** (`cutscene_bg_solaris.png`) → Hangar-Landung & Aussteigen.
+   - **`mode: 'rescue'` (`3.55 s`):** Med-Evac-Drohne bricht mit Sirene, Rauch- & Funkenspur aus der Sektor-Schleuse aus (Nase exakt am Geschwindigkeitsvektor) → Notlandung in **Port Solaris** → Aufwachen in der Koje.
 5. **Aufwachen in der Ruhekoje nach K.O. (0 HP)** ([`src/scenes/BackroomScene.ts`](../src/scenes/BackroomScene.ts)):
    - `BackroomScene.onEnter('rescue', onWakeDone)` startet auf dem unteren Bett (`92, 118`), grünes Med-Bay-Heilglühen, Spieler steigt aus der Koje auf den freien Holzboden davor (`114, 146`), Dr.-Lyra-Toast → Run-Bilanz.
 
@@ -32,13 +33,13 @@
   - `src/scenes/SectorApproachCutscene.ts`
   - `src/scenes/SectorReturnCutscene.ts`
   - `src/dungeon/dungeonCutscene.ts`
-  - `tests/cutscene_approach.cjs` (prüft 2-Szenen-Anflug, In-Map Drop-Pod + Prop, In-Map Extraktion, In-Map Med-Evac-Rettung, Skip, Hangar-Disembark & Backroom-Wakeup; Screenshots in `tests/out/cutscene_*.png`).
+  - `tests/cutscene_approach.cjs` (prüft 2-Szenen-Anflug, In-Map Drop-Pod + Prop, In-Map Extraktion, In-Map Med-Evac-Rettung, Rückflug Phase 1 & 2, Skip, Hangar-Disembark & Backroom-Wakeup; Screenshots in `tests/out/cutscene_*.png`).
 - **Kleine Hooks in gemeinsamen Dateien:**
   - `src/main.ts`: Orchestrierung von `approachCutscene`, `mapCutscene`, `returnCutscene`, `setHudVisible()`, Routing Extraktion → Hangar-Disembark & Defeat → Backroom-Wakeup.
-  - `src/scenes/HangarScene.ts`: 3/4-Seitenansicht-Schiffe, Rampe ein-/aussteigen, `startDisembark()`.
+  - `src/scenes/HangarScene.ts`: 3/4-Seitenansicht-Schiffe (`104×104` geparkt, `94×94` Flug), perspektivische Skalierung (`1.0 ↔ 0.7`) beim Ein-/Aussteigen über die Rampe, `startDisembark()`.
   - `src/scenes/BackroomScene.ts`: `onEnter('rescue', onWakeDone)` Aufwach-Sequenz in der Koje.
   - `src/scenes/DungeonScene.ts`: nur 2 passive Felder (`hidePlayerForCutscene`, `landedPod`).
-  - `src/dungeon/dungeonRenderer.ts`: `landedPod` Y-sortiert in `drawables` + `if (!this.scene.hidePlayerForCutscene)`.
+  - `src/dungeon/dungeonRenderer.ts`: `landedPod` (`46×46`) Y-sortiert in `drawables` + `if (!this.scene.hidePlayerForCutscene)`.
   - `src/engine/audio.ts`: `playApproachWhoosh()`, `playDropBeam()`, `playBoardingChime()`, `playPodLaunch()`, `playEmergencySiren()`.
   - `src/assets/artLoader.ts`: Block `CUTSCENE_OPTIONAL_SPRITES` (21 Sprites, alle vorhanden & in `SPRITE_QUEUE.md` `P3-27`–`P3-47` als `[x]`).
 - **Pixel-Art-Sprites unter `public/art/sprites/`:**
@@ -63,6 +64,9 @@
 10. **Koordinaten in `BackroomScene.ts`:** `SLEEP_POD_POS` (`86, 140`) ist der Interaktionspunkt *vor* dem Bett, nicht die Matratze. Unteres Bett = `(92, 118)`, freier Holzboden davor = `(114, 146)` (bei `y ≥ 170` landet man auf dem Waffenschrank).
 11. **Playwright-Tests bei kurzen Cutscenes:** Während `page.screenshot()` läuft, tickt `requestAnimationFrame` weiter — in Tests `g.mapCutscene?.seek(...)` immer mit Optional Chaining absichern.
 12. **API-Key-Regel:** Lokaler Gemini-API-Key liegt ausschließlich außerhalb des Repos unter `~/.config/starlighter/gemini_api_key` (`chmod 600`), niemals im Repo oder in Commits.
+13. **Proportionen Schiff/Drop-Pod vs. Spieler (`24×28`):** Schiffe im Hangar müssen die achteckigen Pads (`~103×86` logische Pixel) ausfüllen (`104×104` geparkt, `94×94` im Flug, Treppe bei `doorX = dock.x + 10`, `footX = dock.x + 3`), und der Spieler skaliert auf der Treppe perspektivisch `1.0 ↔ 0.7`, damit der Eingang größer/stimmig zum Spieler wirkt. Drop-Pod im Dungeon = `46×46` (`podY = sy - 16`, synchron in `dungeonCutscene.ts`, `dungeonRenderer.ts` und `main.ts`), Med-Evac-Drohne in-map = `50×50`.
+14. **Kontinuität zwischen In-Map- & Weltraum-Rückflug:** Niemals denselben Abhol-/Beam-Vorgang in `SectorReturnCutscene` wiederholen — nach `DungeonMapCutscene` (`extract`/`rescue`) ist der Kapitän bereits an Bord, daher zeigt Phase 1 von `SectorReturnCutscene` ausschließlich den Abflug aus der Sektor-Schleuse (ohne `renderPickupBeam` / schwebenden `heroDown`).
+15. **Flugkurven & Titelkarte:** Anflugkurven (`SectorApproachCutscene` Phase 2, `SectorReturnCutscene` Phase 2) als einzelne Kurve ohne S-Wendepunkt (verhindert plötzliches horizontales Spiegeln von `ship_*_bank.png`) und oberhalb der Titelkarte (`y ≥ 200`) führen.
 
 ---
 

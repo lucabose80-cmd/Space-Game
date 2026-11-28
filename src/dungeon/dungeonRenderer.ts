@@ -622,8 +622,8 @@ export class DungeonRenderer {
         y: landed.y,
         draw: () => {
           const pod = getHDArt().cutsceneDropPodOpen;
-          drawPixelShadow(ctx, landed.x, landed.y + 11, 14, 5, 0.42);
-          if (pod) ctx.drawImage(pod, Math.round(landed.x - 15), Math.round(landed.y - 16), 30, 30);
+          drawPixelShadow(ctx, landed.x, landed.y + 18, 20, 7, 0.44);
+          if (pod) ctx.drawImage(pod, Math.round(landed.x - 23), Math.round(landed.y - 24), 46, 46);
         },
       });
     }

@@ -234,15 +234,27 @@ export class HangarScene {
             });
           }
         }
-        // Ab 0.74 s: Spieler geht sichtbar die geöffnete Treppe herunter aufs Hangar-Deck!
-        if (t >= 0.74 && t < 1.28) {
-          const dp = Math.min(1, (t - 0.74) / 0.54);
-          this.playerX = dock.x + 2 - dp * 4;
-          this.playerY = dock.y + 6 + dp * 28;
+        // Ab 0.72 s: Spieler tritt aus der geöffneten Kabinentür & geht sichtbar die Treppe herunter aufs Hangar-Deck!
+        if (t >= 0.72 && t < 1.28) {
+          const dp = Math.min(1, (t - 0.72) / 0.56);
+          const doorX = dock.x + 10;
+          const doorY = dock.y + 4;
+          const footX = dock.x + 3;
+          const footY = dock.y + 26;
+          const deckY = dock.y + 34;
+          if (dp < 0.78) {
+            const u = dp / 0.78;
+            this.playerX = doorX + (footX - doorX) * u;
+            this.playerY = doorY + (footY - doorY) * u;
+          } else {
+            const u = (dp - 0.78) / 0.22;
+            this.playerX = footX;
+            this.playerY = footY + (deckY - footY) * u;
+          }
           this.facing = 'down';
           this.walkAnim += dt * 13;
         } else if (t >= 1.28) {
-          this.playerX = dock.x - 2;
+          this.playerX = dock.x + 3;
           this.playerY = dock.y + 34;
           this.walkAnim = 0;
         }
@@ -286,16 +298,16 @@ export class HangarScene {
       } else if (this.launchTimer < 0.68) {
         // Spieler geht an den Fuß der Treppe und steigt dann die Stufen hoch in die leuchtende Tür
         const bp = Math.min(1, (this.launchTimer - 0.24) / 0.44);
-        const footX = dock.x - 2;
-        const footY = dock.y + 30;
-        const doorX = dock.x + 2;
-        const doorY = dock.y + 6;
-        if (bp < 0.45) {
-          const u = bp / 0.45;
+        const footX = dock.x + 3;
+        const footY = dock.y + 26;
+        const doorX = dock.x + 10;
+        const doorY = dock.y + 4;
+        if (bp < 0.4) {
+          const u = bp / 0.4;
           this.playerX = this.boardStartX + (footX - this.boardStartX) * u;
           this.playerY = this.boardStartY + (footY - this.boardStartY) * u;
         } else {
-          const u = (bp - 0.45) / 0.55;
+          const u = (bp - 0.4) / 0.6;
           this.playerX = footX + (doorX - footX) * u;
           this.playerY = footY + (doorY - footY) * u;
         }
@@ -434,10 +446,10 @@ export class HangarScene {
     if (x < 56 || x > 438 || y < 44 || y > 244) return false;
     if (x < 84 && y < 112) return false;
     if (Math.hypot(x - OMEGA_GATE_POS.x, y - OMEGA_GATE_POS.y) < 35) return false;
-    if (x > 118 && x < 174 && y > 54 && y < 114) return false;
-    if (this.state.sector1Cleared && x > 336 && x < 392 && y > 54 && y < 114) return false;
-    if (this.state.sector2Cleared && x > 118 && x < 174 && y > 170 && y < 230) return false;
-    if (this.state.sector3Cleared && x > 336 && x < 392 && y > 170 && y < 230) return false;
+    if (x > 106 && x < 186 && y > 54 && y < 114) return false;
+    if (this.state.sector1Cleared && x > 324 && x < 404 && y > 54 && y < 114) return false;
+    if (this.state.sector2Cleared && x > 106 && x < 186 && y > 170 && y < 230) return false;
+    if (this.state.sector3Cleared && x > 324 && x < 404 && y > 170 && y < 230) return false;
     return true;
   }
 
@@ -459,7 +471,7 @@ export class HangarScene {
     }
 
     // 2. Dock I — Sektor 1 (Verlassene Korvette)
-    if (Math.hypot(this.playerX - DOCK1_POS.x, this.playerY - DOCK1_POS.y) < 58) {
+    if (Math.hypot(this.playerX - DOCK1_POS.x, this.playerY - DOCK1_POS.y) < 66) {
       this.activePrompt = {
         label:
           this.state.timeOfDay === 'night'
@@ -482,7 +494,7 @@ export class HangarScene {
     }
 
     // 3. Dock II — Sektor 2 (Kristall-Nebel)
-    if (Math.hypot(this.playerX - DOCK2_POS.x, this.playerY - DOCK2_POS.y) < 58) {
+    if (Math.hypot(this.playerX - DOCK2_POS.x, this.playerY - DOCK2_POS.y) < 66) {
       const unlocked = this.state.sector1Cleared;
       this.activePrompt = {
         label: unlocked
@@ -515,7 +527,7 @@ export class HangarScene {
     }
 
     // 4. Dock III — Sektor 3 (Solar-Gießerei · Solar-Fregatte docked once Sector 2 is cleared!)
-    if (Math.hypot(this.playerX - DOCK3_POS.x, this.playerY - DOCK3_POS.y) < 58) {
+    if (Math.hypot(this.playerX - DOCK3_POS.x, this.playerY - DOCK3_POS.y) < 66) {
       const unlocked = this.state.sector2Cleared;
       this.activePrompt = {
         label: unlocked
@@ -548,7 +560,7 @@ export class HangarScene {
     }
 
     // 5. Dock IV — Sektor 4 (Ältesten-Monolith · Sternen-Jäger docked once Sector 3 is cleared!)
-    if (Math.hypot(this.playerX - DOCK4_POS.x, this.playerY - DOCK4_POS.y) < 58) {
+    if (Math.hypot(this.playerX - DOCK4_POS.x, this.playerY - DOCK4_POS.y) < 66) {
       const unlocked = this.state.sector3Cleared;
       this.activePrompt = {
         label: unlocked
@@ -730,33 +742,33 @@ export class HangarScene {
       const sx = pos.x + liftX + rumble;
       const sy = pos.y - liftY;
 
-      drawPixelShadow(ctx, pos.x, pos.y + 18, 28, 9, Math.max(0.06, 0.52 - liftY / 160));
+      drawPixelShadow(ctx, pos.x, pos.y + 24, 38, 12, Math.max(0.06, 0.52 - liftY / 160));
       if (ignited || flyingIn) {
-        drawGlow(ctx, sx - 12, sy + 14, 34, launchCol, 0.48 + pulse * 0.14);
+        drawGlow(ctx, sx - 16, sy + 18, 42, launchCol, 0.48 + pulse * 0.14);
       } else if (rampOpen) {
         // Warmes Innenlicht aus der geöffneten Einstiegstür aufs Deck
-        drawGlow(ctx, pos.x + 2, pos.y + 14, 24, idleCol, 0.34 + pulse * 0.1);
+        drawGlow(ctx, pos.x + 3, pos.y + 12, 30, idleCol, 0.36 + pulse * 0.1);
       } else {
-        drawGlow(ctx, pos.x, pos.y + 4, 16, idleCol, 0.1 + pulse * 0.04);
+        drawGlow(ctx, pos.x, pos.y + 4, 20, idleCol, 0.1 + pulse * 0.04);
       }
 
       if ((ignited && this.launchTimer >= 1.05) || flyingIn) {
         const flySpr = sprBank ?? sprFallback;
         if (flySpr) {
-          ctx.drawImage(flySpr, Math.round(sx - 35), Math.round(sy - 35), 70, 70);
+          ctx.drawImage(flySpr, Math.round(sx - 47), Math.round(sy - 47), 94, 94);
         }
       } else {
         const bodySpr = (rampOpen ? sprOpen : sprDocked) ?? sprDocked ?? sprFallback;
         if (bodySpr) {
-          ctx.drawImage(bodySpr, Math.round(sx - 37), Math.round(sy - 38), 74, 74);
+          ctx.drawImage(bodySpr, Math.round(sx - 52), Math.round(sy - 54), 104, 104);
         }
       }
 
       // Cockpit-Aufblitzen („Pilot an Bord“: 0.68..0.92 s)
       if (launching && this.launchTimer >= 0.68 && this.launchTimer < 0.94) {
         const flash = Math.sin(((this.launchTimer - 0.68) / 0.26) * Math.PI);
-        drawGlow(ctx, sx + 6, sy - 10, 18, '#ffffff', flash * 0.85);
-        drawGlow(ctx, sx + 6, sy - 10, 26, idleCol, flash * 0.6);
+        drawGlow(ctx, sx + 10, sy - 14, 22, '#ffffff', flash * 0.85);
+        drawGlow(ctx, sx + 10, sy - 14, 32, idleCol, flash * 0.6);
       }
     };
 
@@ -814,20 +826,25 @@ export class HangarScene {
     this.renderSignPills(ctx);
 
     if (this.launchingSector === null && this.disembarkSector === null) {
-      this.renderPlayer(ctx);
+      this.renderPlayer(ctx, 1);
     } else if (this.launchingSector !== null && this.launchTimer < 0.68) {
-      // Spieler läuft an die Treppe & steigt sichtbar in die Kabine ein
+      // Spieler läuft an die Treppe, verkleinert sich perspektivisch beim Hochsteigen & verschwindet sauber in der Tür
       const bp = this.launchTimer < 0.24 ? 0 : Math.min(1, (this.launchTimer - 0.24) / 0.44);
+      const stairT = bp < 0.4 ? 0 : (bp - 0.4) / 0.6;
+      const scale = 1 - 0.3 * stairT;
       ctx.save();
-      ctx.globalAlpha = Math.max(0, 1 - Math.max(0, (bp - 0.8) / 0.2));
-      this.renderPlayer(ctx);
+      ctx.globalAlpha = Math.max(0, 1 - Math.max(0, (stairT - 0.68) / 0.32));
+      this.renderPlayer(ctx, scale);
       ctx.restore();
-    } else if (this.disembarkSector !== null && this.disembarkTimer >= 0.74) {
-      // Spieler kommt sichtbar aus der geöffneten Tür & geht die Treppe herunter!
-      const dp = Math.min(1, (this.disembarkTimer - 0.74) / 0.22);
+    } else if (this.disembarkSector !== null && this.disembarkTimer >= 0.72) {
+      // Spieler tritt aus der geöffneten Kabinentür (kleiner) & wächst beim Heruntergehen auf 100 %!
+      const dp = Math.min(1, (this.disembarkTimer - 0.72) / 0.56);
+      const stairOut = Math.min(1, dp / 0.78);
+      const scale = 0.7 + 0.3 * stairOut;
+      const alpha = Math.min(1, stairOut / 0.28);
       ctx.save();
-      ctx.globalAlpha = dp;
-      this.renderPlayer(ctx);
+      ctx.globalAlpha = alpha;
+      this.renderPlayer(ctx, scale);
       ctx.restore();
     }
 
@@ -879,7 +896,7 @@ export class HangarScene {
       {
         text: isNight ? 'DOCK I · SEKTOR 1 🌙' : 'DOCK I · SEKTOR 1',
         x: DOCK1_POS.x,
-        y: 44,
+        y: 40,
         color: '#38e8d4',
       },
       {
@@ -889,7 +906,7 @@ export class HangarScene {
             : 'DOCK II · KRISTALL-NEBEL'
           : 'DOCK II · GESPERRT',
         x: DOCK2_POS.x,
-        y: 44,
+        y: 40,
         color: this.state.sector1Cleared ? '#c084fc' : '#94a3b8',
       },
       {
@@ -899,7 +916,7 @@ export class HangarScene {
             : 'DOCK III · SOLAR-GIESSEREI'
           : 'DOCK III · GESPERRT',
         x: DOCK3_POS.x,
-        y: 160,
+        y: 155,
         color: this.state.sector2Cleared ? '#fb923c' : '#94a3b8',
       },
       {
@@ -909,7 +926,7 @@ export class HangarScene {
             : 'DOCK IV · ÄLTESTEN-MONOLITH'
           : 'DOCK IV · GESPERRT',
         x: DOCK4_POS.x,
-        y: 160,
+        y: 155,
         color: this.state.sector3Cleared ? '#38e8d4' : '#94a3b8',
       },
       {
@@ -932,14 +949,14 @@ export class HangarScene {
     }
   }
 
-  private renderPlayer(ctx: CanvasRenderingContext2D): void {
+  private renderPlayer(ctx: CanvasRenderingContext2D, scale = 1): void {
     const art = getHDArt();
     const atlas = getAtlas();
     const walking = this.walkAnim > 0;
     const bob = walking ? Math.abs(Math.sin(this.walkAnim)) * 2.2 : Math.sin(this.time * 3) * 0.4;
     const tilt = walking ? Math.sin(this.walkAnim) * 0.05 : 0;
 
-    drawPixelShadow(ctx, this.playerX, this.playerY + 11, 8, 3.2, 0.5);
+    drawPixelShadow(ctx, this.playerX, this.playerY + 11, 8 * scale, 3.2 * scale, 0.5);
 
     const hdSpr =
       this.facing === 'up'
@@ -954,6 +971,7 @@ export class HangarScene {
       ctx.save();
       ctx.translate(this.playerX, this.playerY + 10 - bob);
       ctx.rotate(tilt);
+      ctx.scale(scale, scale);
       ctx.drawImage(hdSpr, -12, -26, 24, 28);
       ctx.restore();
     } else {
@@ -966,7 +984,11 @@ export class HangarScene {
             : this.facing === 'left'
               ? atlas.heroLeft[frame]
               : atlas.heroDown[frame];
-      ctx.drawImage(spr, Math.round(this.playerX - 8), Math.round(this.playerY - 10));
+      ctx.save();
+      ctx.translate(Math.round(this.playerX), Math.round(this.playerY + 10));
+      ctx.scale(scale, scale);
+      ctx.drawImage(spr, -8, -20);
+      ctx.restore();
     }
   }
 

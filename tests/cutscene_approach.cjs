@@ -141,11 +141,23 @@ module.exports = async ({ page }) => {
   });
   await page.screenshot({ path: path.join(outDir, 'cutscene_map_rescue.png') });
   await page.evaluate(() => window.__game.mapCutscene?.seek(1.49));
-  const afterMapRescue = await page.evaluate(async () => {
+  await page.evaluate(async () => {
     const g = window.__game;
     for (let i = 0; i < 60 && !g.returnCutscene; i++) await new Promise((r) => setTimeout(r, 40));
+    g.returnCutscene?.seek(0.75);
+    g.returnCutscene?.render(g.ctx);
+  });
+  await page.screenshot({ path: path.join(outDir, 'cutscene_return_rescue_p1.png') });
+  await page.evaluate(() => {
+    const g = window.__game;
+    g.returnCutscene?.seek(2.25);
+    g.returnCutscene?.render(g.ctx);
+  });
+  await page.screenshot({ path: path.join(outDir, 'cutscene_return_rescue_p2.png') });
+  const afterMapRescue = await page.evaluate(async () => {
+    const g = window.__game;
     const mode = g.returnCutscene?.config.mode;
-    g.returnCutscene.skip();
+    g.returnCutscene?.skip();
     for (let i = 0; i < 60 && (g.returnCutscene !== null || g.activeScene !== 'backroom'); i++) {
       await new Promise((r) => setTimeout(r, 40));
     }
