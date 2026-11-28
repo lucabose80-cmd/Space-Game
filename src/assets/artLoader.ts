@@ -245,6 +245,8 @@ export interface HDArtAssets {
   cutsceneStoryGate5: HTMLCanvasElement | null;
   cutsceneStoryOmega: HTMLCanvasElement | null;
   npcMina: HTMLCanvasElement | null;
+  /** Optionales Startscreen-Key-Art (P3-55, Fallback: cutsceneBgSolaris* + Live-Parallax) */
+  titleBg: HTMLCanvasElement | null;
 }
 
 const art: HDArtAssets = {
@@ -495,6 +497,7 @@ const art: HDArtAssets = {
   cutsceneStoryGate5: null,
   cutsceneStoryOmega: null,
   npcMina: null,
+  titleBg: null,
 };
 
 function loadImage(src: string): Promise<HTMLImageElement | null> {
@@ -688,6 +691,7 @@ export const CUTSCENE_OPTIONAL_SPRITES = {
   cutsceneStoryGate5: 'cutscene_story_gate5',
   cutsceneStoryOmega: 'cutscene_story_omega',
   npcMina: 'npc_mina',
+  titleBg: 'title_bg',
 } as const;
 
 export type CutsceneSpriteKey = keyof typeof CUTSCENE_OPTIONAL_SPRITES;

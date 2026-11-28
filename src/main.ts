@@ -21,6 +21,8 @@ import {
   type ReplayableCutsceneId,
 } from './scenes/StoryPanelCutscene';
 import { UpgradeCutsceneOverlay, type UpgradeCutsceneConfig } from './scenes/UpgradeCutsceneOverlay';
+import { ContinueIntroCutscene } from './scenes/ContinueIntroCutscene';
+import { TitleBackdrop } from './scenes/TitleBackdrop';
 import { ShopScene } from './scenes/ShopScene';
 import { firebaseService } from './services/firebaseService';
 import { galacticNetwork } from './services/galacticNetwork';
@@ -66,6 +68,10 @@ class StarlighterGame {
   /** Knackige Upgrade-Cutscene (Waffe geschmiedet, Laden-Ausbau, Stufen-Upgrades) */
   private upgradeCutscene: UpgradeCutsceneOverlay | null = null;
   private upgradeCutsceneOnDone: (() => void) | null = null;
+  /** Animierter Pixel-Art-Hintergrund für den Startscreen */
+  private titleBackdrop = new TitleBackdrop();
+  /** Kurze Rückkehr-Startanimation beim „Weiterspielen“ */
+  private continueCutscene: ContinueIntroCutscene | null = null;
   private pendingReturnSummary: RunSummary | null = null;
 
   private activeScene: SceneId = 'shop';
@@ -128,7 +134,16 @@ class StarlighterGame {
 
     this.ui = new UIManager(this.state, {
       onStartNewGame: () => {
+        const preservedCaptain =
+          firebaseService.currentUser?.displayName ||
+          (this.state.captainName && this.state.captainName !== 'Sternen-Kapitän' ? this.state.captainName : null);
         this.state.resetSave();
+        if (preservedCaptain) {
+          this.state.captainName = preservedCaptain.slice(0, 22);
+          this.state.save();
+        }
+        this.continueCutscene?.dispose();
+        this.continueCutscene = null;
         this.activeScene = 'shop';
         this.ui.currentScene = 'shop';
         this.shopScene.onEnter('default');
@@ -136,6 +151,8 @@ class StarlighterGame {
         this.syncMusic();
         this.ui.renderHud();
         this.syncTouch();
+        this.transitionAlpha = 0.72;
+        this.transitionDir = -1;
         this.playPanelCutscene('intro_arrival', () => {
           this.ui.toast(
             'Willkommen in Astro-Barter! Hinten links: Kapitäns-Quartier (Bett, Truhen, Drohnen & Logbuch), rechts: Port Solaris!',
@@ -152,6 +169,9 @@ class StarlighterGame {
         this.shopScene.onEnter('default');
         this.ui.shopIsOpen = false;
         this.syncMusic();
+        this.continueCutscene?.dispose();
+        this.continueCutscene = new ContinueIntroCutscene(this.state);
+        this.setHudVisible(false);
         this.ui.renderHud();
         this.syncTouch();
       },
@@ -256,26 +276,31 @@ class StarlighterGame {
 
     // Seamless Firebase Cloud-Save & Captain Profile Sync on Login (Handy <-> PC)
     firebaseService.onAuthChange((user) => {
+      this.ui.refreshTitle();
       if (!user) return;
       if (!this.state.captainName || this.state.captainName === 'Sternen-Kapitän') {
         this.state.captainName = user.displayName;
       }
       galacticNetwork.prefetchGhostCaptains();
       void firebaseService.downloadCloudSave().then((res) => {
-        if (res.ok && res.saveJson && firebaseService.isCloudSaveAhead(this.state, res.saveJson)) {
+        if (res.ok && res.saveJson && (!this.state.hasSave() || firebaseService.isCloudSaveAhead(this.state, res.saveJson))) {
           const imp = this.state.importSaveJson(res.saveJson);
           if (imp.ok) {
             this.ui.renderHud();
+            this.ui.refreshTitle();
             this.ui.toast(`☁ Cloud-Spielstand von ${user.displayName} geladen (Tag ${this.state.day})!`, 'good');
             this.ui.refreshGuildBoardIfOpen();
           }
-        } else {
+        } else if (this.state.hasSave()) {
           void firebaseService.syncAllToCloud(this.state).then((syncRes) => {
             if (syncRes.ok) {
               this.ui.toast('☁ Spielstand automatisch mit der Cloud synchronisiert!', 'good');
             }
+            this.ui.refreshTitle();
             this.ui.refreshGuildBoardIfOpen();
           });
+        } else {
+          this.ui.refreshTitle();
         }
       });
     });
@@ -691,7 +716,8 @@ class StarlighterGame {
       this.returnCutscene !== null ||
       this.storyPanelCutscene !== null ||
       this.hubCutscene !== null ||
-      this.upgradeCutscene !== null
+      this.upgradeCutscene !== null ||
+      this.continueCutscene !== null
     );
   }
 
@@ -1099,7 +1125,16 @@ class StarlighterGame {
       }
     }
 
-    if (this.approachCutscene) {
+    if (this.ui.titleVisible) {
+      this.titleBackdrop.update(dt, this.state);
+    } else if (this.continueCutscene) {
+      const done = this.continueCutscene.update(dt, this.input);
+      if (done) {
+        this.continueCutscene = null;
+        this.setHudVisible(true);
+        this.syncTouch();
+      }
+    } else if (this.approachCutscene) {
       const done = this.approachCutscene.update(dt, this.input);
       if (done) {
         const wasSkipped = this.approachCutscene.skipped;
@@ -1170,7 +1205,14 @@ class StarlighterGame {
 
     this.ctx.setTransform(RENDER_SCALE, 0, 0, RENDER_SCALE, 0, 0);
     this.ctx.imageSmoothingEnabled = false;
-    if (this.approachCutscene) {
+    if (this.ui.titleVisible) {
+      this.titleBackdrop.render(this.ctx, this.state);
+    } else if (this.continueCutscene) {
+      if (this.continueCutscene.isBlendingIntoShop()) {
+        this.shopScene.render(this.ctx);
+      }
+      this.continueCutscene.render(this.ctx);
+    } else if (this.approachCutscene) {
       this.approachCutscene.render(this.ctx);
     } else if (this.returnCutscene) {
       this.returnCutscene.render(this.ctx);

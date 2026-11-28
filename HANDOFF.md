@@ -10,6 +10,7 @@
 
 | Datum | Werkzeug · Bereich | Erledigt | Offen / Blocker | Nächster Schritt | Claim frei? |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| 2026-11-28 | Antigravity · Startscreen & Account-Einstieg | Neuer Live-Pixel-Art-Startscreen (`TitleBackdrop.ts`, `TitleScreen.ts`), direktes Cloud-Konto-Panel (Google/E-Mail Login & Registrierung + Live-Cloud-Save-Sync am Startscreen), sanfter Übergang in `intro_arrival` & neue „Weiterspielen“-Anflug-Animation (`ContinueIntroCutscene.ts`); Test `t9_title_screen` + voller `verify` grün | Optionales Key-Art `P3-55` (`public/art/sprites/title_bg.png`) in `SPRITE_QUEUE.md` offen (Antigravity-Bild-Quota erschöpft & kein lokaler API-Key in VM); Live-Fallback aktiv | Abnahme im echten Spiel; sobald Bild-Key/Quota verfügbar: `P3-55` per `npm run art:gen` nach `public/art/sprites/title_bg.png` erzeugen (wird ohne Code-Änderung aktiv) | ja |
 | 2026-11-28 | Claude Code · Doku-Prozess | Regel 20 + Weiter-Protokoll + Startsatz eingeführt | — | Bereichs-Arbeit laut Tabelle unten („Nächster Schritt“) | ja |
 
 ## Stand (2026-11-28)

@@ -95,6 +95,7 @@ import { bindLoadout, renderLoadoutHtml } from './LoadoutPanel';
 import { renderChronicleHtml, StoryDialogController, type StoryDialogOptions, type StoryHost } from './StoryModals';
 import { CUTSCENE_CATALOG, type ReplayableCutsceneId } from '../scenes/StoryPanelCutscene';
 import type { UpgradeCutsceneConfig } from '../scenes/UpgradeCutsceneOverlay';
+import { TitleScreen } from './TitleScreen';
 
 export interface UIHooks {
   onStartNewGame: () => void;
@@ -118,6 +119,7 @@ export class UIManager {
   private modalEl: HTMLElement;
   private toastEl: HTMLElement;
   private titleEl: HTMLElement;
+  private titleScreen: TitleScreen;
 
   public currentScene: SceneId = 'shop';
   public dungeonSector: SectorId = 1;
@@ -148,6 +150,14 @@ export class UIManager {
     this.toastEl = document.getElementById('toast-layer')!;
     this.titleEl = document.getElementById('title-overlay')!;
 
+    this.titleScreen = new TitleScreen(this.titleEl, this.state, {
+      onStartNewGame: () => this.hooks.onStartNewGame(),
+      onContinueGame: () => this.hooks.onContinueGame(),
+      onHideTitle: () => this.hideTitle(),
+      onMuteToggle: () => this.hooks.onMuteToggle(),
+      onToast: (msg, tone) => this.toast(msg, tone),
+    });
+
     this.modalEl.addEventListener('click', (e) => {
       if (e.target === this.modalEl) {
         this.closeModal();
@@ -157,59 +167,18 @@ export class UIManager {
 
   public showTitle(): void {
     this.titleVisible = true;
-    this.titleEl.classList.remove('hidden');
     this.hooks.onModalStateChange(true);
-    const hasSave = this.state.hasSave();
+    this.titleScreen.show();
+  }
 
-    this.titleEl.innerHTML = `
-      <div class="title-card">
-        <div class="title-kicker">PORT SOLARIS · ASTRO-BARTER${this.state.ngPlusLevel > 0 ? ` · NG+${this.state.ngPlusLevel}` : ''}</div>
-        <h1 class="title-logo">STARLIGHTER</h1>
-        <p class="title-sub">
-          Führe deinen Relikt-Shop auf Port Solaris, schmiede 6 Waffenklassen bis Ältesten-Meister MK-VIII bei Kael
-          und bezwinge alle 4 Sektoren sowie das 5. Tiefenraum-Tor (Omega-Anomalie)!
-        </p>
-        <div class="title-buttons">
-          ${
-            hasSave
-              ? `<button id="btn-continue" class="btn btn-primary">Weiterspielen (Tag ${this.state.day})</button>`
-              : ''
-          }
-          <button id="btn-new-game" class="btn ${hasSave ? '' : 'btn-primary'}">
-            ${hasSave ? 'Neues Spiel' : 'Expedition starten'}
-          </button>
-        </div>
-        <div class="title-controls-grid">
-          <div><strong>WASD / Stick / Pad</strong> Bewegen</div>
-          <div><strong>SPACE / A</strong> Jetpack-Dash</div>
-          <div><strong>LMB / J / X</strong> Aktive Waffe</div>
-          <div><strong>RMB / K / B</strong> Schild / Spezial</div>
-          <div><strong>C / RB</strong> Waffe wechseln</div>
-          <div><strong>E / Y</strong> Interagieren / Kasse</div>
-          <div><strong>I / TAB</strong> Fracht &amp; Logbuch</div>
-          <div><strong>E</strong> Teleporter: Extraktion (Start-Raum, nach Bossen, Notfall-Bake)</div>
-        </div>
-      </div>
-    `;
-
-    this.titleEl.querySelector('#btn-continue')?.addEventListener('click', () => {
-      sound.unlock();
-      sound.playUiClick();
-      this.hideTitle();
-      this.hooks.onContinueGame();
-    });
-
-    this.titleEl.querySelector('#btn-new-game')?.addEventListener('click', () => {
-      sound.unlock();
-      sound.playUiClick();
-      this.hideTitle();
-      this.hooks.onStartNewGame();
-    });
+  public refreshTitle(): void {
+    if (!this.titleVisible) return;
+    this.titleScreen.refresh();
   }
 
   public hideTitle(): void {
     this.titleVisible = false;
-    this.titleEl.classList.add('hidden');
+    this.titleScreen.hide();
     this.hooks.onModalStateChange(this.modalOpen);
     this.renderHud();
   }
