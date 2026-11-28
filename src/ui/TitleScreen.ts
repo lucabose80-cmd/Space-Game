@@ -1,3 +1,4 @@
+import { getHDArt } from '../assets/artLoader';
 import { sound } from '../engine/audio';
 import { firebaseService } from '../services/firebaseService';
 import { GameState as GS, SAVE_SLOTS } from '../systems/gameState';
@@ -11,6 +12,22 @@ export interface TitleScreenCallbacks {
   onHideTitle: () => void;
   onMuteToggle: () => void;
   onToast: (msg: string, tone?: 'info' | 'good' | 'warn') => void;
+}
+
+const planetUrlCache = new Map<string, string>();
+/** Data-URL eines geladenen Planeten-Sprites (P3-56…59) oder null → CSS-Fallback. */
+function planetUrl(key: 'titlePlanet1' | 'titlePlanet2' | 'titlePlanet3' | 'titlePlanetEmpty'): string | null {
+  const hit = planetUrlCache.get(key);
+  if (hit) return hit;
+  const c = getHDArt()[key];
+  if (!c) return null;
+  try {
+    const u = c.toDataURL('image/png');
+    planetUrlCache.set(key, u);
+    return u;
+  } catch {
+    return null;
+  }
 }
 
 function escapeHtml(text: string): string {
@@ -213,6 +230,12 @@ export class TitleScreen {
 
     const slot = this.state.activeSlot;
     // Slots als „Sternbild“ im Hintergrund: jeder Slot ist ein anklickbarer Planet (leer = blasser Stern)
+    const planetHtml = (n: SaveSlot, filled: boolean): string => {
+      const url = planetUrl(filled ? (`titlePlanet${n}` as 'titlePlanet1') : 'titlePlanetEmpty');
+      return url
+        ? `<span class="ts-planet has-sprite"><img src="${url}" alt="" draggable="false" /></span>`
+        : `<span class="ts-planet">${filled ? '' : '✦'}</span>`;
+    };
     const constellationHtml = `
       <div class="ts-constellation" role="group" aria-label="Spielstand-Slot wählen">
         <svg class="ts-const-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polyline points="64,80 79,70 92,80" /></svg>
@@ -222,7 +245,7 @@ export class TitleScreen {
             ? `<span class="ts-slot-cap">${escapeHtml(pv.captainName)}</span><span class="ts-slot-meta">${pv.isNight ? '🌙' : '☀'} Tag ${pv.day}${pv.ngPlusLevel > 0 ? ` · NG+${pv.ngPlusLevel}` : ''} · ${pv.sectorsCleared}/4 ◆</span>`
             : `<span class="ts-slot-cap">Unentdeckt</span><span class="ts-slot-meta">Neue Welt starten</span>`;
           return `<button class="ts-slot-star s${n} ${pv ? 'filled' : 'empty'} ${n === slot ? 'active' : ''}" data-slot="${n}" type="button" aria-pressed="${n === slot}" aria-label="Slot ${n}">
-            <span class="ts-planet">${pv ? '' : '✦'}</span>
+            ${planetHtml(n, !!pv)}
             <span class="ts-slot-label"><span class="ts-slot-no">SLOT ${n}${user ? ' ☁' : ''}</span>${cap}</span>
           </button>`;
         }).join('')}

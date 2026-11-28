@@ -91,7 +91,7 @@
 > Vorher: ein Spielstand. Jetzt: **3 Slots als anklickbare Planeten im Startscreen-Hintergrund** (Gold = Slot 1, Türkis = Slot 2, Violett = Slot 3; leer = blasser Stern „Unentdeckt“). **Alle 3 Slots liegen in der Cloud** (`saves/{uid}`: Slot 1 = `saveJson` wie bisher, Slot 2/3 = `slot2Json`/`slot3Json` im selben Dokument — **keine Firestore-Regeländerung nötig**). Bestenliste & Wochen-Prüfung zählen nur Slot 1. Wechsel nur am Startscreen, speichert dabei nichts (ausstehender Upload des alten Slots wird vorher abgeschickt).
 | # | Prüfpunkt | Status |
 | :-- | :-- | :-: |
-| J1 | 3 Planeten im Hintergrund (rechts unten) mit Beschriftung (Kapitän, Tag, NG+, Sektoren); aktiver Slot mit Ring; leerer Slot als Stern; Hover vergrößert | ⬜ |
+| J1 | 3 Pixel-Art-Planeten (Gold mit Ring · Türkis-Kristall · Violett-Gasriese; leer = Stern in Orbit-Kreis) im Hintergrund (rechts unten) mit Beschriftung (Kapitän, Tag, NG+, Sektoren); aktiver Slot mit Ring; leerer Slot als Stern; Hover vergrößert | ⬜ |
 | J2 | Bestehender Spielstand liegt unverändert in Slot 1 (nach Update nichts verloren) | ⬜ |
 | J3 | Leeren Slot anklicken → „Expedition starten“ → eigene Welt; andere Slots danach unverändert | ⬜ |
 | J4 | Wechsel zwischen Slots, „Weiterspielen“ lädt jeweils den richtigen Stand (Credits/Tag/Inventar) | ⬜ |
@@ -102,7 +102,7 @@
 | J9 | Im Spiel: Einstellungen → „Spielstand zurücksetzen“ wirkt nur auf den aktiven Slot | ⬜ |
 | J10 | Komplett von vorn **mit Konto**: pro Slot „Neues Spiel“ (setzt dessen Cloud-Kopie zurück) | ⬜ |
 | J11 | Handy/schmal: Planeten als Reihe unter dem Menü, nichts überlappt die Buttons | ⬜ |
-> Grenzen (bewusst): Konflikte zwischen zwei Geräten löst derselbe Fortschritts-Vergleich wie bisher (weiter fortgeschritten gewinnt). Slot leeren auf Gerät A, während Gerät B noch eine lokale Kopie hat → B kann ihn beim Auswählen wieder hochladen (kein Lösch-Marker). Optional später: echte Planeten-Sprites (`SPRITE_QUEUE`) statt CSS-Planeten.
+> Grenzen (bewusst): Konflikte zwischen zwei Geräten löst derselbe Fortschritts-Vergleich wie bisher (weiter fortgeschritten gewinnt). Slot leeren auf Gerät A, während Gerät B noch eine lokale Kopie hat → B kann ihn beim Auswählen wieder hochladen (kein Lösch-Marker). Planeten sind echte Pixel-Art-Sprites (`title_planet_1/2/3/empty.png`, P3-56…59); Fallback bei fehlendem Bild = CSS-Kugel.
 
 ## K. Boss-Labor: Angriffe & Stati einzeln durchtesten (neu — Test `t11_lab_attacks`)
 > `…/?bosslab` → Tab **Bosse** bzw. **Gegner** → Boss/Gegner wählen → ganz oben **„<NAME> · ANGRIFFE“** (jeder Zug einzeln, `⏭ Nächster` = der Reihe nach) und **„<NAME> · STATI“**. Pro Zeile prüfen: Vorwarnung (≥ 0,4 s sichtbar), Angriffsgrafik, Pose, Erholung; bei Stati: Beschädigungsstufen, Phase-II-Verwandlung, kritisch < 15 %, Treffer-Reaktion, Tod-Animation. Zusätzlich mit Biom-Knöpfen S1–S4/Ω (Boden-Effekte in fremden Sektoren). Ergebnis je Zeile ✅/❌ + Beobachtung.

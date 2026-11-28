@@ -247,6 +247,11 @@ export interface HDArtAssets {
   npcMina: HTMLCanvasElement | null;
   /** Optionales Startscreen-Key-Art (P3-55, Fallback: cutsceneBgSolaris* + Live-Parallax) */
   titleBg: HTMLCanvasElement | null;
+  /** Startscreen-Slot-Planeten (P3-56…59): Slot 1/2/3 + leerer Slot */
+  titlePlanet1: HTMLCanvasElement | null;
+  titlePlanet2: HTMLCanvasElement | null;
+  titlePlanet3: HTMLCanvasElement | null;
+  titlePlanetEmpty: HTMLCanvasElement | null;
 }
 
 const art: HDArtAssets = {
@@ -498,6 +503,10 @@ const art: HDArtAssets = {
   cutsceneStoryOmega: null,
   npcMina: null,
   titleBg: null,
+  titlePlanet1: null,
+  titlePlanet2: null,
+  titlePlanet3: null,
+  titlePlanetEmpty: null,
 };
 
 function loadImage(src: string): Promise<HTMLImageElement | null> {
@@ -692,6 +701,10 @@ export const CUTSCENE_OPTIONAL_SPRITES = {
   cutsceneStoryOmega: 'cutscene_story_omega',
   npcMina: 'npc_mina',
   titleBg: 'title_bg',
+  titlePlanet1: 'title_planet_1',
+  titlePlanet2: 'title_planet_2',
+  titlePlanet3: 'title_planet_3',
+  titlePlanetEmpty: 'title_planet_empty',
 } as const;
 
 export type CutsceneSpriteKey = keyof typeof CUTSCENE_OPTIONAL_SPRITES;
