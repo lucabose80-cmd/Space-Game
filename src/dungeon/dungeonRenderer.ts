@@ -2979,15 +2979,8 @@ export class DungeonRenderer {
         const armFrac = L ? L.armHp[armIdx] / Math.max(1, L.armMax) : 1;
 
         if (spriteBody) {
-          // Mit M11-Schienen-Kran-Rig sind beide Arme das echte Rig — NIEMALS eine dritte Hand zeichnen, nur den Einschlagskrater unter der echten Faust!
-          if (art.rigs.boss_leviathan) {
-            if ((slamming || grounded) && art.arenaLeviathanCrater) {
-              ctx.save();
-              ctx.drawImage(art.arenaLeviathanCrater, arm.x - 36, arm.y - 8, 72, 48);
-              ctx.restore();
-            }
-            return;
-          }
+          // Mit M11-Schienen-Kran-Rig sind beide Arme + Einschlagskrater komplett in drawLeviathanBody enthalten
+          if (art.rigs.boss_leviathan) return;
           if (!tracking && !slamming && !grounded) return;
           ctx.save();
           if (tracking || slamming) {

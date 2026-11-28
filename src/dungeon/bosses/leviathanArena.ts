@@ -679,9 +679,9 @@ function updateArms(scene: DungeonScene, e: Enemy, dt: number): void {
       if (arm.state !== 'idle' && Math.hypot(arm.x - arm.homeX, arm.y - hoverY) < 4) arm.state = 'idle';
     } else if (arm.state === 'tracking') {
       arm.timer -= dt;
-      // Zielpunkt liegt exakt dort, wo die echte Rig-Faust vor dem Koloss einschlägt!
-      arm.targetX = e.x + arm.side * 74;
-      arm.targetY = e.y + 44;
+      // Zielpunkt liegt exakt unter den Knöcheln von armSlam (auf festem Boden vor der Wand!)
+      arm.targetX = e.x + arm.side * 66;
+      arm.targetY = e.y + 38;
       if (arm.timer <= 0.32 && !arm.locked) {
         arm.locked = true;
         fx(scene).add({ shape: 'circle', x: arm.targetX, y: arm.targetY, r: 36, delay: arm.timer + 0.16, life: 0.14, burst: 22, color: '#fb923c', fx: 'blast' });
@@ -689,7 +689,7 @@ function updateArms(scene: DungeonScene, e: Enemy, dt: number): void {
         fx(scene).add({ shape: 'line', x: arm.targetX, y: arm.targetY, x2: arm.targetX, y2: rb.b - 16, width: 32, delay: arm.timer + 0.32, life: 0.28, burst: 18, color: '#fb923c', fx: 'whip' });
       }
       arm.x = arm.targetX;
-      arm.y = arm.homeY - 16;
+      arm.y = arm.homeY - 12;
       if (arm.timer <= 0) {
         arm.state = 'slamming';
         arm.timer = 0.16;
@@ -968,6 +968,14 @@ export function drawLeviathanBody(ctx: CanvasRenderingContext2D, scene: DungeonS
   if (rigImgs && rigDef) {
     const rb = scene.bounds;
     drawCraneRail(ctx, rb.l + 24, rb.r - 24, e.y - 34);
+    // Einschlagskrater UNTER der Faust zeichnen (vor dem Rig!)
+    if (art.arenaLeviathanCrater && e.levArms) {
+      for (const arm of e.levArms) {
+        if (!arm.dead && (arm.state === 'slamming' || arm.state === 'grounded')) {
+          ctx.drawImage(art.arenaLeviathanCrater, arm.x - 36, arm.y - 16, 72, 48);
+        }
+      }
+    }
     const pose = getBossPose('boss_leviathan', e, scene.time, scene.playerX, scene.playerY);
     drawRig(ctx, rigDef, rigImgs, e.x, e.y, pose, { flash: e.flashTimer > 0 });
     return true;

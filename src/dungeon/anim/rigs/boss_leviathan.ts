@@ -61,24 +61,23 @@ function levPose(e: Enemy, time: number, playerX: number): Pose {
       return { rot: side * 0.12, dy: 8, variant: dmgVar };
     }
     if (arm.state === 'tracking') {
-      torsoLean += -side * 0.08;
-      torsoDrop -= 3;
-      const shake = Math.sin(time * 36 + idx) * 0.04;
+      torsoLean += -side * 0.06;
+      torsoDrop -= 2;
+      const shake = Math.sin(time * 36 + idx) * 0.03;
       return {
-        rot: side * -0.18 + shake,
-        dx: side * 4,
-        dy: -16 + Math.sin(time * 18) * 2,
+        rot: side * -0.06 + shake,
+        dx: side * 2,
+        dy: -3 + Math.sin(time * 18) * 1.5,
         variant: 1, // armRaise
       };
     }
     if (arm.state === 'slamming' || arm.state === 'grounded') {
-      torsoLean += side * 0.07;
-      torsoDrop += 5;
-      const slamDrop = arm.state === 'slamming' ? 24 : 26;
+      torsoLean += side * 0.05;
+      torsoDrop += 3;
       return {
-        rot: side * 0.06,
-        dx: side * 2,
-        dy: slamDrop,
+        rot: 0,
+        dx: 0,
+        dy: arm.state === 'slamming' ? 2 : 3,
         // Im Boden: beschädigt/kritisch sichtbar, sonst armSlam!
         variant: frac < 0.35 ? 4 : frac < 0.7 ? 3 : 2,
       };
