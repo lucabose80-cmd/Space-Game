@@ -95,6 +95,16 @@
 - **Prüfen:** `node scripts/rig-sheet.cjs boss_leviathan` (Fälle ruhe/hebt/schlag/steckt/beam/P2/P3/tot) → `tests/out/rig_boss_leviathan.png`. Frische VM: erst `npm install`.
 - Offen: kleine weiße Rauch-Pixel am Rand von `armDead.png` (Rauch war fast weiß im Rohbild) — kosmetisch, ggf. Nachbestellen/Nachzeichnen.
 
+
+### Leviathan-Politur Runde 2 (Zuckeln, Einschlag-Versatz, Laser-Ursprung, Phase II)
+- **Messwerte (Rig, Ursprung = `e.x/e.y`, `scripts/lev-measure.cjs`):** Linsenmitte `(0, +19)` (alt `LENS_DY=6` → Strahl/Puls/Linsen-Treffer 13 px zu hoch), Faust beim Schlag `(±37, +48)` (alt: Einschlag bei `±66, +38` = 29 px neben der gezeichneten Faust), Schulter `(±40, −7)`. Konstanten `LENS_DY`, `SLAM_DX/DY`, `BODY_SHOULDER_*` in `leviathanArena.ts`. **Lehre:** Nach jedem Austausch des Körper-Sprites (Vollpose → Rig) alle Effekt-Ursprünge neu am gerenderten Rig messen, nicht aus dem alten Sprite übernehmen.
+- **Zuckeln:** Schienenfahrt ruckte (fester Schritt, Ziel = Spielerposition ohne Totzone) → jetzt weiche Beschleunigung (`L.railV`, 340 px/s², Abbremsen vor dem Ziel, Totzone 3 px); Vibrationen reduziert; `tau` 0,055 → 0,085.
+- **Laser sichtbar:** Beim Omega-Strahl reißen beide Arme hoch (Variante `armRaise`, `dx ±22`), die Linse liegt frei, Strahl startet exakt dort. **Schockwelle (`whip`)** hat neuen Arm-Zustand `'whip'`: Faust fährt hoch und schlägt auf den Boden, die Welle startet exakt an der Faust (alt: Startpunkt an einem Phantom-Arm weit seitlich).
+- **Phase II/III ramponiert:** Arme nutzen ab Phase II `armDmg`, Phase III `armCrit`; ständiger Funken-/Glut-/Rauchregen am Körper (`updateLeviathanArena`, deterministisch über `scene.time`).
+- **Dampf-Vorwarnung:** Düse pulsiert + Pfeile laufen die Bahn entlang (vorher kaum sichtbar, `subtleWarn`).
+- **Diagnose-Skripte:** `node scripts/lev-shots.cjs <phase> <zug>:<sek> …` (Arena-Screenshots je Zug/Phase → `tests/out/lev_p*_*.png`; nutzt `startMoveForTest`), `node scripts/lev-measure.cjs` (Rig-Maße).
+- Offen: Der Koloss wirkt im 688×352-Raum eher klein (~110 logische px breit) — falls gewünscht größere Rig-Skalierung bzw. neues, größeres Sheet bestellen (Regel 14); Glut-Welle (`glow`) kommt weiterhin von beiden Seitenwänden (Vorwarnung unverändert).
+
 ## Nächster Schritt
 1. **Abnahme Pilot A.E.G.I.S. Leviathan im echten Spiel** (Stufe 8 — live in Sektor 1 Ebene III oder `?bosslab` → ARENEN → 🏟 Leviathan): Kampfgefühl, alle 4 Körper-Phasen, Plattenbruch/Dampf/Trümmer, Schatzkammer & Mobil-Check (A9). Notfall-Rückweg: `ENDBOSS_ARENA_LIVE = false` in `balance.ts`.
 2. Phase A/B-Marker entfernen, sobald der Projektinhaber die Standardräume abgenommen hat.

@@ -40,7 +40,7 @@ function levPose(e: Enemy, time: number, playerX: number): Pose {
 
   const breathRate = critical ? 6.5 : phase === 3 ? 4.5 : 2.3;
   const breath = dead ? 0 : Math.sin(time * breathRate) * (critical ? 2.6 : 1.8);
-  const vibX = beamFiring || pulseOrGlow ? Math.sin(time * 44) * 1.4 : critical && !dead ? Math.sin(time * 32) * 0.9 : 0;
+  const vibX = beamFiring || pulseOrGlow ? Math.sin(time * 30) * 0.8 : critical && !dead ? Math.sin(time * 24) * 0.6 : 0;
 
   // Kopf folgt dem Spieler
   const lookFrac = clamp((playerX - e.x) / 220, -1, 1);
@@ -55,7 +55,9 @@ function levPose(e: Enemy, time: number, playerX: number): Pose {
     if (!arm || arm.dead) return { hidden: true };
     const side = idx === 0 ? -1 : 1;
     const frac = L ? L.armHp[idx] / Math.max(1, L.armMax) : 1;
-    const dmgVar = frac < 0.35 ? 4 : frac < 0.7 ? 3 : 0;
+    // Phase II/III: Arme sind von Anfang an sichtbar ramponiert (Lava-Risse, später Kurzschluss-Glut)
+    const phaseVar = phase >= 3 ? 4 : phase === 2 ? 3 : 0;
+    const dmgVar = Math.max(phaseVar, frac < 0.35 ? 4 : frac < 0.7 ? 3 : 0);
 
     if (dead) {
       // Abgeschaltet: eigener, erloschener Arm (armDead), schlaff hängend
@@ -64,11 +66,11 @@ function levPose(e: Enemy, time: number, playerX: number): Pose {
     if (arm.state === 'tracking') {
       torsoLean += -side * 0.06;
       torsoDrop -= 2;
-      const shake = Math.sin(time * 36 + idx) * 0.03;
+      const shake = Math.sin(time * 22 + idx) * 0.012;
       return {
         rot: side * -0.06 + shake,
         dx: side * 2,
-        dy: -3 + Math.sin(time * 18) * 1.5,
+        dy: -3 + Math.sin(time * 9) * 0.8,
         variant: 1, // armRaise
       };
     }
@@ -83,13 +85,22 @@ function levPose(e: Enemy, time: number, playerX: number): Pose {
         variant: frac < 0.35 ? 4 : frac < 0.7 ? 3 : 2,
       };
     }
+    if (arm.state === 'whip') {
+      // Schockwelle: Faust fährt hoch (Anlauf) und schlägt auf den Boden, genau dort startet die Welle
+      const striking = arm.timer <= 0.55;
+      if (striking) {
+        torsoDrop += 2;
+        return { rot: 0, dx: 0, dy: arm.timer > 0.4 ? 0 : 3, variant: frac < 0.35 ? 4 : frac < 0.7 ? 3 : 2 };
+      }
+      return { rot: side * -0.06, dx: side * 2, dy: -3, variant: 1 };
+    }
     if (arm.state === 'beam' || beamFiring) {
-      // Arme reißen beim Omega-Reaktor-Strahl seitlich auf
+      // Arme werden beim Omega-Reaktor-Strahl hochgerissen — die Brust-Linse liegt frei, der Strahl kommt sichtbar von dort
       return {
-        rot: side * -0.22 + Math.sin(time * 28 + idx) * 0.03,
-        dx: side * 10,
-        dy: -6,
-        variant: dmgVar,
+        rot: side * -0.1 + Math.sin(time * 20 + idx) * 0.015,
+        dx: side * 22,
+        dy: -2,
+        variant: 1,
       };
     }
     // Ruhe / Schienenfahrt: kräftiges hydraulisches Schwingen
@@ -135,5 +146,5 @@ function levPose(e: Enemy, time: number, playerX: number): Pose {
 export const anim: RigAnim = {
   rawPose: (e, time, playerX) => levPose(e, time, playerX),
   facing: () => 1,
-  tau: 0.055,
+  tau: 0.085,
 };

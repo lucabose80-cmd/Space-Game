@@ -53,6 +53,8 @@ export interface LevArena {
   armorMsgCd: number;
   /** Zug-Zähler für deterministische Muster */
   seq: number;
+  /** Schienen-Geschwindigkeit (weich beschleunigt, px/s) */
+  railV: number;
 }
 
 /** Zugfolgen je Phase (zyklisch). */
@@ -67,7 +69,11 @@ const PHASE_NAME: Record<1 | 2 | 3, string> = { 1: 'PHASE I · WACHE', 2: 'PHASE
 const ARM_R = 17;
 const VENT_R = 11;
 const LENS_R = 14;
-const LENS_DY = 6;
+/** Gemessen am echten Rig (scripts/lev-measure.cjs, Ursprung = e.x/e.y): Linsenmitte, Faust beim Schlag, Schulter. */
+const LENS_DY = 19;
+/** Faust-Mitte beim Schlag (armSlam): seitlicher Abstand zur Körpermitte und Knöchel-Unterkante */
+const SLAM_DX = 37;
+const SLAM_DY = 48;
 
 export function isLeviathanArena(scene: DungeonScene, e: Enemy): boolean {
   return e.kind === 'boss_leviathan' && !!e.levArena && scene.currentRoom.arenaKind === 'boss_leviathan';
@@ -90,6 +96,7 @@ export function createLeviathanArena(scene: DungeonScene, e: Enemy): void {
   const armMax = Math.round(e.maxHp * ENDBOSS_ARENA.leviathan.armHpShare);
   e.levArena = {
     phase: 1,
+    railV: 0,
     state: 'intro',
     timer: -1,
     move: null,
@@ -310,6 +317,17 @@ export function updateLeviathanArena(scene: DungeonScene, e: Enemy, dt: number):
       scene.spawnBurst(e.x + side * (28 + (curTick % 3) * 18), e.y - 14 + (curTick % 4) * 8, curTick % 3 === 0 ? '#fb923c' : '#fde047', 3);
     }
   }
+  // Phase II/III: der Koloss ist sichtbar ramponiert — dauernd Funken, Glutflocken & Rauch aus dem Panzer
+  if (L.phase >= 2 && L.state !== 'dead' && L.state !== 'intro') {
+    const rate = L.phase === 3 ? 9 : 4.5;
+    const prevT = Math.floor((scene.time - dt) * rate);
+    const curT = Math.floor(scene.time * rate);
+    if (curT !== prevT) {
+      const sx = e.x + ((curT * 37) % 64) - 32;
+      const sy = e.y - 30 + ((curT * 53) % 70);
+      scene.spawnBurst(sx, sy, curT % 3 === 0 ? '#fb923c' : curT % 3 === 1 ? '#fde047' : '#94a3b8', L.phase === 3 ? 3 : 2);
+    }
+  }
   e.vx = 0;
   e.vy = 0;
   updateArms(scene, e, dt);
@@ -389,6 +407,11 @@ export function updateLeviathanArena(scene: DungeonScene, e: Enemy, dt: number):
   startMove(scene, e, move, rb);
 }
 
+/** Nur Diagnose/Tests: Zug direkt starten (scripts/lev-shots.cjs). */
+export function startMoveForTest(scene: DungeonScene, e: Enemy, move: LevArenaMove): void {
+  startMove(scene, e, move, scene.bounds);
+}
+
 function startMove(scene: DungeonScene, e: Enemy, move: LevArenaMove, rb: DungeonScene['bounds']): void {
   const L = e.levArena!;
   const k = speed(L);
@@ -417,19 +440,27 @@ function startMove(scene: DungeonScene, e: Enemy, move: LevArenaMove, rb: Dungeo
       // Titanen-Schockwelle: breite Hochspannungs-Plasma-Welle schlägt vom Boss-Arm quer durch die Halle Richtung Spieler
       const left = px < rb.cx;
       const sideIdx: 0 | 1 = left ? 0 : 1;
+      const sideSign = left ? -1 : 1;
       const arm = e.levArms?.[sideIdx];
-      const shX = e.x + (left ? -BODY_SHOULDER_DX : BODY_SHOULDER_DX);
-      const shY = e.y + LENS_DY + BODY_SHOULDER_DY;
-      const ox = arm && !arm.dead ? arm.x : shX;
-      const oy = arm && !arm.dead ? arm.y : shY;
+      // Welle startet exakt an der Faust, die gleich auf den Boden schlägt (Arm fährt dafür sichtbar hoch & herunter)
+      const ox = e.x + sideSign * SLAM_DX;
+      const oy = e.y + SLAM_DY - 4;
+      if (arm && !arm.dead) {
+        arm.state = 'whip';
+        arm.timer = 0.85 * k + 0.4;
+      }
       const tx = Math.max(rb.l + 18, Math.min(rb.r - 18, px + (left ? 44 : -44)));
       const ty = Math.max(rb.t + 76, Math.min(rb.b - 14, py));
-      fx(scene).add({ shape: 'line', x: ox, y: oy, x2: tx, y2: ty, width: 26, delay: 0.85 * k, life: 0.34, burst: 20, color: '#a855f7', fx: 'whip', onFire: (s) => s.triggerShake(0.25, 4) });
+      fx(scene).add({ shape: 'line', x: ox, y: oy, x2: tx, y2: ty, width: 26, delay: 0.85 * k, life: 0.34, burst: 20, color: '#a855f7', fx: 'whip', onFire: (s) => { s.triggerShake(0.25, 4); sound.playBossSlam(); } });
       if (L.phase === 3) {
         const otherIdx: 0 | 1 = left ? 1 : 0;
         const arm2 = e.levArms?.[otherIdx];
-        const ox2 = arm2 && !arm2.dead ? arm2.x : e.x + (left ? BODY_SHOULDER_DX : -BODY_SHOULDER_DX);
-        const oy2 = arm2 && !arm2.dead ? arm2.y : shY;
+        const ox2 = e.x - sideSign * SLAM_DX;
+        const oy2 = e.y + SLAM_DY - 4;
+        if (arm2 && !arm2.dead) {
+          arm2.state = 'whip';
+          arm2.timer = 1.12 * k + 0.4;
+        }
         const tx2 = Math.max(rb.l + 18, Math.min(rb.r - 18, px + (left ? -48 : 48)));
         const ty2 = Math.max(rb.t + 76, Math.min(rb.b - 14, ty + (ty > rb.cy ? -54 : 54)));
         fx(scene).add({ shape: 'line', x: ox2, y: oy2, x2: tx2, y2: ty2, width: 26, delay: 1.12 * k, life: 0.34, burst: 20, color: '#a855f7', fx: 'whip' });
@@ -639,7 +670,7 @@ function updateArms(scene: DungeonScene, e: Enemy, dt: number): void {
   let railSpeed = 0;
   if (L.state !== 'intro' && L.state !== 'dead') {
     if (trackingArm && trackingArm.timer > 0.25) {
-      targetRailX = Math.max(railMin, Math.min(railMax, scene.playerX - trackingArm.side * 72));
+      targetRailX = Math.max(railMin, Math.min(railMax, scene.playerX - trackingArm.side * SLAM_DX));
       railSpeed = 165;
     } else if (!slammedArm && L.state === 'idle') {
       targetRailX = rb.cx;
@@ -647,16 +678,18 @@ function updateArms(scene: DungeonScene, e: Enemy, dt: number): void {
     }
   }
   const prevX = e.x;
-  if (railSpeed > 0 && Math.abs(targetRailX - e.x) > 1) {
-    const step = Math.sign(targetRailX - e.x) * Math.min(Math.abs(targetRailX - e.x), railSpeed * dt);
-    e.x = Math.max(railMin, Math.min(railMax, e.x + step));
-  }
+  // Weiche Schienenfahrt: Beschleunigung/Abbremsen statt hartem Schritt (kein Zuckeln), Ziel-Totzone gegen Spieler-Zittern
+  const distRail = targetRailX - e.x;
+  const wantV = railSpeed > 0 && Math.abs(distRail) > 3 ? Math.sign(distRail) * Math.min(railSpeed, Math.abs(distRail) * 4) : 0;
+  const accel = 340;
+  L.railV += Math.max(-accel * dt, Math.min(accel * dt, wantV - L.railV));
+  e.x = Math.max(railMin, Math.min(railMax, e.x + L.railV * dt));
   e.vx = dt > 0 ? (e.x - prevX) / dt : 0;
 
   (e.levArms ?? []).forEach((arm, idx) => {
     if (arm.dead) return;
-    arm.homeX = e.x + arm.side * 74;
-    arm.homeY = e.y + 16;
+    arm.homeX = e.x + arm.side * 22;
+    arm.homeY = e.y + 28;
     // Beschädigungs-Funken an angeschlagenen Fäusten (< 70 % HP)
     const armFrac = L.armHp[idx] / Math.max(1, L.armMax);
     if (armFrac < 0.7) {
@@ -667,7 +700,13 @@ function updateArms(scene: DungeonScene, e: Enemy, dt: number): void {
         scene.spawnBurst(arm.x + ((cTick % 3) - 1) * 8, arm.y - 4, armFrac < 0.35 ? '#fb923c' : '#fde047', 2);
       }
     }
-    if (arm.state === 'beam') {
+    if (arm.state === 'whip') {
+      // Schockwelle: Faust fährt hoch (Anlauf) und schlägt an der Welle-Startstelle auf den Boden
+      arm.timer -= dt;
+      arm.x = e.x + arm.side * SLAM_DX;
+      arm.y = e.y + SLAM_DY - 6;
+      if (arm.timer <= 0) arm.state = 'returning';
+    } else if (arm.state === 'beam') {
       arm.timer -= dt;
       arm.x = arm.homeX + arm.side * 10;
       arm.y = arm.homeY - 6;
@@ -680,8 +719,8 @@ function updateArms(scene: DungeonScene, e: Enemy, dt: number): void {
     } else if (arm.state === 'tracking') {
       arm.timer -= dt;
       // Zielpunkt liegt exakt unter den Knöcheln von armSlam (auf festem Boden vor der Wand!)
-      arm.targetX = e.x + arm.side * 66;
-      arm.targetY = e.y + 38;
+      arm.targetX = e.x + arm.side * SLAM_DX;
+      arm.targetY = e.y + SLAM_DY;
       if (arm.timer <= 0.32 && !arm.locked) {
         arm.locked = true;
         fx(scene).add({ shape: 'circle', x: arm.targetX, y: arm.targetY, r: 36, delay: arm.timer + 0.16, life: 0.14, burst: 22, color: '#fb923c', fx: 'blast' });
@@ -689,7 +728,7 @@ function updateArms(scene: DungeonScene, e: Enemy, dt: number): void {
         fx(scene).add({ shape: 'line', x: arm.targetX, y: arm.targetY, x2: arm.targetX, y2: rb.b - 16, width: 32, delay: arm.timer + 0.32, life: 0.28, burst: 18, color: '#fb923c', fx: 'whip' });
       }
       arm.x = arm.targetX;
-      arm.y = arm.homeY - 12;
+      arm.y = arm.homeY - 14;
       if (arm.timer <= 0) {
         arm.state = 'slamming';
         arm.timer = 0.16;
@@ -929,8 +968,8 @@ export const BODY_H = 178;
 const BODY_LENS_X = 160;
 const BODY_LENS_Y = 118;
 /** Schulter-Referenz relativ zur Linse (für Funken/Effekte) */
-export const BODY_SHOULDER_DX = 96;
-export const BODY_SHOULDER_DY = -8;
+export const BODY_SHOULDER_DX = 40;
+export const BODY_SHOULDER_DY = -26;
 
 /** Zeichnet die feste, unbewegliche Schwerlast-Laufschiene an der Nordwand (wackelt NIE mit!). */
 function drawCraneRail(ctx: CanvasRenderingContext2D, leftX: number, rightX: number, railY: number): void {

@@ -200,7 +200,7 @@ export class BossFx {
       const prog = warn ? 1 - Math.max(0, z.delay) / Math.max(0.01, z.maxDelay ?? 1) : 1;
       const pulse = 0.5 + 0.5 * Math.sin(time * 14);
       const spriteBacked = !warn && (z.fx === 'beam' || z.fx === 'whip' || z.fx === 'flame' || z.fx === 'vortex' || z.fx === 'steam');
-      const subtleWarn = warn && (z.fx === 'beam' || z.fx === 'steam');
+      const subtleWarn = warn && z.fx === 'beam';
       ctx.fillStyle = z.color;
       ctx.strokeStyle = z.color;
       ctx.lineWidth = warn ? 1.2 : 1.6;
@@ -633,6 +633,28 @@ export class BossFx {
       const h = z.h ?? 28;
       const dir = (z.variant ?? 1) >= 0 ? 1 : -1;
       const startX = dir > 0 ? z.x - w / 2 : z.x + w / 2;
+      if (warn) {
+        // Klare Vorwarnung: Düse pulsiert, Pfeile laufen die Bahn entlang (man sieht WOHER und WOHIN der Dampf kommt)
+        ctx.save();
+        ctx.fillStyle = '#e2e8f0';
+        ctx.strokeStyle = '#f8fafc';
+        ctx.globalAlpha = 0.35 + 0.45 * prog;
+        ctx.beginPath();
+        ctx.arc(startX, z.y, 5 + 3 * Math.sin(time * 16) + 4 * prog, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.lineWidth = 1.6;
+        for (let k = 0; k < 6; k++) {
+          const u = (time * 1.4 + k / 6) % 1;
+          const cx = startX + dir * (14 + u * (w - 22));
+          ctx.globalAlpha = Math.sin(u * Math.PI) * (0.35 + 0.5 * prog);
+          ctx.beginPath();
+          ctx.moveTo(cx - dir * 5, z.y - 7);
+          ctx.lineTo(cx + dir * 3, z.y);
+          ctx.lineTo(cx - dir * 5, z.y + 7);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
       if (warn && art.arenaLeviathanSteam) {
         // Zischende Vorwarn-Dampfschwaden direkt aus der Düsen-Mündung
         ctx.save();

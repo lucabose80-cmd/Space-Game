@@ -40,7 +40,7 @@ export interface LeviathanArm {
   y: number;
   targetX: number;
   targetY: number;
-  state: 'idle' | 'tracking' | 'slamming' | 'grounded' | 'returning' | 'beam';
+  state: 'idle' | 'tracking' | 'slamming' | 'grounded' | 'returning' | 'beam' | 'whip';
   timer: number;
   beamAngle: number;
   /** M12 Arena: Arm zerstört (zeichnen/treffen entfällt) */
