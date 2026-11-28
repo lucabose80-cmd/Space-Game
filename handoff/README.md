@@ -2,6 +2,16 @@
 
 Jeder Chat/Agent pflegt **nur die Datei seines Bereichs**. `HANDOFF.md` bleibt der Einstieg (Index, Ablauf, Gesamtstand) und wird nur für Bereichsübergreifendes geändert. So gibt es keine Merge-Konflikte.
 
+## 🔒 Wer arbeitet gerade woran? (Claim-Liste — **vor dem Start lesen, beim Start eintragen, am Ende austragen**)
+> Regel: **pro Bereich nur ein Besitzer gleichzeitig** (`PARALLEL_WORK.md` §5, `AGENTS.md` Regel 18). Zeile eintragen = `git commit` + `npm run ship` **bevor** die eigentliche Arbeit beginnt, damit andere Chats/Werkzeuge es sehen. Steht ein Bereich auf „frei“, darf ihn jeder nehmen.
+
+| Bereich | Besitzer (Werkzeug · Chat) | seit | Umfang (was ist in Arbeit — **was bewusst nicht**) |
+| :--- | :--- | :--- | :--- |
+| Endboss-Arenen M12 (Leviathan-Pilot, künftig S2–S4) | frei — Pilot wartet auf Abnahme im echten Spiel | 2026-11-28 | nächste Arena erst nach Abnahme (Pipeline Stufe 8) |
+| Cutscenes | siehe [`cutscenes.md`](cutscenes.md) | — | Besitzer dort eintragen |
+| Gegner-Rigs / Boss-Rigs (M11) | je Gegner: siehe Tabelle unten, Status-Blatt | — | pro Gegner/Boss ein Besitzer |
+| Sprite-Queue (`SPRITE_QUEUE.md`) | Antigravity (offene `[ ]`) · Claude-Chats nur `[~]` für ihre laufende Aufgabe | — | `[~]` = in Arbeit, **nicht** doppelt erzeugen |
+
 | Bereich | Status-Blatt | Code (nur dieser Bereich ändert ihn) | Daten | Test |
 | :--- | :--- | :--- | :--- | :--- |
 | Krall | [`krall.md`](krall.md) | `anim/rigs/krall.ts`, `bosses/` (Krall-Zonen) | `data/rigs/krall.json` | `m11p5_krall` |
