@@ -75,6 +75,30 @@ import { applyChoice, getPendingScene as storyPendingScene, hasTrustPerk as stor
 
 const SAVE_KEY = 'starlighter_save_v2';
 const LEGACY_SAVE_KEY = 'starlighter_save_v1';
+/** Spielstand-Slots: Slot 1 nutzt den alten Schlüssel (bestehende Saves bleiben gültig), 2/3 eigene Schlüssel. */
+const ACTIVE_SLOT_KEY = 'starlighter_active_slot';
+export type SaveSlot = 1 | 2 | 3;
+export const SAVE_SLOTS: readonly SaveSlot[] = [1, 2, 3];
+function slotKey(slot: SaveSlot): string {
+  return slot === 1 ? SAVE_KEY : `${SAVE_KEY}_slot${slot}`;
+}
+function readActiveSlot(): SaveSlot {
+  try {
+    const n = Number(localStorage.getItem(ACTIVE_SLOT_KEY));
+    return n === 2 || n === 3 ? n : 1;
+  } catch {
+    return 1;
+  }
+}
+/** Kurzvorschau eines Slots für den Startscreen (ohne ihn zu laden). */
+export interface SlotPreview {
+  captainName: string;
+  day: number;
+  credits: number;
+  isNight: boolean;
+  ngPlusLevel: number;
+  sectorsCleared: number;
+}
 const SAVE_VERSION = 11;
 
 function createEmptyRecords(): CaptainRecords {
@@ -281,8 +305,59 @@ export class GameState {
   public energy = 100;
   public stimCharges = 2;
 
+  /** Aktiver Spielstand-Slot (1–3). Nur Slot 1 wird mit der Cloud synchronisiert. */
+  public activeSlot: SaveSlot = readActiveSlot();
+
   constructor() {
     this.initFreshState();
+  }
+
+  /** Cloud-Sync/Bestenliste gelten nur für den Haupt-Slot 1. */
+  public isCloudSlot(): boolean {
+    return this.activeSlot === 1;
+  }
+
+  /** Wechselt den Slot (nur am Startscreen): lädt dessen Stand oder startet leer — speichert dabei NIE. */
+  public switchSlot(slot: SaveSlot): void {
+    this.activeSlot = slot;
+    try {
+      localStorage.setItem(ACTIVE_SLOT_KEY, String(slot));
+    } catch {
+      // ignore
+    }
+    if (this.hasSave() && this.load()) return;
+    this.initFreshState();
+  }
+
+  public static peekSlot(slot: SaveSlot): SlotPreview | null {
+    try {
+      const raw = localStorage.getItem(slotKey(slot)) ?? (slot === 1 ? localStorage.getItem(LEGACY_SAVE_KEY) : null);
+      if (!raw) return null;
+      const d = JSON.parse(raw) as Partial<SaveData>;
+      if (!d || typeof d !== 'object') return null;
+      const cap = typeof d.captainName === 'string' && d.captainName.trim() ? d.captainName.trim().slice(0, 22) : 'Sternen-Kapitän';
+      return {
+        captainName: cap,
+        day: d.day ?? 1,
+        credits: d.credits ?? 0,
+        isNight: d.timeOfDay === 'night',
+        ngPlusLevel: Math.max(0, Math.floor(d.ngPlusLevel ?? 0)),
+        sectorsCleared: [d.sector1Cleared, d.sector2Cleared, d.sector3Cleared, d.sector4Cleared].filter(Boolean).length,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /** Slot 2/3 komplett leeren (lokal). Slot 1 wird nur über „Neues Spiel“ zurückgesetzt (sonst holt die Cloud ihn zurück). */
+  public clearSlot(slot: SaveSlot): void {
+    if (slot === 1) return;
+    try {
+      localStorage.removeItem(slotKey(slot));
+    } catch {
+      // ignore
+    }
+    if (this.activeSlot === slot) this.initFreshState();
   }
 
   public initFreshState(): void {
@@ -1731,7 +1806,7 @@ export class GameState {
       if (!parsed || typeof parsed !== 'object' || typeof parsed.credits !== 'number') {
         return { ok: false, error: 'Ungültiges STARLIGHTER-Savegame-Format!' };
       }
-      localStorage.setItem(SAVE_KEY, JSON.stringify(parsed));
+      localStorage.setItem(slotKey(this.activeSlot), JSON.stringify(parsed));
       const loaded = this.load();
       if (!loaded) return { ok: false, error: 'Spielstand konnte nicht geladen werden.' };
       this.save();
@@ -1743,7 +1818,10 @@ export class GameState {
 
   public hasSave(): boolean {
     try {
-      return localStorage.getItem(SAVE_KEY) !== null || localStorage.getItem(LEGACY_SAVE_KEY) !== null;
+      return (
+        localStorage.getItem(slotKey(this.activeSlot)) !== null ||
+        (this.activeSlot === 1 && localStorage.getItem(LEGACY_SAVE_KEY) !== null)
+      );
     } catch {
       return false;
     }
@@ -1755,8 +1833,8 @@ export class GameState {
   public save(): void {
     if (this.saveLocked) return;
     try {
-      localStorage.setItem(SAVE_KEY, JSON.stringify(this.buildSavePayload()));
-      firebaseService.scheduleAutoSync(this);
+      localStorage.setItem(slotKey(this.activeSlot), JSON.stringify(this.buildSavePayload()));
+      if (this.isCloudSlot()) firebaseService.scheduleAutoSync(this);
     } catch {
       // Ignore storage errors
     }
@@ -1764,7 +1842,9 @@ export class GameState {
 
   public load(): boolean {
     try {
-      const raw = localStorage.getItem(SAVE_KEY) ?? localStorage.getItem(LEGACY_SAVE_KEY);
+      const raw =
+        localStorage.getItem(slotKey(this.activeSlot)) ??
+        (this.activeSlot === 1 ? localStorage.getItem(LEGACY_SAVE_KEY) : null);
       if (!raw) return false;
       const parsed = JSON.parse(raw) as Partial<SaveData>;
       if (!parsed) return false;
@@ -2117,8 +2197,8 @@ export class GameState {
 
   public resetSave(): void {
     try {
-      localStorage.removeItem(SAVE_KEY);
-      localStorage.removeItem(LEGACY_SAVE_KEY);
+      localStorage.removeItem(slotKey(this.activeSlot));
+      if (this.activeSlot === 1) localStorage.removeItem(LEGACY_SAVE_KEY);
     } catch {
       // ignore
     }

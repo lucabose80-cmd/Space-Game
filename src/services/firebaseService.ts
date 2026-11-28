@@ -210,6 +210,7 @@ class FirebaseCloudService {
   /** Debounced cloud save + leaderboard update whenever a logged-in player saves locally */
   public scheduleAutoSync(state: GameState): void {
     if (!this.configured || !this.currentUser || !this.db || !this.sdk) return;
+    if (!state.isCloudSlot()) return;
     if (this.syncTimer !== null) {
       window.clearTimeout(this.syncTimer);
     }
@@ -228,6 +229,9 @@ class FirebaseCloudService {
   }
 
   public async syncAllToCloud(state: GameState): Promise<{ ok: boolean; error?: string }> {
+    if (!state.isCloudSlot()) {
+      return { ok: false, error: 'Nur Spielstand-Slot 1 wird mit der Cloud synchronisiert.' };
+    }
     const sdk = this.sdk;
     if (!this.configured || !this.currentUser || !this.db || !sdk) {
       return { ok: false, error: 'Nicht angemeldet.' };

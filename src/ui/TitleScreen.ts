@@ -1,10 +1,13 @@
 import { sound } from '../engine/audio';
 import { firebaseService } from '../services/firebaseService';
-import type { GameState } from '../systems/gameState';
+import { GameState as GS, SAVE_SLOTS } from '../systems/gameState';
+import type { GameState, SaveSlot } from '../systems/gameState';
 
 export interface TitleScreenCallbacks {
   onStartNewGame: () => void;
   onContinueGame: () => void;
+  /** Spielstand-Slot wurde gewechselt (State ist schon umgeschaltet). */
+  onSlotChanged: () => void;
   onHideTitle: () => void;
   onMuteToggle: () => void;
   onToast: (msg: string, tone?: 'info' | 'good' | 'warn') => void;
@@ -35,6 +38,7 @@ export class TitleScreen {
   private accountOpen = false;
   private controlsOpen = false;
   private confirmNewGame = false;
+  private confirmClear = false;
   private authMode: 'login' | 'register' = 'login';
   private authBusy = false;
   private authFeedback: { text: string; tone: 'info' | 'good' | 'warn' } | null = null;
@@ -49,6 +53,7 @@ export class TitleScreen {
   public show(): void {
     this.exiting = false;
     this.confirmNewGame = false;
+    this.confirmClear = false;
     this.el.classList.remove('hidden', 'title-exiting');
     this.render();
   }
@@ -124,9 +129,10 @@ export class TitleScreen {
             </div>
           </div>
           ${feedbackHtml}
+          ${this.state.isCloudSlot() ? '' : '<div class="ts-user-sub">Slot 2/3 sind lokal — nur Slot 1 wird mit der Cloud synchronisiert.</div>'}
           <div class="ts-drawer-actions">
-            <button id="btn-title-cloud-load" class="btn btn-sm" type="button" ${this.authBusy ? 'disabled' : ''}>⬇ Cloud-Stand laden</button>
-            <button id="btn-title-cloud-save" class="btn btn-sm" type="button" ${this.authBusy || !this.state.hasSave() ? 'disabled' : ''}>⬆ Jetzt sichern</button>
+            <button id="btn-title-cloud-load" class="btn btn-sm" type="button" ${this.authBusy || !this.state.isCloudSlot() ? 'disabled' : ''}>⬇ Cloud-Stand laden</button>
+            <button id="btn-title-cloud-save" class="btn btn-sm" type="button" ${this.authBusy || !this.state.hasSave() || !this.state.isCloudSlot() ? 'disabled' : ''}>⬆ Jetzt sichern</button>
           </div>
           <button id="btn-title-logout" class="btn btn-sm btn-danger ts-full-btn" type="button" ${this.authBusy ? 'disabled' : ''}>Abmelden</button>
         </aside>
@@ -205,10 +211,34 @@ export class TitleScreen {
       `
       : '';
 
+    const slot = this.state.activeSlot;
+    const slotsHtml = `
+      <div class="ts-slots" role="group" aria-label="Spielstand-Slot">
+        ${SAVE_SLOTS.map((n) => {
+          const pv = GS.peekSlot(n);
+          const body = pv
+            ? `<span class="ts-slot-cap">${escapeHtml(pv.captainName)}</span><span class="ts-slot-meta">${pv.isNight ? '🌙' : '☀'} Tag ${pv.day}${pv.ngPlusLevel > 0 ? ` · NG+${pv.ngPlusLevel}` : ''} · ${pv.sectorsCleared}/4 ◆</span>`
+            : `<span class="ts-slot-cap">— Leer —</span><span class="ts-slot-meta">Neue Welt</span>`;
+          return `<button class="ts-slot ${n === slot ? 'active' : ''}" data-slot="${n}" type="button" aria-pressed="${n === slot}"><span class="ts-slot-no">SLOT ${n}${n === 1 ? ' ☁' : ''}</span>${body}</button>`;
+        }).join('')}
+      </div>`;
+    const cloudWarn = slot === 1 && user ? ' Dein Cloud-Spielstand wird dabei ebenfalls überschrieben.' : '';
+    const clearHtml = this.confirmClear
+      ? `
+        <div class="ts-confirm-box">
+          <span>Slot ${slot} (Tag ${this.state.day}) endgültig löschen?</span>
+          <div class="ts-confirm-actions">
+            <button id="btn-confirm-clear-yes" class="btn btn-sm btn-danger" type="button">Ja, löschen</button>
+            <button id="btn-confirm-clear-no" class="btn btn-sm" type="button">Abbrechen</button>
+          </div>
+        </div>
+      `
+      : '';
+
     const confirmHtml = this.confirmNewGame
       ? `
         <div class="ts-confirm-box">
-          <span>Aktuellen Spielstand (Tag ${this.state.day}) wirklich neu starten?</span>
+          <span>Slot ${slot} (Tag ${this.state.day}) wirklich neu starten?${cloudWarn}</span>
           <div class="ts-confirm-actions">
             <button id="btn-confirm-new-yes" class="btn btn-sm btn-danger" type="button">Ja, neu starten</button>
             <button id="btn-confirm-new-no" class="btn btn-sm" type="button">Abbrechen</button>
@@ -257,6 +287,7 @@ export class TitleScreen {
               <em>Astro-Barter</em> auf Port Solaris.
             </p>
 
+            ${slotsHtml}
             ${saveCardHtml}
 
             <div class="ts-actions">
@@ -269,6 +300,11 @@ export class TitleScreen {
                 ${hasSave ? '✦ Neues Spiel' : '▶ Expedition starten'}
               </button>
               ${
+                hasSave && slot !== 1
+                  ? `<button id="btn-slot-clear" class="btn btn-sm ts-btn-secondary" type="button">🗑 Slot leeren</button>`
+                  : ''
+              }
+              ${
                 !hasSave && !user
                   ? `<button id="btn-title-quick-account" class="btn ts-btn-secondary" type="button">☁ Konto verknüpfen</button>`
                   : ''
@@ -276,6 +312,7 @@ export class TitleScreen {
             </div>
 
             ${confirmHtml}
+            ${clearHtml}
           </section>
 
           ${this.renderAccountDrawer()}
@@ -302,6 +339,38 @@ export class TitleScreen {
   }
 
   private bindEvents(hasSave: boolean): void {
+    this.el.querySelectorAll<HTMLButtonElement>('.ts-slot').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const n = Number(btn.dataset.slot) as SaveSlot;
+        if (n === this.state.activeSlot) return;
+        sound.unlock();
+        sound.playUiClick();
+        this.confirmNewGame = false;
+        this.confirmClear = false;
+        this.state.switchSlot(n);
+        this.cb.onSlotChanged();
+        this.render();
+      });
+    });
+    this.el.querySelector('#btn-slot-clear')?.addEventListener('click', () => {
+      sound.playUiClick();
+      this.confirmClear = true;
+      this.confirmNewGame = false;
+      this.render();
+    });
+    this.el.querySelector('#btn-confirm-clear-yes')?.addEventListener('click', () => {
+      sound.playUiClick();
+      this.state.clearSlot(this.state.activeSlot);
+      this.confirmClear = false;
+      this.cb.onToast('Slot geleert.', 'info');
+      this.render();
+    });
+    this.el.querySelector('#btn-confirm-clear-no')?.addEventListener('click', () => {
+      sound.playUiClick();
+      this.confirmClear = false;
+      this.render();
+    });
+
     this.el.querySelector('#btn-continue')?.addEventListener('click', () => {
       sound.unlock();
       sound.playUiClick();

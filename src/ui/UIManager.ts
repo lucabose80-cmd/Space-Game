@@ -98,6 +98,8 @@ import type { UpgradeCutsceneConfig } from '../scenes/UpgradeCutsceneOverlay';
 import { TitleScreen } from './TitleScreen';
 
 export interface UIHooks {
+  /** Startscreen: Spielstand-Slot gewechselt (State ist bereits umgeschaltet). */
+  onSlotChanged?: () => void;
   onStartNewGame: () => void;
   onContinueGame: () => void;
   onToggleShopOpen: () => void;
@@ -153,6 +155,7 @@ export class UIManager {
     this.titleScreen = new TitleScreen(this.titleEl, this.state, {
       onStartNewGame: () => this.hooks.onStartNewGame(),
       onContinueGame: () => this.hooks.onContinueGame(),
+      onSlotChanged: () => this.hooks.onSlotChanged?.(),
       onHideTitle: () => this.hideTitle(),
       onMuteToggle: () => this.hooks.onMuteToggle(),
       onToast: (msg, tone) => this.toast(msg, tone),

@@ -87,6 +87,22 @@
 | G5 | Neues Spiel → weicher Übergang direkt in `intro_arrival` (kein Laden-Flackern) | ⬜ |
 | G6 | Weiterspielen → ~3-s-Anflug (Tag/Nacht, Kapitän, Tag-Banner), per Klick/Taste überspringbar, Kurz-Modus | ⬜ |
 
+## J. Spielstand-Slots & Neu anfangen (neu — Test `t10_save_slots`)
+> **Gab es vorher nicht:** nur einen Spielstand; „Neues Spiel“ (Startscreen) und „Spielstand zurücksetzen“ (Einstellungen im Spiel) überschrieben ihn — **inklusive Cloud**. Jetzt: 3 Slots.
+> Regeln: **Slot 1** = Hauptspielstand (bestehende Saves bleiben dort, wird mit der Cloud synchronisiert). **Slot 2/3** = rein lokal (pro Gerät/Browser), nie in der Cloud/Bestenliste. Wechsel nur am Startscreen, speichert beim Wechseln nichts.
+| # | Prüfpunkt | Status |
+| :-- | :-- | :-: |
+| J1 | Startscreen zeigt 3 Slot-Karten (Kapitän, Tag, NG+, Sektoren; „Leer“ bei freien Slots); aktiver Slot hervorgehoben | ⬜ |
+| J2 | Bestehender Spielstand liegt unverändert in Slot 1 (nach Update nichts verloren) | ⬜ |
+| J3 | Slot 2 wählen → „Expedition starten“ → eigene Welt von vorn; Slot 1 danach unverändert | ⬜ |
+| J4 | Zwischen den Slots wechseln, „Weiterspielen“ lädt jeweils den richtigen Stand (Credits/Tag/Inventar) | ⬜ |
+| J5 | „Neues Spiel“ in einem Slot fragt nach; wirkt nur auf diesen Slot. Slot 1 + Konto: Warnung „Cloud wird überschrieben“ | ⬜ |
+| J6 | „🗑 Slot leeren“ (nur Slot 2/3) mit Bestätigung; Slot 1 hat den Button bewusst nicht (sonst holt die Cloud ihn zurück) | ⬜ |
+| J7 | Mit Konto: Slot 2/3 aktiv → „Cloud laden/sichern“ gesperrt + Hinweis; Slot 1 aktiv → wie bisher | ⬜ |
+| J8 | Mit Konto: Slot 1 wählen holt/gleicht den Cloud-Stand ab (wie beim Login) | ⬜ |
+| J9 | Im Spiel: Einstellungen → „Spielstand zurücksetzen“ wirkt nur auf den aktiven Slot | ⬜ |
+| J10 | Komplett von vorn anfangen **mit Konto**: Slot 1 → „Neues Spiel“ (setzt auch Cloud zurück) | ⬜ |
+
 ## H. Noch NICHT zur Abnahme (erst bauen / gesperrt)
 - **NG+-Aura, ∞ Spirale, Echo-Pilot:** Sprites da, Code wartet auf Startsignal; Echo-Serie nach Pilot-Abnahme.
 - **P4 weitere Boss-Rigs** (STOP-GATE bis A1–A7 ✅) · **nächste Arena Prisma-Archon** (bis B ✅).

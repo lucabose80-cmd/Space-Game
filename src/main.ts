@@ -160,6 +160,12 @@ class StarlighterGame {
           );
         });
       },
+      onSlotChanged: () => {
+        sound.setMuted(this.state.muted);
+        sound.setMusicMuted(this.state.musicMuted);
+        const u = firebaseService.currentUser;
+        if (u) this.reconcileCloud(u);
+      },
       onContinueGame: () => {
         this.state.load();
         sound.setMuted(this.state.muted);
@@ -282,27 +288,7 @@ class StarlighterGame {
         this.state.captainName = user.displayName;
       }
       galacticNetwork.prefetchGhostCaptains();
-      void firebaseService.downloadCloudSave().then((res) => {
-        if (res.ok && res.saveJson && (!this.state.hasSave() || firebaseService.isCloudSaveAhead(this.state, res.saveJson))) {
-          const imp = this.state.importSaveJson(res.saveJson);
-          if (imp.ok) {
-            this.ui.renderHud();
-            this.ui.refreshTitle();
-            this.ui.toast(`☁ Cloud-Spielstand von ${user.displayName} geladen (Tag ${this.state.day})!`, 'good');
-            this.ui.refreshGuildBoardIfOpen();
-          }
-        } else if (this.state.hasSave()) {
-          void firebaseService.syncAllToCloud(this.state).then((syncRes) => {
-            if (syncRes.ok) {
-              this.ui.toast('☁ Spielstand automatisch mit der Cloud synchronisiert!', 'good');
-            }
-            this.ui.refreshTitle();
-            this.ui.refreshGuildBoardIfOpen();
-          });
-        } else {
-          this.ui.refreshTitle();
-        }
-      });
+      this.reconcileCloud(user);
     });
 
     this.hangarScene = new HangarScene(this.state, {
@@ -628,6 +614,32 @@ class StarlighterGame {
     } else {
       this.ui.toast('Schmiede eine 2. Waffe bei Kael auf Port Solaris zum Wechseln!', 'info');
     }
+  }
+
+  /** Cloud-Abgleich für den Haupt-Slot 1 (Slots 2/3 sind lokal und werden nie mit der Cloud verrechnet). */
+  private reconcileCloud(user: { displayName: string }): void {
+    if (!this.state.isCloudSlot()) return;
+    void firebaseService.downloadCloudSave().then((res) => {
+      if (res.ok && res.saveJson && (!this.state.hasSave() || firebaseService.isCloudSaveAhead(this.state, res.saveJson))) {
+        const imp = this.state.importSaveJson(res.saveJson);
+        if (imp.ok) {
+          this.ui.renderHud();
+          this.ui.refreshTitle();
+          this.ui.toast(`☁ Cloud-Spielstand von ${user.displayName} geladen (Tag ${this.state.day})!`, 'good');
+          this.ui.refreshGuildBoardIfOpen();
+        }
+      } else if (this.state.hasSave()) {
+        void firebaseService.syncAllToCloud(this.state).then((syncRes) => {
+          if (syncRes.ok) {
+            this.ui.toast('☁ Spielstand automatisch mit der Cloud synchronisiert!', 'good');
+          }
+          this.ui.refreshTitle();
+          this.ui.refreshGuildBoardIfOpen();
+        });
+      } else {
+        this.ui.refreshTitle();
+      }
+    });
   }
 
   private setHudVisible(visible: boolean): void {
