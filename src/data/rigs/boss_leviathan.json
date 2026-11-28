@@ -43,7 +43,11 @@
         "torso",
         "torsoP2",
         "torsoP3",
-        "torsoDead"
+        "torsoDead",
+        "torsoD1",
+        "torsoD2",
+        "torsoP2D1",
+        "torsoP2D2"
       ]
     },
     {
@@ -94,7 +98,8 @@
         "armCrit",
         "armDead",
         "armWind",
-        "armStrike"
+        "armStrike",
+        "armStump"
       ]
     },
     {
@@ -123,7 +128,8 @@
         "armCrit",
         "armDead",
         "armWind",
-        "armStrike"
+        "armStrike",
+        "armStump"
       ]
     }
   ]

@@ -317,15 +317,18 @@ export function updateLeviathanArena(scene: DungeonScene, e: Enemy, dt: number):
       scene.spawnBurst(e.x + side * (28 + (curTick % 3) * 18), e.y - 14 + (curTick % 4) * 8, curTick % 3 === 0 ? '#fb923c' : '#fde047', 3);
     }
   }
-  // Phase II/III: der Koloss ist sichtbar ramponiert — dauernd Funken, Glutflocken & Rauch aus dem Panzer
-  if (L.phase >= 2 && L.state !== 'dead' && L.state !== 'intro') {
-    const rate = L.phase === 3 ? 9 : 4.5;
-    const prevT = Math.floor((scene.time - dt) * rate);
-    const curT = Math.floor(scene.time * rate);
-    if (curT !== prevT) {
-      const sx = e.x + ((curT * 37) % 64) - 32;
-      const sy = e.y - 30 + ((curT * 53) % 70);
-      scene.spawnBurst(sx, sy, curT % 3 === 0 ? '#fb923c' : curT % 3 === 1 ? '#fde047' : '#94a3b8', L.phase === 3 ? 3 : 2);
+  // Ramponiert (D12): Funken/Glut/Rauch wachsen mit dem Schaden — P1 ab <88 %, P2 stärker, P3 am stärksten
+  if (L.state !== 'dead' && L.state !== 'intro') {
+    const hf = e.hp / Math.max(1, e.maxHp);
+    const rate = L.phase === 3 ? 9 : L.phase === 2 ? (hf < 0.4 ? 7 : hf < 0.52 ? 5.5 : 4.5) : hf < 0.76 ? 3 : hf < 0.88 ? 1.5 : 0;
+    if (rate > 0) {
+      const prevT = Math.floor((scene.time - dt) * rate);
+      const curT = Math.floor(scene.time * rate);
+      if (curT !== prevT) {
+        const sx = e.x + ((curT * 37) % 64) - 32;
+        const sy = e.y - 30 + ((curT * 53) % 70);
+        scene.spawnBurst(sx, sy, curT % 3 === 0 ? '#fb923c' : curT % 3 === 1 ? '#fde047' : '#94a3b8', L.phase === 3 ? 3 : 2);
+      }
     }
   }
   e.vx = 0;
@@ -675,6 +678,9 @@ function startPhase2(scene: DungeonScene, e: Enemy): void {
   for (const arm of e.levArms ?? []) if (!arm.dead) arm.state = 'returning';
   sound.playBossRoar();
   scene.triggerShake(0.6, 6);
+  // Verwandlung (D7): Panzerplatten platzen ab, Glut spritzt — Körper wechselt danach dauerhaft in den überhitzten Zustand
+  spawnScrap(scene, e.x, e.y + 6, 4, 6);
+  scene.spawnBurst(e.x, e.y + LENS_DY, '#fb923c', 26);
   scene.callbacks.onToast('🚨 PHASE II: ÜBERLAST — die Bodenplatten brechen! Zerstöre die Kühlventile!', 'warn');
   // Arena-Änderung (A4): Mittel-Platten brechen weg — 1,2 s Vorwarnung, dann Abgrund (Glut-Schacht)
   const def = ARENAS.boss_leviathan;

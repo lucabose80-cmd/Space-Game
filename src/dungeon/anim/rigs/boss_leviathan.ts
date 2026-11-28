@@ -4,6 +4,8 @@ import type { PartPose, Pose } from '../../../engine/rig';
 import type { Enemy } from '../../dungeonTypes';
 import type { RigAnim } from '../rigAnim';
 
+/** Ruhe-Spreizung der Arme (rad): bewegt die Fäuste weg von der Brustmitte */
+const IDLE_SPREAD = 0.5;
 const clamp = (v: number, a: number, b: number): number => Math.max(a, Math.min(b, v));
 
 interface LevRigState {
@@ -15,13 +17,18 @@ interface LevRigState {
   armState: [string, string];
   armSince: [number, number];
   armWasUp: [boolean, boolean];
+  /** laufender Zug (L.moveIdx) + Sekunden seit Zugbeginn */
+  moveIdx: number;
+  moveSince: number;
+  /** Sekunden seit Phasenwechsel-Beginn */
+  transSince: number;
 }
 const states = new WeakMap<Enemy, LevRigState>();
 
 function levPose(e: Enemy, time: number, playerX: number): Pose {
   let st = states.get(e);
   if (!st) {
-    st = { hit: 0, hitDir: 1, wasFlash: false, time, armState: ['', ''], armSince: [0, 0], armWasUp: [false, false] };
+    st = { hit: 0, hitDir: 1, wasFlash: false, time, armState: ['', ''], armSince: [0, 0], armWasUp: [false, false], moveIdx: -1, moveSince: 0, transSince: 0 };
     states.set(e, st);
   }
   const dt = clamp(time - st.time, 0, 0.1);
@@ -38,6 +45,14 @@ function levPose(e: Enemy, time: number, playerX: number): Pose {
   const L = e.levArena;
   const dead = !L ? e.hp <= 0 : L.state === 'dead' || e.hp <= 0;
   const phase = L?.phase ?? (e.bossPhase2 ? 2 : 1);
+  if (L && st.moveIdx !== L.moveIdx) {
+    st.moveIdx = L.moveIdx;
+    st.moveSince = 0;
+  }
+  st.moveSince += dt;
+  const transition = !dead && L?.state === 'transition';
+  st.transSince = transition ? st.transSince + dt : 0;
+  const mv = !dead && L?.state === 'move' ? L.move : null;
   const critical = !!L?.critical;
   const beamFiring = !dead && L?.state === 'move' && L.move === 'beam';
   const pulseOrGlow = !dead && L?.state === 'move' && (L.move === 'pulse' || L.move === 'glow' || L.move === 'grab');
@@ -68,7 +83,8 @@ function levPose(e: Enemy, time: number, playerX: number): Pose {
       st.armSince[idx] += dt;
     }
     const since = st.armSince[idx];
-    if (!arm || arm.dead) return { hidden: true };
+    // Zerstörter Arm: bleibt als funkender Schulterstumpf sichtbar (Wrack, A13)
+    if (!arm || arm.dead) return arm ? { variant: 8, dy: 0 } : { hidden: true };
     const side = idx === 0 ? -1 : 1;
     const frac = L ? L.armHp[idx] / Math.max(1, L.armMax) : 1;
     // Phase II/III: Arme sind von Anfang an sichtbar ramponiert (Lava-Risse, später Kurzschluss-Glut)
@@ -131,14 +147,56 @@ function levPose(e: Enemy, time: number, playerX: number): Pose {
         variant: since < 0.16 ? WIND : 1,
       };
     }
+    // Phasenwechsel (D7): beide Arme reißen auf, der Koloss brüllt und bebt — einmalig & lesbar
+    if (transition) {
+      torsoDrop -= 2;
+      return {
+        rot: side * -0.12 + Math.sin(time * 26 + idx) * 0.03,
+        dx: side * 12,
+        dy: -3,
+        variant: st.transSince < 0.25 ? WIND : 1,
+      };
+    }
+    // Zugspezifische Posen (D2/D4): Anlauf → Halten → Erholung je Attacke
+    if (mv) {
+      const ms = st.moveSince;
+      const up = ms < 0.22 ? WIND : 1;
+      if (mv === 'debris') {
+        // Trümmerfall: beide Fäuste greifen zur Decke
+        return { rot: side * -0.08, dx: side * 14, dy: -4 + Math.sin(time * 12 + idx) * 1.2, variant: up };
+      }
+      if (mv === 'pulse') {
+        torsoDrop -= 1;
+        return { rot: side * -0.1 + Math.sin(time * 24 + idx) * 0.02, dx: side * 18, dy: -2, variant: up };
+      }
+      if (mv === 'grab') {
+        // Kabel-Griff: Arme ziehen zur Brust, Gravitation saugt
+        torsoDrop += 1;
+        return { rot: side * -0.05 + Math.sin(time * 9 + idx) * 0.03, dx: -side * 6, dy: 0, variant: WIND };
+      }
+      if (mv === 'steam') {
+        // Überdruck: Arme pumpen hydraulisch auf und ab
+        return { rot: side * -0.1 + Math.sin(time * 7 + idx * 2) * 0.12, dx: side * 8, dy: Math.sin(time * 7 + idx * 2) * 3, variant: WIND };
+      }
+      if (mv === 'glow') {
+        // Glut-Welle: ausholen, dann beide Fäuste auf den Boden
+        if (ms < 0.25) return { rot: side * -0.06, dx: side * 4, dy: -2, variant: WIND };
+        if (ms < 0.85) return { rot: side * -0.06, dx: side * 4, dy: -3, variant: 1 };
+        torsoDrop += 2;
+        if (ms < 1.05) return { rot: 0, dx: 0, dy: 1, variant: STRIKE };
+        return { rot: 0, dx: 0, dy: 3, variant: frac < 0.35 ? 4 : frac < 0.7 ? 3 : 2 };
+      }
+    }
     // Zurück aus Hochriss/Schlag: kurz Anlauf-Pose, damit der Ellbogen nicht umklappt
     if (st.armWasUp[idx] && since < 0.2) return { rot: side * -0.05, dx: side * 2, dy: -2, variant: WIND };
     // Ruhe / Schienenfahrt: kräftiges hydraulisches Schwingen
     const sway = Math.sin(time * breathRate + idx * 1.1) * 0.05;
     const moveLag = clamp(-e.vx / 140, -0.12, 0.12);
+    // Arme hängen locker neben dem Körper — Fäuste NICHT in der Mitte gegeneinander gedrückt (Schwung nach außen)
     return {
-      rot: sway + moveLag,
-      dy: Math.sin(time * breathRate + idx * 0.8) * 2.2,
+      rot: -side * IDLE_SPREAD + sway + moveLag,
+      dx: side * 6,
+      dy: 4 + Math.sin(time * breathRate + idx * 0.8) * 2.2,
       variant: dmgVar,
     };
   };
@@ -146,8 +204,11 @@ function levPose(e: Enemy, time: number, playerX: number): Pose {
   const armL = makeArmPose(0);
   const armR = makeArmPose(1);
 
-  const torsoVariant = dead ? 3 : phase === 3 ? 2 : phase === 2 ? 1 : 0;
+  // Beschädigungsstufen (D12) nach Boss-HP: P1 intakt → <88 % → <76 % · P2 → <52 % → <40 % · P3 · kritisch (<15 %, Partikel + Flackern)
+  const hpF = e.maxHp > 0 ? e.hp / e.maxHp : 1;
+  const torsoVariant = dead ? 3 : phase === 3 ? 2 : phase === 2 ? (hpF < 0.4 ? 7 : hpF < 0.52 ? 6 : 1) : hpF < 0.76 ? 5 : hpF < 0.88 ? 4 : 0;
   const headVariant = dead ? 2 : phase >= 2 ? 1 : 0;
+  const roar = transition ? Math.sin(time * 30) * 0.03 - 0.16 : 0;
 
   return {
     // Schlitten bleibt 100 % starr auf der Nordwand-Laufschiene (kein vertikales Wackeln!)
@@ -165,7 +226,7 @@ function levPose(e: Enemy, time: number, playerX: number): Pose {
     head: {
       dx: lookFrac * 4,
       dy: dead ? 4 : -breath * 0.35,
-      rot: dead ? 0.12 : lookFrac * 0.16 - st.hit * 0.08 * st.hitDir,
+      rot: dead ? 0.12 : lookFrac * 0.16 * (transition ? 0 : 1) + roar - st.hit * 0.08 * st.hitDir,
       variant: headVariant,
     },
     armL,
