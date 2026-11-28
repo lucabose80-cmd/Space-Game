@@ -63,24 +63,42 @@ module.exports = async ({ page }) => {
     assert.deepStrictEqual(done, { active: false, seen: true }, JSON.stringify(done));
   }
 
-  // 4. Einzug: Rettung läuft VOR der Hub-Einzugsszene
+  // 4. Einzug im Hub läuft direkt (die Befreiung + Abholung passiert im Dungeon-Käfig-Raum)
   await page.evaluate(() => {
     const g = window.__game;
     g.state.seenCutscenes = ['intro_arrival'];
     g.state.sector1Cleared = true; g.state.sector2Cleared = true;
     for (const id of ['celebration_s1', 'celebration_s2', 'story_mina_arrives']) g.state.markCutsceneSeen(id);
-    g.state.story.chapter = Math.max(g.state.story.chapter, 2);
+    g.state.rescuedCrew = ['mina', 'pip'];
     g.transitionDir = 0; g.transitionAlpha = 0;
     g.activeScene = 'hub'; g.ui.currentScene = 'hub';
     g.checkPendingHubCutscenes();
   });
   const order1 = await page.evaluate(() => ({ rescue: window.__game.rescueCutscene !== null, hub: window.__game.hubCutscene !== null }));
-  assert.deepStrictEqual(order1, { rescue: true, hub: false }, JSON.stringify(order1));
-  await page.waitForTimeout(500);
-  await page.keyboard.press('Escape');
-  await page.waitForTimeout(200);
-  const order2 = await page.evaluate(() => ({ rescue: window.__game.rescueCutscene !== null, hub: window.__game.hubCutscene !== null }));
-  assert.deepStrictEqual(order2, { rescue: false, hub: true }, JSON.stringify(order2));
+  assert.deepStrictEqual(order1, { rescue: false, hub: true }, JSON.stringify(order1));
+  await page.evaluate(() => { const g = window.__game; g.hubCutscene?.dispose(); g.hubCutscene = null; g.setHudVisible(true); });
+
+  // 4b. Abholung im echten Käfig-Raum (Overlay über dem Dungeon) für alle vier Begleiter
+  for (const who of ['mina', 'pip', 'ping', 'midnight']) {
+    await page.evaluate(async (w) => {
+      const g = window.__game;
+      const dng = await g.dungeonReady;
+      g.state.seenCutscenes = [];
+      g.transitionDir = 0; g.transitionAlpha = 0;
+      g.activeScene = 'dungeon'; g.ui.currentScene = 'dungeon';
+      dng.startRun({ mina: 1, pip: 2, ping: 3, midnight: 4 }[w]);
+      g.playRescueCutscene(w, undefined, { mode: 'pickup', screenX: 240, screenY: 170 });
+      g.rescueCutscene.seek(2.2);
+    }, who);
+    await page.waitForTimeout(150);
+    assert.ok(await page.evaluate(() => window.__game.rescueCutscene.overDungeon), 'pickup = Overlay');
+    await shot(`pickup_${who}.png`);
+    await page.waitForTimeout(450);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(150);
+    const pd = await page.evaluate((w) => ({ active: window.__game.rescueCutscene !== null, seen: window.__game.state.hasSeenCutscene('rescue_' + w) }), who);
+    assert.deepStrictEqual(pd, { active: false, seen: true }, JSON.stringify(pd));
+  }
 
   // 5. Rolltor (Laden öffnen/schließen)
   await page.evaluate(() => {

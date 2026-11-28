@@ -36,7 +36,7 @@ interface Vessel {
 }
 
 const SPRITE_KEYS = ['trafficShip1', 'trafficShip2', 'trafficShip3', 'trafficShip4', 'trafficShip5', 'trafficShip6'] as const;
-const SIZE_BY_KIND = [24, 30, 24, 22, 28, 15];
+const SIZE_BY_KIND = [17, 21, 17, 15, 19, 10];
 
 export class StationTraffic {
   private vessels: Vessel[] = [];
@@ -197,7 +197,7 @@ export class StationTraffic {
       }
       const alpha = Math.max(0, Math.min(1, fade)) * v.alpha * globalAlpha;
       if (alpha < 0.02) continue;
-      const w = Math.max(5, v.size * scale);
+      const w = Math.max(4, v.size * scale);
       this.drawShip(ctx, art, v.kind, p.x, p.y, w, p.ang, dx < 0, alpha);
     }
     ctx.restore();
@@ -233,7 +233,7 @@ export class StationTraffic {
     ctx.fillStyle = gl;
     ctx.fillRect(-w * 0.9, -w * 0.4, w * 0.8, w * 0.8);
     if (img) {
-      const h = (w * 40) / 64;
+      const h = (w * 28) / 44;
       ctx.drawImage(img, -w / 2, -h / 2, w, h);
     } else {
       // prozeduraler Rückfall: kleiner Rumpf mit Cockpit & Flamme

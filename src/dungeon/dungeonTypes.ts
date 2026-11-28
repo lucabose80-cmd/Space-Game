@@ -318,4 +318,6 @@ export interface DungeonCallbacks {
   onOpenDungeonChest?: (chest: RoomChest) => void;
   onToast: (msg: string, tone?: 'info' | 'good' | 'warn') => void;
   onHudDirty: () => void;
+  /** Crew-Begleiter wurde im Käfig-Raum befreit (Weltposition des Käfigs) → Abhol-Cutscene */
+  onCrewRescued?: (crew: 'mina' | 'pip' | 'ping' | 'midnight', worldX: number, worldY: number) => void;
 }

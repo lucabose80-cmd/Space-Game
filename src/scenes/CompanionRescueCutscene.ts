@@ -129,6 +129,15 @@ const RESCUES: Record<RescueCompanionId, RescueDef> = {
   },
 };
 
+/** `field` = eigene Szene im Sektor-Wrack (Dialog + Abholung + Flug heim, Chronik/Labor-Replay).
+ *  `pickup` = Abholung direkt über dem echten Dungeon-Raum nach dem Käfig-Dialog (kein eigener Dialog, kein Flug heim). */
+export interface RescueOptions {
+  mode?: 'field' | 'pickup';
+  /** Bildschirmposition (Füße) des befreiten Begleiters im Dungeon (virtuelle Koordinaten, Kamera schon abgezogen) */
+  screenX?: number;
+  screenY?: number;
+}
+
 const SKIP_LOCK_SEC = 0.3;
 const FADE_IN = 0.5;
 const DESCEND = 1.2;
@@ -177,23 +186,34 @@ export class CompanionRescueCutscene {
   private readonly tRescue: number;
   private readonly tHome: number;
   private readonly total: number;
+  private readonly pickup: boolean;
+  private readonly px: number;
+  private readonly py: number;
 
-  constructor(companion: RescueCompanionId, captainName: string) {
+  constructor(companion: RescueCompanionId, captainName: string, opts: RescueOptions = {}) {
     this.def = RESCUES[companion];
+    this.pickup = opts.mode === 'pickup';
+    this.px = opts.screenX ?? 292;
+    this.py = opts.screenY ?? 160;
     this.captain = captainName;
     this.scale = getDeviceSettings().shortCutscenes ? 0.7 : 1;
-    let acc = FADE_IN;
-    for (const b of this.def.beats) {
+    let acc = this.pickup ? 0.35 : FADE_IN;
+    for (const b of this.pickup ? [] : this.def.beats) {
       acc += b.durationSec;
       this.beatEnds.push(acc);
     }
     this.tRescue = acc;
     this.tHome = this.tRescue + DESCEND + BEAM + LIFT + FLY_OFF;
-    this.total = this.tHome + FLIGHT_HOME;
+    this.total = this.pickup ? this.tHome : this.tHome + FLIGHT_HOME;
   }
 
   public get companionId(): RescueCompanionId {
     return this.def.companion;
+  }
+
+  /** true = die Szene zeichnet nur ein Overlay über dem laufenden Dungeon (statt Vollbild) */
+  public get overDungeon(): boolean {
+    return this.pickup;
   }
 
   public get duration(): number {
@@ -261,7 +281,18 @@ export class CompanionRescueCutscene {
   public render(ctx: CanvasRenderingContext2D): void {
     const art = getHDArt();
     const d = this.def;
-    const inFlightHome = this.t >= this.tHome;
+    const inFlightHome = !this.pickup && this.t >= this.tHome;
+    if (this.pickup) {
+      ctx.save();
+      this.renderField(ctx, art);
+      const fo = clamp01((this.t - (this.total - 0.4)) / 0.4);
+      if (fo > 0.01) {
+        ctx.fillStyle = `rgba(5, 8, 18, ${fo * 0.6})`;
+        ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+      }
+      ctx.restore();
+      return;
+    }
     ctx.save();
     ctx.fillStyle = '#050812';
     ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
@@ -297,7 +328,7 @@ export class CompanionRescueCutscene {
   private renderField(ctx: CanvasRenderingContext2D, art: ReturnType<typeof getHDArt>): void {
     const d = this.def;
     const t = this.t;
-    const bg = art[d.bg];
+    const bg = this.pickup ? null : art[d.bg];
     const zoom = 1.08 + Math.sin(t * 0.3) * 0.01;
     if (bg) {
       const w = VIRTUAL_WIDTH * zoom;
@@ -305,12 +336,14 @@ export class CompanionRescueCutscene {
       ctx.drawImage(bg, (VIRTUAL_WIDTH - w) / 2 + Math.sin(t * 0.4) * 3, (VIRTUAL_HEIGHT - h) / 2 - 6, w, h);
     }
     // sanfte Abdunklung, damit Figuren & Textbox stehen
-    ctx.fillStyle = 'rgba(5, 10, 20, 0.28)';
-    ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+    if (!this.pickup) {
+      ctx.fillStyle = 'rgba(5, 10, 20, 0.28)';
+      ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+    }
 
     const rt = t - this.tRescue; // < 0 = Dialog
-    const groundY = 160;
-    const compX = 292;
+    const groundY = this.pickup ? this.py : 160;
+    const compX = this.pickup ? this.px : 292;
     const heroX = 236;
 
     // Figuren am Boden
@@ -321,10 +354,10 @@ export class CompanionRescueCutscene {
     const flyP = carried ? easeInOut(clamp01((rt - DESCEND - BEAM - LIFT) / FLY_OFF)) : 0;
 
     // Kapitän (schaut zum Begleiter, winkt beim Abflug)
-    drawPixelShadow(ctx, heroX, groundY + 3, 9, 3.4);
+    if (!this.pickup) drawPixelShadow(ctx, heroX, groundY + 3, 9, 3.4);
     const hero = art.heroRight;
     const wave = carried ? Math.sin(t * 9) * 1.5 : 0;
-    if (hero) ctx.drawImage(hero, Math.round(heroX - 13), Math.round(groundY - 28 + wave * 0.4), 26, 30);
+    if (hero && !this.pickup) ctx.drawImage(hero, Math.round(heroX - 13), Math.round(groundY - 28 + wave * 0.4), 26, 30);
 
     // Begleiter am Boden / im Strahl
     const hoverY = -lift * 62;

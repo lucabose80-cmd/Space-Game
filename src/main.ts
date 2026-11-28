@@ -4,6 +4,7 @@ import { getAtlas } from './assets/sprites';
 import { MARKET_EVENT_META } from './data/companions';
 import { NPC_META, TRUST_PERKS } from './data/story/storyChapters';
 import { STORY_SCENES } from './data/story/storyScenes';
+import { CREW_DEFS, crewHintScene, SPRING_TUTORIAL } from './data/crew';
 import { sound } from './engine/audio';
 import { InputManager, VIRTUAL_HEIGHT, VIRTUAL_WIDTH } from './engine/input';
 import { BackroomScene } from './scenes/BackroomScene';
@@ -20,7 +21,7 @@ import {
   type PanelCutsceneId,
   type ReplayableCutsceneId,
 } from './scenes/StoryPanelCutscene';
-import { CompanionRescueCutscene, rescueIdFor, type RescueCompanionId } from './scenes/CompanionRescueCutscene';
+import { CompanionRescueCutscene, rescueIdFor, type RescueCompanionId, type RescueOptions } from './scenes/CompanionRescueCutscene';
 import { ShopShiftCutscene, type ShopShiftConfig } from './scenes/ShopShiftCutscene';
 import { UpgradeCutsceneOverlay, type UpgradeCutsceneConfig } from './scenes/UpgradeCutsceneOverlay';
 import { ContinueIntroCutscene } from './scenes/ContinueIntroCutscene';
@@ -67,6 +68,8 @@ class StarlighterGame {
   /** Live-Regie auf Port Solaris (Sektor-Siegesfeiern, Omega-Fest, Kaels Gehilfin Mina) */
   private hubCutscene: HubCutsceneOverlay | null = null;
   private hubCutsceneOnDone: (() => void) | null = null;
+  /** P7: pro Begleiter der Tag, an dem der Besitzer seinen Hinweis schon gegeben hat */
+  private crewHintShownDay: Partial<Record<'mina' | 'pip' | 'ping' | 'midnight', number>> = {};
   /** Knackige Upgrade-Cutscene (Waffe geschmiedet, Laden-Ausbau, Stufen-Upgrades) */
   private upgradeCutscene: UpgradeCutsceneOverlay | null = null;
   private shiftCutscene: ShopShiftCutscene | null = null;
@@ -379,6 +382,14 @@ class StarlighterGame {
         onReturnToHub: (summary) => this.handleReturnFromDungeon(summary),
         onOpenDungeonChest: (chest) => this.ui.openDungeonChestModal(chest),
         onToast: (msg, tone) => this.ui.toast(msg, tone),
+        onCrewRescued: (crew, wx, wy) => {
+          // Rettungsdrohne (bzw. Schiff) holt den Befreiten direkt im Käfig-Raum ab
+          this.playRescueCutscene(crew, undefined, {
+            mode: 'pickup',
+            screenX: wx - this.dng.camera.x,
+            screenY: wy - this.dng.camera.y,
+          });
+        },
         onHudDirty: () => {
           this.ui.dungeonSector = this.dng.currentSector;
           this.ui.dungeonFloor = this.dng.currentFloor;
@@ -414,6 +425,36 @@ class StarlighterGame {
       });
       this.bossLab.enter();
     });
+  }
+
+  /** Cutscene-Labor: springt direkt in eine Sonderraum-Szene (Käfig-Kammer / Befreiung / Heilquelle). Speichern ist gesperrt. */
+  private previewDungeonScene(dng: DungeonScene, kind: string): void {
+    const [what, arg] = kind.split('_');
+    const crew = (what === 'rescue' || what === 'cell' ? arg : null) as 'mina' | 'pip' | 'ping' | 'midnight' | null;
+    const sector = (crew ? CREW_DEFS[crew].sector : Number(arg) || 1) as SectorId;
+    if (crew) this.state.rescuedCrew = this.state.rescuedCrew.filter((c) => c !== crew);
+    const wanted = crew ? 'cell' : 'spring';
+    dng.startRun(sector);
+    dng.startFloor(crew ? 2 : 1, false, sector);
+    const room = [...dng.floor.rooms.values()].find((r) => r.special === wanted);
+    if (!room) return;
+    dng.enterRoom(room.key, null);
+    this.activeScene = 'dungeon';
+    this.ui.currentScene = 'dungeon';
+    this.ui.dungeonSector = sector;
+    this.ui.dungeonFloor = crew ? 2 : 1;
+    if (crew && room.captive) {
+      dng.playerX = room.captive.x;
+      dng.playerY = room.captive.y + 28;
+      if (what === 'rescue') dng.rescueCine = { crew, t: 0, beat: 0, beatT: 0 };
+    } else if (room.spring) {
+      this.state.hp = Math.max(1, Math.round(this.state.getStats().maxHp * 0.3));
+      dng.playerX = room.spring.x;
+      dng.playerY = room.spring.y;
+    }
+    this.ui.renderHud();
+    this.syncTouch();
+    this.syncMusic();
   }
 
   // ==================== BEHELF: CUTSCENE-STUDIO (?cutscenelab) ====================
@@ -454,6 +495,26 @@ class StarlighterGame {
           this.pendingReturnSummary = summary;
           this.startSpaceReturnCutscene(summary);
         },
+        playShift: (mode) => {
+          const go = (): void =>
+            this.playShiftCutscene(
+              mode === 'open'
+                ? { mode }
+                : { mode, itemsSold: 7, credits: 1240, nextLabel: 'MORGEN BRICHT AN · TAG 4' },
+            );
+          if (this.activeScene === 'shop') go();
+          else {
+            this.transitionDir = 0;
+            this.transitionAlpha = 0;
+            this.transitionTo('shop', this.activeScene, go);
+          }
+        },
+        playDungeonPreview: (kind) => {
+          void this.dungeonReady.then((dng) => this.previewDungeonScene(dng, kind));
+        },
+        leaveDungeonPreview: () => {
+          if (this.activeScene === 'dungeon') this.transitionTo('hub', 'dungeon');
+        },
         playBackroomWakeup: () => {
           this.activeScene = 'backroom';
           this.ui.currentScene = 'backroom';
@@ -493,21 +554,64 @@ class StarlighterGame {
   private withNpcScene(npc: StoryNpcId, open: () => void): void {
     const scene = this.state.getPendingScene(npc);
     if (!scene) {
-      open();
+      this.withCrewHint(npc, open);
       return;
     }
     this.ui.openStoryScene(scene, {
       laterLabel: `Später ▸ ${NPC_META[npc].station}`,
       onLater: () => {
         this.state.markSceneSkipped(scene.id);
-        open();
+        this.withCrewHint(npc, open);
       },
       onFinish: (res) => {
         this.announceStoryResult(res);
-        open();
+        this.withCrewHint(npc, open);
       },
       // ESC / ✕ / Hintergrund: wie „Später“, aber ohne die Station zu öffnen
       onClose: () => this.state.markSceneSkipped(scene.id),
+    });
+  }
+
+  /** P7: Der Shop-Besitzer verrät, wo sein vermisster Begleiter gefangen ist (einmal je Tag & Besuch, bis befreit). Lyra erklärt zuvor einmalig die Heilquellen (Tutorial). */
+  private withCrewHint(npc: StoryNpcId, open: () => void): void {
+    if (npc === 'lyra' && !this.state.hasSeenCutscene('tut_spring_hint')) {
+      this.state.markCutsceneSeen('tut_spring_hint');
+      this.ui.openStoryScene(
+        {
+          id: 'tutorial_spring',
+          npc: 'lyra',
+          chapter: 0,
+          title: SPRING_TUTORIAL.lyraTitle,
+          start: 'n1',
+          nodes: { n1: { speaker: 'lyra', text: SPRING_TUTORIAL.lyra, next: 'end' } },
+        },
+        {
+          replay: true,
+          banner: '💧 Tutorial: Heilquellen vor Bossen',
+          closeLabel: 'Verstanden ▸ Weiter',
+          onClose: () => this.showCrewHint(npc, open),
+          onFinish: () => this.showCrewHint(npc, open),
+        },
+      );
+      return;
+    }
+    this.showCrewHint(npc, open);
+  }
+
+  private showCrewHint(npc: StoryNpcId, open: () => void): void {
+    const crew = this.state.getMissingCrewFor(npc);
+    if (!crew || this.crewHintShownDay[crew] === this.state.day) {
+      open();
+      return;
+    }
+    this.crewHintShownDay[crew] = this.state.day;
+    const def = CREW_DEFS[crew];
+    this.ui.openStoryScene(crewHintScene(crew, this.state.isCrewSectorReachable(crew)), {
+      replay: true,
+      banner: `📡 Vermisst: ${def.name} · ${def.sectorName}, Ebene II`,
+      closeLabel: `Verstanden ▸ ${NPC_META[npc].station}`,
+      onClose: open,
+      onFinish: open,
     });
   }
 
@@ -794,9 +898,9 @@ class StarlighterGame {
   }
 
   /** Begleiter-Rettung (Dialog → Rettungsdrohne/Schiff holt ab → Flug nach Port Solaris), danach `onDone` (meist die Einzugs-Szene). */
-  public playRescueCutscene(companion: RescueCompanionId, onDone?: () => void): void {
+  public playRescueCutscene(companion: RescueCompanionId, onDone?: () => void, opts?: RescueOptions): void {
     this.rescueCutscene?.dispose();
-    this.rescueCutscene = new CompanionRescueCutscene(companion, this.state.captainName);
+    this.rescueCutscene = new CompanionRescueCutscene(companion, this.state.captainName, opts);
     this.rescueOnDone = () => {
       this.state.markCutsceneSeen(rescueIdFor(companion));
       this.state.save();
@@ -806,13 +910,10 @@ class StarlighterGame {
     this.syncTouch();
   }
 
-  /** Einzug eines Begleiters: erst die Rettungs-Cutscene (falls noch nicht gesehen), dann die Hub-Einzugsszene. */
-  private playArrivalWithRescue(arrivalId: HubCutsceneId, companion: RescueCompanionId): void {
-    if (this.state.hasSeenCutscene(rescueIdFor(companion))) {
-      this.playHubCutscene(arrivalId);
-      return;
-    }
-    this.playRescueCutscene(companion, () => this.playHubCutscene(arrivalId));
+  /** Einzug eines Begleiters im Hub. Die Befreiung & Abholung passiert im Dungeon (Käfig-Raum → `onCrewRescued`);
+   *  die eigenständige Sektor-Szene (`rescue_<id>`) bleibt nur als Replay in Chronik/Labor. */
+  private playArrivalWithRescue(arrivalId: HubCutsceneId, _companion: RescueCompanionId): void {
+    this.playHubCutscene(arrivalId);
   }
 
   /** Rolltor-Cutscene beim Öffnen/Schließen von Astro-Barter (Zustand ist beim Aufruf bereits umgestellt). */
@@ -1329,7 +1430,7 @@ class StarlighterGame {
       this.returnCutscene.render(this.ctx);
     } else if (this.storyPanelCutscene) {
       this.storyPanelCutscene.render(this.ctx);
-    } else if (this.rescueCutscene) {
+    } else if (this.rescueCutscene && !this.rescueCutscene.overDungeon) {
       this.rescueCutscene.render(this.ctx);
     } else if (this.activeScene === 'shop') {
       this.shopScene.render(this.ctx);
@@ -1354,6 +1455,9 @@ class StarlighterGame {
     }
     if (this.upgradeCutscene && !this.storyPanelCutscene) {
       this.upgradeCutscene.render(this.ctx);
+    }
+    if (this.rescueCutscene?.overDungeon && this.activeScene === 'dungeon') {
+      this.rescueCutscene.render(this.ctx);
     }
     if (this.shiftCutscene) {
       this.shiftCutscene.render(this.ctx);

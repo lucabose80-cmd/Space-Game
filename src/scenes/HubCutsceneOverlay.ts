@@ -220,8 +220,8 @@ const HUB_CUTSCENES: Record<HubCutsceneId, HubCutsceneDef> = {
   },
   story_pip_arrives: {
     id: 'story_pip_arrives',
-    eyebrow: 'MED-BAY · NEUER ASSISTENT',
-    bannerTitle: 'PIP ASSISTIERT DR. LYRA!',
+    eyebrow: 'MED-BAY · PIP IST ZURÜCK',
+    bannerTitle: 'PIP IST BEFREIT!',
     accent: '#34d399',
     confettiColors: ['#34d399', '#99f6e4', '#fde047'],
     fireworks: false,
@@ -240,7 +240,7 @@ const HUB_CUTSCENES: Record<HubCutsceneId, HubCutsceneDef> = {
       {
         speaker: 'Dr. Lyra',
         speakerColor: '#34d399',
-        text: 'Seit dem Echo-Fieber stapeln sich meine Patienten. Also habe ich mir Hilfe gebaut. {captain}, darf ich vorstellen?',
+        text: 'Pip! Du hast ihn aus dem Kristall-Käfig geholt … {captain}, ich hatte schon Angst, sein Signal wäre für immer erloschen.',
         durationSec: 5.0,
         onStart: 'chime',
         cheerActor: 'host',
@@ -248,7 +248,7 @@ const HUB_CUTSCENES: Record<HubCutsceneId, HubCutsceneDef> = {
       {
         speaker: 'Pip',
         speakerColor: '#2dd4bf',
-        text: 'Piep! Pip, medizinischer Assistent, Baureihe M-1. Ich zähle Pflaster, Pulsschläge und Sternschnuppen.',
+        text: 'Piep! Pip meldet sich zurück zum Dienst. Ich habe in der Kammer Pflaster, Pulsschläge und sechs Kristallsplitter gezählt!',
         durationSec: 4.8,
         onStart: 'chime',
         cheerActor: 'companion',
@@ -256,7 +256,7 @@ const HUB_CUTSCENES: Record<HubCutsceneId, HubCutsceneDef> = {
       {
         speaker: 'Dr. Lyra',
         speakerColor: '#34d399',
-        text: 'Er hat deine Vitalwerte gespeichert. Wenn du angeschlagen heimkehrst, ist er schneller beim Verband als ich.',
+        text: 'Mit ihm läuft die Med-Bay wieder rund: Ab sofort kosten Bio- und Stimpack-Upgrades zehn Prozent weniger.',
         durationSec: 4.8,
         onStart: 'fanfare',
         cheerActor: 'host',
@@ -265,8 +265,8 @@ const HUB_CUTSCENES: Record<HubCutsceneId, HubCutsceneDef> = {
   },
   story_ping_arrives: {
     id: 'story_ping_arrives',
-    eyebrow: 'TECH-LABOR · NEUE ECHO-SONDE',
-    bannerTitle: 'PING FOLGT DEM SIGNAL!',
+    eyebrow: 'TECH-LABOR · PING IST ZURÜCK',
+    bannerTitle: 'PING IST BEFREIT!',
     accent: '#38bdf8',
     confettiColors: ['#38bdf8', '#fb923c', '#fde047'],
     fireworks: false,
@@ -285,7 +285,7 @@ const HUB_CUTSCENES: Record<HubCutsceneId, HubCutsceneDef> = {
       {
         speaker: 'Vex',
         speakerColor: '#38bdf8',
-        text: 'Aus den Gießerei-Wracks habe ich Sensorreste gefischt und etwas gebaut, das das Echo hören kann. {captain}, das ist Ping!',
+        text: 'Mein Peilton! Du hast Ping aus dem Käfig in der Gießerei geholt, {captain}. Ich habe schon befürchtet, sie wäre eingeschmolzen worden.',
         durationSec: 5.2,
         onStart: 'chime',
         cheerActor: 'host',
@@ -293,7 +293,7 @@ const HUB_CUTSCENES: Record<HubCutsceneId, HubCutsceneDef> = {
       {
         speaker: 'Ping',
         speakerColor: '#fb923c',
-        text: 'Bip-bip! Signal gefunden! Neunundvierzig Sekunden … nein, siebenundvierzig!',
+        text: 'Bip-bip! Signal gefunden! Du warst nur siebenundvierzig Sekunden zu spät. Danke!',
         durationSec: 4.4,
         onStart: 'hammer',
         cheerActor: 'companion',
@@ -301,7 +301,7 @@ const HUB_CUTSCENES: Record<HubCutsceneId, HubCutsceneDef> = {
       {
         speaker: 'Vex',
         speakerColor: '#38bdf8',
-        text: 'Er zählt schon mit mir! Ab jetzt kalibriert Ping deine Module, und mein Labor brummt endlich im Takt.',
+        text: 'Mit ihr kalibriere ich wieder doppelt so schnell: Modul-Upgrades kosten ab sofort zehn Prozent weniger.',
         durationSec: 4.8,
         onStart: 'fanfare',
         cheerActor: 'host',
@@ -310,8 +310,8 @@ const HUB_CUTSCENES: Record<HubCutsceneId, HubCutsceneDef> = {
   },
   story_midnight_arrives: {
     id: 'story_midnight_arrives',
-    eyebrow: 'SCHWARZMARKT · EIN UNGEBETENER GAST',
-    bannerTitle: 'MITTERNACHT BLEIBT!',
+    eyebrow: 'SCHWARZMARKT · MITTERNACHT IST ZURÜCK',
+    bannerTitle: 'MITTERNACHT IST BEFREIT!',
     accent: '#c084fc',
     confettiColors: ['#c084fc', '#e9d5ff', '#fde047'],
     fireworks: false,
@@ -330,7 +330,7 @@ const HUB_CUTSCENES: Record<HubCutsceneId, HubCutsceneDef> = {
       {
         speaker: 'Nyx',
         speakerColor: '#c084fc',
-        text: 'Seit der Obelisk leuchtet, sitzt sie auf meinem Tresen. Niemand weiß, woher sie kam. Nicht im Katalog.',
+        text: 'Da ist sie ja. Aus einem Lichtkäfig im Monolith … {captain}, du hast meine Katze gerettet. Ich schulde dir was. Nicht viel, aber was.',
         durationSec: 5.0,
         onStart: 'chime',
         cheerActor: 'host',
@@ -346,7 +346,7 @@ const HUB_CUTSCENES: Record<HubCutsceneId, HubCutsceneDef> = {
       {
         speaker: 'Nyx',
         speakerColor: '#c084fc',
-        text: 'Sie stiehlt nur, was nicht festgenagelt ist. Also alles. Sie mag dich, {captain} — das ist ein Kompliment.',
+        text: 'Seit sie wieder auf dem Tresen sitzt, kommt die gute Ware von selbst: ein Angebot mehr und zehn Prozent Nachlass für dich.',
         durationSec: 5.0,
         onStart: 'fanfare',
         cheerActor: 'host',
@@ -355,8 +355,8 @@ const HUB_CUTSCENES: Record<HubCutsceneId, HubCutsceneDef> = {
   },
   story_mina_arrives: {
     id: 'story_mina_arrives',
-    eyebrow: 'EXO-SCHMIEDE · NEUE GEHILFIN',
-    bannerTitle: 'MINA TRITT DER SCHMIEDE BEI!',
+    eyebrow: 'EXO-SCHMIEDE · MINA IST ZURÜCK',
+    bannerTitle: 'MINA IST BEFREIT!',
     accent: '#fb923c',
     confettiColors: ['#fb923c', '#fde047', '#38e8d4'],
     fireworks: false,
@@ -365,7 +365,7 @@ const HUB_CUTSCENES: Record<HubCutsceneId, HubCutsceneDef> = {
       {
         speaker: 'Mina',
         speakerColor: '#fbbf24',
-        text: 'Meister Kael! Ich hab gehört, der Leviathan ist gefallen — darf ich endlich an der zweiten Werkbank mithelfen?',
+        text: 'Meister Kael! Der Kapitän hat mich aus dem Käfig im Wrack geholt. Ich habe sogar das Altmetall dabei!',
         durationSec: 4.8,
         onStart: 'chime',
         cheerActor: 'mina',
@@ -373,7 +373,7 @@ const HUB_CUTSCENES: Record<HubCutsceneId, HubCutsceneDef> = {
       {
         speaker: 'Kael',
         speakerColor: '#fb923c',
-        text: 'Hm … die Bank stand lange genug still. Hier — nimm den Energie-Hammer, Mina. Zeig uns, ob du Funken schlagen kannst!',
+        text: 'Du Dickkopf … Wochen habe ich dein Signal gesucht. Hier — die zweite Werkbank gehört dir. Zeig uns, ob du noch Funken schlagen kannst!',
         durationSec: 5.0,
         onStart: 'hammer',
         cheerActor: 'kael',
@@ -381,7 +381,7 @@ const HUB_CUTSCENES: Record<HubCutsceneId, HubCutsceneDef> = {
       {
         speaker: 'Mina',
         speakerColor: '#fbbf24',
-        text: 'Juhu! Ich versprech’s, {captain} — ab sofort schmieden Kael und ich deine besten Waffen und Upgrades gemeinsam!',
+        text: 'Danke, {captain}! Zu zweit schmieden wir schneller: Upgrades und Waffen kosten ab sofort zehn Prozent weniger Credits.',
         durationSec: 4.8,
         onStart: 'fanfare',
         cheerActor: 'mina',

@@ -34,6 +34,9 @@ export type TradeRouteId =
 // ==================== MEILENSTEIN 10-A: STORY, STEUERUNG ====================
 export type StoryNpcId = 'kael' | 'lyra' | 'nyx' | 'vex';
 
+/** Crew-Begleiter der Shop-Besitzer: im Dungeon gefangen, per Rettung befreit (Welt-Überarbeitung P7). */
+export type CrewId = 'mina' | 'pip' | 'ping' | 'midnight';
+
 export type StoryFlagId =
   | 'knows_juno'
   | 'kael_memorial'
@@ -464,6 +467,8 @@ export interface SaveData {
   seenCutscenes?: string[];
   /** Geöffnete Hub-Gebäude (Tech-Labor, Schwarzmarkt, Terrasse); fehlt in Altspielständen → alles offen */
   hubUnlocks?: string[];
+  /** Befreite Crew-Begleiter (optional; Altspielstände leiten es aus Kapitel/Szenen ab) */
+  rescuedCrew?: string[];
   /** M10-C: Preise einmalig auf SELL_PRICE_MULT skaliert (optional, Altspielstände → false) */
   priceScaleV2?: boolean;
   // Milestone 9: Galaktisches Netzwerk (Save v10)

@@ -47,12 +47,12 @@ module.exports = async ({ page }) => {
     out.colliders = hub.getEvolution().getColliders().length;
     s.story.chapter = 0; s.story.flags = [];
     // Pip (Lyras Assistent) erscheint ab Kapitel 2
-    s.story.chapter = 0; s.story.seenScenes = []; out.pip0 = s.isPipPresent();
-    s.story.chapter = 2; out.pip2 = s.isPipPresent();
+    s.story.chapter = 0; s.story.seenScenes = []; s.rescuedCrew = []; out.pip0 = s.isPipPresent();
+    s.rescueCrew('pip'); out.pip2 = s.isPipPresent();
     s.seenCutscenes = s.seenCutscenes.filter((k) => k !== 'pip_arrives'); hub.onEnter('shop'); out.pipSeen = s.hasSeenCutscene('pip_arrives');
     { const c = document.createElement('canvas').getContext('2d'); hub.render(c); }
-    s.story.chapter = 2; out.ping2 = s.isPingPresent(); s.story.chapter = 3; out.ping3 = s.isPingPresent(); out.mid3 = s.isMidnightPresent();
-    s.story.chapter = 4; out.mid4 = s.isMidnightPresent();
+    out.ping2 = s.isPingPresent(); s.rescueCrew('ping'); out.ping3 = s.isPingPresent(); out.mid3 = s.isMidnightPresent();
+    s.rescueCrew('midnight'); out.mid4 = s.isMidnightPresent();
     // Einzugs-Cutscenes laufen & markieren sich als gesehen
     out.arrivals = [];
     for (const id of ['story_pip_arrives', 'story_ping_arrives', 'story_midnight_arrives']) {
@@ -62,7 +62,7 @@ module.exports = async ({ page }) => {
       g.hubCutscene.dispose(); g.hubCutscene = null; g.hubCutsceneOnDone = null; g.setHudVisible(true);
       out.arrivals.push(id);
     }
-    s.story.chapter = 0;
+    s.story.chapter = 0; s.rescuedCrew = [];
     // Alt-Save ohne Feld → alles offen
     const payload = s.buildSavePayload(); delete payload.hubUnlocks;
     localStorage.setItem('starlighter_save_v2', JSON.stringify(payload));

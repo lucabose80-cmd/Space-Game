@@ -12,6 +12,11 @@ export interface CutsceneLabHost {
   playBackroomWakeup: () => void;
   showPromenade: (chapter: number, minaVisible: boolean) => void;
   isCutsceneActive: () => boolean;
+  /** Rolltor-Cutscene beim Laden öffnen/schließen */
+  playShift: (mode: 'open' | 'close') => void;
+  /** P7b: Dungeon-Szenen — Befreiung (`rescue_<crew>`), `cell_<crew>` (Käfig-Kammer ansehen), `spring_<sektor>` (Heilquelle) */
+  playDungeonPreview: (kind: string) => void;
+  leaveDungeonPreview: () => void;
 }
 
 /**
@@ -129,6 +134,30 @@ export class CutsceneLab {
       </div>
 
       <div>
+        <div style="font-family:var(--font-pixel,monospace);font-size:9.5px;color:#4ade80;margin-bottom:5px">LADEN: ROLLTOR ÖFFNEN &amp; SCHLIESSEN</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
+          <button data-lab-shift="open" style="${btnStyle}">🟢 Laden öffnen</button>
+          <button data-lab-shift="close" style="${btnStyle}">🔴 Ladenschluss</button>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-family:var(--font-pixel,monospace);font-size:9.5px;color:#fb7185;margin-bottom:5px">DUNGEON-SZENEN (KÄFIG-KAMMER · BEFREIUNG · HEILQUELLE)</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px">
+          <button data-lab-dng="rescue_mina" style="${btnStyle}">🔓 Befreiung Mina (S1)</button>
+          <button data-lab-dng="rescue_pip" style="${btnStyle}">🔓 Befreiung Pip (S2)</button>
+          <button data-lab-dng="rescue_ping" style="${btnStyle}">🔓 Befreiung Ping (S3)</button>
+          <button data-lab-dng="rescue_midnight" style="${btnStyle}">🔓 Befreiung Mitternacht (S4)</button>
+          <button data-lab-dng="cell_mina" style="${btnStyle}">🔒 Käfig-Kammer S1 ansehen</button>
+          <button data-lab-dng="spring_1" style="${btnStyle}">💧 Heilquelle S1</button>
+          <button data-lab-dng="spring_2" style="${btnStyle}">💧 Heilquelle S2</button>
+          <button data-lab-dng="spring_3" style="${btnStyle}">💧 Heilquelle S3</button>
+          <button data-lab-dng="spring_4" style="${btnStyle}">💧 Heilquelle S4</button>
+          <button data-lab-dng-back style="${btnStyle};border-color:#fb7185">↩ Zurück zum Hub</button>
+        </div>
+      </div>
+
+      <div>
         <div style="font-family:var(--font-pixel,monospace);font-size:9.5px;color:#34d399;margin-bottom:5px">PORT SOLARIS VORSCHAU (KAPITEL &amp; MINA)</div>
         <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:5px">
           ${[0, 1, 2, 3, 4, 5, 6]
@@ -143,6 +172,14 @@ export class CutsceneLab {
         </button>
       </div>
     `;
+
+    this.panel.querySelectorAll<HTMLElement>('[data-lab-shift]').forEach((btn) => {
+      btn.addEventListener('click', () => this.host.playShift(btn.dataset.labShift === 'close' ? 'close' : 'open'));
+    });
+    this.panel.querySelectorAll<HTMLElement>('[data-lab-dng]').forEach((btn) => {
+      btn.addEventListener('click', () => this.host.playDungeonPreview(btn.dataset.labDng ?? ''));
+    });
+    this.panel.querySelector('[data-lab-dng-back]')?.addEventListener('click', () => this.host.leaveDungeonPreview());
 
     this.panel.querySelectorAll<HTMLElement>('[data-lab-story]').forEach((btn) => {
       btn.addEventListener('click', () => {
