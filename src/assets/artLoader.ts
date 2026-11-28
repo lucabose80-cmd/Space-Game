@@ -529,15 +529,20 @@ export const M10_OPTIONAL_SPRITES = {
   propNyxFreeLantern: 'prop_nyx_free_lantern',
   propVexBeacon: 'prop_vex_beacon',
   propVexClassboard: 'prop_vex_classboard',
-  vitrineT1: 'vitrine_t1',
-  vitrineT2: 'vitrine_t2',
-  vitrineT3: 'vitrine_t3',
   npcPilgrim: 'npc_pilgrim',
   npcFoundryWorker: 'npc_foundry_worker',
   npcElderScholar: 'npc_elder_scholar',
 } as const;
 
 export type M10SpriteKey = keyof typeof M10_OPTIONAL_SPRITES;
+
+/** Welt-Überarbeitung: optionale Laden-Sprites (Holo-Vitrine je Ausbaustufe). Fehlt die Datei → alter Sockel. */
+export const WORLD_OPTIONAL_SPRITES = {
+  vitrineT1: 'vitrine_t1',
+  vitrineT2: 'vitrine_t2',
+  vitrineT3: 'vitrine_t3',
+} as const;
+export type WorldSpriteKey = keyof typeof WORLD_OPTIONAL_SPRITES;
 
 /** Meilenstein 12: optionale Sprites der Endboss-Belohnungen. Fehlt die Datei → prozeduraler Fallback (hubEvolution.ts). */
 export const M12_OPTIONAL_SPRITES = {
@@ -946,6 +951,12 @@ export async function preloadHDArt(): Promise<HDArtAssets> {
   const m10Imgs = await Promise.all(m10Keys.map((k) => loadImage(`/art/sprites/${M10_OPTIONAL_SPRITES[k]}.png`)));
   m10Keys.forEach((k, i) => {
     art[k] = imgToCanvas(m10Imgs[i]);
+  });
+
+  const worldKeys = Object.keys(WORLD_OPTIONAL_SPRITES) as WorldSpriteKey[];
+  const worldImgs = await Promise.all(worldKeys.map((k) => loadImage(`/art/sprites/${WORLD_OPTIONAL_SPRITES[k]}.png`)));
+  worldKeys.forEach((k, i) => {
+    art[k] = imgToCanvas(worldImgs[i]);
   });
 
   const m12Keys = Object.keys(M12_OPTIONAL_SPRITES) as M12SpriteKey[];
