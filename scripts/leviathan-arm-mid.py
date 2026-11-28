@@ -1,5 +1,5 @@
 """Leviathan Zwischenposen (Ellbogen nach außen): Roh-Bild mit 2 Armen (links Anlauf, rechts Schlag) → armWind.png / armStrike.png (240×260),
-am Schulter-Gelenk (Quadrat-Socket) auf armIdle-Pivot (101,107) ausgerichtet. Aufruf: python3 scripts/leviathan-arm-mid.py <roh.png> [scale=0.155]"""
+am Schulter-Gelenk (Quadrat-Socket) auf den Rig-Pivot (132,108) ausgerichtet. Aufruf: python3 scripts/leviathan-arm-mid.py <roh.png> [scale=0.155]"""
 import sys
 from PIL import Image, ImageDraw
 import numpy as np
@@ -19,6 +19,6 @@ for name, (x0, x1) in {'armWind': (0, W // 2), 'armStrike': (W // 2, W)}.items()
     sx, sy = SOCK[name][0] - x0, SOCK[name][1]
     im = im.resize((round(im.width * K), round(im.height * K)), Image.LANCZOS)
     out = Image.new('RGBA', (240, 260), (0, 0, 0, 0))
-    out.alpha_composite(im, (round(101 - sx * K), round(107 - sy * K))) if (round(101 - sx * K) >= 0 and round(107 - sy * K) >= 0) else out.paste(im, (round(101 - sx * K), round(107 - sy * K)), im)
+    out.alpha_composite(im, (round(132 - sx * K), round(108 - sy * K))) if (round(132 - sx * K) >= 0 and round(108 - sy * K) >= 0) else out.paste(im, (round(132 - sx * K), round(108 - sy * K)), im)
     out.save(f'public/art/rigs/boss_leviathan/{name}.png')
     print(name, out.getbbox())

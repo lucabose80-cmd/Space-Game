@@ -1,4 +1,4 @@
-"""Leviathan Wrack (A13): Roh-Bild (Schulterstumpf) → public/art/rigs/boss_leviathan/armStump.png (240×260), Socket (1113,869) → (101,107), Skala 0,116.
+"""Leviathan Wrack (A13): Roh-Bild (Schulterstumpf) → public/art/rigs/boss_leviathan/armStump.png (240×260), Socket (1113,869) → (132,108), Skala 0,116.
 Aufruf: python3 scripts/leviathan-stump.py <roh.png>"""
 import sys
 from PIL import Image, ImageDraw
@@ -13,6 +13,6 @@ im = Image.fromarray(np.dstack([a, np.where(bg, 0, 255).astype(np.uint8)]), 'RGB
 K = 0.116; SX, SY = 1113, 869
 im = im.resize((round(im.width * K), round(im.height * K)), Image.LANCZOS)
 out = Image.new('RGBA', (240, 260), (0, 0, 0, 0))
-ox, oy = round(101 - SX * K), round(107 - SY * K)
+ox, oy = round(132 - SX * K), round(108 - SY * K)
 out.paste(im, (ox, oy), im)
 out.save('public/art/rigs/boss_leviathan/armStump.png'); print(out.getbbox())

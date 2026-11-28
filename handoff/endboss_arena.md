@@ -150,6 +150,15 @@
 
 - **Wrack-Fall nachgebessert:** Arm war in der Fallphase unsichtbar (Boden-Ebene wird VOR dem Boss-Rig gezeichnet → hinter dem Körper) → wirkte wie Despawn + Spawn am Boden. Jetzt `wreckPose()` (ballistisch: Wurf nach außen + Überschlag, Aufprall nach ~0,7 s mit Staub/Shake, 2 Nachhüpfer, Rutschen, flach liegend `REST = side·0,12`; **rechter Arm gespiegelt**) und Ebenen-Trennung: `drawLeviathanWrecks(..., 'air')` aus `drawLeviathanArena` (über dem Boss) bis 0,9 s nach Aufprall, danach `'ground'` in `arenaFloor.ts`. Falle: Ruhedrehung nur per Sichtprüfung bestimmbar (Sprite ist ~43° geneigt, Rotationsrichtung nicht raten) → `node scripts/lev-shots.cjs 1 wreck:0.45 wreck:3.0`.
 
+
+### Runde 7: Arme detached, Kopf, Strahl, Doppelschlag, Phase-II-Brocken, Labor
+- **Arme „komplett detached“ — echte Ursache:** Das Schulter-Gelenk (Quadrat-Socket) liegt bei ALLEN Original-Arm-Bildern (`armIdle/Raise/Slam/Dmg/Crit/Dead`) bei **(132,108)** = Pivot `(0.55, 0.415)`. Ich hatte den Pivot auf (101,107) gesetzt (falsch gemessen) und die neuen Zwischenposen/den Stumpf daran ausgerichtet → in vielen Posen schwebten die Arme. Fix: Pivot wieder `0.55/0.415`, Attach `0.12/0.88 · 0.4`, `armWind/armStrike/armStump` auf (132,108) neu ausgerichtet (`scripts/leviathan-arm-mid.py`, `leviathan-stump.py`). **Lehre:** Gelenk-Marker (Fadenkreuz) in ALLE Varianten zeichnen und prüfen, bevor man Pivot ändert; Kontaktbogen für den Leviathan jetzt breit (300×215, 3 Spalten).
+- **Kopf:** war zu klein für die Torso-Aussparung (Dunkles sichtbar) → Köpfe ×1,3 skaliert (`scripts/leviathan-head-scale.py`, Originale in `art_source/rigs/leviathan_head_orig/`), `offset (0,-6)`.
+- **Brust-Laser:** generischer Zonen-Kasten (Füllung + Kontur + Weiß-Blitz) lag über dem Sprite-Strahl, Strahlkörper war viel schmaler als die Düse → `noBox` für `beam`/`whip`, Körper-Breite `width·2,5`, Düse 56 px, Aura schwach.
+- **Doppelschlag:** statt Ringen jetzt je Faust 5 Riss-Wellen (`fx 'whip'`: Riss-Spur + Staubwelle, Fächer 0,35…2,79 rad, an Wänden enden + bröckeln) — gleicher Look wie Titanen-Welle.
+- **Phase II „billige Abfall-Animation“:** graue Rechtecke → 6 echte Brocken-Sprites (`arena_leviathan_chunk_1..6`, `P1-17`), 10 Stück bei Phase II, 8 bei III, 5 beim Arm-Abriss; weißer Blitz + Funkenregen während der Verwandlung.
+- **Boss-Labor (`?bosslab` → Bosse → „LEVIATHAN · ANGRIFFE“ / „PHASEN & SCHÄDEN“):** `⏭ Nächster` (auch oben in der Kopfzeile), `▶▶ Auto` (Liste durchspielen), je Angriff ein Knopf; Schadensstufen `P1 100/85/70 · P2 60/48/36 · P3 25/12`, `Arm L/R ab`. Zurück in eine frühere Phase lädt die Arena neu (Phasen gehen nur vorwärts).
+
 ## Nächster Schritt
 1. **Abnahme Pilot A.E.G.I.S. Leviathan im echten Spiel** (Stufe 8 — live in Sektor 1 Ebene III oder `?bosslab` → ARENEN → 🏟 Leviathan): Kampfgefühl, alle 4 Körper-Phasen, Plattenbruch/Dampf/Trümmer, Schatzkammer & Mobil-Check (A9). Notfall-Rückweg: `ENDBOSS_ARENA_LIVE = false` in `balance.ts`.
 2. Phase A/B-Marker entfernen, sobald der Projektinhaber die Standardräume abgenommen hat.

@@ -295,7 +295,7 @@ function destroyArm(scene: DungeonScene, e: Enemy, i: 0 | 1): void {
   scene.triggerShake(0.4, 5);
   scene.spawnBurst(arm.x, arm.y, '#fbbf24', 30);
   scene.shockwaves.push({ x: arm.x, y: arm.y, maxRadius: 50, color: '#fbbf24', life: 0.3, maxLife: 0.3 });
-  spawnScrap(scene, arm.x, arm.y, 3, i);
+  spawnScrap(scene, e.x + arm.side * 40, e.y + 6, 5, i, 10);
   // Der abgerissene Arm stürzt von der Schulter zu Boden, prallt auf und bleibt als rauchendes Wrack liegen
   const rbw = scene.bounds;
   const side = arm.side;
@@ -356,7 +356,7 @@ export function updateLeviathanArena(scene: DungeonScene, e: Enemy, dt: number):
   // Ramponiert (D12): Funken/Glut/Rauch wachsen mit dem Schaden — P1 ab <88 %, P2 stärker, P3 am stärksten
   if (L.state !== 'dead' && L.state !== 'intro') {
     const hf = e.hp / Math.max(1, e.maxHp);
-    const rate = L.phase === 3 ? 9 : L.phase === 2 ? (hf < 0.4 ? 7 : hf < 0.52 ? 5.5 : 4.5) : hf < 0.76 ? 3 : hf < 0.88 ? 1.5 : 0;
+    const rate = L.state === 'transition' ? 16 : L.phase === 3 ? 9 : L.phase === 2 ? (hf < 0.4 ? 7 : hf < 0.52 ? 5.5 : 4.5) : hf < 0.76 ? 3 : hf < 0.88 ? 1.5 : 0;
     if (rate > 0) {
       const prevT = Math.floor((scene.time - dt) * rate);
       const curT = Math.floor(scene.time * rate);
@@ -447,7 +447,16 @@ export function updateLeviathanArena(scene: DungeonScene, e: Enemy, dt: number):
   startMove(scene, e, move, rb);
 }
 
-/** Nur Diagnose/Tests: Zug direkt starten (scripts/lev-shots.cjs). */
+/** Boss-Labor: Arm sofort zerstören (Abriss-Animation + Wrack). */
+export function labDestroyArm(scene: DungeonScene, e: Enemy, i: 0 | 1): void {
+  const arm = e.levArms?.[i];
+  if (!arm || arm.dead) return;
+  arm.x = e.x + arm.side * SLAM_DX;
+  arm.y = e.y + SLAM_DY;
+  destroyArm(scene, e, i);
+}
+
+/** Nur Diagnose/Tests/Labor: Zug direkt starten (scripts/lev-shots.cjs, Boss-Labor). */
 export function startMoveForTest(scene: DungeonScene, e: Enemy, move: LevArenaMove): void {
   startMove(scene, e, move, scene.bounds);
 }
@@ -531,7 +540,7 @@ function startMove(scene: DungeonScene, e: Enemy, move: LevArenaMove, rb: Dungeo
       break;
     }
     case 'quake': {
-      // Doppelschlag: beide Fäuste hämmern gleichzeitig auf den Boden — von beiden Einschlagstellen laufen Schockwellen-Ringe über die ganze Arena
+      // Doppelschlag: beide Fäuste hämmern gleichzeitig auf den Boden — von beiden Einschlagstellen laufen Riss-Wellen fächerförmig über die ganze Arena
       const fireAt = 1.0 * k;
       for (const arm of e.levArms ?? []) {
         if (arm.dead) continue;
@@ -539,42 +548,42 @@ function startMove(scene: DungeonScene, e: Enemy, move: LevArenaMove, rb: Dungeo
         arm.timer = fireAt + 0.4;
       }
       const oy = e.y + SLAM_DY - 4;
-      const rings = 7;
-      const SY = 0.6; // flach auf dem Boden (Perspektive)
-      const clip = { l: rb.l, t: rb.t + 3 * ARENA_TILE, r: rb.r, b: rb.b }; // Wand-Sockel (3 Kachelreihen) bleibt frei
+      // Von jeder Faust laufen 5 Riss-Wellen (wie die Titanen-Welle: Riss-Spur + rollende Staubwelle) fächerförmig über den Boden und enden an den Wänden.
+      // Dazwischen bleiben immer Ausweich-Gassen.
+      const ANGLES = [0.35, 0.95, 1.57, 2.19, 2.79]; // rad, 0 = nach rechts, π/2 = nach Süden
+      let n = 0;
       for (const side of [-1, 1]) {
         const ox = e.x + side * SLAM_DX;
-        const aim = Math.atan2((py - oy) / SY, px - ox);
-        for (let i = 0; i < rings; i++) {
-          const r0 = 14 + i * 50;
-          const rr = r0 + 30;
+        for (const ang of ANGLES) {
+          const dx = Math.cos(ang);
+          const dy = Math.sin(ang);
+          const tx = dx > 0.001 ? (rb.r - 6 - ox) / dx : dx < -0.001 ? (rb.l + 6 - ox) / dx : Infinity;
+          const ty = dy > 0.001 ? (rb.b - 6 - oy) / dy : Infinity;
+          const len = Math.min(tx, ty, 360);
+          const ex = ox + dx * len;
+          const ey = oy + dy * len;
+          const atWall = len < 360;
           fx(scene).add({
-            shape: 'ring',
+            shape: 'line',
             x: ox,
             y: oy,
-            r0,
-            r: rr,
-            sy: SY,
-            clip,
-            // Lücke zeigt zum Spieler — der Weg dazwischen ist immer frei (wechselt leicht, damit man nicht stehen bleiben kann)
-            gapA: aim + (i % 2 === 0 ? 0.28 : -0.28),
-            gapHalf: 0.5,
-            delay: fireAt + i * 0.26 * k,
-            life: 0.26,
-            burst: 14,
+            x2: ex,
+            y2: ey,
+            width: 22,
+            delay: fireAt + (n % 5) * 0.04,
+            life: 0.36,
+            burst: 16,
             color: '#fb923c',
-            fx: 'pulse',
+            fx: 'whip',
             onFire: (s2) => {
-              if (i === 0) {
-                s2.triggerShake(0.5, 6);
-                sound.playBossSlam();
-              }
-              crumbleAtWalls(s2, ox, oy, (r0 + rr) / 2, SY, rb);
+              if (n === 0 || ang === ANGLES[0]) s2.triggerShake(0.4, 5);
+              if (atWall) crumbleAtWalls(s2, ox, oy, len, 1, rb);
             },
           });
+          n++;
         }
       }
-      L.timer = fireAt + rings * 0.26 * k + 0.7;
+      L.timer = fireAt + 1.2 * k + 0.9;
       e.bossStatusText = 'DOPPELSCHLAG!';
       sound.playBossCharge();
       break;
@@ -715,7 +724,8 @@ function startPhase2(scene: DungeonScene, e: Enemy): void {
   sound.playBossRoar();
   scene.triggerShake(0.6, 6);
   // Verwandlung (D7): Panzerplatten platzen ab, Glut spritzt — Körper wechselt danach dauerhaft in den überhitzten Zustand
-  spawnScrap(scene, e.x, e.y + 6, 4, 6);
+  spawnScrap(scene, e.x, e.y + 6, 10, 6, 34);
+  e.flashTimer = 0.3; // weißer Blitz beim Aufplatzen
   scene.spawnBurst(e.x, e.y + LENS_DY, '#fb923c', 26);
   scene.callbacks.onToast('🚨 PHASE II: ÜBERLAST — die Bodenplatten brechen! Zerstöre die Kühlventile!', 'warn');
   // Arena-Änderung (A4): Mittel-Platten brechen weg — 1,2 s Vorwarnung, dann Abgrund (Glut-Schacht)
@@ -764,7 +774,8 @@ function startPhase3(scene: DungeonScene, e: Enemy): void {
   scene.triggerShake(0.9, 7);
   scene.camera.focus(e.x, e.y + 60, 1.2);
   // Wand-Panzer fällt ab (rein optisch)
-  spawnScrap(scene, e.x, e.y + 10, 5, 7);
+  spawnScrap(scene, e.x, e.y + 10, 8, 7, 34);
+  e.flashTimer = 0.3;
   scene.callbacks.onToast('🔥 PHASE III: Der Panzer fällt — die Kern-Linse liegt frei!', 'warn');
 }
 
@@ -890,40 +901,48 @@ export function onLeviathanArenaDefeated(scene: DungeonScene, e: Enemy, firstCle
 // ---------------------------------------------------------------- Optik (rein darstellend)
 
 /** Schrott-/Panzerteile, die abfallen (prozedurale Bilder, kein Zufall). */
-function spawnScrap(scene: DungeonScene, x: number, y: number, n: number, salt: number): void {
+/** Abgesprengte Rüstungsbrocken (echte Sprites `arena_leviathan_chunk_1…6`, Rückfall: graue Platte) fliegen im Bogen vom Körper weg und prallen auf. `spread` = halbe Breite der Absprengzone. */
+function spawnScrap(scene: DungeonScene, x: number, y: number, n: number, salt: number, spread = 0): void {
   if (typeof document === 'undefined') return;
+  const art = getHDArt() as unknown as Record<string, HTMLCanvasElement | null>;
   for (let i = 0; i < n; i++) {
-    const w = 18 + ((i * 7 + salt) % 3) * 6;
-    const h = 10 + ((i * 5 + salt) % 3) * 4;
-    const c = document.createElement('canvas');
-    c.width = w * 2;
-    c.height = h * 2;
-    const g = c.getContext('2d');
-    if (!g) continue;
-    g.scale(2, 2);
-    g.fillStyle = '#475569';
-    g.fillRect(0, 0, w, h);
-    g.fillStyle = '#64748b';
-    g.fillRect(1, 1, w - 2, 2);
-    g.fillStyle = '#fb923c';
-    g.fillRect(w * 0.3, h - 3, w * 0.4, 1.5);
-    const a = ((i + 0.5) / n) * Math.PI - Math.PI;
+    const k = (i * 37 + salt * 11) % 10;
+    const src = art[`arenaLeviathanChunk${1 + ((i + salt) % 6)}`];
+    const w = 20 + ((i * 7 + salt) % 3) * 8;
+    let img: HTMLCanvasElement;
+    let h: number;
+    if (src) {
+      img = src;
+      h = (w * src.height) / src.width;
+    } else {
+      h = 10 + ((i * 5 + salt) % 3) * 4;
+      const c = document.createElement('canvas');
+      c.width = w * 2;
+      c.height = h * 2;
+      const g = c.getContext('2d');
+      if (!g) continue;
+      g.scale(2, 2);
+      g.fillStyle = '#475569';
+      g.fillRect(0, 0, w, h);
+      img = c;
+    }
+    const dir = spread > 0 ? (i % 2 === 0 ? -1 : 1) * (0.45 + 0.55 * (k / 10)) : Math.cos(((i + 0.5) / n) * Math.PI - Math.PI);
     const part: DetachedPart = {
-      img: c,
+      img,
       w,
       h,
       px: w / 2,
       py: h / 2,
-      x,
-      y: y + 10,
-      z: 20,
-      vx: Math.cos(a) * 60,
-      vy: 40 + i * 12,
-      vz: 90,
-      rot: 0,
-      vrot: (i % 2 === 0 ? 1 : -1) * 5,
-      life: 1.7,
-      maxLife: 1.7,
+      x: x + (spread > 0 ? ((k - 4.5) / 4.5) * spread : 0),
+      y: y + 12 + (i % 3) * 5,
+      z: 14 + (i % 4) * 9,
+      vx: dir * (62 + k * 5),
+      vy: 14 + i * 7,
+      vz: 110 + (i % 3) * 22,
+      rot: (k - 5) * 0.25,
+      vrot: (i % 2 === 0 ? 1 : -1) * (3 + (k % 4)),
+      life: 2.3,
+      maxLife: 2.3,
       bounced: false,
     };
     scene.detached.push(part);
@@ -1063,7 +1082,7 @@ export function drawLeviathanArena(ctx: CanvasRenderingContext2D, scene: Dungeon
       const y2 = live.y2 ?? live.y;
       const ang = Math.atan2(y2 - live.y, x2 - live.x);
       const prog = live.active ? 1 : 1 - Math.max(0, live.delay) / Math.max(0.01, live.maxDelay ?? 1);
-      const wid = (live.active ? 62 + 6 * Math.sin(t * 40) : 28 + 24 * prog) * 1.0;
+      const wid = live.active ? 56 + 3 * Math.sin(t * 40) : 26 + 24 * prog;
       const img = art.arenaLeviathanFxBeamHead;
       const h = (wid * img.height) / img.width;
       ctx.save();

@@ -216,18 +216,23 @@ export class BossFx {
       const pulse = 0.5 + 0.5 * Math.sin(time * 14);
       const spriteBacked = !warn && (z.fx === 'beam' || z.fx === 'whip' || z.fx === 'flame' || z.fx === 'vortex' || z.fx === 'steam');
       const subtleWarn = warn && z.fx === 'beam';
+      const noBox = z.fx === 'beam' || z.fx === 'whip'; // Strahl ist rein sprite-basiert: kein Kasten/keine Kontur/kein Weiß-Blitz
       ctx.fillStyle = z.color;
       ctx.strokeStyle = z.color;
       ctx.lineWidth = warn ? 1.2 : 1.6;
       ctx.globalAlpha = subtleWarn ? 0.04 : warn ? 0.1 + 0.2 * prog : spriteBacked ? 0.06 : 0.38 + 0.12 * pulse;
+      if (!noBox) {
       this.path(ctx, z);
       ctx.fill();
+      }
       ctx.globalAlpha = subtleWarn ? 0.18 + 0.18 * prog : warn ? 0.4 + 0.4 * pulse : spriteBacked ? 0.14 : 0.85;
+      if (!noBox) {
       this.path(ctx, z);
       ctx.stroke();
+      }
       if (z.fx) this.renderFx(ctx, z, time, warn, prog);
       // Polish Teil 2: letzte 0,15 s vor dem Auslösen weiß aufblitzen → man sieht, WANN es knallt (nur Optik)
-      if (warn && z.delay > 0 && z.delay <= 0.15) {
+      if (warn && !noBox && z.delay > 0 && z.delay <= 0.15) {
         const k = 1 - z.delay / 0.15;
         ctx.fillStyle = '#ffffff';
         ctx.strokeStyle = '#ffffff';
@@ -496,14 +501,14 @@ export class BossFx {
       } else {
         const a = Math.min(1, (1 - kAct) * 2.8);
         const wPulse = 0.94 + 0.1 * Math.sin(time * 42);
-        const bodyW = (z.width ?? 28) * 1.55 * wPulse;
+        const bodyW = (z.width ?? 28) * 2.5 * wPulse; // Kern ≈ Düsenöffnung
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
         ctx.lineCap = 'round';
         // weiche Aura unter dem Sprite-Strahl
-        ctx.globalAlpha = 0.2 * a;
+        ctx.globalAlpha = 0.12 * a;
         ctx.strokeStyle = '#f43f5e';
-        ctx.lineWidth = bodyW * 1.5;
+        ctx.lineWidth = bodyW * 1.05;
         ctx.beginPath();
         ctx.moveTo(z.x, z.y);
         ctx.lineTo(x2, y2);
