@@ -31,7 +31,7 @@ const shots = process.argv.slice(3).map((s) => { const [m, t] = s.split(':'); re
         L.state = 'idle'; L.timer = 99;
         const startMove = (await import('/src/dungeon/bosses/leviathanArena.ts')).startMoveForTest;
         if (!startMove) return null;
-        startMove(dng, boss, mv);
+        if (mv === 'wreck') { boss.levArms[0].state = 'grounded'; boss.levArms[0].x = boss.x - 37; boss.levArms[0].y = boss.y + 48; L.armHp[0] = 1; dng.getClosestEnemyHitPoint(boss, boss.levArms[0].x, boss.levArms[0].y); dng.damageEnemy(boss, 999, 0, 1, 0, true, false); } else startMove(dng, boss, mv);
         for (let i = 0; i < Math.round(t / 0.02); i++) { dng.invulnTimer = 99; dng.update(0.02, input); }
         dng.camera.snap(dng.cameraTarget);
         dng.render(ctx, input);

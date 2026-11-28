@@ -203,6 +203,17 @@ function levPose(e: Enemy, time: number, playerX: number): Pose {
 
   const armL = makeArmPose(0);
   const armR = makeArmPose(1);
+  // Treffer-Reaktion (auch bei Panzer-Treffern): Arme federn zurück, getroffener Arm zuckt stärker
+  const kick = Math.max(0, L?.hitKick ?? 0);
+  const armK = L?.armKick ?? [0, 0];
+  for (const [p, idx] of [[armL, 0], [armR, 1]] as const) {
+    if (p.hidden) continue;
+    const side = idx === 0 ? -1 : 1;
+    const k = Math.max(kick * 0.5, armK[idx]);
+    p.rot = (p.rot ?? 0) + side * 0.13 * k;
+    p.dy = (p.dy ?? 0) + 3.2 * k;
+    p.dx = (p.dx ?? 0) - side * 2 * k;
+  }
 
   // Beschädigungsstufen (D12) nach Boss-HP: P1 intakt → <88 % → <76 % · P2 → <52 % → <40 % · P3 · kritisch (<15 %, Partikel + Flackern)
   const hpF = e.maxHp > 0 ? e.hp / e.maxHp : 1;
@@ -218,13 +229,13 @@ function levPose(e: Enemy, time: number, playerX: number): Pose {
       rot: 0,
     },
     torso: {
-      dx: vibX + st.hit * 2.5 * st.hitDir,
-      dy: breath + torsoDrop + (beamFiring ? -3 : 0),
-      rot: torsoLean + st.hit * 0.05 * st.hitDir,
+      dx: vibX + st.hit * 2.5 * st.hitDir + kick * 1.6 * st.hitDir,
+      dy: breath + torsoDrop + (beamFiring ? -3 : 0) + kick * 2.4,
+      rot: torsoLean + st.hit * 0.05 * st.hitDir + kick * 0.04 * st.hitDir,
       variant: torsoVariant,
     },
     head: {
-      dx: lookFrac * 4,
+      dx: lookFrac * 4 - kick * st.hitDir * 1.5,
       dy: dead ? 4 : -breath * 0.35,
       rot: dead ? 0.12 : lookFrac * 0.16 * (transition ? 0 : 1) + roar - st.hit * 0.08 * st.hitDir,
       variant: headVariant,

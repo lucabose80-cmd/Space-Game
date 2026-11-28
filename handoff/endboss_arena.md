@@ -143,6 +143,11 @@
 | Abnahme im echten Spiel (Stufe 8) | ⬜ | Inhaber |
 - **Ruhe-Pose (Inhaber-Beobachtung „Fäuste gegeneinander gedrückt“):** Fäuste lagen vor der Brust zusammen → Arme hängen jetzt gespreizt neben dem Körper (`IDLE_SPREAD 0,5 rad`, `dx ±6`), Linse bleibt frei.
 
+
+### Runde 6: Treffer-Reaktion + Arm-Wrack
+- **Ursache „keine Hit-Reaktion“:** `damageEnemy` bricht bei gepanzerten Treffern (kein Schaden) ab, bevor `flashTimer` gesetzt wird → auf Panzer/Körper reagierte der Boss gar nicht (und Reaktion nur bei Schwachstellen). Neu `L.hitKick` (Panzer 0,55 / Schwachstelle 1, klingt in 0,2 s ab) + `L.armKick[i]` (getroffener Arm zuckt, 0,22 s): Torso rückt/senkt sich, Kopf kippt, Arme federn zurück (`anim/rigs/boss_leviathan.ts`, rein optisch).
+- **Abgerissener Arm liegt nicht mehr „nirgends“:** `destroyArm` legt `room.levWrecks` an; `drawLeviathanWrecks` (Boden-Ebene in `arenaFloor.ts`) lässt den Arm (`armDead`) von der Schulter fallen, einmal aufprallen und als Wrack neben dem Boss liegen (bleibt bis zum Verlassen/Raum-Reset, auch nach dem Sieg; Stumpf an der Schulter bleibt, Rauch/Funken 9 s). Test `m12p9`.
+
 ## Nächster Schritt
 1. **Abnahme Pilot A.E.G.I.S. Leviathan im echten Spiel** (Stufe 8 — live in Sektor 1 Ebene III oder `?bosslab` → ARENEN → 🏟 Leviathan): Kampfgefühl, alle 4 Körper-Phasen, Plattenbruch/Dampf/Trümmer, Schatzkammer & Mobil-Check (A9). Notfall-Rückweg: `ENDBOSS_ARENA_LIVE = false` in `balance.ts`.
 2. Phase A/B-Marker entfernen, sobald der Projektinhaber die Standardräume abgenommen hat.

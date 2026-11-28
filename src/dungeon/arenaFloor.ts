@@ -5,7 +5,7 @@ import { getHDArt, type HDArtAssets } from '../assets/artLoader';
 import { ARENAS, ARENA_TILE, arenaTileAt, type ArenaDef } from '../data/arenas';
 import { mulberry32 } from '../systems/seededRng';
 import { drawArenaVault } from './arenaVault';
-import { drawLeviathanBodyStatic } from './bosses/leviathanArena';
+import { drawLeviathanBodyStatic, drawLeviathanWrecks } from './bosses/leviathanArena';
 import type { DungeonRoom } from '../world/dungeonGen';
 
 /** Wandbreite außerhalb der Grenzen (logisch) — entspricht etwa den Rändern im Standard-Hintergrund. */
@@ -229,6 +229,7 @@ export function renderArenaFloor(ctx: CanvasRenderingContext2D, room: DungeonRoo
     }
     // nach dem Sieg (Boss-Gegner entfernt): erloschener Körper bleibt in der Wand
     if (room.cleared && room.arenaKind === 'boss_leviathan') drawLeviathanBodyStatic(ctx, room);
+    if (room.arenaKind === 'boss_leviathan') drawLeviathanWrecks(ctx, room, time); // abgerissene Arme liegen auf dem Boden
     drawArenaVault(ctx, room, time); // Schatzkammer-Tür/Gang/Kammer (nach dem Sieg)
   }
 }

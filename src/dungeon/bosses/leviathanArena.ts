@@ -55,6 +55,9 @@ export interface LevArena {
   seq: number;
   /** Schienen-Geschwindigkeit (weich beschleunigt, px/s) */
   railV: number;
+  /** Treffer-Rückstoß (1 → 0 in ~0,2 s): Körper / je Arm — rein optisch, auch bei gepanzerten Treffern */
+  hitKick: number;
+  armKick: [number, number];
 }
 
 /** Zugfolgen je Phase (zyklisch). */
@@ -97,6 +100,8 @@ export function createLeviathanArena(scene: DungeonScene, e: Enemy): void {
   e.levArena = {
     phase: 1,
     railV: 0,
+    hitKick: 0,
+    armKick: [0, 0],
     state: 'intro',
     timer: -1,
     move: null,
@@ -227,8 +232,10 @@ export function leviathanArenaDamage(scene: DungeonScene, e: Enemy, amount: numb
     armorFeedback(scene, e, hit?.id);
     return 0;
   }
+  L.hitKick = 1; // Schwachstellen-Treffer: kräftiger Rückstoß (+ Weiß-Blitz über flashTimer)
   if (hit.id.startsWith('arm')) {
     const i = Number(hit.id.slice(3)) as 0 | 1;
+    L.armKick[i] = 1;
     const arm = e.levArms?.[i];
     if (!arm || arm.dead) return 0;
     const dealt = Math.min(amount, Math.max(0, L.armHp[i])); // nur die Teil-HP fließen in den Pool
@@ -267,6 +274,10 @@ function armorFeedback(scene: DungeonScene, e: Enemy, id: string | undefined): v
     y = p.y;
   }
   scene.spawnBurst(x, y, '#cbd5e1', 4);
+  // Treffer-Reaktion auch auf den Panzer: kurzer Rückstoß (Arm-Treffer lässt den Arm zucken)
+  L.hitKick = Math.max(L.hitKick, 0.55);
+  if (id === 'arm0') L.armKick[0] = 0.8;
+  if (id === 'arm1') L.armKick[1] = 0.8;
   if (L.armorMsgCd <= 0) {
     L.armorMsgCd = 0.6;
     scene.floats.push({ x, y: y - 14, text: 'GEPANZERT', color: '#94a3b8', life: 0.6, maxLife: 0.6 });
@@ -285,7 +296,12 @@ function destroyArm(scene: DungeonScene, e: Enemy, i: 0 | 1): void {
   scene.spawnBurst(arm.x, arm.y, '#fbbf24', 30);
   scene.shockwaves.push({ x: arm.x, y: arm.y, maxRadius: 50, color: '#fbbf24', life: 0.3, maxLife: 0.3 });
   spawnScrap(scene, arm.x, arm.y, 3, i);
-  scene.callbacks.onToast('💥 Kranarm zerstört!', 'good');
+  // Der abgerissene Arm stürzt von der Schulter zu Boden, prallt auf und bleibt als rauchendes Wrack liegen
+  const rbw = scene.bounds;
+  const side = arm.side;
+  const room = scene.currentRoom;
+  (room.levWrecks ??= []).push({ sx: e.x + side * 40, sy: e.y - 7, x: e.x + side * 78, y: rbw.t + 3 * ARENA_TILE + 34 + (i === 0 ? 0 : 6), side, t0: scene.time });
+  scene.callbacks.onToast('💥 Kranarm abgerissen!', 'good');
 }
 
 // ---------------------------------------------------------------- Laufzeit
@@ -307,6 +323,9 @@ export function updateLeviathanArena(scene: DungeonScene, e: Enemy, dt: number):
   const L = e.levArena!;
   const rb = scene.bounds;
   L.armorMsgCd = Math.max(0, L.armorMsgCd - dt);
+  L.hitKick = Math.max(0, L.hitKick - dt / 0.2);
+  L.armKick[0] = Math.max(0, L.armKick[0] - dt / 0.22);
+  L.armKick[1] = Math.max(0, L.armKick[1] - dt / 0.22);
   if (L.phase === 2) L.lensOpen = Math.max(0, L.lensOpen - dt);
   if (L.plateCrackT > 0 && !L.platesBroken) L.plateCrackT += dt;
   if (L.critical && L.state !== 'dead') {
@@ -315,6 +334,15 @@ export function updateLeviathanArena(scene: DungeonScene, e: Enemy, dt: number):
     if (curTick !== prevTick) {
       const side = curTick % 2 === 0 ? -1 : 1;
       scene.spawnBurst(e.x + side * (28 + (curTick % 3) * 18), e.y - 14 + (curTick % 4) * 8, curTick % 3 === 0 ? '#fb923c' : '#fde047', 3);
+    }
+  }
+  // Wracks: rauchen/funken die ersten Sekunden nach dem Aufprall
+  for (const w of scene.currentRoom.levWrecks ?? []) {
+    const age = scene.time - w.t0;
+    if (age < 0.5 || age > 9) continue;
+    const rate = age < 3 ? 4 : 1.5;
+    if (Math.floor(scene.time * rate) !== Math.floor((scene.time - dt) * rate)) {
+      scene.spawnBurst(w.x + ((Math.floor(scene.time * 7) % 5) - 2) * 6, w.y - 6, Math.floor(scene.time * rate) % 2 === 0 ? '#94a3b8' : '#fde047', 2);
     }
   }
   // Ramponiert (D12): Funken/Glut/Rauch wachsen mit dem Schaden — P1 ab <88 %, P2 stärker, P3 am stärksten
@@ -1143,6 +1171,39 @@ export function drawLeviathanBody(ctx: CanvasRenderingContext2D, scene: DungeonS
   return true;
 }
 
+/** Abgerissene Arme: fallen (0,55 s), prallen auf und liegen als dunkles Wrack auf dem Boden (bleiben bis zum Verlassen der Arena). */
+export function drawLeviathanWrecks(ctx: CanvasRenderingContext2D, room: DungeonRoom, time: number): void {
+  const wr = room.levWrecks;
+  if (!wr || !wr.length) return;
+  const img = getHDArt().rigs.boss_leviathan?.parts.armDead;
+  for (const w of wr) {
+    const age = Math.max(0, time - w.t0);
+    const u = Math.min(1, age / 0.55);
+    const ease = u * u;
+    const bounce = age > 0.55 ? Math.abs(Math.sin((age - 0.55) * 9)) * 9 * Math.exp(-(age - 0.55) * 5) : 0;
+    const x = w.sx + (w.x - w.sx) * u;
+    const y = w.sy + (w.y - w.sy) * ease - bounce;
+    const rot = w.side * (0.35 + 0.95 * u) + (age > 0.55 ? w.side * 0.04 * Math.exp(-(age - 0.55) * 4) * Math.sin((age - 0.55) * 14) : 0);
+    // Schatten am Boden
+    ctx.save();
+    ctx.fillStyle = 'rgba(8, 10, 16, 0.5)';
+    ctx.beginPath();
+    ctx.ellipse(w.x, w.y + 16, 38 * (0.5 + 0.5 * u), 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+    if (img) {
+      const iw = 100;
+      const ih = (iw * img.height) / img.width;
+      ctx.translate(x, y);
+      ctx.rotate(rot);
+      ctx.drawImage(img, -iw * 0.42, -ih * 0.41, iw, ih);
+    } else {
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(x - 30, y - 8, 60, 16);
+    }
+    ctx.restore();
+  }
+}
+
 /** Nach dem Sieg (Boss entfernt): erloschener Schienen-Kran-Koloss hängt abgeschaltet an der Nordwand-Schiene. */
 export function drawLeviathanBodyStatic(ctx: CanvasRenderingContext2D, room: DungeonRoom): void {
   const art = getHDArt();
@@ -1159,8 +1220,8 @@ export function drawLeviathanBodyStatic(ctx: CanvasRenderingContext2D, room: Dun
       carriage: { dx: 0, dy: 0, rot: 0 },
       torso: { dx: 0, dy: 4, rot: 0, variant: 3 },
       head: { dx: 0, dy: 5, rot: 0.14, variant: 2 },
-      armL: { rot: -0.08, dy: 10, variant: 5 },
-      armR: { rot: 0.08, dy: 10, variant: 5 },
+      armL: { rot: -0.08, dy: 10, variant: room.levWrecks?.some((w) => w.side === -1) ? 8 : 5 },
+      armR: { rot: 0.08, dy: 10, variant: room.levWrecks?.some((w) => w.side === 1) ? 8 : 5 },
     };
     drawRig(ctx, rigDef, rigImgs, lx, ly, deadPose);
     return;
