@@ -1470,7 +1470,8 @@ export class ShopScene {
     drawGlow(ctx, 240, 156, 24, '#38e8d4', 0.12 + nightBoost + pulse * 0.06);
     drawGlow(ctx, 64, 132, 32, '#38e8d4', 0.16 + nightBoost + pulse * 0.08);
     drawGlow(ctx, BACKROOM_DOOR_POS.x, BACKROOM_DOOR_POS.y - 12, 22, '#fbbf24', 0.2 + nightBoost + pulse * 0.08);
-    drawGlow(ctx, 444, 152, 42 + pulse * 6, '#38e8d4', 0.28 + nightBoost + pulse * 0.14);
+    // Ausgangstür (Holz, rechte Wand): warmes Laternen-/Hallenlicht statt Portal-Schein
+    drawGlow(ctx, 448, 150, 26 + pulse * 3, '#fbbf24', 0.16 + nightBoost + pulse * 0.07);
 
     // Backroom Doorway mounted flush on upper-left wall (leading to Captain's Quarters!)
     this.renderBackroomDoor(ctx, pulse);
