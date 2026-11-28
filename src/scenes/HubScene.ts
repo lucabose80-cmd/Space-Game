@@ -6,6 +6,7 @@ import { VIRTUAL_HEIGHT, VIRTUAL_WIDTH, type InputManager } from '../engine/inpu
 import { getChatterPool, STROLLER_PLAN, type StrollerKind } from '../data/story/storyChapters';
 import type { GameState } from '../systems/gameState';
 import { HubEvolutionRenderer } from './hubEvolution';
+import { drawMinaSprite } from './HubCutsceneOverlay';
 import type { Direction, StoryNpcId } from '../types';
 
 interface Stroller {
@@ -88,6 +89,8 @@ export class HubScene {
   private festivalTimer = -1;
 
   public activePrompt: { label: string; x: number; y: number } | null = null;
+  /** Blendet während Live-Promenaden-Cutscenes doppelte NPCs, Spieler, !-Marker & Prompts aus. */
+  public hideActorsForCutscene = false;
 
   constructor(state: GameState, callbacks: HubCallbacks) {
     this.state = state;
@@ -785,53 +788,69 @@ export class HubScene {
       },
     });
 
-    // Schmied Kael standing right in front of Exo-Schmiede
-    drawables.push({
-      y: FORGE_POS.y - 6,
-      draw: () => {
-        const bob = Math.sin(this.time * 3.2) * 0.6;
-        drawPixelShadow(ctx, FORGE_POS.x, FORGE_POS.y + 4, 9, 3.2, 0.48);
-        if (art.npcKael) {
-          ctx.drawImage(art.npcKael, FORGE_POS.x - 13, FORGE_POS.y - 24 + bob, 26, 29);
-        }
-      },
-    });
+    if (!this.hideActorsForCutscene) {
+      // Schmied Kael standing right in front of Exo-Schmiede
+      drawables.push({
+        y: FORGE_POS.y - 6,
+        draw: () => {
+          const bob = Math.sin(this.time * 3.2) * 0.6;
+          drawPixelShadow(ctx, FORGE_POS.x, FORGE_POS.y + 4, 9, 3.2, 0.48);
+          if (art.npcKael) {
+            ctx.drawImage(art.npcKael, FORGE_POS.x - 13, FORGE_POS.y - 24 + bob, 26, 29);
+          }
+        },
+      });
 
-    // Dr. Lyra standing warmly outside Med-Bay
-    drawables.push({
-      y: MEDBAY_POS.y - 6,
-      draw: () => {
-        const bob = Math.sin(this.time * 2.9 + 1.5) * 0.6;
-        drawPixelShadow(ctx, MEDBAY_POS.x, MEDBAY_POS.y + 4, 8, 3.2, 0.48);
-        if (art.npcLyra) {
-          ctx.drawImage(art.npcLyra, MEDBAY_POS.x - 12, MEDBAY_POS.y - 23 + bob, 24, 28);
-        }
-      },
-    });
+      // Kaels Schmiede-Gehilfin Mina an der zweiten Werkbank (dauerhaft nach Sektor 1 + Kael-Kapitel-1-Gespräch)
+      if (this.state.isMinaPresent()) {
+        const minaX = FORGE_POS.x + 22;
+        const minaY = FORGE_POS.y + 4;
+        drawables.push({
+          y: minaY,
+          draw: () => {
+            // Warmes Glühen der zweiten Werkbank
+            drawGlow(ctx, minaX, minaY - 6, 12, '#fb923c', 0.14 + Math.sin(this.time * 5.4) * 0.04);
+            drawMinaSprite(ctx, minaX, minaY, this.time, true);
+          },
+        });
+      }
 
-    // Schwarzmarkt-Händlerin Nyx standing beside her integrated Black Market booth
-    drawables.push({
-      y: NYX_NPC_POS.y,
-      draw: () => {
-        const bob = Math.sin(this.time * 3.1 + 2.1) * 0.6;
-        drawPixelShadow(ctx, NYX_NPC_POS.x, NYX_NPC_POS.y + 9, 8, 3, 0.48);
-        if (art.npcNyx) {
-          ctx.drawImage(art.npcNyx, NYX_NPC_POS.x - 12, NYX_NPC_POS.y - 19 + bob, 24, 28);
-        }
-      },
-    });
+      // Dr. Lyra standing warmly outside Med-Bay
+      drawables.push({
+        y: MEDBAY_POS.y - 6,
+        draw: () => {
+          const bob = Math.sin(this.time * 2.9 + 1.5) * 0.6;
+          drawPixelShadow(ctx, MEDBAY_POS.x, MEDBAY_POS.y + 4, 8, 3.2, 0.48);
+          if (art.npcLyra) {
+            ctx.drawImage(art.npcLyra, MEDBAY_POS.x - 12, MEDBAY_POS.y - 23 + bob, 24, 28);
+          }
+        },
+      });
 
-    // Ingenieurin Vex standing beside her integrated Tech-Labor pavilion
-    drawables.push({
-      y: TECHLAB_NPC_POS.y,
-      draw: () => {
-        const bob = Math.sin(this.time * 3.5 + 0.8) * 0.6;
-        drawPixelShadow(ctx, TECHLAB_NPC_POS.x, TECHLAB_NPC_POS.y + 9, 8, 3, 0.48);
-        if (art.npcVex) {
-          ctx.drawImage(art.npcVex, TECHLAB_NPC_POS.x - 12, TECHLAB_NPC_POS.y - 19 + bob, 24, 28);
-        }
-      },
-    });
+      // Schwarzmarkt-Händlerin Nyx standing beside her integrated Black Market booth
+      drawables.push({
+        y: NYX_NPC_POS.y,
+        draw: () => {
+          const bob = Math.sin(this.time * 3.1 + 2.1) * 0.6;
+          drawPixelShadow(ctx, NYX_NPC_POS.x, NYX_NPC_POS.y + 9, 8, 3, 0.48);
+          if (art.npcNyx) {
+            ctx.drawImage(art.npcNyx, NYX_NPC_POS.x - 12, NYX_NPC_POS.y - 19 + bob, 24, 28);
+          }
+        },
+      });
+
+      // Ingenieurin Vex standing beside her integrated Tech-Labor pavilion
+      drawables.push({
+        y: TECHLAB_NPC_POS.y,
+        draw: () => {
+          const bob = Math.sin(this.time * 3.5 + 0.8) * 0.6;
+          drawPixelShadow(ctx, TECHLAB_NPC_POS.x, TECHLAB_NPC_POS.y + 9, 8, 3, 0.48);
+          if (art.npcVex) {
+            ctx.drawImage(art.npcVex, TECHLAB_NPC_POS.x - 12, TECHLAB_NPC_POS.y - 19 + bob, 24, 28);
+          }
+        },
+      });
+    }
 
     // Strolling station residents
     // M10-A: y-sortierte Stations-Objekte (Laternen, Obelisk, Denkmal, Schilder, Leuchtfeuer …)
@@ -853,10 +872,12 @@ export class HubScene {
     }
 
     // Player
-    drawables.push({
-      y: this.playerY,
-      draw: () => this.renderPlayer(ctx),
-    });
+    if (!this.hideActorsForCutscene) {
+      drawables.push({
+        y: this.playerY,
+        draw: () => this.renderPlayer(ctx),
+      });
+    }
 
     drawables.sort((a, b) => a.y - b.y);
     for (const d of drawables) d.draw();
@@ -869,11 +890,13 @@ export class HubScene {
     }
     ctx.globalAlpha = 1;
 
-    this.renderStoryMarkers(ctx);
-    this.renderChatter(ctx);
+    if (!this.hideActorsForCutscene) {
+      this.renderStoryMarkers(ctx);
+      this.renderChatter(ctx);
 
-    if (this.activePrompt) {
-      this.renderPrompt(ctx, this.activePrompt.label, this.activePrompt.x, this.activePrompt.y);
+      if (this.activePrompt) {
+        this.renderPrompt(ctx, this.activePrompt.label, this.activePrompt.x, this.activePrompt.y);
+      }
     }
   }
 

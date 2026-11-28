@@ -196,8 +196,22 @@ Alle Dateien: `public/art/sprites/<datei>.png`, **96×96 RGBA**, Prompt-Formel *
 | `npc_pilgrim` (`npcPilgrim`, 24×28) | a hooded crystal pilgrim traveler in violet robes carrying a small glowing amethyst shard, friendly pose, full body |
 | `npc_foundry_worker` (`npcFoundryWorker`, 24×28) | a stocky foundry worker in an orange heat-resistant suit with soot marks, goggles on forehead, carrying a wrench, full body |
 | `npc_elder_scholar` (`npcElderScholar`, 24×28) | an elderly scholar in teal and gold robes holding a floating holo-tablet, kind face, full body |
+| `npc_mina` (`npcMina`, 26×28) | a cheerful young blacksmith apprentice girl wearing a warm brown leather smithing apron over a teal shirt, brass forge goggles pushed up on her forehead, chestnut ponytail, holding a small glowing amber energy hammer, full body, friendly pose |
 
 **Vor dem Einbau prüfen:** gleiche 3/4-Perspektive wie die NPCs, dunkle Pixel-Outline, Proportion zu Kael (26×29 px im Spiel), keine weißen Fransen. Danach Hub-Screenshots je Kapitel (`story.chapter` 0–6) ansehen.
+
+### 7b. Story-, Intro- & Feier-Kino-Panels (`960×540` RGB, 16:9 — `P3-48`–`P3-53`)
+
+Ablage: `public/art/sprites/<datei>.png` (`960×540` RGB, kein Text/UI/Rahmen). Bis die PNGs vorliegen, rendert `StoryPanelCutscene.ts` komponierte Pixel-Art-Fallbacks mit Live-Effekten.
+
+| Datei (`art`-Key) | Motiv (16-Bit HD Pixel Art, `16:9`, cozy retro-sci-fi) |
+| :--- | :--- |
+| `cutscene_intro_1` (`cutsceneIntro1`) | Wide establishing view of deep space with four drifting ancient wreck sectors glowing in cyan, violet crystal, fiery amber, and gold, plus a subtle pulsing cyan-gold echo ring across the stars |
+| `cutscene_intro_2` (`cutsceneIntro2`) | A small worn teal-and-amber merchant corvette flying toward cozy space station Port Solaris in warm golden twilight nebula light, welcoming docking bay lights |
+| `cutscene_intro_3` (`cutsceneIntro3`) | Quiet dusty space-relic shop *Astro-Barter* at night: empty glass display pedestals, warm hanging amber star-lantern, shiny brass shop key resting on the wooden counter, starry viewport behind |
+| `cutscene_intro_4` (`cutsceneIntro4`) | Wide twilight view across Port Solaris promenade: warm forge glow on the left, cozy med-bay on the right, mysterious dormant 5th Gate in the distance |
+| `cutscene_story_gate5` (`cutsceneStoryGate5`) | The ancient 5th Gate awakening in the hangar: four glowing sector seals (cyan, violet, orange, gold) streaming energy into a swirling starry portal |
+| `cutscene_story_omega` (`cutsceneStoryOmega`) | Grand golden and cyan starlight fireworks blooming above the cheering promenade of Port Solaris under a clear starry sky |
 
 ---
 

@@ -17,6 +17,8 @@ export interface DeviceSettings {
   screenShake: ScreenShake;
   /** Handy-Vibration bei Treffern/Parade */
   vibration: boolean;
+  /** Kurze Upgrade-/Wiederholungs-Cutscenes */
+  shortCutscenes: boolean;
 }
 
 export const DEVICE_SETTINGS_KEY = 'starlighter_device_settings_v1';
@@ -31,6 +33,7 @@ export const DEFAULT_DEVICE_SETTINGS: DeviceSettings = {
   textSpeed: 'normal',
   screenShake: 'full',
   vibration: true,
+  shortCutscenes: false,
 };
 
 /** System meldet „weniger Bewegung“ (Barrierefreiheit). */
@@ -52,6 +55,7 @@ export function sanitizeDeviceSettings(raw: unknown): DeviceSettings {
   if (TEXT_SPEEDS.includes(r.textSpeed as TextSpeed)) out.textSpeed = r.textSpeed as TextSpeed;
   if (SCREEN_SHAKES.includes(r.screenShake as ScreenShake)) out.screenShake = r.screenShake as ScreenShake;
   if (typeof r.vibration === 'boolean') out.vibration = r.vibration;
+  if (typeof r.shortCutscenes === 'boolean') out.shortCutscenes = r.shortCutscenes;
   return out;
 }
 
