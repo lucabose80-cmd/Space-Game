@@ -170,11 +170,30 @@ export function drawContactShadow(
   const baseW = Math.max(4, (fp.right - fp.left) * dw);
   const cx = dx + ((fp.left + fp.right) / 2) * dw;
   const by = dy + fp.bottom * dh;
-  drawPixelShadow(ctx, cx, by - 0.5, baseW * 0.62, Math.max(2.2, baseW * 0.2), alpha * 0.55);
-  drawPixelShadow(ctx, cx, by - 1.5, baseW * 0.46, Math.max(1.6, baseW * 0.12), alpha);
+  const ry = Math.max(2.4, baseW * 0.17);
+  // Drei Lagen: weiter Boden-Schatten (deutlich breiter als die Standfläche), mittlerer Schatten, harter Kontaktkern direkt unter der Kante
+  drawPixelShadow(ctx, cx, by - ry * 0.2, baseW * 0.74, ry * 1.1, alpha * 0.4);
+  drawPixelShadow(ctx, cx, by - ry * 0.45, baseW * 0.6, ry * 0.8, alpha * 0.65);
+  drawPixelShadow(ctx, cx, by - 1, baseW * 0.52, Math.max(1.6, ry * 0.4), alpha * 0.95);
 }
 
 /** Untere sichtbare Kante eines Sprites als Anteil der Bildhöhe (0..1) — für exakt bodenbündiges Zeichnen. */
 export function spriteFootBottom(img: CanvasImageSource): number {
   return measureFootprint(img).bottom;
+}
+
+/** Flaches Licht auf dem Boden (Ellipse statt Kugel): für Dinge, die auf dem Boden stehen und leuchten — kein „schwebender“ Schein. */
+export function drawFloorGlow(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  radius: number,
+  color: string,
+  alpha: number,
+): void {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(1, 0.38);
+  drawGlow(ctx, 0, 0, radius, color, alpha);
+  ctx.restore();
 }

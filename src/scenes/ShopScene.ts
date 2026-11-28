@@ -1,5 +1,5 @@
 import { getHDArt } from '../assets/artLoader';
-import { drawContactShadow, drawGlow, drawPixelShadow } from '../assets/pixelArt';
+import { drawContactShadow, drawFloorGlow, drawGlow, drawPixelShadow } from '../assets/pixelArt';
 import { getAtlas } from '../assets/sprites';
 import { COMPANION_DEFS, MARKET_EVENT_META, SUIT_THEMES } from '../data/companions';
 import { PATRON_DEFS, PATRON_ORDER } from '../data/guildMarket';
@@ -1905,15 +1905,21 @@ export class ShopScene {
     const atlas = getAtlas();
     const active = p.itemId !== null && p.qty > 0;
 
-    // Vitrine je Laden-Ausbaustufe (Intro-Look: Holo-Glasvitrine → Messing → Gold/Kristall); Fallback: alter Sockel
+    // Vitrine je Laden-Ausbaustufe (Trailer-Look: Plinthe + Glaswürfel → Messing → Gold/Kristall); Fallback: alter Sockel
     const tierIdx = Math.max(0, Math.min(2, this.state.upgrades.shopTier ?? 0));
     const vitrine = [art.vitrineT1, art.vitrineT2, art.vitrineT3][tierIdx];
+    const VW = 32;
+    const VH = 42;
+    const vx = Math.round(p.x - VW / 2);
+    const vy = p.y + 12 - VH; // Unterkante der Plinthe = Standpunkt (Kollisionskreis liegt bei p.y + 1)
     if (vitrine) {
-      drawContactShadow(ctx, vitrine, p.x - 16, p.y - 20, 32, 32, 0.55);
-      ctx.drawImage(vitrine, p.x - 16, p.y - 20, 32, 32);
+      drawFloorGlow(ctx, p.x, p.y + 10, 20, '#38e8d4', active ? 0.2 : 0.1);
+      drawContactShadow(ctx, vitrine, vx, vy, VW, VH, 0.7);
+      ctx.drawImage(vitrine, vx, vy, VW, VH);
     } else if (art.pedestal) {
       drawPixelShadow(ctx, p.x, p.y + 11, 14, 4.5, 0.45);
       ctx.drawImage(art.pedestal, p.x - 14, p.y - 14, 28, 28);
+      drawGlow(ctx, p.x, p.y - 4, 18, '#38e8d4', active ? 0.26 : 0.14);
     } else {
       drawPixelShadow(ctx, p.x, p.y + 11, 14, 4.5, 0.45);
       ctx.drawImage(
@@ -1921,20 +1927,28 @@ export class ShopScene {
         Math.round(p.x - 12),
         Math.round(p.y - 8),
       );
+      drawGlow(ctx, p.x, p.y - 4, 18, '#38e8d4', active ? 0.26 : 0.14);
     }
-
-    drawGlow(ctx, p.x, p.y - 4, 18, '#38e8d4', active ? 0.26 : 0.14);
 
     if (active && p.itemId) {
       const def = getItemDef(p.itemId);
-      const bob = Math.sin(this.time * 3.4 + p.id) * 2.2;
-      drawGlow(ctx, p.x, p.y - 14 + bob, 20, def.glowColor, 0.36);
+      const inGlass = Boolean(vitrine);
+      const bob = Math.sin(this.time * 3.4 + p.id) * (inGlass ? 1 : 2.2);
+      const itemCy = inGlass ? p.y - 19 : p.y - 14; // Ware schwebt im Glaswürfel der Vitrine
+      drawGlow(ctx, p.x, itemCy + bob, inGlass ? 14 : 20, def.glowColor, inGlass ? 0.3 : 0.36);
 
       const hdSpr = art.items[p.itemId];
       if (hdSpr) {
-        ctx.drawImage(hdSpr, p.x - 10, p.y - 25 + bob, 20, 20);
+        ctx.drawImage(hdSpr, p.x - 7, itemCy - 7 + bob, 14, 14);
       } else if (atlas.items[p.itemId]) {
-        ctx.drawImage(atlas.items[p.itemId], Math.round(p.x - 8), Math.round(p.y - 20 + bob));
+        ctx.drawImage(atlas.items[p.itemId], Math.round(p.x - 8), Math.round(itemCy - 6 + bob));
+      }
+      if (vitrine) {
+        // Glas liegt VOR der Ware: oberer Teil der Vitrine halbtransparent darüber
+        ctx.save();
+        ctx.globalAlpha = 0.28;
+        ctx.drawImage(vitrine, 0, 0, vitrine.width, vitrine.height * 0.56, vx, vy, VW, VH * 0.56);
+        ctx.restore();
       }
 
       // Crisp Golden Price Tag & Quantity Badge

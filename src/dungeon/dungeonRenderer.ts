@@ -1,5 +1,5 @@
 import { getHDArt } from '../assets/artLoader';
-import { drawContactShadow, drawGlow, drawPixelShadow } from '../assets/pixelArt';
+import { drawContactShadow, drawFloorGlow, drawGlow, drawPixelShadow } from '../assets/pixelArt';
 import { drawBossLook } from './bosses/bossLooks';
 import { getBossPose, getRigFacing, smoothBossBody } from './anim/bossAnims';
 import { ARC_DEATH_TIME, arcDeathPose } from './anim/rigs/drone_arc';
@@ -408,7 +408,7 @@ export class DungeonRenderer {
     for (const pod of this.scene.currentRoom.pods) {
       if (!pod.broken) {
         if (art.podIntact) {
-          drawContactShadow(ctx, art.podIntact, pod.x - 11, pod.y - 13, 22, 24, 0.55);
+          drawContactShadow(ctx, art.podIntact, pod.x - 11, pod.y - 13, 22, 24, 0.8);
           ctx.drawImage(art.podIntact, pod.x - 11, pod.y - 13, 22, 24);
         } else {
           drawPixelShadow(ctx, pod.x, pod.y + 9, 9, 3.5, 0.48);
@@ -424,8 +424,10 @@ export class DungeonRenderer {
       const ch = this.scene.currentRoom.chest;
       const chestSpr = ch.opened ? art.chestOpen : art.chestClosed;
       if (chestSpr) {
-        drawContactShadow(ctx, chestSpr, ch.x - 20, ch.y - 25, 40, 40, 0.6);
-        ctx.drawImage(chestSpr, ch.x - 20, ch.y - 25, 40, 40);
+        // Fußpunkt der Truhe: sichtbare Unterkante bei ch.y + 11 (Sprite 64×64 → 44×44, unten bündig)
+        drawFloorGlow(ctx, ch.x, ch.y + 10, 18, ch.opened ? '#fbbf24' : '#f59e0b', ch.opened ? 0.12 : 0.2);
+        drawContactShadow(ctx, chestSpr, ch.x - 17, ch.y - 23, 34, 34, 0.75);
+        ctx.drawImage(chestSpr, ch.x - 17, ch.y - 23, 34, 34);
       } else {
         drawPixelShadow(ctx, ch.x, ch.y + 10, 14, 4.5, 0.5);
         ctx.drawImage(
@@ -435,10 +437,10 @@ export class DungeonRenderer {
         );
       }
       if (!ch.opened) {
-        drawGlow(ctx, ch.x, ch.y - 2, 28, '#fbbf24', 0.34 + Math.sin(this.scene.time * 4) * 0.08);
+        drawGlow(ctx, ch.x, ch.y - 8, 20, '#fbbf24', 0.2 + Math.sin(this.scene.time * 4) * 0.06);
       } else if (ch.slots?.some((sl) => sl)) {
         // Geöffnet, aber noch Beute drin: warmes Glühen aus der Öffnung
-        drawGlow(ctx, ch.x, ch.y - 9, 18, '#fbbf24', 0.26 + Math.sin(this.scene.time * 3) * 0.07);
+        drawGlow(ctx, ch.x, ch.y - 10, 14, '#fbbf24', 0.22 + Math.sin(this.scene.time * 3) * 0.07);
       }
     }
 

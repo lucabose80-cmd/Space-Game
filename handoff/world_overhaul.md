@@ -23,3 +23,7 @@
 4. Push nur auf den Session-Branch (`git push origin HEAD`), nicht `npm run ship` (würde main pushen).
 5. Weiß → Alpha: `scripts/white-to-alpha.py <in> <out> <W> <H>` (Flood-Fill vom Rand, BBox, unten mittig). Paar-Sprites (zu/offen) mit gemeinsamem Maßstab zuschneiden (Truhe: Skala aus der geschlossenen Version).
 6. Sprites mit Leerrand unten schweben optisch: immer `drawContactShadow`/`spriteFootBottom` statt fixer Schatten-Offsets.
+7. **Hauptursache für „schwebende“ Props = falsche Kamera:** Gemini liefert Props standardmäßig isometrisch (Rautenboden). Der Raum (und alle Stationen/Trailer) sind **frontal mit leichter Draufsicht** → Prompt IMMER mit „FRONT view with a slight top-down tilt, flat HORIZONTAL bottom edge, NOT isometric/diamond“ + Referenzbilder aus dem Raum (Kisten/Vitrine aus `cutscene_intro_3.png` / `shop_bg.png`). Erste Vitrinen/Truhen (isometrisch) wurden deshalb verworfen (Rohdateien `vitrine_v*`, `chest_new_*`).
+8. **Koordinaten der Szenen sind logisch 480×270 (Anzeige 2×):** Sprite-Zielgrößen in logischen px wählen (Spieler 24×28; Vitrine 32×42, Truhe 34×34), nicht in Screenshot-px.
+9. Bodenverankerung = (a) frontale Kamera, (b) Sprite-Unterkante exakt auf Fußpunkt, (c) `drawContactShadow` (3 Lagen, breiter als die Standfläche, Alpha ~0.7), (d) Leuchten am Boden als flache Ellipse `drawFloorGlow` statt Kugel-`drawGlow`.
+10. Vitrine: Ware schwebt IM Glaswürfel; Glas-Overlay (obere 56 % des Sprites, Alpha 0.28) wird über die Ware gelegt.
