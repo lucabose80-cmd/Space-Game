@@ -46,7 +46,19 @@ module.exports = async ({ page }) => {
       for (const x of rooms.filter((q) => q.special)) {
         if (x.spawns.length || x.obstacles.length || x.chasms.length || x.pods.length || x.chest) o.stripped = false;
         if (!art.roomBgs[`${x.special}_s${sec}`]) o.bgKeys = false;
+        if (x.special === 'cell' && !art.roomBgs[`cell_open_s${sec}`]) o.bgKeys = false;
       }
+    }
+    // 3b) Stresstest: 30 Zufalls-Ebenen je Sektor/Ebene — immer genau eine Heilquelle vor dem Boss, Bake bleibt
+    const sr = await import('/src/dungeon/specialRooms.ts');
+    o.stress = 0;
+    for (const sec of [1, 2, 3, 4]) for (const fl of [1, 2, 3]) for (let i = 0; i < 30; i++) {
+      const f = gen.generateSectorFloor(sec, fl); sr.placeSpecialRooms(f, { crew: fl === 2 ? 'mina' : null, springs: true });
+      const rs = [...f.rooms.values()]; const bs = f.rooms.get(f.bossKey);
+      const sp = rs.filter((x) => x.special === 'spring');
+      const ok = sp.length === 1 && Math.abs(sp[0].gx - bs.gx) + Math.abs(sp[0].gy - bs.gy) === 1 && rs.filter((x) => x.extractBeacon).length === (fl === 1 ? 0 : 1)
+        && (fl !== 2 || rs.filter((x) => x.special === 'cell').length === 1) && rs.filter((x) => x.isRiftChamber).every((x) => f.rooms.get(x.riftParentKey));
+      if (!ok) o.stress++;
     }
     // 4) Layout & globale Zufallsfolge unverändert (seeded Floor identisch, keine Sonderräume im Generator selbst)
     const sig = (f) => JSON.stringify([...f.rooms.values()].map((x) => [x.key, x.spawns.length, x.obstacles.length]));
@@ -81,7 +93,8 @@ module.exports = async ({ page }) => {
     dng.playerX = spr.spring.x; dng.playerY = spr.spring.y;
     const hp0 = gs.hp;
     for (let i = 0; i < 60; i++) dng.update(1 / 60, inp);
-    o.springOneSec = gs.hp - hp0;
+    o.springOneSec = gs.hp - hp0; o.pose = [dng.springHealing > 0, !!art.heroPool];
+    { const c = document.createElement('canvas'); c.width = 960; c.height = 540; dng.render(c.getContext('2d'), inp); }
     for (let i = 0; i < 60 * 30; i++) dng.update(1 / 60, inp);
     o.springTotal = [gs.hp - hp0, Math.round(max * 0.45), max, spr.spring.used];
     dng.isWeeklyTrial = true; gs.hp = 1; spr.spring.used = 0;
@@ -127,6 +140,7 @@ module.exports = async ({ page }) => {
   }
   assert.ok(r.stripped, 'Sonderräume ohne Gegner/Hindernisse/Truhe');
   assert.ok(r.bgKeys, 'Sonderraum-Hintergründe geladen');
+  assert.strictEqual(r.stress, 0, 'Stresstest Sonderräume');
   assert.ok(r.seeded, 'Layout unverändert');
   assert.ok(/verriegelt/.test(r.locked), r.locked);
   assert.ok(/befreien/.test(r.open), r.open);
@@ -136,6 +150,7 @@ module.exports = async ({ page }) => {
   assert.strictEqual(r.endless, 0, 'Spirale ohne Sonderräume');
   assert.ok(r.springOneSec >= 1, 'Quelle heilt allmählich: ' + r.springOneSec);
   assert.ok(r.springTotal[0] <= r.springTotal[1] + 1 && r.springTotal[0] >= r.springTotal[1] - 1 && r.springTotal[0] < r.springTotal[2], 'Quelle heilt nur einen Teil: ' + JSON.stringify(r.springTotal));
+  assert.deepStrictEqual(r.pose, [true, true], 'Heil-Pose aktiv');
   assert.ok(r.trialNoHeal, 'Prüfung ohne Quelle');
   assert.strictEqual(r.hintBefore, 0, 'Hinweis zuerst, Laden erst danach');
   assert.ok(r.hintModal, 'Hinweis nennt Mina');

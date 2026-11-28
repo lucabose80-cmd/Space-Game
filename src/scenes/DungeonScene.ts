@@ -249,6 +249,8 @@ export class DungeonScene {
   /** Gelandete geöffnete Absetzkapsel im Startraum (bleibt als Prop stehen) */
   /** P7b: laufende Befreiungs-Szene (friert das Spiel ein) */
   private springCarry = 0;
+  /** P7b: >0 solange der Held gerade in der Heilquelle sitzt (Pose `hero_pool`) */
+  public springHealing = 0;
   public rescueCine: { crew: CrewId; t: number; beat: number; beatT: number } | null = null;
   public landedPod: { x: number; y: number; roomKey: string } | null = null;
 
@@ -449,6 +451,7 @@ export class DungeonScene {
     }
     this.rescueCine = null;
     this.springCarry = 0;
+    this.springHealing = 0;
     this.floorBossDefeated = false;
     this.invulnTimer = 0.55;
     this.dashCooldown = 0;
@@ -604,6 +607,7 @@ export class DungeonScene {
     this.aimTargetId = null;
     this.roomFade = 0.22;
     this.springCarry = 0;
+    this.springHealing = 0;
     this.tutorialForRoom(room);
 
     const rb = this.bounds; // M12: Türen/Eintritt relativ zu den Raumgrenzen
@@ -1293,6 +1297,7 @@ export class DungeonScene {
 
   /** P7b: Heilquelle (Raum vor dem Boss): heilt allmählich, insgesamt nur einen Teil der max. HP. */
   private updateHealSpring(dt: number): void {
+    this.springHealing = Math.max(0, this.springHealing - dt);
     const sp = this.currentRoom.spring;
     if (!sp || this.isWeeklyTrial) return;
     const stats = this.state.getStats();
@@ -1306,6 +1311,7 @@ export class DungeonScene {
       this.activePrompt = { label: 'Heilquelle: du bist bei voller Gesundheit', x: sp.x, y: sp.y - 34 };
       return;
     }
+    this.springHealing = 0.25;
     this.springCarry += Math.min(budget, stats.maxHp * SPRING_HEAL_RATE * dt);
     const whole = Math.floor(this.springCarry);
     if (whole >= 1) {

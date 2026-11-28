@@ -54,7 +54,9 @@ function bossNeighbour(floor: DungeonFloor): DungeonRoom | null {
   for (const side of Object.keys(SIDE_DELTA) as DoorSide[]) {
     if (!boss.doors[side]) continue;
     const d = SIDE_DELTA[side];
-    for (const r of floor.rooms.values()) if (r.gx === boss.gx + d.dx && r.gy === boss.gy + d.dy && eligible(r)) out.push(r);
+    for (const r of floor.rooms.values()) {
+      if (r.gx === boss.gx + d.dx && r.gy === boss.gy + d.dy && (eligible(r) || (r.type === 'combat' && !r.isRiftChamber && !r.secretParentKey && !r.special && r.riftPortal))) out.push(r);
+    }
   }
   out.sort((a, b) => b.depth - a.depth || byKey(a, b));
   return out[0] ?? null;
@@ -77,6 +79,11 @@ export function placeSpecialRooms(floor: DungeonFloor, opts: SpecialRoomOpts): {
     const r = bossNeighbour(floor);
     if (r) {
       if (r.extractBeacon) beaconLost = true;
+      // Riss-Portal in diesem Raum entfällt samt Kammer (der Raum wird zur ruhigen Quelle)
+      if (r.riftPortal) {
+        for (const [k, q] of [...floor.rooms.entries()]) if (q.isRiftChamber && q.riftParentKey === r.key) floor.rooms.delete(k);
+        r.riftPortal = null;
+      }
       strip(r);
       r.special = 'spring';
       r.spring = { x: ROOM_CENTER_X, y: ROOM_CENTER_Y, used: 0 };

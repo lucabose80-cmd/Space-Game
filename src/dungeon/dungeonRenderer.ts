@@ -72,7 +72,10 @@ export class DungeonRenderer {
           : visSec === 2
             ? art.dungeonBgS2 ?? art.dungeonBg
             : art.dungeonBg;
-    const specKey = this.scene.currentRoom.special ? `${this.scene.currentRoom.special}_s${Math.max(1, Math.min(4, visSec))}` : '';
+    const cageNow = this.scene.currentRoom.captive;
+    const cellOpen = !!cageNow && (cageNow.freed || (!!this.scene.rescueCine && this.scene.rescueCine.t > 1.0));
+    const specKind = this.scene.currentRoom.special === 'cell' && cellOpen ? 'cell_open' : this.scene.currentRoom.special;
+    const specKey = specKind ? `${specKind}_s${Math.max(1, Math.min(4, visSec))}` : '';
     const specBg = specKey ? art.roomBgs[specKey] : null;
     if (specBg) {
       ctx.drawImage(specBg, 0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
@@ -1452,6 +1455,22 @@ export class DungeonRenderer {
     const onDais = this.scene.currentRoom.special === 'cell';
     const x = Math.round(cage.x);
     const y = Math.round(cage.y);
+    if (onDais && art.roomBgs[`cell_s${Math.max(1, Math.min(4, this.scene.floor.visualSector ?? this.scene.currentSector))}`]) {
+      // Käfig ist Teil des Raum-Sprites; hier nur die gefangene Figur im Käfig (bzw. beim Befreien herausspringend)
+      if (spr && !cage.freed) {
+        const hop = cine ? -Math.abs(Math.sin(cine.t * 5)) * Math.min(7, cine.t * 5) : Math.sin(t * 2.4) * 1.0;
+        const out = cine && cine.t > 1.0 ? Math.min(10, (cine.t - 1.0) * 8) : 0;
+        drawGlow(ctx, x, y - 4, 20, def.color, 0.22 + Math.sin(t * 3) * 0.05);
+        ctx.drawImage(spr, x - 9, Math.round(y - 14 + hop + out), 18, 18);
+      }
+      if (!cage.freed) {
+        ctx.font = 'bold 5px Silkscreen, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = def.color;
+        ctx.fillText(def.name.toUpperCase(), x, y - 36);
+      }
+      return;
+    }
     const cageSpr = art.propCrewCage;
     const barCol = locked ? '#f87171' : '#67e8f9';
     if (!onDais) {
@@ -4248,6 +4267,23 @@ export class DungeonRenderer {
               ? art.heroLeft
               : art.heroDown;
 
+    const poolSpr = art.heroPool;
+    if (poolSpr && this.scene.springHealing > 0) {
+      // Heilquelle: Held sitzt im Wasser (schwebt leicht), Wasserring leuchtet
+      const t = this.scene.time;
+      const px = this.scene.playerX;
+      const py = this.scene.playerY;
+      drawGlow(ctx, px, py + 4, 26, '#86efac', 0.22 + Math.sin(t * 3) * 0.06);
+      ctx.drawImage(poolSpr, Math.round(px - 17), Math.round(py - 22 + Math.sin(t * 2.2) * 1.4), 34, 30);
+      ctx.fillStyle = '#d9f99d';
+      for (let i = 0; i < 4; i++) {
+        const ph = (t * 0.7 + i * 0.25) % 1;
+        ctx.globalAlpha = (1 - ph) * 0.9;
+        ctx.fillRect(Math.round(px - 10 + i * 7 + Math.sin(t * 3 + i) * 2), Math.round(py - 4 - ph * 22), 1.5, 1.5);
+      }
+      ctx.globalAlpha = 1;
+      return;
+    }
     if (hdSpr) {
       ctx.save();
       ctx.translate(this.scene.playerX + lungeX, this.scene.playerY + 10 - bob + lungeY);

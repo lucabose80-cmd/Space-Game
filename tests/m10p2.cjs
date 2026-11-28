@@ -16,7 +16,7 @@ module.exports = async ({ page, scratch }) => {
   // ---- A: Kael (Antwort B setzt knows_juno, danach öffnet die Schmiede)
   res.A = await page.evaluate(() => {
     const g = window.__game, ui = g.ui; const o = {};
-    g.state.rescuedCrew = ['mina', 'pip', 'ping', 'midnight']; // P7: sonst käme zuerst der Crew-Hinweis der Besitzer
+    g.state.rescuedCrew = ['mina', 'pip', 'ping', 'midnight']; g.state.markCutsceneSeen('tut_spring_hint'); // P7: sonst kämen zuerst Crew-Hinweis & Heilquellen-Tutorial
     o.pendingBefore = g.state.getPendingScene('kael')?.id;
     g.hubScene.callbacks.onOpenForge();
     o.storyOpen = !!document.querySelector('.m10-story'); o.title = document.querySelector('.m10-story-title')?.textContent;
