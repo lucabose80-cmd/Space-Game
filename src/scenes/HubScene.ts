@@ -202,6 +202,11 @@ export class HubScene {
       sound.playUpgradeReveal();
     }
     this.state.pendingHubReveals = [];
+    if (this.state.isPipPresent() && !this.state.hasSeenCutscene('pip_arrives')) {
+      this.state.markCutsceneSeen('pip_arrives');
+      this.callbacks.onToast('🤖 Dr. Lyra: „Darf ich vorstellen — Pip, mein neuer Assistent. Er zählt jetzt deine Pflaster mit.“', 'good');
+      this.state.save();
+    }
     this.chatter = null;
     this.chatterTimer = 8 + Math.random() * 6;
     // Omega-Fest: einmalig, nur auf Wunsch überspringbar (siehe main.ts)
@@ -577,7 +582,7 @@ export class HubScene {
     if (this.chatter && !force) return false;
     if (this.activePrompt && !force) return false;
     const tiers = this.state.getHubTiers();
-    const facts: string[] = [`shop_${tiers.shop}`, `quarters_${this.state.upgrades.quartersTier ?? 0}`];
+    const facts: string[] = [...(this.state.isPipPresent() ? ['pip'] : []), `shop_${tiers.shop}`, `quarters_${this.state.upgrades.quartersTier ?? 0}`];
     for (const id of ['techlab', 'blackmarket', 'terrace'] as const) facts.push(`${id}_${this.state.isHubBuildingOpen(id) ? 'open' : 'locked'}`);
     const pool = getChatterPool(this.state.story.chapter, this.state.story.flags, facts);
     if (pool.length === 0) return false;
@@ -913,6 +918,21 @@ export class HubScene {
             // Warmes Glühen der zweiten Werkbank
             drawGlow(ctx, minaX, minaY - 6, 12, '#fb923c', 0.14 + Math.sin(this.time * 5.4) * 0.04);
             drawMinaSprite(ctx, minaX, minaY, this.time, true);
+          },
+        });
+      }
+
+      // Pip, Lyras Assistenz-Droide (ab Kapitel 2): schwebt an der Med-Bay und notiert für Lyra
+      if (this.state.isPipPresent() && art.npcPip) {
+        const pipX = MEDBAY_POS.x - 22;
+        const pipY = MEDBAY_POS.y + 4;
+        drawables.push({
+          y: pipY,
+          draw: () => {
+            const hover = Math.sin(this.time * 3.6 + 0.7) * 1.6;
+            drawPixelShadow(ctx, pipX, pipY + 8, 6 - hover * 0.3, 2.2, 0.4);
+            drawGlow(ctx, pipX, pipY - 4 + hover, 9, '#2dd4bf', 0.14 + Math.sin(this.time * 5) * 0.04);
+            ctx.drawImage(art.npcPip as HTMLCanvasElement, pipX - 11, pipY - 24 + hover, 22, 22);
           },
         });
       }

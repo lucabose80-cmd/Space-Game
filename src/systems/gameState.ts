@@ -2091,6 +2091,11 @@ export class GameState {
     }
   }
 
+  /** Lyras Assistenz-Droide Pip arbeitet ab Kapitel 2 (nach dem Echo-Fieber) in der Med-Bay. */
+  public isPipPresent(): boolean {
+    return this.story.chapter >= 2 || this.story.seenScenes.includes('lyra_c2');
+  }
+
   /** Kaels Schmiede-Gehilfin Mina steht dauerhaft an der 2. Werkbank nach Sektor 1 + Kaels Kapitel-1-Gespräch (oder ab Kapitel 2). */
   public isMinaPresent(): boolean {
     return (

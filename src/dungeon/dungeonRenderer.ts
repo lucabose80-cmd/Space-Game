@@ -427,7 +427,30 @@ export class DungeonRenderer {
         // Fußpunkt der Truhe: sichtbare Unterkante bei ch.y + 11 (Sprite 64×64 → 44×44, unten bündig)
         drawFloorGlow(ctx, ch.x, ch.y + 10, 18, ch.opened ? '#fbbf24' : '#f59e0b', ch.opened ? 0.12 : 0.2);
         drawContactShadow(ctx, chestSpr, ch.x - 17, ch.y - 23, 34, 34, 0.75);
-        ctx.drawImage(chestSpr, ch.x - 17, ch.y - 23, 34, 34);
+        // Öffnen-Animation (0,45 s): Kiste federt kurz hoch (Deckel schnellt auf), Funken & Lichtstrahl steigen auf
+        const age = ch.opened && ch.openedAt !== undefined ? this.scene.time - ch.openedAt : 9;
+        let sy = 1;
+        let lift = 0;
+        if (age >= 0 && age < 0.45) {
+          const k = age / 0.45;
+          sy = 1 + Math.sin(k * Math.PI) * 0.1;
+          lift = Math.sin(k * Math.PI) * 3;
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.globalAlpha = (1 - k) * 0.8;
+          const beam = ctx.createLinearGradient(0, ch.y - 40, 0, ch.y - 8);
+          beam.addColorStop(0, 'rgba(253, 224, 71, 0)');
+          beam.addColorStop(1, 'rgba(253, 224, 71, 0.9)');
+          ctx.fillStyle = beam;
+          ctx.fillRect(ch.x - 7, ch.y - 40, 14, 32);
+          ctx.restore();
+          for (let i = 0; i < 7; i++) {
+            const t2 = (k + i * 0.13) % 1;
+            ctx.fillStyle = i % 2 ? '#fde047' : '#ffffff';
+            ctx.fillRect(Math.round(ch.x - 10 + i * 3.3), Math.round(ch.y - 12 - t2 * 22), 2, 2);
+          }
+        }
+        ctx.drawImage(chestSpr, ch.x - 17, ch.y - 23 - lift - (sy - 1) * 34, 34, 34 * sy);
       } else {
         drawPixelShadow(ctx, ch.x, ch.y + 10, 14, 4.5, 0.5);
         ctx.drawImage(

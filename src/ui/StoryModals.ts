@@ -1,3 +1,4 @@
+import { HUB_BUILDINGS } from '../data/hubBuildings';
 /**
  * Meilenstein 10-A — Story-UI: Dialog-Controller (Schreibmaschine, Antworten, „Später“) und Chronik.
  * Story-Text wird ausschließlich per textContent gesetzt (kein innerHTML → kein XSS durch Namen).
@@ -430,7 +431,33 @@ function trustBarHtml(npc: StoryNpcId, story: StoryProgress): string {
     </div>`;
 }
 
-export function renderChronicleHtml(story: StoryProgress): string {
+export interface ChronicleWorld {
+  openBuildings: readonly string[];
+  minaPresent: boolean;
+  pipPresent: boolean;
+  quartersTier: number;
+  shopTier: number;
+}
+
+/** „Port Solaris wächst“: Gebäude, Crew und Ausbau — wie sich die Station durch deine Taten verändert. */
+function worldGrowthHtml(w: ChronicleWorld): string {
+  const row = (ok: boolean, text: string, hint: string): string =>
+    `<div class="m9-file-sub">${ok ? '✔' : '🔒'} ${escapeHtml(text)}${ok ? '' : ` — ${escapeHtml(hint)}`}</div>`;
+  const rows = HUB_BUILDINGS.map((b) => row(w.openBuildings.includes(b.id), `${b.name} eröffnet`, b.lockedHint)).join('');
+  const crew =
+    row(w.minaPresent, 'Mina arbeitet in Kaels Schmiede', 'zieht nach Sektor 1 ein') +
+    row(w.pipPresent, 'Pip assistiert Dr. Lyra in der Med-Bay', 'kommt in Kapitel II');
+  const grow =
+    row(w.shopTier >= 1, `Astro-Barter ausgebaut (Stufe ${w.shopTier + 1}/3)`, 'Shop-Ausbau im Laden') +
+    row(w.quartersTier >= 1, `Kapitäns-Quartier ausgebaut (Stufe ${w.quartersTier + 1}/3)`, 'Quartier-Ausbau im Shop-Ausbau-Terminal');
+  return `
+    <details class="m10-chap" open>
+      <summary class="m10-chap-title">🏗 PORT SOLARIS WÄCHST</summary>
+      ${rows}${crew}${grow}
+    </details>`;
+}
+
+export function renderChronicleHtml(story: StoryProgress, world?: ChronicleWorld): string {
   const sceneTitleOf = (s: StoryScene): string => (s.npc === 'event' ? 'Fest' : NPC_META[s.npc].name);
   const cards = STORY_CHAPTERS.map((chap) => {
     if (chap.id > story.chapter) {
@@ -480,6 +507,6 @@ export function renderChronicleHtml(story: StoryProgress): string {
       <div style="font-family:var(--font-pixel);font-size:10.5px;color:#fde047">📜 CHRONIK VON PORT SOLARIS</div>
       <div class="m9-file-sub">Vertrauen zu deinen Freunden — ab ${TRUST_PERK_THRESHOLD} gibt es einen dauerhaften Bonus (nicht in der Galaktischen Prüfung).</div>
       <div class="m10-trust">${STORY_NPCS.map((n) => trustBarHtml(n, story)).join('')}</div>
-      <div class="m10-chronicle">${cards}</div>
+      <div class="m10-chronicle">${world ? worldGrowthHtml(world) : ''}${cards}</div>
     </div>`;
 }

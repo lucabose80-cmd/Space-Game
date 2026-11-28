@@ -300,3 +300,4 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 - [x] **W-08** `hub_lock_tech.png`, `hub_lock_black.png`, `hub_lock_terr.png` (Baustellen-/Gesperrt-Patches für Tech-Labor, Schwarzmarkt, Terrassen-Zugang)
 - [x] **W-09** `hub_tier_{forge,med,tech,shop}{1,2}.png` (8 Ausbau-Patches der Läden auf Port Solaris)
 - [x] **W-10** `vitrine_t1..t3` neu (strikt frontal), `prop_scoreboard.png` (Kiosk auf Bodenplatte), `shop_bg*.png` (Holz-Innentür), `hangar_bg.png` (Ausgangstür unten, linke Tür entfernt), `hub_tier_shop1/2` (Schild lesbar)
+- [x] **W-11** `shop_bg_t2.png`, `shop_bg_t3.png` neu (Raum-Evolution statt nur Tresen), `npc_pip.png` (Lyras Assistenz-Droide)

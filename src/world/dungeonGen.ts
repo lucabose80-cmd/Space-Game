@@ -42,6 +42,8 @@ export interface DestructiblePod {
 }
 
 export interface RoomChest {
+  /** Laufzeit: Zeitpunkt des Öffnens (für die Deckel-Animation) */
+  openedAt?: number;
   x: number;
   y: number;
   opened: boolean;

@@ -4310,6 +4310,7 @@ export class DungeonScene {
         if (input.interactPressed()) {
           if (!chest.opened) {
             chest.opened = true;
+            chest.openedAt = this.time;
             if (chest.secret) sound.playSecretChime();
             else sound.playUpgrade();
             const nightBoost = this.state.timeOfDay === 'night';

@@ -969,7 +969,13 @@ export class UIManager {
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:6px">${achCards}</div>
           </div>
 
-          ${renderChronicleHtml(this.state.story)}
+          ${renderChronicleHtml(this.state.story, {
+            openBuildings: this.state.hubUnlocks,
+            minaPresent: this.state.isMinaPresent(),
+            pipPresent: this.state.isPipPresent(),
+            quartersTier: this.state.upgrades.quartersTier ?? 0,
+            shopTier: this.state.upgrades.shopTier ?? 0,
+          })}
 
           <div class="inspector-box" style="gap:8px">
             <div style="display:flex;justify-content:space-between;align-items:center">
