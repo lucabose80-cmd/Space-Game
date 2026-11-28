@@ -252,6 +252,10 @@ export interface HDArtAssets {
   titlePlanet2: HTMLCanvasElement | null;
   titlePlanet3: HTMLCanvasElement | null;
   titlePlanetEmpty: HTMLCanvasElement | null;
+  /** Startscreen-Menüobjekte (P3-63…65): Weiterspielen / Neues Spiel / Slot leeren */
+  titleObjContinue: HTMLCanvasElement | null;
+  titleObjNew: HTMLCanvasElement | null;
+  titleObjClear: HTMLCanvasElement | null;
 }
 
 const art: HDArtAssets = {
@@ -507,6 +511,9 @@ const art: HDArtAssets = {
   titlePlanet2: null,
   titlePlanet3: null,
   titlePlanetEmpty: null,
+  titleObjContinue: null,
+  titleObjNew: null,
+  titleObjClear: null,
 };
 
 function loadImage(src: string): Promise<HTMLImageElement | null> {
@@ -705,6 +712,9 @@ export const CUTSCENE_OPTIONAL_SPRITES = {
   titlePlanet2: 'title_planet_2',
   titlePlanet3: 'title_planet_3',
   titlePlanetEmpty: 'title_planet_empty',
+  titleObjContinue: 'title_obj_continue',
+  titleObjNew: 'title_obj_new',
+  titleObjClear: 'title_obj_clear',
 } as const;
 
 export type CutsceneSpriteKey = keyof typeof CUTSCENE_OPTIONAL_SPRITES;

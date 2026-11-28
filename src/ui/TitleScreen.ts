@@ -16,7 +16,7 @@ export interface TitleScreenCallbacks {
 
 const planetUrlCache = new Map<string, string>();
 /** Data-URL eines geladenen Planeten-Sprites (P3-56…59) oder null → CSS-Fallback. */
-function planetUrl(key: 'titlePlanet1' | 'titlePlanet2' | 'titlePlanet3' | 'titlePlanetEmpty'): string | null {
+function planetUrl(key: 'titlePlanet1' | 'titlePlanet2' | 'titlePlanet3' | 'titlePlanetEmpty' | 'titleObjContinue' | 'titleObjNew' | 'titleObjClear'): string | null {
   const hit = planetUrlCache.get(key);
   if (hit) return hit;
   const c = getHDArt()[key];
@@ -28,6 +28,12 @@ function planetUrl(key: 'titlePlanet1' | 'titlePlanet2' | 'titlePlanet3' | 'titl
   } catch {
     return null;
   }
+}
+
+/** Menüobjekt-Sprite (P3-63…65) als <img> vor dem Label, sonst leer → Platten-Rückfall. */
+function objImg(key: 'titleObjContinue' | 'titleObjNew' | 'titleObjClear'): string {
+  const u = planetUrl(key);
+  return u ? `<img class="ts-obj" src="${u}" alt="" draggable="false" />` : '';
 }
 
 function escapeHtml(text: string): string {
@@ -321,15 +327,15 @@ export class TitleScreen {
             <div class="ts-actions">
               ${
                 hasSave
-                  ? `<button id="btn-continue" class="btn btn-primary ts-btn-hero" type="button">▶ Weiterspielen</button>`
+                  ? `<button id="btn-continue" class="btn btn-primary ts-btn-hero" type="button">${objImg('titleObjContinue')}<span class="ts-btn-label">▶ Weiterspielen</span></button>`
                   : ''
               }
               <button id="btn-new-game" class="btn ${hasSave ? 'ts-btn-secondary' : 'btn-primary ts-btn-hero'}" type="button">
-                ${hasSave ? '✦ Neues Spiel' : '▶ Expedition starten'}
+                ${objImg('titleObjNew')}<span class="ts-btn-label">${hasSave ? '✦ Neues Spiel' : '▶ Expedition starten'}</span>
               </button>
               ${
                 hasSave && slot !== 1
-                  ? `<button id="btn-slot-clear" class="btn btn-sm ts-btn-secondary" type="button">🗑 Slot leeren</button>`
+                  ? `<button id="btn-slot-clear" class="btn btn-sm ts-btn-secondary" type="button">${objImg('titleObjClear')}<span class="ts-btn-label">🗑 Slot leeren</span></button>`
                   : ''
               }
               ${
