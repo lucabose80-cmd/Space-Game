@@ -1792,6 +1792,9 @@ export class UIManager {
                 accent: meta.accentColor,
                 major: true,
                 minaPresent: this.state.isMinaPresent(),
+                building: 'forge',
+                fromTier: this.state.getHubTiers().forge,
+                toTier: this.state.getHubTiers().forge,
               },
               () => this.openStationShopModal(shop),
             );
@@ -1815,6 +1818,7 @@ export class UIManager {
       btn.addEventListener('click', () => {
         const key = btn.dataset.key as UpgradeKey;
         const prevLevel = this.state.upgrades[key];
+        const beforeTiers = this.state.getHubTiers();
         if (this.state.purchaseUpgrade(key)) {
           const nextLevel = this.state.upgrades[key];
           const track = UPGRADE_TRACKS.find((t) => t.key === key);
@@ -1845,6 +1849,10 @@ export class UIManager {
           this.renderHud();
           if (this.hooks.onUpgradeCutscene) {
             const isMajor = key === 'shopTier' || key === 'quartersTier';
+            const hubTierId = shop === 'forge' ? 'forge' : shop === 'medbay' ? 'med' : shop === 'techlab' ? 'tech' : null;
+            const buildingId = hubTierId;
+            const afterTiers = this.state.getHubTiers();
+            const buildingTierChanged = hubTierId !== null && afterTiers[hubTierId] !== beforeTiers[hubTierId];
             this.closeModal();
             this.hooks.onUpgradeCutscene(
               {
@@ -1860,8 +1868,13 @@ export class UIManager {
                     : 'Stufe III · 8 Podeste & 3 Lagertruhen freigeschaltet'
                   : `Stufe ${prevLevel} → Stufe ${nextLevel}`,
                 accent: isMajor ? '#fbbf24' : isForge ? '#fb923c' : isTechLab ? '#38bdf8' : '#34d399',
-                major: isMajor,
+                major: isMajor || buildingTierChanged,
                 minaPresent: this.state.isMinaPresent(),
+                ...(buildingId
+                  ? { building: buildingId, fromTier: beforeTiers[hubTierId as 'forge' | 'med' | 'tech'], toTier: afterTiers[hubTierId as 'forge' | 'med' | 'tech'] }
+                  : {}),
+                ...(key === 'shopTier' ? { room: 'shop' as const, fromTier: nextLevel - 1, toTier: nextLevel } : {}),
+                ...(key === 'quartersTier' ? { room: 'backroom' as const, fromTier: nextLevel - 1, toTier: nextLevel } : {}),
               },
               () => this.openStationShopModal(shop),
             );

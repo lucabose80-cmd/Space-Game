@@ -91,6 +91,8 @@ export class HubScene {
 
   /** Enthüllungs-Effekt frisch geöffneter Gebäude (Baustellen-Patch blendet aus). */
   private reveals: Array<{ id: HubBuildingId; t: number }> = [];
+  /** Upgrade-Cutscene: zeigt für ein Gebäude kurz die alte Stufe (Umbau-Animation). */
+  public tierOverride: Partial<Record<'forge' | 'med' | 'tech' | 'shop', number>> = {};
 
   public activePrompt: { label: string; x: number; y: number } | null = null;
   /** Blendet während Live-Promenaden-Cutscenes doppelte NPCs, Spieler, !-Marker & Prompts aus. */
@@ -711,7 +713,7 @@ export class HubScene {
     // Läden sehen je Upgrade-Stufe anders aus (Tech-Labor nur, wenn schon geöffnet)
     const tiers = this.state.getHubTiers();
     for (const def of HUB_TIER_PATCHES) {
-      const lvl = tiers[def.id];
+      const lvl = this.tierOverride[def.id] ?? tiers[def.id];
       if (lvl <= 0) continue;
       if (def.id === 'tech' && !this.state.isHubBuildingOpen('techlab')) continue;
       const patch = def.patches[lvl - 1];

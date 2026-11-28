@@ -107,6 +107,8 @@ export class CutsceneLab {
           <button data-lab-upg="weapon_kael" style="${btnStyle}">⚔ Waffe (nur Kael)</button>
           <button data-lab-upg="weapon_mina" style="${btnStyle}">🔨 Waffe (Kael &amp; Mina)</button>
           <button data-lab-upg="shop" style="${btnStyle}">🏪 Laden-Ausbau (Stufe II)</button>
+          <button data-lab-upg="quarters" style="${btnStyle}">🛏 Quartier-Ausbau (Stufe II)</button>
+          <button data-lab-upg="med_step" style="${btnStyle}">⚕ Med-Bay-Umbau</button>
           <button data-lab-upg="ship" style="${btnStyle}">🚀 Schiff-Enthüllung</button>
           <button data-lab-upg="forge_step" style="${btnStyle}">✨ Schmiede-Stufe (+1)</button>
           <button data-lab-upg="tech_step" style="${btnStyle}">🔬 Tech-Modul (+1)</button>
@@ -160,6 +162,9 @@ export class CutsceneLab {
             accent: '#38e8d4',
             major: true,
             minaPresent: false,
+            building: 'forge',
+            fromTier: 0,
+            toTier: 1,
           });
         } else if (kind === 'weapon_mina') {
           this.host.playUpgradeCutscene({
@@ -169,6 +174,9 @@ export class CutsceneLab {
             accent: '#fb923c',
             major: true,
             minaPresent: true,
+            building: 'forge',
+            fromTier: 1,
+            toTier: 2,
           });
         } else if (kind === 'shop') {
           this.host.playUpgradeCutscene({
@@ -177,6 +185,31 @@ export class CutsceneLab {
             subtitle: 'Stufe II · 6 Podeste & Sale-Box freigeschaltet',
             accent: '#fbbf24',
             major: true,
+            room: 'shop',
+            fromTier: 0,
+            toTier: 1,
+          });
+        } else if (kind === 'quarters') {
+          this.host.playUpgradeCutscene({
+            kind: 'quarters',
+            title: 'QUARTIER-AUSBAU',
+            subtitle: 'Stufe II · Drohnen-Dock & Jukebox installiert',
+            accent: '#fbbf24',
+            major: true,
+            room: 'backroom',
+            fromTier: 0,
+            toTier: 1,
+          });
+        } else if (kind === 'med_step') {
+          this.host.playUpgradeCutscene({
+            kind: 'tech_step',
+            title: 'BIO-REGENERATION',
+            subtitle: 'Stufe 1 → Stufe 2',
+            accent: '#34d399',
+            major: true,
+            building: 'med',
+            fromTier: 0,
+            toTier: 1,
           });
         } else if (kind === 'ship') {
           this.host.playUpgradeCutscene({
@@ -194,6 +227,9 @@ export class CutsceneLab {
             subtitle: 'Stufe 2 → Stufe 3',
             accent: '#fb923c',
             major: false,
+            building: 'forge',
+            fromTier: 1,
+            toTier: 1,
           });
         } else if (kind === 'tech_step') {
           this.host.playUpgradeCutscene({

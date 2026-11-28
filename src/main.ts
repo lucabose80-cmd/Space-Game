@@ -721,6 +721,24 @@ class StarlighterGame {
 
   public playUpgradeCutscene(config: UpgradeCutsceneConfig, onDone?: () => void): void {
     this.upgradeCutscene?.dispose();
+    if (config.building && this.activeScene === 'hub') {
+      // Umbau live im Hub: alte Stufe zeigen, im Enthüllungs-Moment auf die neue wechseln
+      const b = config.building;
+      this.hubScene.activePrompt = null;
+      this.hubScene.tierOverride = { [b]: config.fromTier ?? 0 };
+      const prevReveal = config.onReveal;
+      const prevEnd = config.onEnd;
+      config.onReveal = () => {
+        this.hubScene.tierOverride = {};
+        prevReveal?.();
+      };
+      config.onEnd = () => {
+        this.hubScene.tierOverride = {};
+        prevEnd?.();
+      };
+    } else if (config.building) {
+      config = { ...config, building: undefined };
+    }
     this.upgradeCutscene = new UpgradeCutsceneOverlay(config);
     this.upgradeCutsceneOnDone = onDone ?? null;
     if (config.major) this.setHudVisible(false);
