@@ -25,13 +25,14 @@ export const STORY_CHAPTERS: StoryChapterDef[] = [
     id: 0,
     title: 'Prolog · Ankunft auf Port Solaris',
     trigger: 'Spielstart',
-    stationChange: 'Grundzustand der Promenade.',
+    stationChange:
+      'Grundzustand: Tech-Labor, Schwarzmarkt und Terrasse sind noch Baustellen. Sie öffnen durch deine Expeditionen und Geschäfte.',
   },
   {
     id: 1,
     title: 'Kapitel I · Junos Zeichen',
     trigger: 'Nach dem Sieg über A.E.G.I.S. LEVIATHAN',
-    stationChange: 'Die Lichterketten über der Promenade leuchten wieder.',
+    stationChange: 'Die Lichterketten leuchten wieder, die Marktplatz-Terrasse wird freigegeben und Kaels Gehilfin Mina zieht ein.',
   },
   {
     id: 2,
@@ -165,6 +166,8 @@ export const STROLLER_PLAN: Array<{ minChapter: number; kind: StrollerKind }> = 
 export interface ChatterLine {
   /** Höchstens 68 Zeichen (2 Zeilen à 34). */
   text: string;
+  /** Nur wenn dieser Weltzustand gilt (z. B. 'techlab_locked', 'terrace_open', 'quarters_2', 'shop_2'). */
+  needs?: string;
   minChapter: number;
   maxChapter?: number;
   flag?: StoryFlagId;
@@ -191,6 +194,15 @@ export const CHATTER_LINES: ChatterLine[] = [
   { text: 'Die Wimpel hat Kael bezahlt, sagt man.', minChapter: 3, maxChapter: 3 },
   { text: 'Der Titan war ein Schmied? Unheimlich.', minChapter: 3, maxChapter: 4 },
   { text: 'Wer war der Mann mit dem goldenen Ring?', minChapter: 3, maxChapter: 4 },
+  // Weltzustand: Baustellen & Ausbau
+  { text: 'Im Tech-Labor wird noch gehämmert. Wochenlang.', minChapter: 0, needs: 'techlab_locked' },
+  { text: 'Nyx’ Stand ist zu. Wer weiß, was sie plant.', minChapter: 0, needs: 'blackmarket_locked' },
+  { text: 'Die Terrasse bleibt zu, bis der Leviathan fällt.', minChapter: 0, maxChapter: 0, needs: 'terrace_locked' },
+  { text: 'Vex hat endlich ihr Labor eröffnet!', minChapter: 0, maxChapter: 2, needs: 'techlab_open' },
+  { text: 'Milos Elixiere riechen nach Ozon und Honig.', minChapter: 1, needs: 'terrace_open' },
+  { text: 'Der Kapitän hat jetzt eine Jukebox im Quartier!', minChapter: 0, maxChapter: 3, needs: 'quarters_1' },
+  { text: 'Gold bis unters Dach: die Suite des Kapitäns.', minChapter: 0, needs: 'quarters_2' },
+  { text: 'Astro-Barter glänzt wie ein Flaggschiff-Basar.', minChapter: 0, needs: 'shop_2' },
   // Kapitel 4
   { text: 'Der Obelisk summt nachts. Beruhigend.', minChapter: 4, maxChapter: 4 },
   { text: 'Vier Siegel … und das Tor ist offen.', minChapter: 4, maxChapter: 4 },
@@ -208,9 +220,10 @@ export const CHATTER_LINES: ChatterLine[] = [
 ];
 
 /** Reine Auswahl der passenden Zeilen für Kapitel + Flags. */
-export function getChatterPool(chapter: number, flags: readonly StoryFlagId[]): ChatterLine[] {
+export function getChatterPool(chapter: number, flags: readonly StoryFlagId[], facts?: readonly string[]): ChatterLine[] {
   return CHATTER_LINES.filter(
     (l) =>
+      (l.needs === undefined || (facts?.includes(l.needs) ?? false)) &&
       chapter >= l.minChapter &&
       (l.maxChapter === undefined || chapter <= l.maxChapter || l.flag !== undefined) &&
       (l.flag === undefined || flags.includes(l.flag)),

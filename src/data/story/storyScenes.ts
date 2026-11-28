@@ -324,7 +324,7 @@ export const STORY_SCENES: StoryScene[] = [
     id: 'nyx_c0', npc: 'nyx', chapter: 0, title: 'Nicht im Katalog', start: 'n1',
     nodes: {
       n1: { speaker: 'nyx', text: 'Psst. Nicht jede Ware steht im Katalog. Manche steht nur in meinem Kopf.', next: 'n2' },
-      n2: { speaker: 'narrator', text: 'Nyx lehnt sich über den Tresen. Zwischen ihren Fingern wandert eine Münze hin und her, ohne je herunterzufallen.', next: 'n3' },
+      n2: { speaker: 'narrator', text: 'Hinter Nyx sind die Ketten ihres Standes gerade erst gefallen. Sie lehnt sich über den Tresen; zwischen ihren Fingern wandert eine Münze, ohne je herunterzufallen.', next: 'n3' },
       n3: {
         speaker: 'nyx',
         text: 'Ein Rätsel für Neue: Ich verkaufe dir einen Schlüssel ohne Schloss. Kaufst du?',
@@ -484,7 +484,7 @@ export const STORY_SCENES: StoryScene[] = [
   {
     id: 'vex_c0', npc: 'vex', chapter: 0, title: 'Frische Daten', start: 'n1',
     nodes: {
-      n1: { speaker: 'vex', text: 'Ein neuer Kapitän! Perfekt! Schau — ich zeichne das Echo seit Wochen auf. Das Muster wiederholt sich alle 47 Sekunden. Alle. Siebenundvierzig.', next: 'n2' },
+      n1: { speaker: 'vex', text: 'Ein neuer Kapitän! Das Labor ist frisch fertig, entschuldige die Kabel. Ich zeichne das Echo seit Wochen auf: Es wiederholt sich alle 47 Sekunden. Alle. Siebenundvierzig.', next: 'n2' },
       n2: {
         speaker: 'vex',
         text: 'Meine Kollegen sagen Störfunk. Aber Störfunk hat keinen Rhythmus! Was denkst du?',

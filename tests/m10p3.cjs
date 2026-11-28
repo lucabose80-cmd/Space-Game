@@ -47,7 +47,8 @@ module.exports = async ({ page, scratch }) => {
     hub.render(ctx);
     // pool filter
     const texts = new Set(); for (let i = 0; i < 400; i++) { hub.chatter = null; hub.triggerChatter(true); if (hub.chatter) texts.add(hub.chatter.text); }
-    out.poolOk = [...texts].every((t) => ch.getChatterPool(2, ['vex_shared_signal']).some((l) => l.text === t));
+    const allFacts = [...new Set(ch.CHATTER_LINES.map((l) => l.needs).filter(Boolean))];
+    out.poolOk = [...texts].every((t) => ch.getChatterPool(2, ['vex_shared_signal'], allFacts).some((l) => l.text === t)) && ch.CHATTER_LINES.every((l) => l.text.length <= 68);
     out.hasFlagLine = texts.has('Vex sagt, das Echo sind Koordinaten!');
     out.noWrongChapter = ![...texts].some((t) => ch.CHATTER_LINES.find((l) => l.text === t && l.minChapter > 2));
     hub.chatter = null; hub.activePrompt = { label: 'x', x: 0, y: 0 }; out.blockedByPrompt = hub.triggerChatter() === false;

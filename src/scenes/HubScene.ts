@@ -576,7 +576,10 @@ export class HubScene {
   public triggerChatter(force = false): boolean {
     if (this.chatter && !force) return false;
     if (this.activePrompt && !force) return false;
-    const pool = getChatterPool(this.state.story.chapter, this.state.story.flags);
+    const tiers = this.state.getHubTiers();
+    const facts: string[] = [`shop_${tiers.shop}`, `quarters_${this.state.upgrades.quartersTier ?? 0}`];
+    for (const id of ['techlab', 'blackmarket', 'terrace'] as const) facts.push(`${id}_${this.state.isHubBuildingOpen(id) ? 'open' : 'locked'}`);
+    const pool = getChatterPool(this.state.story.chapter, this.state.story.flags, facts);
     if (pool.length === 0) return false;
     const candidates: number[] = [];
     this.strollers.forEach((st, i) => {
