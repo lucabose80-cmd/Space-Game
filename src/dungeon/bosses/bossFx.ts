@@ -480,28 +480,14 @@ export class BossFx {
       const len = Math.hypot(x2 - z.x, y2 - z.y) || 1;
       const ang = Math.atan2(y2 - z.y, x2 - z.x);
       const bw = Math.max(32, (z.width ?? 16) * 2.0);
-      const muzBase = Math.max(46, bw * 1.15);
+      // Düsen-Kopf wird in leviathanArena.drawLeviathanArena über dem Körper gezeichnet (Rig würde ihn sonst verdecken)
       if (warn) {
-        // Gewaltiger Auflade-Mündungsblitz direkt am Reaktorkern + fokussierter Zielstrahl
-        if (art.arenaLeviathanMuzzle) {
-          ctx.save();
-          ctx.globalCompositeOperation = 'lighter';
-          ctx.globalAlpha = 0.45 + 0.55 * prog;
-          sprite(art.arenaLeviathanMuzzle, z.x, z.y, muzBase * (0.4 + 0.65 * prog), time * 6);
-          ctx.restore();
-        }
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
+        // Zielstrahl (dünn) + auflodernde Düse
         ctx.strokeStyle = '#fb7185';
-        ctx.lineWidth = Math.max(3, bw * 0.14) * (0.5 + 0.8 * prog);
-        ctx.globalAlpha = 0.3 + 0.45 * prog;
-        ctx.beginPath();
-        ctx.moveTo(z.x, z.y);
-        ctx.lineTo(x2, y2);
-        ctx.stroke();
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 1.4 + prog * 1.6;
-        ctx.globalAlpha = 0.45 + 0.5 * prog;
+        ctx.lineWidth = Math.max(2, bw * 0.08) * (0.5 + 0.8 * prog);
+        ctx.globalAlpha = 0.25 + 0.4 * prog;
         ctx.beginPath();
         ctx.moveTo(z.x, z.y);
         ctx.lineTo(x2, y2);
@@ -509,57 +495,44 @@ export class BossFx {
         ctx.restore();
       } else {
         const a = Math.min(1, (1 - kAct) * 2.8);
-        const wPulse = 0.92 + 0.14 * Math.sin(time * 42);
-        const wCore = (z.width ?? 28) * wPulse;
+        const wPulse = 0.94 + 0.1 * Math.sin(time * 42);
+        const bodyW = (z.width ?? 28) * 1.55 * wPulse;
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
         ctx.lineCap = 'round';
-        // 1. Weiche äußere Plasma-Aura
-        ctx.globalAlpha = 0.28 * a;
+        // weiche Aura unter dem Sprite-Strahl
+        ctx.globalAlpha = 0.2 * a;
         ctx.strokeStyle = '#f43f5e';
-        ctx.lineWidth = wCore * 1.9;
+        ctx.lineWidth = bodyW * 1.5;
         ctx.beginPath();
         ctx.moveTo(z.x, z.y);
         ctx.lineTo(x2, y2);
         ctx.stroke();
-        // 2. Kräftiger orange-roter Energie-Mantel
-        ctx.globalAlpha = 0.72 * a;
-        ctx.strokeStyle = '#fb923c';
-        ctx.lineWidth = wCore * 1.1;
-        ctx.beginPath();
-        ctx.moveTo(z.x, z.y);
-        ctx.lineTo(x2, y2);
-        ctx.stroke();
-        // 3. Gleißender weiß-heißer Reaktor-Kernstrahl
-        ctx.globalAlpha = 0.95 * a;
-        ctx.strokeStyle = '#fffbeb';
-        ctx.lineWidth = wCore * 0.48;
-        ctx.beginPath();
-        ctx.moveTo(z.x, z.y);
-        ctx.lineTo(x2, y2);
-        ctx.stroke();
-        // 4. Schnell vorbeischießende Energie-Schlieren entlang des Strahls
+        ctx.restore();
+        const body = art.arenaLeviathanFxBeamBody;
         ctx.save();
+        ctx.globalAlpha = a;
         ctx.translate(z.x, z.y);
-        ctx.rotate(ang);
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 1.6;
-        for (let i = 0; i < 6; i++) {
-          const u = ((time * 3.2 + i / 6) % 1);
-          const sx = u * len;
-          const sy = Math.sin(i * 2.1 + time * 18) * (wCore * 0.42);
-          ctx.globalAlpha = 0.75 * a * Math.sin(u * Math.PI);
-          ctx.beginPath();
-          ctx.moveTo(sx, sy);
-          ctx.lineTo(Math.min(len, sx + 28), sy);
-          ctx.stroke();
+        ctx.rotate(ang - Math.PI / 2);
+        if (body) {
+          const segLen = (bodyW * body.height) / body.width;
+          const steps = Math.max(1, Math.ceil(len / segLen));
+          // Kachel-Strahl von der Düse bis zum Ziel (Segmente laufen leicht animiert)
+          for (let i = 0; i < steps; i++) {
+            const y0 = i * segLen + ((time * 90) % segLen) * 0 + 0;
+            ctx.drawImage(body, -bodyW / 2, y0, bodyW, Math.min(segLen + 1, len - y0 + 1));
+          }
         }
         ctx.restore();
-        if (art.arenaLeviathanMuzzle) {
+        // Einschlag-Krater am Strahlende
+        const imp = art.arenaLeviathanFxBeamImpact;
+        if (imp) {
+          const iw = bodyW * 2.1;
+          ctx.save();
           ctx.globalAlpha = a;
-          sprite(art.arenaLeviathanMuzzle, z.x, z.y, muzBase * 1.05 + 10 * Math.sin(time * 40), time * 8);
+          ctx.drawImage(imp, x2 - iw / 2, y2 - (iw * imp.height) / imp.width * 0.78, iw, (iw * imp.height) / imp.width);
+          ctx.restore();
         }
-        ctx.restore();
       }
     } else if (z.fx === 'whip') {
       const art = getHDArt();
@@ -568,37 +541,49 @@ export class BossFx {
       const len = Math.hypot(x2 - z.x, y2 - z.y) || 1;
       const ang = Math.atan2(y2 - z.y, x2 - z.x);
       const bw = Math.max(16, (z.width ?? 16) * 1.35);
-      if (warn) {
+      const crack = art.arenaLeviathanFxCrackLine;
+      /** Riss-Spur: Spalt-Sprites aneinandergereiht von der Faust bis zum Ziel */
+      const drawCrack = (alpha: number): void => {
+        if (!crack) return;
         ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.strokeStyle = '#c084fc';
-        ctx.lineWidth = 1.5 + prog * 1.4;
-        ctx.globalAlpha = 0.4 + 0.5 * prog;
-        ctx.beginPath();
-        ctx.moveTo(z.x, z.y);
-        for (let i = 1; i <= 8; i++) {
-          const u = i / 8;
-          const wx = z.x + (x2 - z.x) * u;
-          const wy = z.y + (y2 - z.y) * u + Math.sin(time * 24 + i * 1.3) * 4 * prog;
-          ctx.lineTo(wx, wy);
-        }
-        ctx.stroke();
-        ctx.restore();
-      } else if (art.arenaLeviathanWhip) {
-        const a = Math.min(1, (1 - kAct) * 2.2);
-        ctx.save();
-        ctx.globalAlpha = a;
         ctx.translate(z.x, z.y);
         ctx.rotate(ang);
-        const segW = 44;
-        const steps = Math.max(1, Math.ceil(len / segW));
-        for (let i = 0; i < steps; i++) {
-          const x0 = (i / steps) * len;
-          const w = len / steps + 2;
-          const wave = Math.sin(time * 36 + i * 1.4) * 3.5;
-          ctx.drawImage(art.arenaLeviathanWhip, x0, -bw / 2 + wave, w, bw);
-        }
+        ctx.globalAlpha = alpha;
+        const ch = bw * 1.5;
+        const cw = (ch * crack.width) / crack.height;
+        const steps = Math.max(1, Math.ceil(len / cw));
+        for (let i = 0; i < steps; i++) ctx.drawImage(crack, (i * len) / steps, -ch / 2, len / steps + 2, ch);
         ctx.restore();
+      };
+      if (warn) {
+        // Vorwarnung: es reißt schon — dünner glühender Riss entlang der Bahn
+        drawCrack(0.2 + 0.5 * prog);
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = '#fdba74';
+        ctx.lineWidth = 1.2 + prog * 1.2;
+        ctx.globalAlpha = 0.3 + 0.4 * prog;
+        ctx.beginPath();
+        ctx.moveTo(z.x, z.y);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        ctx.restore();
+      } else {
+        drawCrack(Math.max(0.35, 1 - kAct * 0.7));
+        // Welle: Staub-/Gesteinswand mit glühender Kante rollt von der Faust zum Ziel
+        const shock = art.arenaLeviathanFxShock;
+        if (shock) {
+          const a = Math.min(1, (1 - kAct) * 2.2);
+          const sw = Math.min(len, 150);
+          const sh = Math.max(44, bw * 1.7);
+          const head = len * (0.2 + 0.8 * Math.min(1, kAct * 1.6));
+          ctx.save();
+          ctx.globalAlpha = a;
+          ctx.translate(z.x, z.y);
+          ctx.rotate(ang);
+          ctx.drawImage(shock, head - sw, -sh / 2, sw, sh);
+          ctx.restore();
+        }
       }
     } else if (z.fx === 'flame') {
       const art = getHDArt();
