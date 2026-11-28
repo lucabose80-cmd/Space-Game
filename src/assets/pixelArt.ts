@@ -95,3 +95,81 @@ export function drawPixelShadow(
   ctx.fill();
   ctx.restore();
 }
+
+/** Sichtbarer Fußabdruck eines Sprites (Anteile 0..1), einmal pro Bild gemessen. */
+interface SpriteFootprint {
+  left: number;
+  right: number;
+  bottom: number;
+}
+const footprintCache = new WeakMap<CanvasImageSource, SpriteFootprint>();
+
+function measureFootprint(img: CanvasImageSource): SpriteFootprint {
+  const cached = footprintCache.get(img);
+  if (cached) return cached;
+  let fp: SpriteFootprint = { left: 0.1, right: 0.9, bottom: 1 };
+  try {
+    const w = (img as HTMLImageElement | HTMLCanvasElement).width;
+    const h = (img as HTMLImageElement | HTMLCanvasElement).height;
+    if (w > 0 && h > 0) {
+      const c = document.createElement('canvas');
+      c.width = w;
+      c.height = h;
+      const cx = c.getContext('2d', { willReadFrequently: true });
+      if (cx) {
+        cx.drawImage(img, 0, 0);
+        const data = cx.getImageData(0, 0, w, h).data;
+        let bottom = -1;
+        for (let y = h - 1; y >= 0 && bottom < 0; y--) {
+          for (let x = 0; x < w; x++) {
+            if (data[(y * w + x) * 4 + 3] > 40) {
+              bottom = y;
+              break;
+            }
+          }
+        }
+        if (bottom >= 0) {
+          // Breite der untersten ~12 % sichtbaren Zeilen = tatsächliche Standfläche
+          const band = Math.max(2, Math.round(h * 0.12));
+          let l = w;
+          let r = -1;
+          for (let y = Math.max(0, bottom - band); y <= bottom; y++) {
+            for (let x = 0; x < w; x++) {
+              if (data[(y * w + x) * 4 + 3] > 40) {
+                if (x < l) l = x;
+                if (x > r) r = x;
+              }
+            }
+          }
+          if (r >= l) fp = { left: l / w, right: (r + 1) / w, bottom: (bottom + 1) / h };
+        }
+      }
+    }
+  } catch {
+    /* Bild nicht lesbar → Standardwerte */
+  }
+  footprintCache.set(img, fp);
+  return fp;
+}
+
+/**
+ * Kontaktschatten genau an der sichtbaren Unterkante eines gezeichneten Sprites (statt an einer geschätzten Position).
+ * Zwei Lagen: breiter weicher Schatten + dunkler Kontaktkern direkt unter der Standfläche → Props sitzen auf dem Boden
+ * statt zu schweben. Vor dem Sprite aufrufen (Schatten liegt dahinter).
+ */
+export function drawContactShadow(
+  ctx: CanvasRenderingContext2D,
+  img: CanvasImageSource | null | undefined,
+  dx: number,
+  dy: number,
+  dw: number,
+  dh: number,
+  alpha = 0.5,
+): void {
+  const fp = img ? measureFootprint(img) : { left: 0.1, right: 0.9, bottom: 1 };
+  const baseW = Math.max(4, (fp.right - fp.left) * dw);
+  const cx = dx + ((fp.left + fp.right) / 2) * dw;
+  const by = dy + fp.bottom * dh;
+  drawPixelShadow(ctx, cx, by - 0.5, baseW * 0.62, Math.max(2.2, baseW * 0.2), alpha * 0.55);
+  drawPixelShadow(ctx, cx, by - 1.5, baseW * 0.46, Math.max(1.6, baseW * 0.12), alpha);
+}

@@ -1,5 +1,5 @@
 import { getHDArt } from '../assets/artLoader';
-import { drawGlow, drawPixelShadow } from '../assets/pixelArt';
+import { drawContactShadow, drawGlow, drawPixelShadow } from '../assets/pixelArt';
 import { getAtlas } from '../assets/sprites';
 import { sound } from '../engine/audio';
 import { VIRTUAL_HEIGHT, VIRTUAL_WIDTH, type InputManager } from '../engine/input';
@@ -781,9 +781,11 @@ export class HubScene {
     drawables.push({
       y: GUILD_BOARD_POS.y + 8,
       draw: () => {
-        drawPixelShadow(ctx, GUILD_BOARD_POS.x, GUILD_BOARD_POS.y + 11, 20, 5.5, 0.54);
         if (art.propScoreboard) {
+          drawContactShadow(ctx, art.propScoreboard, GUILD_BOARD_POS.x - 22, GUILD_BOARD_POS.y - 31, 44, 44, 0.6);
           ctx.drawImage(art.propScoreboard, GUILD_BOARD_POS.x - 22, GUILD_BOARD_POS.y - 31, 44, 44);
+        } else {
+          drawPixelShadow(ctx, GUILD_BOARD_POS.x, GUILD_BOARD_POS.y + 11, 20, 5.5, 0.54);
         }
       },
     });

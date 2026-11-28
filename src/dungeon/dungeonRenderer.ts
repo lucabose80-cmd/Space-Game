@@ -1,5 +1,5 @@
 import { getHDArt } from '../assets/artLoader';
-import { drawGlow, drawPixelShadow } from '../assets/pixelArt';
+import { drawContactShadow, drawGlow, drawPixelShadow } from '../assets/pixelArt';
 import { drawBossLook } from './bosses/bossLooks';
 import { getBossPose, getRigFacing, smoothBossBody } from './anim/bossAnims';
 import { ARC_DEATH_TIME, arcDeathPose } from './anim/rigs/drone_arc';
@@ -407,10 +407,11 @@ export class DungeonRenderer {
 
     for (const pod of this.scene.currentRoom.pods) {
       if (!pod.broken) {
-        drawPixelShadow(ctx, pod.x, pod.y + 9, 9, 3.5, 0.48);
         if (art.podIntact) {
+          drawContactShadow(ctx, art.podIntact, pod.x - 11, pod.y - 13, 22, 24, 0.55);
           ctx.drawImage(art.podIntact, pod.x - 11, pod.y - 13, 22, 24);
         } else {
+          drawPixelShadow(ctx, pod.x, pod.y + 9, 9, 3.5, 0.48);
           ctx.drawImage(atlas.props.podIntact, Math.round(pod.x - 8), Math.round(pod.y - 7));
         }
         drawGlow(ctx, pod.x, pod.y - 1, 16, '#fbbf24', 0.22);
@@ -421,11 +422,12 @@ export class DungeonRenderer {
 
     if (this.scene.currentRoom.chest) {
       const ch = this.scene.currentRoom.chest;
-      drawPixelShadow(ctx, ch.x, ch.y + 10, 14, 4.5, 0.5);
       const chestSpr = ch.opened ? art.chestOpen : art.chestClosed;
       if (chestSpr) {
+        drawContactShadow(ctx, chestSpr, ch.x - 14, ch.y - 13, 28, 25, 0.6);
         ctx.drawImage(chestSpr, ch.x - 14, ch.y - 13, 28, 25);
       } else {
+        drawPixelShadow(ctx, ch.x, ch.y + 10, 14, 4.5, 0.5);
         ctx.drawImage(
           ch.opened ? atlas.props.chestOpen : atlas.props.chestClosed,
           Math.round(ch.x - 10),
