@@ -41,7 +41,7 @@ module.exports = async ({ page, PORT }) => {
       out.arena = !!boss.levArena && boss.levArena.state === 'intro';
       step(d, 0.1);
       out.intro = [d.camera.inputLocked, !!d.arenaBanner, d.arenaBanner?.title];
-      const h0 = boss.hp; hitAt(d, boss, boss.x, boss.y + 6, 200); out.introNoDmg = boss.hp === h0;
+      const h0 = boss.hp; hitAt(d, boss, boss.x, boss.y + 19, 200); out.introNoDmg = boss.hp === h0;
       // Spieler kann sich während des Auftritts nicht bewegen
       const px = d.playerX; step(d, 1.0, mkInput({ x: 1, y: 0 })); out.introLocked = Math.round(d.playerX - px);
       step(d, 1.6); out.introEnd = [boss.levArena.state !== 'intro', d.camera.inputLocked];
@@ -57,7 +57,7 @@ module.exports = async ({ page, PORT }) => {
       // Panzer: Körper treffen → kein Schaden
       let h0 = boss.hp; hitAt(d, boss, boss.x, boss.y - 10); out.armor = [boss.hp === h0, d.floats.some((f) => f.text === 'GEPANZERT')];
       // Linse in Phase I zu → kein Schaden
-      h0 = boss.hp; hitAt(d, boss, boss.x, boss.y + 6); out.lensClosed = boss.hp === h0;
+      h0 = boss.hp; hitAt(d, boss, boss.x, boss.y + 19); out.lensClosed = boss.hp === h0;
       // Ventil in Phase I → Panzer
       const v0 = L.vents[0]; h0 = boss.hp; hitAt(d, boss, v0.x + 10, v0.y); out.ventP1 = [boss.hp === h0, v0.hp === v0.maxHp];
       out.vents = L.vents.length;
@@ -84,13 +84,13 @@ module.exports = async ({ page, PORT }) => {
       out.ventCap = Math.round(hv - boss.hp) === v.maxHp;
       out.vent = [v.broken, Math.round(L.lensOpen * 10) / 10];
       out.aimPts = LA.arenaAimPoints(boss).map((p) => p.idx).sort();
-      h0 = boss.hp; hitAt(d, boss, boss.x, boss.y + 6, 100); out.lensHit = Math.round(h0 - boss.hp);
+      h0 = boss.hp; hitAt(d, boss, boss.x, boss.y + 19, 100); out.lensHit = Math.round(h0 - boss.hp);
       step(d, 3.2); out.lensClosedAgain = LA.lensIsOpen(L);
       // Phase III bei 30 %
       boss.hp = boss.maxHp * 0.29; step(d, 0.1);
       out.p3 = [L.phase, LA.lensIsOpen(L)];
       step(d, 2.6);
-      h0 = boss.hp; hitAt(d, boss, boss.x, boss.y + 6, 100); out.lensP3 = Math.round(h0 - boss.hp);
+      h0 = boss.hp; hitAt(d, boss, boss.x, boss.y + 19, 100); out.lensP3 = Math.round(h0 - boss.hp);
       boss.hp = boss.maxHp * 0.14; step(d, 0.1); out.critical = L.critical;
       // ein paar Züge in Phase III laufen lassen (Glut-Wellen, Puls, Griff)
       step(d, 14);
