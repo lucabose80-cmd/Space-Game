@@ -1008,9 +1008,9 @@ export function drawLeviathanBodyStatic(ctx: CanvasRenderingContext2D, room: Dun
     const deadPose = {
       carriage: { dx: 0, dy: 0, rot: 0 },
       torso: { dx: 0, dy: 4, rot: 0, variant: 3 },
-      head: { dx: 0, dy: 5, rot: 0.14, variant: 1 },
-      armL: { rot: -0.1, dy: 8, variant: 3 },
-      armR: { rot: 0.1, dy: 8, variant: 3 },
+      head: { dx: 0, dy: 5, rot: 0.14, variant: 2 },
+      armL: { rot: -0.08, dy: 10, variant: 5 },
+      armR: { rot: 0.08, dy: 10, variant: 5 },
     };
     drawRig(ctx, rigDef, rigImgs, lx, ly, deadPose);
     return;

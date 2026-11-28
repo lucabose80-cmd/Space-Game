@@ -88,6 +88,13 @@
 ## Achtung für parallele Chats
 - Phase A (Raumgrenzen pro Raum) und B (Kamera) ändern die gemeinsamen Dateien `DungeonScene.ts`, `enemyAi.ts`, `dungeonRenderer.ts`, `bossEngine.ts`, `bossFx.ts`, `navGrid.ts`. Solange A/B laufen, steht das hier als **„A/B läuft“** — Rig-Chats dann nur kleine Renderer-Änderungen und vorher `git fetch`.
 
+
+### Leviathan-Rig-Politur (Arme schwebten, Schlaf-/Tod-Zustand)
+- **Ursache „Arme schweben weit weg“:** Die Torso-PNGs (`torso`, `torsoP2`) lagen im 200×200-Rahmen bis zu 26 px rechts der Mitte (P3/Dead mittig) und `attach` der Arme war 0.06/0.94 + `offset ±28` → linker Arm 40+ px neben dem Körper, Torso-Varianten sprangen beim Phasenwechsel. Fix: `scripts/leviathan-center-torso.py` (Torso-Varianten auf Mitte 100 schieben), Arme `attach [0.1|0.9, 0.4]`, `pivot [0.42, 0.41]` (= Schulter-Kugel im Arm-Bild), `offset 0`; Kopf `pivot.x 0.67` (Kopf-Inhalt liegt rechts im 110er-Rahmen). **Lehre:** Pivot/Attach immer aus der echten Inhalts-Bbox (nicht aus Bildmitte) rechnen; `python3` + Pillow/numpy genügt (`getbbox`/Alpha).
+- **Tod/Schlaf ohne Sprite:** Tote Arme nutzten `armDmg` (glühende Lava-Risse), Kopf blieb cyan-leuchtend. Neu per `art:gen`: `armDead.png` (Variante 5 beider Arme) + `headDead.png` (Kopf-Variante 2), Rohbilder `art_source/rigs/boss_leviathan_armDead.png`/`_headDead.png`, Nachbearbeitung (Flood-Fill, Maßstab auf `armIdle`/`head`-Bbox) mit `scripts/leviathan-dead-parts.py <roh.png> armDead|headDead`. Verwendet in `anim/rigs/boss_leviathan.ts` (dead) und `drawLeviathanBodyStatic`.
+- **Prüfen:** `node scripts/rig-sheet.cjs boss_leviathan` (Fälle ruhe/hebt/schlag/steckt/beam/P2/P3/tot) → `tests/out/rig_boss_leviathan.png`. Frische VM: erst `npm install`.
+- Offen: kleine weiße Rauch-Pixel am Rand von `armDead.png` (Rauch war fast weiß im Rohbild) — kosmetisch, ggf. Nachbestellen/Nachzeichnen.
+
 ## Nächster Schritt
 1. **Abnahme Pilot A.E.G.I.S. Leviathan im echten Spiel** (Stufe 8 — live in Sektor 1 Ebene III oder `?bosslab` → ARENEN → 🏟 Leviathan): Kampfgefühl, alle 4 Körper-Phasen, Plattenbruch/Dampf/Trümmer, Schatzkammer & Mobil-Check (A9). Notfall-Rückweg: `ENDBOSS_ARENA_LIVE = false` in `balance.ts`.
 2. Phase A/B-Marker entfernen, sobald der Projektinhaber die Standardräume abgenommen hat.

@@ -58,7 +58,8 @@ function levPose(e: Enemy, time: number, playerX: number): Pose {
     const dmgVar = frac < 0.35 ? 4 : frac < 0.7 ? 3 : 0;
 
     if (dead) {
-      return { rot: side * 0.12, dy: 8, variant: dmgVar };
+      // Abgeschaltet: eigener, erloschener Arm (armDead), schlaff hängend
+      return { rot: side * 0.08, dy: 10, variant: 5 };
     }
     if (arm.state === 'tracking') {
       torsoLean += -side * 0.06;
@@ -105,7 +106,7 @@ function levPose(e: Enemy, time: number, playerX: number): Pose {
   const armR = makeArmPose(1);
 
   const torsoVariant = dead ? 3 : phase === 3 ? 2 : phase === 2 ? 1 : 0;
-  const headVariant = phase >= 2 && !dead ? 1 : 0;
+  const headVariant = dead ? 2 : phase >= 2 ? 1 : 0;
 
   return {
     // Schlitten bleibt 100 % starr auf der Nordwand-Laufschiene (kein vertikales Wackeln!)
