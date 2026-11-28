@@ -4,6 +4,14 @@
 
 > **Zweck:** Jedes Werkzeug (und jede neue Sitzung) soll hier in 1 Minute wissen, wo das Projekt steht. **Am Ende jeder Arbeitssitzung aktualisieren** (kurz halten, veraltete Punkte löschen).
 
+## 🔁 Letzte Sitzungen (Weiter-Protokoll) — Pflicht nach jeder Sitzung (`AGENTS.md` Regel 20)
+> Neueste Zeile oben, max. 8 behalten. Format: Datum · Werkzeug/Chat · Bereich · **Erledigt** (Nachweis) · **Offen/Blocker** · **Nächster Schritt** (Datei + Befehl) · `[~]`-Einträge · Claim frei?
+> **Startsatz für einen neuen Chat:** siehe [`KI_WECHSEL.md`](KI_WECHSEL.md) §0.
+
+| Datum | Werkzeug · Bereich | Erledigt | Offen / Blocker | Nächster Schritt | Claim frei? |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 2026-11-28 | Claude Code · Doku-Prozess | Regel 20 + Weiter-Protokoll + Startsatz eingeführt | — | Bereichs-Arbeit laut Tabelle unten („Nächster Schritt“) | ja |
+
 ## Stand (2026-11-28)
 - Meilensteine 1–10-C sind umgesetzt, `SAVE_VERSION = 11` (Vercel deployt über `vercel.json` **nur** `main` und überspringt reine Doku-/Test-/`art_source`-Commits per `ignoreCommand` → schont das 100-Deploys/Tag-Limit im Free Tier).
 - **M11 (lebendige Gegner & Bosse):** **Alle normalen Gegner in allen 4 Sektoren sind zu 100 % geriggt (G1–G10, Tests `m11p7`–`m11p17`, 59/59 Playwright-Tests grün, 0 fehlende Sprites)**; Kern-Wächter & Krall animiert (warten auf Abnahme im echten Kampf); Teilen von Quarz-Koloss/Sternen-Archon fertig. **Status je Bereich: [`handoff/README.md`](handoff/README.md).**

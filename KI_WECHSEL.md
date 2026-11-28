@@ -2,6 +2,15 @@
 
 > **Zweck:** Credits/Limits eines Werkzeugs sind leer → ein anderes übernimmt **ohne Rückfrage beim Inhaber**. Alles Wissen steht im Repo, nicht im Chat. Dieses Dokument ist werkzeugneutral; `AGENTS.md` ist die verbindliche Regelsammlung.
 
+## 0. Startsätze zum Kopieren (Inhaber: einfach in einen **neuen** Chat einfügen — spart Credits)
+- **Weitermachen, wo der letzte Chat aufgehört hat:**
+  > Lies `AGENTS.md`, dann in `HANDOFF.md` den Block „🔁 Letzte Sitzungen“ und das dort genannte Status-Blatt in `handoff/`. Mach beim „Nächster Schritt“ der obersten Zeile weiter, ohne den Code neu zu durchsuchen. Trag am Ende dein Sitzungs-Protokoll ein (Regel 20) und pushe mit `npm run ship`.
+- **Bestimmten Bereich fortsetzen:**
+  > Lies `AGENTS.md` und `handoff/<bereich>.md` (Abschnitte „Praxis-Learnings“ + „Nächster Schritt“). Setze den Claim, arbeite die ⬜-Punkte ab (Regel 17), dokumentiere laufend (Regel 19/20).
+- **Nur Sprites abarbeiten (Antigravity/Gemini):**
+  > Lies `AGENTS.md` §6, `HANDOFF.md` und `SPRITE_QUEUE.md`; arbeite die offenen `[ ]`-Einträge von oben ab (Skill `sprite-batch`), beachte STOP-GATES, trage am Ende das Sitzungs-Protokoll ein.
+- Jeder Chat endet mit einer Abschlussmeldung, deren letzter Satz bereits der **fertige Startsatz für den nächsten Chat** ist (Regel 20).
+
 ## 1. Die ersten 5 Minuten (in dieser Reihenfolge)
 1. `git fetch origin && git status` → ist `origin/main` voraus: `git pull --ff-only` (Werkzeuge pushen abwechselnd auf `main`).
 2. **`AGENTS.md`** lesen (Regeln, Dokumentenkarte). Dann **`HANDOFF.md`** (Gesamtstand) und **`handoff/README.md`** (Claim-Liste: wer arbeitet woran; Status-Blatt je Bereich).
