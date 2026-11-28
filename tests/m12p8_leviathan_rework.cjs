@@ -98,17 +98,24 @@ module.exports = async ({ page }) => {
     dng.render(ctx, input);
     const shotP2Beam = canvas.toDataURL('image/png');
 
-    // Phase III Screenshot (linker Arm abgerissen → Stumpf-Sprite, rechter Arm kritisch < 25 %)
-    boss.hp = Math.round(boss.maxHp * 0.22);
-    L.phase = 3;
-    L.state = 'idle';
-    L.timer = 99;
-    boss.levArms[0].dead = true;
+    // Phase III / Slam-Ausrichtungs-Screenshot (auf der Schiene nach links gefahren, rechter Arm im Krater!)
+    boss.x = dng.bounds.cx - 80;
+    boss.hp = Math.round(boss.maxHp * 0.85);
+    L.phase = 1;
+    L.state = 'move';
+    L.move = 'hammer';
+    L.timer = 1.4;
+    boss.levArms[0].dead = false;
+    boss.levArms[0].state = 'idle';
     boss.levArms[1].dead = false;
-    boss.levArms[1].state = 'idle';
-    L.armHp[1] = Math.round(L.armMax * 0.18);
+    boss.levArms[1].state = 'grounded';
+    boss.levArms[1].targetX = boss.x + 66;
+    boss.levArms[1].targetY = boss.y + 38;
+    boss.levArms[1].x = boss.levArms[1].targetX;
+    boss.levArms[1].y = boss.levArms[1].targetY;
+    L.armHp[1] = L.armMax;
     dng.bossFx.clear();
-    dng.camera.snap(boss.x, boss.y + 55);
+    dng.camera.snap(boss.x + 40, boss.y + 55);
     dng.render(ctx, input);
     const shotP3 = canvas.toDataURL('image/png');
 
