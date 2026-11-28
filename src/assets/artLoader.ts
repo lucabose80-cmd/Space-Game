@@ -197,6 +197,14 @@ export interface HDArtAssets {
   shipCrystalBank: HTMLCanvasElement | null;
   shipSolarBank: HTMLCanvasElement | null;
   shipMonolithBank: HTMLCanvasElement | null;
+  shipCorvetteDocked: HTMLCanvasElement | null;
+  shipCorvetteDockedOpen: HTMLCanvasElement | null;
+  shipCrystalDocked: HTMLCanvasElement | null;
+  shipCrystalDockedOpen: HTMLCanvasElement | null;
+  shipSolarDocked: HTMLCanvasElement | null;
+  shipSolarDockedOpen: HTMLCanvasElement | null;
+  shipMonolithDocked: HTMLCanvasElement | null;
+  shipMonolithDockedOpen: HTMLCanvasElement | null;
 }
 
 const art: HDArtAssets = {
@@ -402,6 +410,14 @@ const art: HDArtAssets = {
   shipCrystalBank: null,
   shipSolarBank: null,
   shipMonolithBank: null,
+  shipCorvetteDocked: null,
+  shipCorvetteDockedOpen: null,
+  shipCrystalDocked: null,
+  shipCrystalDockedOpen: null,
+  shipSolarDocked: null,
+  shipSolarDockedOpen: null,
+  shipMonolithDocked: null,
+  shipMonolithDockedOpen: null,
 };
 
 function loadImage(src: string): Promise<HTMLImageElement | null> {
@@ -548,6 +564,14 @@ export const CUTSCENE_OPTIONAL_SPRITES = {
   shipCrystalBank: 'ship_crystal_bank',
   shipSolarBank: 'ship_solar_bank',
   shipMonolithBank: 'ship_monolith_bank',
+  shipCorvetteDocked: 'ship_corvette_docked',
+  shipCorvetteDockedOpen: 'ship_corvette_docked_open',
+  shipCrystalDocked: 'ship_crystal_docked',
+  shipCrystalDockedOpen: 'ship_crystal_docked_open',
+  shipSolarDocked: 'ship_solar_docked',
+  shipSolarDockedOpen: 'ship_solar_docked_open',
+  shipMonolithDocked: 'ship_monolith_docked',
+  shipMonolithDockedOpen: 'ship_monolith_docked_open',
 } as const;
 
 export type CutsceneSpriteKey = keyof typeof CUTSCENE_OPTIONAL_SPRITES;

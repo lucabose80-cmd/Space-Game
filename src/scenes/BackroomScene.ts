@@ -41,6 +41,9 @@ export class BackroomScene {
   private dashVy = 0;
   private time = 0;
   private entryCooldown = 0;
+  /** Aufwach-Sequenz in der Koje nach K.O. (0 HP / Med-Evac) */
+  private wakeUpTimer = -1;
+  private onWakeDone: (() => void) | null = null;
 
   private windowStars: Array<{ x: number; y: number; phase: number }> = [];
   private dustMotes: Array<{ x: number; y: number; phase: number; speed: number }> = [];
@@ -68,20 +71,59 @@ export class BackroomScene {
     }
   }
 
-  public onEnter(): void {
+  public onEnter(mode: 'default' | 'rescue' = 'default', onWakeDone?: () => void): void {
     this.state.restoreFullVitals();
-    this.playerX = 240;
-    this.playerY = 198;
-    this.facing = 'up';
     this.walkAnim = 0;
     this.dashTimer = 0;
     this.dashCooldown = 0;
     this.entryCooldown = 0.25;
+    if (mode === 'rescue') {
+      this.playerX = 92;
+      this.playerY = 118;
+      this.facing = 'down';
+      this.wakeUpTimer = 0;
+      this.onWakeDone = onWakeDone ?? null;
+      this.activePrompt = null;
+      sound.playDayTransition();
+    } else {
+      this.playerX = 240;
+      this.playerY = 198;
+      this.facing = 'up';
+      this.wakeUpTimer = -1;
+      this.onWakeDone = null;
+    }
   }
 
   public update(dt: number, input: InputManager): void {
     this.time += dt;
     if (this.entryCooldown > 0) this.entryCooldown -= dt;
+
+    // Aufwach-Animation in der Koje nach K.O. (0..1.25 s)
+    if (this.wakeUpTimer >= 0) {
+      this.wakeUpTimer += dt;
+      this.activePrompt = null;
+      if (this.wakeUpTimer >= 0.38 && this.wakeUpTimer < 1.05) {
+        const p = Math.min(1, (this.wakeUpTimer - 0.38) / 0.67);
+        const ease = 1 - (1 - p) * (1 - p);
+        const hop = Math.sin(p * Math.PI) * 8;
+        this.playerX = 92 + ease * 22;
+        this.playerY = 118 + ease * 28 - hop;
+        this.facing = 'down';
+        this.walkAnim += dt * 11;
+      } else if (this.wakeUpTimer >= 1.05) {
+        this.playerX = 114;
+        this.playerY = 146;
+        this.walkAnim = 0;
+      }
+      if (this.wakeUpTimer >= 1.25) {
+        this.wakeUpTimer = -1;
+        this.callbacks.onToast('🩺 Dr. Lyra hat dich versorgt — du bist wieder sicher in deiner Koje!', 'info');
+        const done = this.onWakeDone;
+        this.onWakeDone = null;
+        done?.();
+      }
+      return;
+    }
 
     this.dashCooldown = Math.max(0, this.dashCooldown - dt);
     const move = input.getMoveVector();
@@ -392,8 +434,19 @@ export class BackroomScene {
       ctx.restore();
     }
 
-    // Player
-    this.renderPlayer(ctx);
+    // Player (bei Aufwach-Sequenz erst nach kurzem Erholungs-Glühen aus der Koje sichtbar)
+    if (this.wakeUpTimer >= 0) {
+      const healPulse = Math.sin(Math.min(1, this.wakeUpTimer / 1.1) * Math.PI);
+      drawGlow(ctx, SLEEP_POD_POS.x, SLEEP_POD_POS.y - 6, 30, '#4ade80', healPulse * 0.55);
+      if (this.wakeUpTimer >= 0.34) {
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, (this.wakeUpTimer - 0.34) / 0.22);
+        this.renderPlayer(ctx);
+        ctx.restore();
+      }
+    } else {
+      this.renderPlayer(ctx);
+    }
 
     // Subtle crisp room signage pills aligned neatly above built-in zones
     this.renderBadges(ctx);

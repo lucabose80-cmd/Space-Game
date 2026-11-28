@@ -146,13 +146,44 @@ module.exports = async ({ page }) => {
     for (let i = 0; i < 60 && !g.returnCutscene; i++) await new Promise((r) => setTimeout(r, 40));
     const mode = g.returnCutscene?.config.mode;
     g.returnCutscene.skip();
-    for (let i = 0; i < 60 && (g.returnCutscene !== null || g.activeScene !== 'hangar'); i++) {
+    for (let i = 0; i < 60 && (g.returnCutscene !== null || g.activeScene !== 'backroom'); i++) {
       await new Promise((r) => setTimeout(r, 40));
     }
     if (g.ui.modalOpen) g.ui.closeModal();
     return { mode, scene: g.activeScene };
   });
-  assert.deepStrictEqual(afterMapRescue, { mode: 'rescue', scene: 'hangar' }, JSON.stringify(afterMapRescue));
+  assert.deepStrictEqual(afterMapRescue, { mode: 'rescue', scene: 'backroom' }, JSON.stringify(afterMapRescue));
 
-  console.log('CUTSCENE FULL IN-MAP + SPACE SUITE OK');
+  // 5. Visuelle Prüfung: Neue seitliche Schiffe im Hangar (geparkt + Aussteigen über Rampe) & Aufwachen in der Koje
+  await page.evaluate(() => {
+    const g = window.__game;
+    g.state.sector1Cleared = true;
+    g.state.sector2Cleared = true;
+    g.state.sector3Cleared = true;
+    g.activeScene = 'hangar';
+    g.hangarScene.onEnter('hub', 1);
+    g.transitionAlpha = 0;
+    g.transitionDir = 0;
+    g.hangarScene.render(g.ctx);
+  });
+  await page.screenshot({ path: path.join(outDir, 'cutscene_hangar_docked.png') });
+
+  await page.evaluate(() => {
+    const g = window.__game;
+    g.hangarScene.startDisembark(1);
+    g.hangarScene.update(0.95, g.input);
+    g.hangarScene.render(g.ctx);
+  });
+  await page.screenshot({ path: path.join(outDir, 'cutscene_hangar_disembark.png') });
+
+  await page.evaluate(() => {
+    const g = window.__game;
+    g.activeScene = 'backroom';
+    g.backroomScene.onEnter('rescue');
+    g.backroomScene.update(0.75, g.input);
+    g.backroomScene.render(g.ctx);
+  });
+  await page.screenshot({ path: path.join(outDir, 'cutscene_backroom_wakeup.png') });
+
+  console.log('CUTSCENE FULL IN-MAP + SPACE + HANGAR + WAKEUP OK');
 };
