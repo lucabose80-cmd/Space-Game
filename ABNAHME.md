@@ -92,7 +92,7 @@
 | # | Prüfpunkt | Status |
 | :-- | :-- | :-: |
 | J1 | 3 Pixel-Art-Planeten (Gold mit Ring · Türkis-Kristall · Violett-Gasriese; leer = Stern in Orbit-Kreis) im Hintergrund (rechts unten) mit Beschriftung (Kapitän, Tag, NG+, Sektoren); aktiver Slot mit Ring; leerer Slot als Stern; Hover vergrößert | ⬜ |
-| J1b | Linkes Menü als „Docking-Terminal“ (Kupfer-/Messing-Rahmen mit Eck-Winkeln, Holo-Glas mit Scanlines, Menüpunkte als Konsolen-Platten, LED, Hinweiszeile zu den Planeten) — passt zur Station? Lesbar auf Handy? | ⬜ |
+| J1b | Linkes Menü ohne Kasten: Logo schwebt über der Grafik, Menüpunkte und Spielstand-Karte sind Pixel-Art-Platten (Messing/Kupfer, Weiterspielen mit türkisem Leuchten, Karte mit Cyan-Eckwinkeln), LED-Kopfzeile, Hinweis zu den Planeten — passt zur Station? Lesbar auf Handy? | ⬜ |
 | J2 | Bestehender Spielstand liegt unverändert in Slot 1 (nach Update nichts verloren) | ⬜ |
 | J3 | Leeren Slot anklicken → „Expedition starten“ → eigene Welt; andere Slots danach unverändert | ⬜ |
 | J4 | Wechsel zwischen Slots, „Weiterspielen“ lädt jeweils den richtigen Stand (Credits/Tag/Inventar) | ⬜ |

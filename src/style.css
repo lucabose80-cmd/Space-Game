@@ -2681,3 +2681,34 @@ body.touch-device #touch-deck.touch-stacked .touch-right {
 .ts-hero { width: min(392px, 100%); }
 .ts-hero .ts-logo-main { font-size: clamp(24px, 3.3vw, 34px); letter-spacing: 0.06em; }
 .ts-hero .ts-tagline { max-width: 100%; }
+
+/* ===== Menü-Integration v2: Pixel-Art-Platten (P3-60…62) statt CSS-Kasten ===== */
+.ts-hero {
+  background: radial-gradient(ellipse at 28% 50%, rgba(6, 10, 24, 0.72) 0%, rgba(6, 10, 24, 0.42) 55%, rgba(6, 10, 24, 0) 82%);
+  border: 0; box-shadow: none; backdrop-filter: none; padding: 10px 6px;
+}
+.ts-hero::before, .ts-hero::after { display: none; }
+.ts-term-head { border-bottom-color: rgba(251, 191, 36, 0.22); }
+.ts-term-foot { border-top-color: rgba(251, 191, 36, 0.18); }
+.ts-actions { gap: 2px; }
+.ts-actions .btn {
+  border: 16px solid #b45309; border-image: url('/art/sprites/title_plate_amber.png') 38 fill / 16px stretch;
+  image-rendering: pixelated; background: none; clip-path: none; box-shadow: none; min-height: 50px;
+  padding: 2px 8px; display: flex; align-items: center; color: #fde68a; text-shadow: 0 1px 0 #000;
+}
+.ts-actions .btn:hover { transform: none; background: none; filter: brightness(1.28) saturate(1.1); color: #fff7e0; }
+.ts-actions .btn.btn-primary, .ts-actions .ts-btn-hero {
+  border: 18px solid #0f766e; border-image: url('/art/sprites/title_plate_teal.png') 44 fill / 18px stretch;
+  background: none; color: #ccfbf1; box-shadow: none; min-height: 58px; padding: 2px 8px;
+}
+.ts-actions .btn.btn-primary:hover, .ts-actions .ts-btn-hero:hover { background: none; filter: brightness(1.25); }
+.ts-save-card {
+  border: 18px solid #134e4a; border-image: url('/art/sprites/title_card.png') 42 fill / 18px stretch;
+  image-rendering: pixelated; background: none; padding: 0 6px; margin-bottom: 8px;
+}
+@media (max-width: 720px) {
+  .ts-actions .btn { min-height: 44px; border-width: 13px; border-image-width: 13px; }
+  .ts-actions .btn.btn-primary, .ts-actions .ts-btn-hero { border-width: 14px; border-image-width: 14px; min-height: 48px; }
+}
+.ts-actions .btn.btn-primary, .ts-actions .ts-btn-hero { filter: drop-shadow(0 0 7px rgba(45, 212, 191, 0.55)); }
+.ts-actions .btn.btn-primary:hover, .ts-actions .ts-btn-hero:hover { filter: drop-shadow(0 0 11px rgba(45, 212, 191, 0.9)) brightness(1.2); }
