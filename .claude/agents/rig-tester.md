@@ -1,6 +1,6 @@
 ---
 name: rig-tester
-description: Führt Rig-/Boss-/Gegner-Tests (m11*, Kontaktbogen `scripts/rig-sheet.cjs`) aus und prüft die Fertig-Checkliste (G1–G10 / D1–D15) gegen das Status-Blatt in handoff/. Nutzen bei Rig- und Boss-Arbeit. Ändert nichts.
+description: Proaktiv einsetzen (dauerhaft freigegeben, siehe CLAUDE.md). Führt Rig-/Boss-/Gegner-Tests (m11*, Kontaktbogen `scripts/rig-sheet.cjs`) aus und prüft die Fertig-Checkliste (G1–G10 / D1–D15) gegen das Status-Blatt in handoff/. Nutzen bei Rig- und Boss-Arbeit. Ändert nichts.
 tools: Bash, Read, Grep, Glob
 model: haiku
 ---

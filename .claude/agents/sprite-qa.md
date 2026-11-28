@@ -1,6 +1,6 @@
 ---
 name: sprite-qa
-description: Prüft neue/geänderte Sprites und Sheets (art:check, Rasterlinien, Zellentrennung, Freistellung, Maßstab) und meldet ok/Mängel je Datei. Nutzen nach `art:gen`/`art:import` oder vor Commit von PNGs. Ändert nichts.
+description: Proaktiv einsetzen (dauerhaft freigegeben, siehe CLAUDE.md). Prüft neue/geänderte Sprites und Sheets (art:check, Rasterlinien, Zellentrennung, Freistellung, Maßstab) und meldet ok/Mängel je Datei. Nutzen nach `art:gen`/`art:import` oder vor Commit von PNGs. Ändert nichts.
 tools: Bash, Read, Grep, Glob
 model: sonnet
 ---

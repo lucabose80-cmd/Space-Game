@@ -1,6 +1,6 @@
 ---
 name: verify-runner
-description: Führt `npm run verify` (oder Teile: build, check:invariants, check:sprites, einzelne Tests) aus und meldet nur das Ergebnis kompakt. Nutzen statt die lange Ausgabe im Hauptchat zu lesen. Ändert keinen Code.
+description: Proaktiv einsetzen (dauerhaft freigegeben, siehe CLAUDE.md). Führt `npm run verify` (oder Teile: build, check:invariants, check:sprites, einzelne Tests) aus und meldet nur das Ergebnis kompakt. Nutzen statt die lange Ausgabe im Hauptchat zu lesen. Ändert keinen Code.
 tools: Bash, Read, Grep, Glob
 model: haiku
 ---

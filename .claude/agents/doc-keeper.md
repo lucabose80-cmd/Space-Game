@@ -1,6 +1,6 @@
 ---
 name: doc-keeper
-description: Trägt vom Hauptchat vorgegebene Erkenntnisse, Checklisten-Stände und nächste Schritte in das Status-Blatt unter handoff/ ein (Praxis-Learnings, ✅/⬜). Schreibt NUR in handoff/. Nutzen für Regel 19, damit der Hauptchat keine Doku-Tokens verbraucht.
+description: Proaktiv einsetzen (dauerhaft freigegeben, siehe CLAUDE.md). Trägt vom Hauptchat vorgegebene Erkenntnisse, Checklisten-Stände und nächste Schritte in das Status-Blatt unter handoff/ ein (Praxis-Learnings, ✅/⬜). Schreibt NUR in handoff/. Nutzen für Regel 19, damit der Hauptchat keine Doku-Tokens verbraucht.
 tools: Read, Edit, Write, Grep, Glob
 model: haiku
 ---
