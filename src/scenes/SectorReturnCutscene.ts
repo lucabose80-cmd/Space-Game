@@ -57,6 +57,17 @@ const SECTOR_SHIP_KEYS: Record<
   5: 'shipMonolith',
 };
 
+const SECTOR_SHIP_BANK_KEYS: Record<
+  SectorId,
+  'shipCorvetteBank' | 'shipCrystalBank' | 'shipSolarBank' | 'shipMonolithBank'
+> = {
+  1: 'shipCorvetteBank',
+  2: 'shipCrystalBank',
+  3: 'shipSolarBank',
+  4: 'shipMonolithBank',
+  5: 'shipMonolithBank',
+};
+
 function clamp01(v: number): number {
   return Math.max(0, Math.min(1, v));
 }
@@ -488,24 +499,33 @@ export class SectorReturnCutscene {
     t: number,
   ): void {
     const hd = getHDArt();
-    const sprite = isRescue ? hd.cutsceneMedDrone : hd[SECTOR_SHIP_KEYS[this.config.sector]];
-    const bankScaleX = 1 - Math.abs(craft.bank) * 0.22;
+    const useBank = !isRescue && Math.abs(craft.bank) > 0.22 && !!hd[SECTOR_SHIP_BANK_KEYS[this.config.sector]];
+    const sprite = isRescue
+      ? hd.cutsceneMedDrone
+      : useBank
+        ? hd[SECTOR_SHIP_BANK_KEYS[this.config.sector]]
+        : hd[SECTOR_SHIP_KEYS[this.config.sector]];
 
     ctx.save();
     ctx.translate(Math.round(craft.x), Math.round(craft.y));
-    ctx.rotate(craft.heading);
-    ctx.scale(craft.scale * bankScaleX, craft.scale);
+    if (useBank) {
+      // Echtes 3/4-Schräglagen-Sprite (gespiegelt bei Linkskurve, ohne flaches rotate!)
+      ctx.scale(craft.bank < 0 ? -craft.scale : craft.scale, craft.scale);
+    } else {
+      const bankScaleX = 1 - Math.abs(craft.bank) * 0.18;
+      ctx.rotate(craft.heading);
+      ctx.scale(craft.scale * bankScaleX, craft.scale);
+    }
 
-    // Sirenen-Blinken auf der Med-Evac-Drohne
     if (isRescue) {
       const sirenRed = Math.sin(t * 18) > 0;
       this.drawGlowDot(ctx, 0, -4, 24, sirenRed ? '#ef4444' : '#38bdf8', 0.65);
     } else {
-      this.drawGlowDot(ctx, 0, 22, 24, '#38e8d4', 0.5);
+      this.drawGlowDot(ctx, 0, 20, 24, '#38e8d4', 0.5);
     }
 
     if (sprite) {
-      const w = isRescue ? 50 : 52;
+      const w = isRescue ? 50 : useBank ? 60 : 52;
       const h = Math.round((sprite.height / Math.max(1, sprite.width)) * w);
       ctx.drawImage(sprite, Math.round(-w / 2), Math.round(-h / 2), w, h);
     } else {

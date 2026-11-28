@@ -191,7 +191,12 @@ export interface HDArtAssets {
   cutsceneBgS5: HTMLCanvasElement | null;
   cutsceneBgSolaris: HTMLCanvasElement | null;
   cutsceneDropPod: HTMLCanvasElement | null;
+  cutsceneDropPodOpen: HTMLCanvasElement | null;
   cutsceneMedDrone: HTMLCanvasElement | null;
+  shipCorvetteBank: HTMLCanvasElement | null;
+  shipCrystalBank: HTMLCanvasElement | null;
+  shipSolarBank: HTMLCanvasElement | null;
+  shipMonolithBank: HTMLCanvasElement | null;
 }
 
 const art: HDArtAssets = {
@@ -391,7 +396,12 @@ const art: HDArtAssets = {
   cutsceneBgS5: null,
   cutsceneBgSolaris: null,
   cutsceneDropPod: null,
+  cutsceneDropPodOpen: null,
   cutsceneMedDrone: null,
+  shipCorvetteBank: null,
+  shipCrystalBank: null,
+  shipSolarBank: null,
+  shipMonolithBank: null,
 };
 
 function loadImage(src: string): Promise<HTMLImageElement | null> {
@@ -532,7 +542,12 @@ export const CUTSCENE_OPTIONAL_SPRITES = {
   cutsceneBgS5: 'cutscene_bg_s5',
   cutsceneBgSolaris: 'cutscene_bg_solaris',
   cutsceneDropPod: 'cutscene_drop_pod',
+  cutsceneDropPodOpen: 'cutscene_drop_pod_open',
   cutsceneMedDrone: 'cutscene_med_drone',
+  shipCorvetteBank: 'ship_corvette_bank',
+  shipCrystalBank: 'ship_crystal_bank',
+  shipSolarBank: 'ship_solar_bank',
+  shipMonolithBank: 'ship_monolith_bank',
 } as const;
 
 export type CutsceneSpriteKey = keyof typeof CUTSCENE_OPTIONAL_SPRITES;

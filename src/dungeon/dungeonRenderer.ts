@@ -616,7 +616,20 @@ export class DungeonRenderer {
     for (const d of getMechanicsDrawables(ctx, this.scene)) drawables.push(d);
     for (const d of this.scene.detached) drawables.push({ y: d.y + 2, draw: () => drawDetached(ctx, d) });
     this.collectCrawlerDebris(ctx, drawables);
-    drawables.push({ y: this.scene.playerY, draw: () => this.renderPlayer(ctx) });
+    const landed = this.scene.landedPod;
+    if (landed && landed.roomKey === this.scene.currentRoom?.key) {
+      drawables.push({
+        y: landed.y,
+        draw: () => {
+          const pod = getHDArt().cutsceneDropPodOpen;
+          drawPixelShadow(ctx, landed.x, landed.y + 11, 14, 5, 0.42);
+          if (pod) ctx.drawImage(pod, Math.round(landed.x - 15), Math.round(landed.y - 16), 30, 30);
+        },
+      });
+    }
+    if (!this.scene.hidePlayerForCutscene) {
+      drawables.push({ y: this.scene.playerY, draw: () => this.renderPlayer(ctx) });
+    }
     if (this.scene.activeCompanion) {
       drawables.push({ y: this.scene.companionY, draw: () => this.renderCompanion(ctx) });
     }

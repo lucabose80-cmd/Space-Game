@@ -161,7 +161,11 @@ export class HangarScene {
 
     // Geparkte Schiffe ruhen still am Dock (keine laufenden Triebwerke vor dem Einsteigen)
 
-    // 3-Phasen-Startsequenz: Einsteigen (0..0.40 s) → Triebwerks-Zündung (0.40..0.74 s) → Abheben (0.74..1.22 s)
+    // 4-Phasen-Startsequenz:
+    // 0.00..0.22 s: Einstiegsrampe fährt aus
+    // 0.22..0.58 s: Spieler läuft & hüpft sichtbar in die leuchtende Luke
+    // 0.58..0.82 s: Luke schließt, Cockpit blitzt auf, Dock-Klammern lösen sich mit Dampf
+    // 0.82..1.45 s: Triebwerke zünden & Schiff hebt aus dem Hangar ab
     if (this.launchingSector !== null) {
       this.launchTimer += dt;
       this.activePrompt = null;
@@ -183,26 +187,46 @@ export class HangarScene {
               : '#fbbf24';
       const flameB = this.launchingSector === 3 ? '#fde047' : '#38e8d4';
 
-      if (this.launchTimer < 0.4) {
-        // Phase 1: Spieler läuft/springt in die Einstiegsluke des Schiffs
-        const bp = Math.min(1, this.launchTimer / 0.4);
-        const ease = 1 - (1 - bp) * (1 - bp);
-        this.playerX = this.boardStartX + (dock.x - this.boardStartX) * ease;
-        this.playerY = this.boardStartY + (dock.y + 4 - this.boardStartY) * ease;
+      if (this.launchTimer < 0.22) {
+        // Rampe fährt aus — Spieler richtet sich zum Schiff aus
         this.facing = 'up';
-        this.walkAnim += dt * 14;
         this.shipLiftY = 0;
+      } else if (this.launchTimer < 0.58) {
+        // Spieler läuft auf die Rampe & macht einen sichtbaren Sprungbogen in die Luke
+        const bp = Math.min(1, (this.launchTimer - 0.22) / 0.36);
+        const ease = 1 - (1 - bp) * (1 - bp);
+        const hop = Math.sin(bp * Math.PI) * 9;
+        this.playerX = this.boardStartX + (dock.x - this.boardStartX) * ease;
+        this.playerY = this.boardStartY + (dock.y + 8 - this.boardStartY) * ease - hop;
+        this.facing = 'up';
+        this.walkAnim += dt * 16;
+        this.shipLiftY = 0;
+      } else if (this.launchTimer < 0.82) {
+        // Luke schließt & Dock-Halteklammern zischen mit Dampf auf
+        this.shipLiftY = 0;
+        if (Math.random() < dt * 24) {
+          const side = Math.random() < 0.5 ? -18 : 18;
+          this.particles.push({
+            x: dock.x + side,
+            y: dock.y + 10,
+            vx: side * 1.4 + (Math.random() - 0.5) * 10,
+            vy: (Math.random() - 0.5) * 12,
+            color: '#e2e8f0',
+            size: 2.4,
+            life: 0.3,
+            maxLife: 0.3,
+          });
+        }
       } else {
         if (!this.ignitionTriggered) {
           this.ignitionTriggered = true;
           sound.playWarp();
-          // Zündungs-Dampf & Funkenring über das gesamte Dock-Pad
-          for (let i = 0; i < 18; i++) {
-            const ang = (i / 18) * Math.PI * 2;
+          for (let i = 0; i < 20; i++) {
+            const ang = (i / 20) * Math.PI * 2;
             this.particles.push({
               x: dock.x + Math.cos(ang) * 10,
               y: dock.y + 18 + Math.sin(ang) * 4,
-              vx: Math.cos(ang) * (28 + Math.random() * 24),
+              vx: Math.cos(ang) * (30 + Math.random() * 24),
               vy: Math.sin(ang) * 10 + 14,
               color: i % 3 === 0 ? '#e2e8f0' : flameB,
               size: i % 3 === 0 ? 2.6 : 1.8,
@@ -211,14 +235,12 @@ export class HangarScene {
             });
           }
         }
-        if (this.launchTimer < 0.74) {
-          // Phase 2: Triebwerke fahren hoch, Schiff hebt sanft vom Pad ab
-          const ip = (this.launchTimer - 0.4) / 0.34;
+        if (this.launchTimer < 1.06) {
+          const ip = (this.launchTimer - 0.82) / 0.24;
           this.shipLiftY = ip * ip * 14;
         } else {
-          // Phase 3: Voller Schub & vertikales Abheben aus dem Hangar
-          const lp = Math.min(1, (this.launchTimer - 0.74) / 0.48);
-          this.shipLiftY = 14 + lp * lp * 145;
+          const lp = Math.min(1, (this.launchTimer - 1.06) / 0.39);
+          this.shipLiftY = 14 + lp * lp * 150;
         }
         for (let i = 0; i < 2; i++) {
           const side = i === 0 ? -8 : 8;
@@ -236,7 +258,7 @@ export class HangarScene {
       }
 
       this.updateParticles(dt);
-      if (this.launchTimer >= 1.22) {
+      if (this.launchTimer >= 1.45) {
         const target = this.launchingSector;
         this.launchingSector = null;
         this.ignitionTriggered = false;
@@ -588,30 +610,68 @@ export class HangarScene {
       launchCol: string,
     ) => {
       const launching = this.launchingSector === sectorNum;
-      const ignited = launching && this.launchTimer >= 0.4;
+      const ignited = launching && this.launchTimer >= 0.82;
       const lift = ignited ? this.shipLiftY : 0;
-      const rumble = ignited && this.launchTimer < 0.78 ? Math.sin(this.launchTimer * 65) * 1.1 : 0;
+      const rumble = ignited && this.launchTimer < 1.08 ? Math.sin(this.launchTimer * 68) * 1.2 : 0;
       const sx = pos.x + rumble;
       const sy = pos.y - lift;
+
+      // Dock-Halteklammern links & rechts (lösen sich ab 0.58 s beim Start!)
+      const clampOpen = launching && this.launchTimer >= 0.58
+        ? Math.min(1, (this.launchTimer - 0.58) / 0.22)
+        : 0;
+      const clampSpread = 22 + clampOpen * 7;
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(Math.round(pos.x - clampSpread - 4), Math.round(pos.y + 4), 5, 10);
+      ctx.fillRect(Math.round(pos.x + clampSpread - 1), Math.round(pos.y + 4), 5, 10);
+      ctx.fillStyle = launching ? '#fbbf24' : '#475569';
+      ctx.fillRect(Math.round(pos.x - clampSpread - 3), Math.round(pos.y + 6), 3, 2);
+      ctx.fillRect(Math.round(pos.x + clampSpread), Math.round(pos.y + 6), 3, 2);
+
+      // Ausfahrende Einstiegsrampe & leuchtende Innenluke (0.00..0.76 s)
+      if (launching && this.launchTimer < 0.76) {
+        const rampP = this.launchTimer < 0.22
+          ? this.launchTimer / 0.22
+          : this.launchTimer > 0.58
+            ? 1 - (this.launchTimer - 0.58) / 0.18
+            : 1;
+        const rampLen = Math.round(14 * Math.max(0, Math.min(1, rampP)));
+        if (rampLen > 1) {
+          ctx.fillStyle = '#475569';
+          ctx.fillRect(Math.round(pos.x - 7), Math.round(pos.y + 12), 14, rampLen);
+          ctx.fillStyle = '#94a3b8';
+          ctx.fillRect(Math.round(pos.x - 5), Math.round(pos.y + 13), 10, Math.max(1, rampLen - 2));
+          ctx.fillStyle = idleCol;
+          ctx.globalAlpha = 0.65;
+          ctx.fillRect(Math.round(pos.x - 6), Math.round(pos.y + 12), 1, rampLen);
+          ctx.fillRect(Math.round(pos.x + 5), Math.round(pos.y + 12), 1, rampLen);
+          ctx.globalAlpha = 1;
+        }
+      }
+
       drawPixelShadow(ctx, pos.x, pos.y + 18, 22, 8, Math.max(0.06, 0.5 - lift / 160));
       if (ignited) {
         drawGlow(ctx, sx, sy + 20, 38, launchCol, 0.45 + pulse * 0.16);
       } else if (launching) {
-        // Einstiegs-Cockpit-Aufleuchten
-        drawGlow(ctx, sx, sy + 2, 24, idleCol, 0.34 + pulse * 0.15);
+        drawGlow(ctx, sx, sy + 8, 26, idleCol, 0.36 + pulse * 0.16);
       } else {
-        // Dezentes Standby-Licht auf dem Pad
         drawGlow(ctx, sx, sy + 4, 16, idleCol, 0.12 + pulse * 0.05);
       }
       if (spr) {
         if (ignited) {
           ctx.drawImage(spr, sx - w / 2, sy - h / 2 - 2, w, h);
         } else {
-          // Triebwerksflammen am unteren Sprite-Rand ausblenden, solange das Schiff geparkt ist
           const srcH = Math.round(spr.height * 0.83);
           const dstH = Math.round(h * 0.83);
           ctx.drawImage(spr, 0, 0, spr.width, srcH, sx - w / 2, sy - h / 2 + 2, w, dstH);
         }
+      }
+
+      // Cockpit-Aufblitzen („Pilot an Bord“: 0.58..0.82 s)
+      if (launching && this.launchTimer >= 0.58 && this.launchTimer < 0.84) {
+        const flash = Math.sin(((this.launchTimer - 0.58) / 0.26) * Math.PI);
+        drawGlow(ctx, sx, sy - 6, 18, '#ffffff', flash * 0.85);
+        drawGlow(ctx, sx, sy - 6, 26, idleCol, flash * 0.6);
       }
     };
 
@@ -634,11 +694,11 @@ export class HangarScene {
 
     if (this.launchingSector === null) {
       this.renderPlayer(ctx);
-    } else if (this.launchTimer < 0.4) {
-      // Spieler steigt sichtbar ins Schiff ein (gleitet hinein & blendet in die Luke aus)
-      const bp = Math.min(1, this.launchTimer / 0.4);
+    } else if (this.launchTimer < 0.58) {
+      // Spieler wartet kurz bis Rampe offen ist, hüpft dann sichtbar in die Luke
+      const bp = this.launchTimer < 0.22 ? 0 : Math.min(1, (this.launchTimer - 0.22) / 0.36);
       ctx.save();
-      ctx.globalAlpha = Math.max(0, 1 - Math.max(0, (bp - 0.55) / 0.45));
+      ctx.globalAlpha = Math.max(0, 1 - Math.max(0, (bp - 0.72) / 0.28));
       this.renderPlayer(ctx);
       ctx.restore();
     }

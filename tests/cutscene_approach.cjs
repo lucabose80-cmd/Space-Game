@@ -1,5 +1,8 @@
-// Cutscene-Suite: Geparkte Schiffe im Hangar, Kurvenflug + Drop-Pod (Anflug),
-// Extraktion & verletzte Notfall-Bergung (Rückkehr nach Port Solaris) + Skip.
+// Vollständige Cutscene-Suite (Teil A + Teil B):
+// - 2-Szenen-Allflug (Tiefraum mit echtem 3/4-Schräglagen-Sprite + Einflug in die Schleuse)
+// - In-Map Drop-Pod-Landung & Aussteigen im Dungeon-Startraum (+ offene Kapsel bleibt stehen)
+// - In-Map Teleporter-Extraktion → Rückflug nach Port Solaris
+// - In-Map Med-Evac-Drohnen-Bergung (0 HP) → Notflug nach Port Solaris
 const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert');
@@ -14,22 +17,13 @@ module.exports = async ({ page }) => {
     g.ui.hideTitle?.();
   });
 
-  // 1. Sektor-1-Anflug starten: Kurvenflug (Banking) + Titelkarte + Absetzkapsel (Drop-Pod)
-  const started = await page.evaluate(() => {
-    const g = window.__game;
-    g.launchSectorWithCutscene(1, false);
-    const hud = document.getElementById('hud-layer');
-    return {
-      active: !!g.approachCutscene,
-      sector: g.approachCutscene?.config.sector,
-      hudHidden: hud?.style.visibility === 'hidden',
-    };
+  // 1. 2-Szenen-Sektor-Anflug (Szene 1: Tiefraum diagonal · Szene 2: Einflug in die Schleuse)
+  await page.evaluate(() => {
+    window.__game.launchSectorWithCutscene(1, false);
   });
-  assert.deepStrictEqual(started, { active: true, sector: 1, hudHidden: true }, JSON.stringify(started));
-
   for (const [label, sec] of [
-    ['cutscene_s1_curve', 0.78],
-    ['cutscene_s1_pod', 3.42],
+    ['cutscene_deepspace', 0.82],
+    ['cutscene_approach_entry', 2.55],
   ]) {
     await page.evaluate((s) => {
       const g = window.__game;
@@ -39,100 +33,126 @@ module.exports = async ({ page }) => {
     await page.screenshot({ path: path.join(outDir, `${label}.png`) });
   }
 
-  // 2. Skip per Tastendruck (Space) → landet sauber im Dungeon
-  await page.keyboard.press('Space');
-  const afterSkip = await page.evaluate(async () => {
+  // 2. Natürliches Ende des Anflugs → In-Map Drop-Pod-Landung im echten Dungeon-Startraum!
+  await page.evaluate(() => window.__game.approachCutscene.seek(4.34));
+  const mapLandActive = await page.evaluate(async () => {
     const g = window.__game;
-    for (let i = 0; i < 60 && g.activeScene !== 'dungeon'; i++) await new Promise((r) => setTimeout(r, 50));
-    for (let i = 0; i < 40 && g.transitionDir !== 0; i++) await new Promise((r) => setTimeout(r, 40));
-    const hud = document.getElementById('hud-layer');
+    for (let i = 0; i < 60 && !g.mapCutscene; i++) await new Promise((r) => setTimeout(r, 40));
+    g.transitionAlpha = 0;
+    g.transitionDir = 0;
     return {
-      cutscene: g.approachCutscene,
       scene: g.activeScene,
-      sector: g.dungeonScene?.currentSector,
-      hudVisible: hud?.style.visibility !== 'hidden',
+      mode: g.mapCutscene?.config.mode,
+      playerHidden: g.dungeonScene?.hidePlayerForCutscene,
     };
   });
   assert.deepStrictEqual(
-    afterSkip,
-    { cutscene: null, scene: 'dungeon', sector: 1, hudVisible: true },
-    JSON.stringify(afterSkip),
+    mapLandActive,
+    { scene: 'dungeon', mode: 'land', playerHidden: true },
+    JSON.stringify(mapLandActive),
   );
 
-  // 3. Extraktions-Cutscene (freiwillige Rückkehr → Port Solaris)
+  // Screenshot mitten im Aussteigen aus der geöffneten Absetzkapsel auf der echten Map!
   await page.evaluate(() => {
     const g = window.__game;
-    g.handleReturnFromDungeon({
+    g.mapCutscene.seek(0.92);
+    g.dng.render(g.ctx, g.input);
+    g.mapCutscene.render(g.ctx);
+  });
+  await page.screenshot({ path: path.join(outDir, 'cutscene_map_land.png') });
+
+  // Drop-Pod-Landung beenden → Spieler sichtbar, geöffnete Kapsel bleibt im Startraum stehen!
+  await page.evaluate(() => window.__game.mapCutscene?.seek(1.31));
+  const afterLand = await page.evaluate(async () => {
+    const g = window.__game;
+    for (let i = 0; i < 60 && g.mapCutscene !== null; i++) await new Promise((r) => setTimeout(r, 40));
+    return {
+      playerHidden: g.dungeonScene?.hidePlayerForCutscene,
+      hasLandedPod: !!g.dungeonScene?.landedPod,
+      hudVisible: document.getElementById('hud-layer')?.style.visibility !== 'hidden',
+    };
+  });
+  assert.deepStrictEqual(
+    afterLand,
+    { playerHidden: false, hasLandedPod: true, hudVisible: true },
+    JSON.stringify(afterLand),
+  );
+
+  // 3. In-Map Teleporter-Extraktion direkt auf der Dungeon-Map!
+  await page.evaluate(() => {
+    window.__game.handleReturnFromDungeon({
       victory: true,
       reason: 'warp',
       sector: 1,
-      floorReached: 2,
-      roomsCleared: 5,
-      enemiesDefeated: 12,
-      itemsSaved: 4,
+      floorReached: 1,
+      roomsCleared: 3,
+      enemiesDefeated: 6,
+      itemsSaved: 3,
       itemsLost: 0,
       warpedToChest: [],
       shatteredItems: [],
     });
   });
-  for (const [label, sec] of [
-    ['cutscene_extract_p1', 0.58],
-    ['cutscene_extract_solaris', 2.45],
-  ]) {
-    await page.evaluate((s) => {
-      const g = window.__game;
-      g.returnCutscene.seek(s);
-      g.returnCutscene.render(g.ctx);
-    }, sec);
-    await page.screenshot({ path: path.join(outDir, `${label}.png`) });
-  }
-  await page.evaluate(() => window.__game.returnCutscene.skip());
-  const afterExtract = await page.evaluate(async () => {
+  await page.evaluate(() => {
     const g = window.__game;
+    g.mapCutscene?.seek(0.55);
+    g.dng.render(g.ctx, g.input);
+    g.mapCutscene?.render(g.ctx);
+  });
+  await page.screenshot({ path: path.join(outDir, 'cutscene_map_extract.png') });
+  // Nach Ende der Map-Extraktion startet automatisch der Weltraum-Rückflug nach Port Solaris
+  await page.evaluate(() => window.__game.mapCutscene?.seek(1.04));
+  const afterMapExtract = await page.evaluate(async () => {
+    const g = window.__game;
+    for (let i = 0; i < 60 && !g.returnCutscene; i++) await new Promise((r) => setTimeout(r, 40));
+    const mode = g.returnCutscene?.config.mode;
+    g.returnCutscene.skip();
     for (let i = 0; i < 60 && (g.returnCutscene !== null || g.activeScene !== 'hangar'); i++) {
       await new Promise((r) => setTimeout(r, 40));
     }
     if (g.ui.modalOpen) g.ui.closeModal();
-    return { scene: g.activeScene, ret: g.returnCutscene };
+    return { mode, scene: g.activeScene };
   });
-  assert.deepStrictEqual(afterExtract, { scene: 'hangar', ret: null }, JSON.stringify(afterExtract));
+  assert.deepStrictEqual(afterMapExtract, { mode: 'extract', scene: 'hangar' }, JSON.stringify(afterMapExtract));
 
-  // 4. Notfall-Bergung (0 HP / defeat → Med-Evac-Drohne → Port Solaris)
+  // 4. In-Map Med-Evac-Drohnen-Rettung (0 HP direkt auf der Dungeon-Map!)
   await page.evaluate(() => {
     const g = window.__game;
+    g.activeScene = 'dungeon';
+    g.dng.startRun(2);
     g.handleReturnFromDungeon({
       victory: false,
       reason: 'defeat',
       sector: 2,
       floorReached: 1,
       roomsCleared: 2,
-      enemiesDefeated: 5,
+      enemiesDefeated: 4,
       itemsSaved: 0,
-      itemsLost: 3,
+      itemsLost: 2,
       warpedToChest: [],
       shatteredItems: [],
     });
   });
-  for (const [label, sec] of [
-    ['cutscene_rescue_p1', 0.92],
-    ['cutscene_rescue_solaris', 2.65],
-  ]) {
-    await page.evaluate((s) => {
-      const g = window.__game;
-      g.returnCutscene.seek(s);
-      g.returnCutscene.render(g.ctx);
-    }, sec);
-    await page.screenshot({ path: path.join(outDir, `${label}.png`) });
-  }
-  await page.evaluate(() => window.__game.returnCutscene.seek(3.94));
-  const afterRescue = await page.evaluate(async () => {
+  await page.evaluate(() => {
     const g = window.__game;
-    for (let i = 0; i < 60 && g.returnCutscene !== null; i++) await new Promise((r) => setTimeout(r, 40));
-    const modal = g.ui.modalOpen;
-    if (modal) g.ui.closeModal();
-    return { scene: g.activeScene, ret: g.returnCutscene, modal };
+    g.mapCutscene?.seek(0.76);
+    g.dng.render(g.ctx, g.input);
+    g.mapCutscene?.render(g.ctx);
   });
-  assert.deepStrictEqual(afterRescue, { scene: 'hangar', ret: null, modal: true }, JSON.stringify(afterRescue));
+  await page.screenshot({ path: path.join(outDir, 'cutscene_map_rescue.png') });
+  await page.evaluate(() => window.__game.mapCutscene?.seek(1.49));
+  const afterMapRescue = await page.evaluate(async () => {
+    const g = window.__game;
+    for (let i = 0; i < 60 && !g.returnCutscene; i++) await new Promise((r) => setTimeout(r, 40));
+    const mode = g.returnCutscene?.config.mode;
+    g.returnCutscene.skip();
+    for (let i = 0; i < 60 && (g.returnCutscene !== null || g.activeScene !== 'hangar'); i++) {
+      await new Promise((r) => setTimeout(r, 40));
+    }
+    if (g.ui.modalOpen) g.ui.closeModal();
+    return { mode, scene: g.activeScene };
+  });
+  assert.deepStrictEqual(afterMapRescue, { mode: 'rescue', scene: 'hangar' }, JSON.stringify(afterMapRescue));
 
-  console.log('CUTSCENE FULL SUITE OK');
+  console.log('CUTSCENE FULL IN-MAP + SPACE SUITE OK');
 };

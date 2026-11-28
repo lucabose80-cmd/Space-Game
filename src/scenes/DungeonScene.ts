@@ -240,6 +240,10 @@ export class DungeonScene {
   public sector4ClearedInRun = false;
   public omegaClearedInRun = false;
   public finished = false;
+  /** Cutscene-Helfer: Spieler während In-Map-Landung/Extraktion/Bergung ausblenden */
+  public hidePlayerForCutscene = false;
+  /** Gelandete geöffnete Absetzkapsel im Startraum (bleibt als Prop stehen) */
+  public landedPod: { x: number; y: number; roomKey: string } | null = null;
 
   public activePrompt: { label: string; x: number; y: number } | null = null;
 

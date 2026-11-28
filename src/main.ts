@@ -10,6 +10,7 @@ import { BackroomScene } from './scenes/BackroomScene';
 import type { DungeonScene } from './scenes/DungeonScene';
 import { HangarScene } from './scenes/HangarScene';
 import { HubScene } from './scenes/HubScene';
+import { DungeonMapCutscene } from './dungeon/dungeonCutscene';
 import { MarketTerraceScene } from './scenes/MarketTerraceScene';
 import { SectorApproachCutscene } from './scenes/SectorApproachCutscene';
 import { SectorReturnCutscene } from './scenes/SectorReturnCutscene';
@@ -45,6 +46,8 @@ class StarlighterGame {
   private bossLab: BossLab | null = null;
   /** Sektor-Anflug-Cutscene (läuft zwischen Hangar und Dungeon) */
   private approachCutscene: SectorApproachCutscene | null = null;
+  /** In-Map-Cutscene direkt auf der Dungeon-Karte (Drop-Pod-Landung, Teleporter-Abholung, Med-Drohnen-Rettung) */
+  private mapCutscene: DungeonMapCutscene | null = null;
   /** Rückkehr-Cutscene (Extraktion oder verletzte Med-Evac-Bergung → Port Solaris) */
   private returnCutscene: SectorReturnCutscene | null = null;
   private pendingReturnSummary: RunSummary | null = null;
@@ -525,12 +528,23 @@ class StarlighterGame {
 
   private finishApproachCutscene(skipped: boolean): void {
     this.approachCutscene = null;
-    this.setHudVisible(true);
     if (skipped) {
-      this.transitionTo('dungeon', 'hangar');
+      this.setHudVisible(true);
+      this.transitionDir = 0;
+      this.transitionAlpha = 0;
+      this.transitionTo('dungeon', 'hangar', () => {
+        if (this.dungeonScene?.currentRoom) {
+          this.dungeonScene.hidePlayerForCutscene = false;
+          this.dungeonScene.landedPod = {
+            x: this.dungeonScene.playerX,
+            y: this.dungeonScene.playerY - 10,
+            roomKey: this.dungeonScene.currentRoom.key,
+          };
+        }
+      });
       return;
     }
-    // Cutscene hat bereits auf Dunkel ausgeblendet → nahtlos in den Dungeon aufblenden
+    // Cutscene hat bereits auf Dunkel ausgeblendet → nahtlos in den Dungeon-Startraum + Drop-Pod-Landung!
     const enterDungeon = () => {
       this.activeScene = 'dungeon';
       this.ui.currentScene = 'dungeon';
@@ -540,11 +554,22 @@ class StarlighterGame {
       } else {
         this.dng.startRun(this.pendingDungeonSector);
       }
+      this.dng.roomFade = 0; // Raum sofort sichtbar unter der Drop-Pod-Landung!
+      this.dng.landedPod = null;
+      this.dng.hidePlayerForCutscene = true;
       this.ui.dungeonSector = this.dng.currentSector;
       this.ui.dungeonFloor = this.dng.currentFloor;
       this.ui.dungeonEndlessRift = this.dng.isEndlessRift;
       this.ui.dungeonWeeklyTrial = this.dng.isWeeklyTrial;
       this.ui.dungeonRiftDepth = this.dng.riftDepth;
+      this.mapCutscene = new DungeonMapCutscene({
+        mode: 'land',
+        worldX: this.dng.playerX,
+        worldY: this.dng.playerY,
+        camX: this.dng.camera.x,
+        camY: this.dng.camera.y,
+        onImpactShake: (amt) => this.dng.triggerShake(amt, 0.22),
+      });
       this.syncMusic();
       this.ui.renderHud();
       this.syncTouch();
@@ -563,7 +588,11 @@ class StarlighterGame {
     this.touch.setState(
       this.activeScene,
       this.activeScene === 'shop' && this.shopScene?.shopOpen,
-      this.ui.modalOpen || this.ui.titleVisible || this.approachCutscene !== null || this.returnCutscene !== null,
+      this.ui.modalOpen ||
+        this.ui.titleVisible ||
+        this.approachCutscene !== null ||
+        this.mapCutscene !== null ||
+        this.returnCutscene !== null,
       this.state.equippedWeapon,
       this.state.secondaryWeapon !== null,
     );
@@ -662,6 +691,25 @@ class StarlighterGame {
     this.announceTimeChange(timeRes, wasNightRun ? 'night_run' : 'day_run');
     this.lastReturnedSector = summary.sector ?? 1;
     this.pendingReturnSummary = summary;
+    this.setHudVisible(false);
+    // Wenn der Spieler gerade auf der echten Dungeon-Map steht → erst In-Map-Abholung / Drohnen-Rettung zeigen!
+    if (this.activeScene === 'dungeon' && this.dungeonScene) {
+      this.dungeonScene.roomFade = 0;
+      this.dungeonScene.hidePlayerForCutscene = true;
+      this.mapCutscene = new DungeonMapCutscene({
+        mode: summary.reason === 'defeat' ? 'rescue' : 'extract',
+        worldX: this.dungeonScene.playerX,
+        worldY: this.dungeonScene.playerY,
+        camX: this.dungeonScene.camera.x,
+        camY: this.dungeonScene.camera.y,
+      });
+      this.syncTouch();
+      return;
+    }
+    this.startSpaceReturnCutscene(summary);
+  }
+
+  private startSpaceReturnCutscene(summary: RunSummary): void {
     this.returnCutscene = new SectorReturnCutscene({
       mode: summary.reason === 'defeat' ? 'rescue' : 'extract',
       sector: this.lastReturnedSector,
@@ -672,12 +720,43 @@ class StarlighterGame {
     this.syncTouch();
   }
 
+  private finishMapCutscene(): void {
+    const mc = this.mapCutscene;
+    if (!mc) return;
+    this.mapCutscene = null;
+    if (this.dungeonScene) {
+      this.dungeonScene.hidePlayerForCutscene = false;
+    }
+    if (mc.config.mode === 'land') {
+      if (this.dungeonScene?.currentRoom) {
+        this.dungeonScene.landedPod = {
+          x: this.dungeonScene.playerX,
+          y: this.dungeonScene.playerY - 10,
+          roomKey: this.dungeonScene.currentRoom.key,
+        };
+      }
+      this.setHudVisible(true);
+      this.syncTouch();
+      return;
+    }
+    // In-Map-Extraktion oder Drohnen-Bergung fertig → weiter mit Weltraum-Rückflug nach Port Solaris!
+    const summary = this.pendingReturnSummary;
+    if (summary && !mc.skipped) {
+      this.startSpaceReturnCutscene(summary);
+    } else {
+      this.finishReturnCutscene(true);
+    }
+  }
+
   private finishReturnCutscene(skipped: boolean): void {
     const summary = this.pendingReturnSummary;
     this.returnCutscene = null;
     this.pendingReturnSummary = null;
+    if (this.dungeonScene) this.dungeonScene.hidePlayerForCutscene = false;
     this.setHudVisible(true);
     if (skipped) {
+      this.transitionDir = 0;
+      this.transitionAlpha = 0;
       this.transitionTo('hangar', 'dungeon', () => {
         if (summary) this.ui.openRunSummaryModal(summary);
       });
@@ -696,7 +775,7 @@ class StarlighterGame {
   }
 
   private handleGlobalShortcuts(): void {
-    if (this.ui.titleVisible || this.approachCutscene || this.returnCutscene) return;
+    if (this.ui.titleVisible || this.approachCutscene || this.mapCutscene || this.returnCutscene) return;
 
     if (this.input.wasPressed('Escape', true)) {
       if (this.ui.modalOpen) {
@@ -764,6 +843,14 @@ class StarlighterGame {
         const wasSkipped = this.approachCutscene.skipped;
         this.finishApproachCutscene(wasSkipped);
       }
+    } else if (this.mapCutscene) {
+      const done = this.mapCutscene.update(dt, this.input);
+      if (this.dungeonScene && this.dungeonScene.shakeTimer > 0) {
+        this.dungeonScene.shakeTimer = Math.max(0, this.dungeonScene.shakeTimer - dt);
+      }
+      if (done) {
+        this.finishMapCutscene();
+      }
     } else if (this.returnCutscene) {
       const done = this.returnCutscene.update(dt, this.input);
       if (done) {
@@ -806,6 +893,9 @@ class StarlighterGame {
       this.hangarScene.render(this.ctx);
     } else {
       this.dng.render(this.ctx, this.input);
+      if (this.mapCutscene) {
+        this.mapCutscene.render(this.ctx);
+      }
     }
 
     if (this.transitionAlpha > 0) {
