@@ -497,9 +497,11 @@ export class HubCutsceneOverlay {
   private pointerClicked = false;
   private onPointerDown: () => void;
   private disposed = false;
+  private crew: { mina?: boolean; pip?: boolean; ping?: boolean; midnight?: boolean };
 
-  constructor(id: HubCutsceneId, captainName: string) {
+  constructor(id: HubCutsceneId, captainName: string, crew: { mina?: boolean; pip?: boolean; ping?: boolean; midnight?: boolean } = {}) {
     this.id = id;
+    this.crew = crew;
     this.def = HUB_CUTSCENES[id];
     this.captainName = captainName || 'Kapitän';
 
@@ -810,6 +812,11 @@ export class HubCutsceneOverlay {
       { id: 'player', x: 240, y: 158, spr: art.heroDown, w: 26, h: 30, label: this.captainName, color: '#fde047' },
     ];
 
+    // Die Crew feiert mit, sobald sie auf Port Solaris angekommen ist
+    if (this.crew.mina && art.npcMina) actors.push({ id: 'mina', x: 176, y: 168, spr: art.npcMina, w: 26, h: 28, label: 'Mina', color: '#fbbf24' });
+    if (this.crew.pip && art.npcPip) actors.push({ id: 'pip', x: 306, y: 164, spr: art.npcPip, w: 20, h: 20, label: 'Pip', color: '#2dd4bf' });
+    if (this.crew.ping && art.npcPing) actors.push({ id: 'ping', x: 294, y: 190, spr: art.npcPing, w: 20, h: 22, label: 'Ping', color: '#38bdf8' });
+    if (this.crew.midnight && art.npcMidnight) actors.push({ id: 'midnight', x: 190, y: 192, spr: art.npcMidnight, w: 20, h: 20, label: 'Mitternacht', color: '#c084fc' });
     actors.sort((a, b) => a.y - b.y);
     for (const a of actors) {
       const jy = jump(a.id);
@@ -891,10 +898,14 @@ export class HubCutsceneOverlay {
 
     // Zweite Werkbank mit Amboss-Glühen (ab Beat 2 flammt sie richtig auf!)
     const lit = this.beatIdx >= 1;
-    ctx.fillStyle = '#334155';
-    ctx.fillRect(160, 122, 16, 8);
-    ctx.fillStyle = lit ? '#fb923c' : '#64748b';
-    ctx.fillRect(163, 120, 10, 3);
+    if (art.propWorkbench2) {
+      ctx.drawImage(art.propWorkbench2, 153, 120, 30, 20);
+    } else {
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(160, 122, 16, 8);
+      ctx.fillStyle = lit ? '#fb923c' : '#64748b';
+      ctx.fillRect(163, 120, 10, 3);
+    }
     if (lit) {
       drawGlow(ctx, 168, 122, 16, '#fbbf24', 0.35 + Math.sin(this.totalElapsed * 8) * 0.08);
     }

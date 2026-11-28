@@ -303,3 +303,4 @@ Wer im Code oder in einem Plan ein neues benötigtes Sprite, ein neues M11-Sheet
 - [x] **W-11** `shop_bg_t2.png`, `shop_bg_t3.png` neu (Raum-Evolution statt nur Tresen), `npc_pip.png` (Lyras Assistenz-Droide)
 - [x] **W-12** `cutscene_intro_3.png`, `cutscene_intro_4.png` neu (Welt-Angleichung), `cutscene_bg_solaris_g1.png`, `cutscene_bg_solaris_g2.png` (Station wächst mit Kapitel)
 - [x] **W-13** `npc_ping.png` (Vex' Echo-Sonde), `npc_midnight.png` (Nyx' Void-Katze); Zonen-Updates `backroom_bg.png` (Ecken Stufe II), `shop_bg_t2/t3.png` (Upgrade-Tisch)
+- [x] **W-14** `prop_workbench2.png` (Minas zweite Werkbank)
