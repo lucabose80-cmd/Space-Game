@@ -32,8 +32,8 @@ interface Particle {
 }
 
 const SKIP_LOCK_SEC = 0.28;
-const EXTRACT_DURATION = 3.75;
-const RESCUE_DURATION = 3.95;
+const EXTRACT_DURATION = 3.35;
+const RESCUE_DURATION = 3.55;
 
 const SECTOR_BG_KEYS: Record<
   SectorId,
@@ -103,10 +103,21 @@ function createRng(seed: number): () => number {
   };
 }
 
+interface CraftPose {
+  x: number;
+  y: number;
+  scale: number;
+  alpha: number;
+  /** Für Med-Evac-Drohne: exakter Flugwinkel in Radiant (0 = nach oben). */
+  heading: number;
+  /** Für Schiffe: 'bank_right' = 3/4-Schräglage nach rechts-oben, 'straight' = gerade in die Bucht. */
+  shipPose: 'bank_right' | 'straight';
+}
+
 /**
- * Rückkehr-Cutscene (Dungeon → Port Solaris):
- * - mode === 'extract': Erfolgreiche Extraktion — Abholung mit Fracht-Schimmer, Kurvenflug & Landung auf Port Solaris.
- * - mode === 'rescue' : Notfall-Bergung (0 HP) — Alarm-Glitch, Dr. Lyras Med-Evac-Drohne zieht verletzten Kapitän hoch & Notlandung auf Port Solaris.
+ * Rückkehr-Cutscene (Dungeon → Port Solaris) — Kapitän ist nach der In-Map-Sequenz bereits an Bord!
+ * - mode === 'extract': Phase 1 = Schiff startet aus der Sektor-Schleuse in den Warp · Phase 2 = Anflug in die Hangarbucht von Port Solaris.
+ * - mode === 'rescue' : Phase 1 = Dr. Lyras Med-Evac-Drohne bricht mit Sirene & Funken aus dem Sektor aus · Phase 2 = Notlandung in Port Solaris.
  */
 export class SectorReturnCutscene {
   public readonly config: SectorReturnConfig;
@@ -126,7 +137,7 @@ export class SectorReturnCutscene {
   constructor(config: SectorReturnConfig) {
     this.config = config;
     this.duration = config.mode === 'rescue' ? RESCUE_DURATION : EXTRACT_DURATION;
-    this.splitTime = config.mode === 'rescue' ? 1.85 : 1.65;
+    this.splitTime = config.mode === 'rescue' ? 1.5 : 1.4;
     this.rng = createRng(config.sector * 3571 + (config.mode === 'rescue' ? 911 : 202));
 
     for (let i = 0; i < 78; i++) {
@@ -158,7 +169,7 @@ export class SectorReturnCutscene {
     if (!this.playedStartSfx) {
       this.playedStartSfx = true;
       if (this.config.mode === 'rescue') sound.playEmergencySiren();
-      else sound.playDropBeam();
+      else sound.playApproachWhoosh();
     }
 
     if (this.elapsed >= SKIP_LOCK_SEC) {
@@ -178,12 +189,13 @@ export class SectorReturnCutscene {
 
     if (!this.playedWarpSfx && this.elapsed >= this.splitTime - 0.12) {
       this.playedWarpSfx = true;
-      sound.playApproachWhoosh();
+      this.particles.length = 0;
+      sound.playWarp();
     }
 
     // Sterne
     const inPhase2 = this.elapsed >= this.splitTime;
-    const speed = inPhase2 ? 24 + (1 - easeOutCubic((this.elapsed - this.splitTime) / 1.2)) * 160 : 18;
+    const speed = inPhase2 ? 24 + (1 - easeOutCubic((this.elapsed - this.splitTime) / 1.1)) * 150 : 28;
     for (const s of this.stars) {
       const mult = s.layer === 0 ? 0.35 : s.layer === 1 ? 0.72 : 1.3;
       s.y += speed * mult * dt;
@@ -202,91 +214,106 @@ export class SectorReturnCutscene {
     return false;
   }
 
-  private getCraftState(): { x: number; y: number; scale: number; heading: number; bank: number } {
+  private getCraftState(): CraftPose {
     const t = this.elapsed;
     if (t < this.splitTime) {
-      const p = t / this.splitTime;
+      const u = easeInOutQuad(t / this.splitTime);
+      const alpha = clamp01(u / 0.16);
       if (this.config.mode === 'rescue') {
-        // Med-Evac-Drohne fegt von links-oben rein, bremst über dem Sektor und zieht nach rechts-unten ab
-        if (p < 0.42) {
-          const u = easeOutCubic(p / 0.42);
-          const bx = cubicBezier(u, 76, 150, 210, VIRTUAL_WIDTH * 0.5);
-          const by = cubicBezier(u, 226, 204, 178, 166);
-          const h = Math.atan2(bx.dv, -Math.max(15, -by.dv)) * (1 - u * 0.8);
-          return { x: bx.v, y: by.v, scale: 0.86, heading: h, bank: h * 1.8 };
-        }
-        if (p < 0.78) {
-          const wobble = Math.sin(t * 9) * 1.8;
-          return { x: VIRTUAL_WIDTH * 0.5 + wobble, y: 166 + Math.cos(t * 7) * 1.2, scale: 0.86, heading: 0, bank: 0 };
-        }
-        const u = easeInOutQuad((p - 0.78) / 0.22);
+        // Med-Evac-Drohne (Kapitän bereits an Bord!) bricht aus der Sektor-Schleuse (240, 122) nach rechts-unten aus
+        const bx = cubicBezier(u, 240, 276, 362, 468);
+        const by = cubicBezier(u, 122, 152, 198, 252);
+        const heading = Math.atan2(bx.dv, -by.dv);
         return {
-          x: VIRTUAL_WIDTH * 0.5 + u * 150,
-          y: 166 + u * 95,
-          scale: 0.86 + u * 0.2,
-          heading: u * 0.72,
-          bank: u * 0.85,
+          x: bx.v,
+          y: by.v,
+          scale: 0.36 + u * 0.72,
+          alpha,
+          heading,
+          shipPose: 'bank_right',
         };
       }
-      // Extraktion: Schiff wartet kurz am Sektor, dann elegante Abfahrt-Kurve
-      if (p < 0.64) {
-        return {
-          x: VIRTUAL_WIDTH * 0.5 + Math.sin(t * 3.5) * 2,
-          y: 168 + Math.cos(t * 4) * 1.2,
-          scale: 0.78,
-          heading: 0,
-          bank: 0,
-        };
-      }
-      const u = easeInOutQuad((p - 0.64) / 0.36);
-      const bx = cubicBezier(u, VIRTUAL_WIDTH * 0.5, 290, 360, 440);
-      const by = cubicBezier(u, 168, 184, 224, 286);
-      return { x: bx.v, y: by.v, scale: 0.78 + u * 0.24, heading: u * 0.8, bank: u * 0.9 };
+      // Extraktion: Schiff (Kapitän & Beute bereits an Bord!) startet aus der Schleuse & zieht im 3/4-Flug nach rechts-oben weg
+      const bx = cubicBezier(u, 240, 306, 388, 474);
+      const by = cubicBezier(u, 124, 130, 92, 42);
+      return {
+        x: bx.v,
+        y: by.v,
+        scale: 0.34 + u * 0.74,
+        alpha,
+        heading: Math.atan2(bx.dv, -by.dv),
+        shipPose: 'bank_right',
+      };
     }
 
-    // Phase 2: Rückflug in Kurve direkt in die leuchtende Hangarbucht von Port Solaris (240, 148)
-    const u = easeOutCubic((t - this.splitTime) / (this.duration - this.splitTime - 0.25));
-    const startX = this.config.mode === 'rescue' ? 388 : 98;
-    const ctrl1X = this.config.mode === 'rescue' ? 140 : 346;
-    const ctrl2X = this.config.mode === 'rescue' ? 210 : 275;
-    const bx = cubicBezier(u, startX, ctrl1X, ctrl2X, VIRTUAL_WIDTH * 0.5);
-    const by = cubicBezier(u, 294, 248, 188, 148);
-    const rawH = Math.atan2(bx.dv, -Math.max(18, -by.dv));
-    const heading = Math.max(-0.55, Math.min(0.55, rawH * (1 - u * 0.82)));
-    const scale = 0.98 - 0.52 * u; // schrumpft beim Einfliegen in die riesige Raumstation!
-    return { x: bx.v, y: by.v, scale, heading, bank: heading * 1.9 };
+    // Phase 2: Sauberer Ein-Kurven-Anflug direkt in die leuchtende Hangarbucht von Port Solaris (240, 148)
+    const u = easeOutCubic((t - this.splitTime) / (this.duration - this.splitTime - 0.2));
+    const alpha = u > 0.84 ? 1 - clamp01((u - 0.84) / 0.16) : 1;
+    if (this.config.mode === 'rescue') {
+      // Med-Evac-Drohne fegt von rechts-unten in einer glatten Kurve in die blinkende Med-Bay-Bucht
+      const bx = cubicBezier(u, 422, 352, 286, VIRTUAL_WIDTH * 0.5);
+      const by = cubicBezier(u, 254, 206, 172, 148);
+      const heading = Math.atan2(bx.dv, -by.dv);
+      return {
+        x: bx.v,
+        y: by.v,
+        scale: 1.0 - 0.66 * u,
+        alpha,
+        heading,
+        shipPose: 'straight',
+      };
+    }
+    // Extraktion: Schiff kommt von links-unten im echten 3/4-Schräglagen-Sprite nach rechts-oben in die Hangarbucht (kein Kippen/Spiegeln!)
+    const bx = cubicBezier(u, 56, 126, 192, VIRTUAL_WIDTH * 0.5);
+    const by = cubicBezier(u, 256, 212, 174, 148);
+    const shipPose: 'bank_right' | 'straight' = u < 0.72 ? 'bank_right' : 'straight';
+    return {
+      x: bx.v,
+      y: by.v,
+      scale: 1.04 - 0.72 * u,
+      alpha,
+      heading: 0,
+      shipPose,
+    };
   }
 
   private updateParticles(dt: number): void {
     const craft = this.getCraftState();
     const isRescue = this.config.mode === 'rescue';
-    this.spawnAcc += dt * (isRescue ? 42 : 30);
-    while (this.spawnAcc >= 1) {
-      this.spawnAcc -= 1;
-      // Rauch & Funken bei Notfall-Bergung; gold-türkise Triebwerksfunken bei Extraktion
-      if (isRescue) {
-        const isSmoke = this.rng() < 0.55;
-        this.particles.push({
-          x: craft.x + (this.rng() - 0.5) * 10,
-          y: craft.y + 14 * craft.scale,
-          vx: (this.rng() - 0.5) * 18,
-          vy: 28 + this.rng() * 34,
-          life: 0,
-          maxLife: isSmoke ? 0.55 : 0.3,
-          size: isSmoke ? 3 : 1.8,
-          color: isSmoke ? '#64748b' : this.rng() < 0.5 ? '#f87171' : '#fbbf24',
-        });
-      } else {
-        this.particles.push({
-          x: craft.x + (this.rng() < 0.5 ? -6 : 6) * craft.scale,
-          y: craft.y + 18 * craft.scale,
-          vx: (this.rng() - 0.5) * 14,
-          vy: 42 + this.rng() * 48,
-          life: 0,
-          maxLife: 0.32,
-          size: 1.8,
-          color: this.rng() < 0.45 ? '#fde047' : '#38e8d4',
-        });
+    if (craft.alpha > 0.15) {
+      this.spawnAcc += dt * (isRescue ? 46 : 36);
+      while (this.spawnAcc >= 1) {
+        this.spawnAcc -= 1;
+        if (isRescue) {
+          // Ausstoß genau am Heck der gedrehten Med-Evac-Drohne
+          const rearX = -Math.sin(craft.heading);
+          const rearY = Math.cos(craft.heading);
+          const isSmoke = this.rng() < 0.55;
+          this.particles.push({
+            x: craft.x + rearX * 15 * craft.scale + (this.rng() - 0.5) * 6,
+            y: craft.y + rearY * 15 * craft.scale + (this.rng() - 0.5) * 6,
+            vx: rearX * (32 + this.rng() * 32) + (this.rng() - 0.5) * 16,
+            vy: rearY * (32 + this.rng() * 32) + (this.rng() - 0.5) * 16,
+            life: 0,
+            maxLife: isSmoke ? 0.52 : 0.28,
+            size: isSmoke ? Math.max(1.5, 3 * craft.scale) : Math.max(1, 1.8 * craft.scale),
+            color: isSmoke ? '#64748b' : this.rng() < 0.5 ? '#f87171' : '#fbbf24',
+          });
+        } else {
+          const isBank = craft.shipPose === 'bank_right';
+          const ox = isBank ? -14 * craft.scale : (this.rng() < 0.5 ? -6 : 6) * craft.scale;
+          const oy = (isBank ? 12 : 16) * craft.scale;
+          this.particles.push({
+            x: craft.x + ox + (this.rng() - 0.5) * 3,
+            y: craft.y + oy + (this.rng() - 0.5) * 3,
+            vx: isBank ? -48 - this.rng() * 38 : (this.rng() - 0.5) * 14,
+            vy: 38 + this.rng() * 40,
+            life: 0,
+            maxLife: 0.3,
+            size: Math.max(1, 2 * craft.scale),
+            color: this.rng() < 0.4 ? '#fde047' : '#38e8d4',
+          });
+        }
       }
     }
 
@@ -311,7 +338,7 @@ export class SectorReturnCutscene {
 
     ctx.save();
 
-    // 1. Hintergrund: Phase 1 = Sektor-Vista, Phase 2 = Port Solaris Raumstation!
+    // 1. Hintergrund: Phase 1 = Sektor-Vista (Abflug), Phase 2 = Port Solaris Raumstation (Anflug)
     const bg = inPhase2 ? hd.cutsceneBgSolaris : hd[SECTOR_BG_KEYS[this.config.sector]];
     const panX = Math.sin(t * 0.8) * 4.5;
     const panY = Math.cos(t * 0.6) * 2.5;
@@ -319,7 +346,7 @@ export class SectorReturnCutscene {
       const phaseProgress = inPhase2
         ? clamp01((t - this.splitTime) / (this.duration - this.splitTime))
         : clamp01(t / this.splitTime);
-      const zoom = inPhase2 ? 1.02 + phaseProgress * 0.1 : 1.08 - phaseProgress * 0.05;
+      const zoom = inPhase2 ? 1.02 + phaseProgress * 0.1 : 1.09 - phaseProgress * 0.06;
       const w = VIRTUAL_WIDTH * zoom;
       const h = VIRTUAL_HEIGHT * zoom;
       ctx.drawImage(bg, (VIRTUAL_WIDTH - w) / 2 + panX, (VIRTUAL_HEIGHT - h) / 2 + panY, w, h);
@@ -328,8 +355,21 @@ export class SectorReturnCutscene {
       ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
     }
 
-    // 2. Lebendige Stations-Lichter auf Port Solaris (Phase 2)
-    if (inPhase2) {
+    // 2. Lebendige Schleusen-/Stationslichter
+    if (!inPhase2) {
+      // Abflug-Blitz aus der Sektor-Schleuse (erste 0.55 s)
+      if (t < 0.55) {
+        const p = clamp01(t / 0.55);
+        this.drawGlowDot(
+          ctx,
+          240 + panX,
+          122 + panY,
+          20 + p * 26,
+          isRescue ? '#ef4444' : '#38e8d4',
+          Math.sin(p * Math.PI) * 0.85,
+        );
+      }
+    } else {
       const bayPulse = 0.35 + 0.35 * Math.sin(t * 7);
       this.drawGlowDot(
         ctx,
@@ -339,7 +379,6 @@ export class SectorReturnCutscene {
         isRescue ? '#ef4444' : '#38e8d4',
         bayPulse,
       );
-      // Blinkende Positionslichter an den Sonnensegeln & Kuppeln
       if (Math.sin(t * 6) > 0) {
         this.drawGlowDot(ctx, 184 + panX, 34 + panY, 6, '#fbbf24', 0.8);
         this.drawGlowDot(ctx, 314 + panX, 34 + panY, 6, '#fbbf24', 0.8);
@@ -358,13 +397,7 @@ export class SectorReturnCutscene {
     }
     ctx.globalAlpha = 1;
 
-    // 4. Phase 1: Abhol-Strahl (Extraktion oder verletzte Bergung!)
-    const craft = this.getCraftState();
-    if (!inPhase2) {
-      this.renderPickupBeam(ctx, craft.x, craft.y, panX, panY, t, isRescue);
-    }
-
-    // 5. Partikel (Funken / Rauch / Gold-Schimmer)
+    // 4. Partikel (Funken / Rauch / Triebwerksspur)
     for (const p of this.particles) {
       ctx.globalAlpha = Math.max(0, 1 - p.life / p.maxLife) * 0.88;
       ctx.fillStyle = p.color;
@@ -372,12 +405,13 @@ export class SectorReturnCutscene {
     }
     ctx.globalAlpha = 1;
 
-    // 6. Schiff bzw. Med-Evac-Drohne
+    // 5. Schiff bzw. Med-Evac-Drohne (Kapitän bereits an Bord — kein doppelter Abhol-Strahl!)
+    const craft = this.getCraftState();
     this.renderCraft(ctx, craft, isRescue, t);
 
-    // 7. Notfall-Vignette & subtile Glitch-Scanlines bei 0 HP (Phase 1)
+    // 6. Notfall-Vignette & subtile Glitch-Scanlines bei 0 HP (Phase 1)
     if (isRescue && !inPhase2) {
-      const alarm = 0.16 + 0.14 * Math.sin(t * 12);
+      const alarm = 0.14 + 0.12 * Math.sin(t * 12);
       ctx.fillStyle = `rgba(220, 38, 38, ${alarm})`;
       ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
       if (Math.sin(t * 31) > 0.65) {
@@ -387,17 +421,17 @@ export class SectorReturnCutscene {
       }
     }
 
-    // 8. Warp-Übergangsblitz zwischen Phase 1 und Phase 2
+    // 7. Warp-Übergangsblitz zwischen Phase 1 und Phase 2
     const splitDist = Math.abs(t - this.splitTime);
-    if (splitDist < 0.24) {
-      const flash = 1 - splitDist / 0.24;
+    if (splitDist < 0.22) {
+      const flash = 1 - splitDist / 0.22;
       ctx.fillStyle = isRescue
         ? `rgba(254, 202, 202, ${flash * 0.85})`
         : `rgba(207, 250, 254, ${flash * 0.85})`;
       ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
     }
 
-    // 9. Kino-Balken
+    // 8. Kino-Balken
     const barH = 22;
     ctx.fillStyle = '#060a12';
     ctx.fillRect(0, 0, VIRTUAL_WIDTH, barH);
@@ -408,10 +442,10 @@ export class SectorReturnCutscene {
     ctx.fillRect(0, VIRTUAL_HEIGHT - barH, VIRTUAL_WIDTH, 1);
     ctx.globalAlpha = 1;
 
-    // 10. Status-Banner (unten über Kino-Balken)
+    // 9. Status-Banner (unten über Kino-Balken)
     this.renderBanner(ctx, t, inPhase2, isRescue, accent);
 
-    // 11. Skip-Hinweis
+    // 10. Skip-Hinweis
     if (t >= SKIP_LOCK_SEC) {
       const pulse = 0.55 + 0.35 * Math.sin(t * 5);
       ctx.save();
@@ -424,12 +458,12 @@ export class SectorReturnCutscene {
       ctx.restore();
     }
 
-    // 12. Sanftes Ein- & Ausblenden
+    // 11. Sanftes Ein- & Ausblenden
     if (t < 0.2) {
       ctx.fillStyle = `rgba(10, 18, 30, ${1 - t / 0.2})`;
       ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
-    } else if (t > this.duration - 0.38) {
-      const f = clamp01((t - (this.duration - 0.38)) / 0.38);
+    } else if (t > this.duration - 0.36) {
+      const f = clamp01((t - (this.duration - 0.36)) / 0.36);
       ctx.fillStyle = `rgba(10, 18, 30, ${f})`;
       ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
     }
@@ -437,69 +471,15 @@ export class SectorReturnCutscene {
     ctx.restore();
   }
 
-  private renderPickupBeam(
-    ctx: CanvasRenderingContext2D,
-    craftX: number,
-    craftY: number,
-    ox: number,
-    oy: number,
-    t: number,
-    isRescue: boolean,
-  ): void {
-    const startT = isRescue ? 0.48 : 0.12;
-    const endT = isRescue ? 1.48 : 1.12;
-    if (t < startT || t > endT) return;
-    const p = clamp01((t - startT) / (endT - startT));
-    const beamFade = Math.sin(p * Math.PI);
-    const topY = 118 + oy;
-    const bottomY = craftY - 14;
-    const h = Math.max(18, bottomY - topY);
-    const w = 13 * beamFade + 4;
-
-    ctx.save();
-    ctx.globalAlpha = beamFade * 0.34;
-    ctx.fillStyle = isRescue ? '#ef4444' : '#38e8d4';
-    ctx.fillRect(Math.round(craftX - w), topY, Math.round(w * 2), h);
-    ctx.globalAlpha = beamFade * 0.65;
-    ctx.fillStyle = isRescue ? '#fecaca' : '#fef08a';
-    ctx.fillRect(Math.round(craftX - w * 0.4), topY, Math.round(w * 0.8), h);
-
-    // Kapitän wird aus dem Sektor nach unten/ins Schiff bzw. die Med-Drohne gezogen
-    const hero = getHDArt().heroDown;
-    if (hero) {
-      const hy = topY + 6 + p * (h - 10);
-      const hx = craftX + ox * (1 - p) * 0.3;
-      ctx.save();
-      ctx.translate(Math.round(hx), Math.round(hy));
-      if (isRescue) {
-        // Verletzter Kapitän leicht schräg & mit rotem Warn-Ring
-        ctx.rotate(0.28 + Math.sin(t * 14) * 0.08);
-        ctx.strokeStyle = '#ef4444';
-        ctx.globalAlpha = 0.8;
-        ctx.lineWidth = 1.4;
-        ctx.beginPath();
-        ctx.arc(0, 0, 11, 0, Math.PI * 2);
-        ctx.stroke();
-      } else {
-        // Erfolgreiche Extraktion: goldener Beute-Schimmer neben dem Kapitän
-        this.drawGlowDot(ctx, 8, 2, 7, '#fbbf24', 0.85);
-      }
-      ctx.globalAlpha = Math.min(1, beamFade * 1.4);
-      ctx.drawImage(hero, -10, -10, 20, 20);
-      ctx.restore();
-    }
-
-    ctx.restore();
-  }
-
   private renderCraft(
     ctx: CanvasRenderingContext2D,
-    craft: { x: number; y: number; scale: number; heading: number; bank: number },
+    craft: CraftPose,
     isRescue: boolean,
     t: number,
   ): void {
+    if (craft.alpha <= 0.01) return;
     const hd = getHDArt();
-    const useBank = !isRescue && Math.abs(craft.bank) > 0.22 && !!hd[SECTOR_SHIP_BANK_KEYS[this.config.sector]];
+    const useBank = !isRescue && craft.shipPose === 'bank_right' && !!hd[SECTOR_SHIP_BANK_KEYS[this.config.sector]];
     const sprite = isRescue
       ? hd.cutsceneMedDrone
       : useBank
@@ -507,25 +487,24 @@ export class SectorReturnCutscene {
         : hd[SECTOR_SHIP_KEYS[this.config.sector]];
 
     ctx.save();
+    ctx.globalAlpha = craft.alpha;
     ctx.translate(Math.round(craft.x), Math.round(craft.y));
-    if (useBank) {
-      // Echtes 3/4-Schräglagen-Sprite (gespiegelt bei Linkskurve, ohne flaches rotate!)
-      ctx.scale(craft.bank < 0 ? -craft.scale : craft.scale, craft.scale);
-    } else {
-      const bankScaleX = 1 - Math.abs(craft.bank) * 0.18;
+    if (isRescue) {
       ctx.rotate(craft.heading);
-      ctx.scale(craft.scale * bankScaleX, craft.scale);
+      ctx.scale(craft.scale, craft.scale);
+    } else {
+      ctx.scale(craft.scale, craft.scale);
     }
 
     if (isRescue) {
       const sirenRed = Math.sin(t * 18) > 0;
       this.drawGlowDot(ctx, 0, -4, 24, sirenRed ? '#ef4444' : '#38bdf8', 0.65);
     } else {
-      this.drawGlowDot(ctx, 0, 20, 24, '#38e8d4', 0.5);
+      this.drawGlowDot(ctx, useBank ? -14 : 0, useBank ? 14 : 20, 24, '#38e8d4', 0.5);
     }
 
     if (sprite) {
-      const w = isRescue ? 50 : useBank ? 60 : 52;
+      const w = isRescue ? 50 : useBank ? 62 : 52;
       const h = Math.round((sprite.height / Math.max(1, sprite.width)) * w);
       ctx.drawImage(sprite, Math.round(-w / 2), Math.round(-h / 2), w, h);
     } else {
@@ -542,13 +521,13 @@ export class SectorReturnCutscene {
     isRescue: boolean,
     accent: string,
   ): void {
-    const alpha = clamp01(t / 0.35) * (t > this.duration - 0.45 ? 1 - clamp01((t - (this.duration - 0.45)) / 0.45) : 1);
+    const alpha = clamp01(t / 0.32) * (t > this.duration - 0.42 ? 1 - clamp01((t - (this.duration - 0.42)) / 0.42) : 1);
     if (alpha <= 0.01) return;
 
     const boxW = 296;
     const boxH = 36;
     const bx = Math.round((VIRTUAL_WIDTH - boxW) / 2);
-    const by = 196;
+    const by = 200;
 
     ctx.save();
     ctx.globalAlpha = alpha;
@@ -565,10 +544,10 @@ export class SectorReturnCutscene {
     const eyebrow = isRescue
       ? inPhase2
         ? '🏥 DR. LYRAS MED-EVAC · NOTLANDUNG'
-        : '⚠ NOT-EVAKUIERUNG · SCHILDE VERSAGT'
+        : '⚠ NOT-EVAKUIERUNG · ABFLUG'
       : inPhase2
         ? '✓ EXTRAKTION ERFOLGREICH · ANFLUG'
-        : '✦ TELEPORT-EXTRAKTION AKTIV';
+        : '✦ SEKTOR VERLASSEN · RÜCKFLUG';
     ctx.fillText(eyebrow, VIRTUAL_WIDTH / 2, by + 5);
 
     ctx.font = 'bold 11px monospace';
@@ -576,16 +555,16 @@ export class SectorReturnCutscene {
     const headline = inPhase2
       ? 'PORT SOLARIS'
       : isRescue
-        ? 'KAPITÄN GEBORGEN'
-        : 'BEUTE GESICHERT';
+        ? 'MED-EVAC UNTERWEGS'
+        : 'BEUTE AN BORD';
     ctx.fillText(headline, VIRTUAL_WIDTH / 2, by + 14);
 
     ctx.font = '7px monospace';
     ctx.fillStyle = '#cbd5e1';
     const sub = isRescue
       ? this.config.itemsLost > 0
-        ? `Verletzt geborgen · ${this.config.itemsLost} Fracht-Slot(s) verloren`
-        : 'Verletzt geborgen · Notfall-Rückkehr zur Med-Bay'
+        ? `Kapitän an Bord · ${this.config.itemsLost} Fracht-Slot(s) verloren`
+        : 'Kapitän stabilisiert · Notfall-Rückkehr zur Med-Bay'
       : this.config.itemsSaved > 0
         ? `${this.config.itemsSaved} Relikt(e) sicher an Bord · Rückkehr zum Hafen`
         : 'Sicher an Bord · Rückkehr zum Raumhafen';

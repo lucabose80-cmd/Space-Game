@@ -226,14 +226,14 @@ export class DungeonMapCutscene {
 
   private renderPodLanding(ctx: CanvasRenderingContext2D, sx: number, sy: number, t: number): void {
     const hd = getHDArt();
-    const podY = sy - 10;
+    const podY = sy - 16;
 
     // 1. Wachsender Zielschatten am Boden
     const fallP = clamp01(t / 0.44);
     const shadowScale = 0.25 + 0.75 * fallP;
     ctx.fillStyle = `rgba(4, 8, 16, ${0.22 + 0.36 * fallP})`;
     ctx.beginPath();
-    ctx.ellipse(sx, podY + 12, 16 * shadowScale, 6 * shadowScale, 0, 0, Math.PI * 2);
+    ctx.ellipse(sx, podY + 18, 22 * shadowScale, 8 * shadowScale, 0, 0, Math.PI * 2);
     ctx.fill();
 
     // 2. Fallende Kapsel (0..0.44 s) → gelandete geschlossene (0.44..0.68 s) → geöffnete Kapsel (ab 0.68 s)
@@ -242,12 +242,12 @@ export class DungeonMapCutscene {
       // Bremsdüsen-Flamme
       ctx.fillStyle = '#38e8d4';
       ctx.globalAlpha = 0.75;
-      ctx.fillRect(sx - 5, Math.round(y + 10), 10, 14);
+      ctx.fillRect(sx - 6, Math.round(y + 16), 12, 16);
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(sx - 2, Math.round(y + 10), 4, 8);
+      ctx.fillRect(sx - 3, Math.round(y + 16), 6, 9);
       ctx.globalAlpha = 1;
       if (hd.cutsceneDropPod) {
-        ctx.drawImage(hd.cutsceneDropPod, Math.round(sx - 15), Math.round(y - 16), 30, 30);
+        ctx.drawImage(hd.cutsceneDropPod, Math.round(sx - 23), Math.round(y - 24), 46, 46);
       }
     } else {
       // Aufprall-Schockwelle (0.44..0.78 s)
@@ -257,7 +257,7 @@ export class DungeonMapCutscene {
         ctx.globalAlpha = (1 - rp) * 0.85;
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.ellipse(sx, podY + 10, 10 + rp * 30, 4 + rp * 11, 0, 0, Math.PI * 2);
+        ctx.ellipse(sx, podY + 16, 14 + rp * 34, 5 + rp * 13, 0, 0, Math.PI * 2);
         ctx.stroke();
         ctx.globalAlpha = 1;
       }
@@ -265,20 +265,21 @@ export class DungeonMapCutscene {
       const isOpen = t >= 0.68;
       const spr = isOpen ? (hd.cutsceneDropPodOpen ?? hd.cutsceneDropPod) : hd.cutsceneDropPod;
       if (spr) {
-        ctx.drawImage(spr, Math.round(sx - 15), Math.round(podY - 16), 30, 30);
+        ctx.drawImage(spr, Math.round(sx - 23), Math.round(podY - 24), 46, 46);
       }
       // Warmes Innenlicht beim Öffnen der Luke
       if (isOpen && t < 0.98) {
         const gP = Math.sin(((t - 0.68) / 0.3) * Math.PI);
-        this.drawGlow(ctx, sx, podY, 20, '#38e8d4', gP * 0.65);
+        this.drawGlow(ctx, sx, podY - 2, 24, '#38e8d4', gP * 0.65);
       }
     }
 
     // 3. Spieler hüpft sichtbar aus der geöffneten Luke auf den Startpunkt (0.72..1.25 s)
     if (t >= 0.72 && hd.heroDown) {
       const hopP = easeOutCubic((t - 0.72) / 0.48);
-      const hy = podY + 2 + (sy - (podY + 2)) * hopP - Math.sin(hopP * Math.PI) * 11;
-      const hs = 20 + 4 * hopP;
+      const startY = podY + 2;
+      const hy = startY + (sy - startY) * hopP - Math.sin(hopP * Math.PI) * 10;
+      const hs = 18 + 6 * hopP;
       ctx.drawImage(hd.heroDown, Math.round(sx - hs / 2), Math.round(hy - hs / 2), Math.round(hs), Math.round(hs));
     }
   }
@@ -341,25 +342,25 @@ export class DungeonMapCutscene {
 
     if (t < 0.48) {
       const u = easeOutCubic(t / 0.48);
-      droneY = -36 + (sy - 46 - -36) * u;
+      droneY = -42 + (sy - 50 - -42) * u;
     } else if (t < 0.86) {
-      droneY = sy - 46 + Math.sin(t * 12) * 1.5;
+      droneY = sy - 50 + Math.sin(t * 12) * 1.5;
       beamAlpha = easeOutCubic((t - 0.48) / 0.22);
       heroY = sy - Math.sin(((t - 0.48) / 0.38) * Math.PI * 0.5) * 6;
     } else {
       const liftP = easeInOutQuad((t - 0.86) / (this.duration - 0.86));
-      droneY = sy - 46 - liftP * (sy + 50);
-      heroY = sy - 6 - liftP * (sy + 50);
+      droneY = sy - 50 - liftP * (sy + 56);
+      heroY = sy - 6 - liftP * (sy + 56);
       beamAlpha = 1 - Math.max(0, (liftP - 0.75) / 0.25);
     }
 
     // Stasis-Bergungsstrahl zwischen Drohne und verletztem Spieler
     if (beamAlpha > 0.01) {
-      const top = Math.round(droneY + 8);
+      const top = Math.round(droneY + 12);
       const h = Math.max(12, Math.round(heroY + 10 - top));
       ctx.globalAlpha = beamAlpha * 0.36;
       ctx.fillStyle = '#ef4444';
-      ctx.fillRect(sx - 12, top, 24, h);
+      ctx.fillRect(sx - 13, top, 26, h);
       ctx.globalAlpha = beamAlpha * 0.65;
       ctx.fillStyle = '#fecaca';
       ctx.fillRect(sx - 5, top, 10, h);
@@ -384,9 +385,9 @@ export class DungeonMapCutscene {
 
     // Dr. Lyras Med-Evac-Drohne mit blinkender Sirene
     const sirenRed = Math.sin(t * 20) > 0;
-    this.drawGlow(ctx, sx, droneY, 24, sirenRed ? '#ef4444' : '#38bdf8', 0.65);
+    this.drawGlow(ctx, sx, droneY, 28, sirenRed ? '#ef4444' : '#38bdf8', 0.65);
     if (hd.cutsceneMedDrone) {
-      ctx.drawImage(hd.cutsceneMedDrone, Math.round(sx - 20), Math.round(droneY - 20), 40, 40);
+      ctx.drawImage(hd.cutsceneMedDrone, Math.round(sx - 25), Math.round(droneY - 25), 50, 50);
     }
 
     // Überblendung in den Not-Rückflug

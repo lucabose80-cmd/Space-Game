@@ -330,11 +330,11 @@ export class SectorApproachCutscene {
     const localT = Math.max(0, this.elapsed - SCENE_SPLIT);
     const dur = TOTAL_DURATION - SCENE_SPLIT - 0.2;
     const u = easeInOutQuad(localT / dur);
-    // Schiff kommt groß aus der rechten-unteren Flanke, schwenkt in einer Linkskurve direkt in die Schleuse (240, 118)!
-    const bx = cubicBezier(u, 428, 368, 255, VIRTUAL_WIDTH * 0.5);
-    const by = cubicBezier(u, 254, 195, 162, 118);
-    const scale = 1.18 - 0.88 * u; // echte Tiefen-Perspektive bis in die Schleuse hinein!
-    const pose: 'bank_left' | 'straight' = u < 0.62 ? 'bank_left' : 'straight';
+    // Schiff kommt groß aus der rechten Flanke oberhalb der Titelkarte, schwenkt sauber in die Schleuse (240, 118)!
+    const bx = cubicBezier(u, 444, 378, 292, VIRTUAL_WIDTH * 0.5);
+    const by = cubicBezier(u, 206, 162, 138, 118);
+    const scale = 1.14 - 0.84 * u; // echte Tiefen-Perspektive bis in die Schleuse hinein!
+    const pose: 'bank_left' | 'straight' = u < 0.72 ? 'bank_left' : 'straight';
     const alpha = u > 0.84 ? 1 - clamp01((u - 0.84) / 0.16) : 1;
     return { x: bx.v, y: by.v, scale, pose, alpha };
   }

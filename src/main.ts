@@ -537,7 +537,7 @@ class StarlighterGame {
           this.dungeonScene.hidePlayerForCutscene = false;
           this.dungeonScene.landedPod = {
             x: this.dungeonScene.playerX,
-            y: this.dungeonScene.playerY - 10,
+            y: this.dungeonScene.playerY - 16,
             roomKey: this.dungeonScene.currentRoom.key,
           };
         }
@@ -731,7 +731,7 @@ class StarlighterGame {
       if (this.dungeonScene?.currentRoom) {
         this.dungeonScene.landedPod = {
           x: this.dungeonScene.playerX,
-          y: this.dungeonScene.playerY - 10,
+          y: this.dungeonScene.playerY - 16,
           roomKey: this.dungeonScene.currentRoom.key,
         };
       }
