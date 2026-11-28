@@ -307,7 +307,9 @@ class StarlighterGame {
     this.syncMusic();
     this.ui.showTitle();
     this.syncTouch();
-    if ([...new URLSearchParams(window.location.search).keys()].some((k) => k.toLowerCase() === 'bosslab')) this.startBossLab();
+    const urlKeys = [...new URLSearchParams(window.location.search).keys()].map((k) => k.toLowerCase());
+    if (urlKeys.includes('bosslab')) this.startBossLab();
+    else if (urlKeys.includes('cutscenelab')) this.startCutsceneLab();
 
     this.canvas.addEventListener('pointerdown', () => {
       sound.unlock();
@@ -383,6 +385,78 @@ class StarlighterGame {
         },
       });
       this.bossLab.enter();
+    });
+  }
+
+  // ==================== BEHELF: CUTSCENE-STUDIO (?cutscenelab) ====================
+  private startCutsceneLab(): void {
+    this.ui.hideTitle();
+    this.state.saveLocked = true;
+    this.activeScene = 'hub';
+    this.ui.currentScene = 'hub';
+    this.ui.shopIsOpen = false;
+    this.state.sector1Cleared = true;
+    this.state.markSceneSeen('kael_c1');
+    this.state.refreshStoryChapter(false);
+    this.hubScene.onEnter('shop');
+    this.syncMusic();
+    this.ui.renderHud();
+    this.syncTouch();
+
+    void import('./dev/cutsceneLab').then(({ CutsceneLab }) => {
+      new CutsceneLab({
+        state: this.state,
+        replayCutscene: (id) => this.replayCutscene(id),
+        playUpgradeCutscene: (cfg) => this.playUpgradeCutscene(cfg),
+        playApproach: (sector) => this.launchSectorWithCutscene(sector, false),
+        playReturn: (mode, sector) => {
+          this.lastReturnedSector = sector;
+          const summary: RunSummary = {
+            victory: mode === 'extract',
+            reason: mode === 'rescue' ? 'defeat' : 'warp',
+            sector,
+            floorReached: 3,
+            roomsCleared: 8,
+            enemiesDefeated: 12,
+            itemsSaved: 4,
+            itemsLost: mode === 'rescue' ? 2 : 0,
+            warpedToChest: [],
+            shatteredItems: [],
+          };
+          this.pendingReturnSummary = summary;
+          this.startSpaceReturnCutscene(summary);
+        },
+        playBackroomWakeup: () => {
+          this.activeScene = 'backroom';
+          this.ui.currentScene = 'backroom';
+          this.backroomScene.onEnter('rescue');
+          this.ui.renderHud();
+          this.syncTouch();
+        },
+        showPromenade: (chapter, minaVisible) => {
+          this.state.sector1Cleared = chapter >= 1;
+          this.state.sector2Cleared = chapter >= 2;
+          this.state.sector3Cleared = chapter >= 3;
+          this.state.sector4Cleared = chapter >= 4;
+          this.state.omegaCleared = chapter >= 5;
+          this.state.ngPlusLevel = chapter >= 6 ? 1 : 0;
+          this.state.story.chapter = chapter;
+          this.state.story.seenScenes = minaVisible ? ['kael_c1'] : [];
+          this.state.seenCutscenes = minaVisible
+            ? ['intro_arrival', 'celebration_s1', 'story_mina_arrives']
+            : ['intro_arrival', 'celebration_s1'];
+          if (!minaVisible && chapter >= 2) {
+            // Für reine Vorschau: Mina-Toggle explizit respektieren wenn chapter < 2
+            this.state.story.chapter = 1;
+          }
+          this.activeScene = 'hub';
+          this.ui.currentScene = 'hub';
+          this.hubScene.onEnter('shop');
+          this.ui.renderHud();
+          this.syncTouch();
+        },
+        isCutsceneActive: () => this.hasActiveCutscene(),
+      });
     });
   }
 

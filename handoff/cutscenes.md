@@ -78,12 +78,13 @@
 > - **Upgrade-Cutscenes:** Knackig (~2 s, überspringbar) bei großen Meilensteinen (neue Waffe, Laden-Ausbau, neues Schiff) + schnelle Funken-Mini-Animation (~1 s) bei normalen Stufen-Upgrades + optionaler Kurz-Modus in den Geräte-Einstellungen.
 
 ### Checkliste (Etappen 1–4)
-- [ ] **Etappe 0 (Sprites `P3-48`–`P3-54`):** 7 optionale Sprites in `artLoader.ts` (`CUTSCENE_OPTIONAL_SPRITES`) & `SPRITE_QUEUE.md` (`[ ]`) registriert. Antigravity-Bild-Quota erschöpft & kein lokaler Gemini-Key → hochwertige Pixel-Art-Fallbacks aktiv (sobald PNGs liegen, automatisch aktiv ohne Codeänderung).
+- [x] **Etappe 0 (Sprites `P3-48`–`P3-54`):** Alle 7 Sprites per `scripts/gen-sheet.py` (`gemini-nano-banana-2.1`) erzeugt, aufbereitet (`960×540` RGB Panels + `96×96` RGBA Flood-Fill `npc_mina.png`), per `view_file` geprüft & in `SPRITE_QUEUE.md` als `[x]` markiert (0 fehlende Sprites!).
 - [x] **Etappe 1 (Kino-Panel-Player & Spielstart-Intro):** `src/scenes/StoryPanelCutscene.ts`, `SaveData.seenCutscenes?` (Save-v11-kompatibel), `DeviceSettings.shortCutscenes`, Intro beim Neustart (`onStartNewGame`) + **🎬 Kino-Chronik** im Logbuch.
 - [x] **Etappe 2 (Live-Regie auf Port Solaris — Siegesfeiern & Story-Höhepunkte):** `src/scenes/HubCutsceneOverlay.ts` für Sektor-1-Siegesfeier nach A.E.G.I.S. Leviathan (Lichterketten gehen an, NPCs versammeln sich & jubeln, Konfetti/Feuerwerk) + S2–S4-Feiern + Omega-Fest + 5.-Tor-/Omega-Panels (`story_gate5`, `story_omega_finale`).
-- [x] **Etappe 3 (Kaels Gehilfin Mina):** Dauerhaftes Sprite `drawMinaSprite()` (`npc_mina.png` oder 16-Bit-Pixel-Fallback) an Kaels zweiter Werkbank in `HubScene.ts` (`state.isMinaPresent()`) + Live-Einzugs-Cutscene (`story_mina_arrives`) nach Sektor 1 + `kael_c1`.
+- [x] **Etappe 3 (Kaels Gehilfin Mina):** Dauerhaftes Pixel-Art-Sprite `npc_mina.png` an Kaels zweiter Werkbank in `HubScene.ts` (`state.isMinaPresent()`) + Live-Einzugs-Cutscene (`story_mina_arrives`) nach Sektor 1 + `kael_c1`.
 - [x] **Etappe 4 (Upgrade-Cutscenes):** `src/scenes/UpgradeCutsceneOverlay.ts` (Amboss-Hämmern mit Kael & Mina + Waffen-Enthüllung, Laden-Ausbau, Schiff-Enthüllung, schnelle Stufen-Funken-Mini-Animation) verdrahtet in `UIManager.ts`/`main.ts` inkl. automatischem Wiederöffnen des Stations-Modals.
-- [x] **Tests & Sichtprüfung:** `tests/cutscene_story.cjs` + `npm run verify` grün + alle Screenshots in `tests/out/` visuell geprüft (`cutscene_intro_p1/p3.png`, `cutscene_celebration_s1.png`, `cutscene_mina_arrives.png`, `hub_with_mina.png`, `cutscene_upgrade_weapon.png`).
+- [x] **Teststudio (`?cutscenelab`):** Lazy-loaded `src/dev/cutsceneLab.ts` (`saveLocked = true`), liest `CUTSCENE_CATALOG` automatisch und bietet 1-Klick-Vorschau für alle Story-, Feier-, Mina-, Upgrade-, Flug- & Promenaden-Szenen.
+- [x] **Tests & Sichtprüfung:** `tests/cutscene_story.cjs` + `npm run verify` grün + alle Screenshots in `tests/out/` visuell geprüft.
 
 ### Praxis-Learnings (Story-/Feier-/Gehilfin-/Upgrade-Cutscenes)
 16. **Kael-Sprite-Key in `artLoader.ts` heißt `art.npcKael`** (nicht `npcBlacksmith`). Immer exakte Keys aus `HDArtAssets` prüfen.

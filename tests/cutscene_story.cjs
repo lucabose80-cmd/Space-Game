@@ -156,4 +156,20 @@ module.exports = async ({ page }) => {
   assert.strictEqual(helpCheck.shortBtns, 2, 'Kurze-Cutscenes-Schalter fehlt');
 
   await page.evaluate(() => window.__game.ui.closeModal());
+
+  // 6. ?cutscenelab Teststudio prüfen (saveLocked + Story-/Upgrade-/Flug-Buttons)
+  const baseUrl = page.url().split('?')[0];
+  await page.goto(`${baseUrl}?cutscenelab`, { waitUntil: 'networkidle' });
+  await page.waitForSelector('#cutscene-lab-panel', { timeout: 8000 });
+  const labCheck = await page.evaluate(() => ({
+    saveLocked: window.__game.state.saveLocked === true,
+    storyBtns: document.querySelectorAll('[data-lab-story]').length,
+    upgBtns: document.querySelectorAll('[data-lab-upg]').length,
+    flightBtns: document.querySelectorAll('[data-lab-flight]').length,
+  }));
+  assert.strictEqual(labCheck.saveLocked, true, 'CutsceneLab muss saveLocked setzen');
+  assert(labCheck.storyBtns >= 9, `Story-Buttons im Studio: ${labCheck.storyBtns}`);
+  assert(labCheck.upgBtns >= 6, `Upgrade-Buttons im Studio: ${labCheck.upgBtns}`);
+  assert(labCheck.flightBtns >= 7, `Flug-Buttons im Studio: ${labCheck.flightBtns}`);
+  await page.screenshot({ path: path.join(outDir, 'cutscene_lab_studio.png') });
 };
