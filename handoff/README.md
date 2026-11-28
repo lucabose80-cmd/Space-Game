@@ -9,7 +9,7 @@ Jeder Chat/Agent pflegt **nur die Datei seines Bereichs**. `HANDOFF.md` bleibt d
 | :--- | :--- | :--- | :--- |
 | Endboss-Arenen M12 (Leviathan-Pilot, künftig S2–S4) | frei — Pilot wartet auf Abnahme im echten Spiel | 2026-11-28 | nächste Arena erst nach Abnahme (Pipeline Stufe 8) |
 | Cutscenes (Intro, Feiern, Gehilfin Mina, Upgrades, Flug-Zyklus) | frei — komplett live inkl. aller 7 Sprites `P3-48`–`P3-54` & `?cutscenelab`, wartet auf Abnahme | 2026-11-28 | Details & Praxis-Learnings in [`cutscenes.md`](cutscenes.md) |
-| Port Solaris / Laden / Quartier / Story-Überarbeitung (Phase 1: Verankerung & Schatten, Portale→Türen/Schleusen) | Claude Code · Chat „Story & Maps Überarbeitung“ | 2026-11-28 | Props schweben/Schatten (Hub, Laden, Quartier, Hangar), Portale entfernen; **nicht**: Rigs/Bosse/M12 · Plan: [`world_overhaul.md`](world_overhaul.md) |
+| Welt-Überarbeitung (Port Solaris, Laden, Quartier, Crew, Cutscene-Angleichung) | frei — P1–P6 komplett live, Rest siehe „Offen“ | 2026-11-28 | Details & Rezepte: [`world_overhaul.md`](world_overhaul.md) |
 | Gegner-Rigs / Boss-Rigs (M11) | je Gegner: siehe Tabelle unten, Status-Blatt | — | pro Gegner/Boss ein Besitzer |
 | Sprite-Queue (`SPRITE_QUEUE.md`) | Antigravity (offene `[ ]`) · Claude-Chats nur `[~]` für ihre laufende Aufgabe | — | `[~]` = in Arbeit, **nicht** doppelt erzeugen |
 
