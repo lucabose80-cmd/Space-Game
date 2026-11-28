@@ -56,10 +56,13 @@ export class HangarScene {
   private dashVy = 0;
   private entryCooldown = 0;
 
-  // Ship launch takeoff animation when boarding Docks I–IV!
+  // Ship boarding & launch takeoff animation when boarding Docks I–IV!
   private launchingSector: 1 | 2 | 3 | 4 | null = null;
   private launchTimer = 0;
   private shipLiftY = 0;
+  private boardStartX = 0;
+  private boardStartY = 0;
+  private ignitionTriggered = false;
 
   private particles: Particle[] = [];
   private stars: Array<{ x: number; y: number; phase: number }> = [];
@@ -156,38 +159,12 @@ export class HangarScene {
     if (this.entryCooldown > 0) this.entryCooldown -= dt;
     if (this.dashCooldown > 0) this.dashCooldown -= dt;
 
-    // Idle starship thruster exhaust sparks on all docked ships
-    const spawnIdleSparks = (pos: { x: number; y: number }, colA: string, colB: string) => {
-      const side = Math.random() < 0.5 ? -8 : 8;
-      this.particles.push({
-        x: pos.x + side + (Math.random() - 0.5) * 3,
-        y: pos.y + 24,
-        vx: (Math.random() - 0.5) * 6,
-        vy: 14 + Math.random() * 14,
-        color: Math.random() < 0.65 ? colA : colB,
-        size: 1.4,
-        life: 0.25 + Math.random() * 0.2,
-        maxLife: 0.45,
-      });
-    };
+    // Geparkte Schiffe ruhen still am Dock (keine laufenden Triebwerke vor dem Einsteigen)
 
-    if (Math.random() < dt * 8 && this.launchingSector !== 1) spawnIdleSparks(DOCK1_POS, '#38e8d4', '#a5f3fc');
-    if (this.state.sector1Cleared && Math.random() < dt * 8 && this.launchingSector !== 2) {
-      spawnIdleSparks(DOCK2_POS, '#c084fc', '#38e8d4');
-    }
-    if (this.state.sector2Cleared && Math.random() < dt * 8 && this.launchingSector !== 3) {
-      spawnIdleSparks(DOCK3_POS, '#f97316', '#fde047');
-    }
-    if (this.state.sector3Cleared && Math.random() < dt * 8 && this.launchingSector !== 4) {
-      spawnIdleSparks(DOCK4_POS, '#38e8d4', '#fde047');
-    }
-
-    // Active starship launch sequence when boarding Docks I–IV!
+    // 3-Phasen-Startsequenz: Einsteigen (0..0.40 s) → Triebwerks-Zündung (0.40..0.74 s) → Abheben (0.74..1.22 s)
     if (this.launchingSector !== null) {
       this.launchTimer += dt;
       this.activePrompt = null;
-      const p = Math.min(1, this.launchTimer / 0.68);
-      this.shipLiftY = p * p * 125;
       const dock =
         this.launchingSector === 4
           ? DOCK4_POS
@@ -205,23 +182,64 @@ export class HangarScene {
               ? '#c084fc'
               : '#fbbf24';
       const flameB = this.launchingSector === 3 ? '#fde047' : '#38e8d4';
-      for (let i = 0; i < 2; i++) {
-        const side = i === 0 ? -8 : 8;
-        this.particles.push({
-          x: dock.x + side + (Math.random() - 0.5) * 4,
-          y: dock.y + 24 - this.shipLiftY,
-          vx: (Math.random() - 0.5) * 18,
-          vy: 42 + Math.random() * 48,
-          color: Math.random() < 0.5 ? flameA : flameB,
-          size: 2.2,
-          life: 0.35,
-          maxLife: 0.35,
-        });
+
+      if (this.launchTimer < 0.4) {
+        // Phase 1: Spieler läuft/springt in die Einstiegsluke des Schiffs
+        const bp = Math.min(1, this.launchTimer / 0.4);
+        const ease = 1 - (1 - bp) * (1 - bp);
+        this.playerX = this.boardStartX + (dock.x - this.boardStartX) * ease;
+        this.playerY = this.boardStartY + (dock.y + 4 - this.boardStartY) * ease;
+        this.facing = 'up';
+        this.walkAnim += dt * 14;
+        this.shipLiftY = 0;
+      } else {
+        if (!this.ignitionTriggered) {
+          this.ignitionTriggered = true;
+          sound.playWarp();
+          // Zündungs-Dampf & Funkenring über das gesamte Dock-Pad
+          for (let i = 0; i < 18; i++) {
+            const ang = (i / 18) * Math.PI * 2;
+            this.particles.push({
+              x: dock.x + Math.cos(ang) * 10,
+              y: dock.y + 18 + Math.sin(ang) * 4,
+              vx: Math.cos(ang) * (28 + Math.random() * 24),
+              vy: Math.sin(ang) * 10 + 14,
+              color: i % 3 === 0 ? '#e2e8f0' : flameB,
+              size: i % 3 === 0 ? 2.6 : 1.8,
+              life: 0.42,
+              maxLife: 0.42,
+            });
+          }
+        }
+        if (this.launchTimer < 0.74) {
+          // Phase 2: Triebwerke fahren hoch, Schiff hebt sanft vom Pad ab
+          const ip = (this.launchTimer - 0.4) / 0.34;
+          this.shipLiftY = ip * ip * 14;
+        } else {
+          // Phase 3: Voller Schub & vertikales Abheben aus dem Hangar
+          const lp = Math.min(1, (this.launchTimer - 0.74) / 0.48);
+          this.shipLiftY = 14 + lp * lp * 145;
+        }
+        for (let i = 0; i < 2; i++) {
+          const side = i === 0 ? -8 : 8;
+          this.particles.push({
+            x: dock.x + side + (Math.random() - 0.5) * 4,
+            y: dock.y + 24 - this.shipLiftY,
+            vx: (Math.random() - 0.5) * 18,
+            vy: 42 + Math.random() * 52,
+            color: Math.random() < 0.5 ? flameA : flameB,
+            size: 2.2,
+            life: 0.35,
+            maxLife: 0.35,
+          });
+        }
       }
+
       this.updateParticles(dt);
-      if (this.launchTimer >= 0.68) {
+      if (this.launchTimer >= 1.22) {
         const target = this.launchingSector;
         this.launchingSector = null;
+        this.ignitionTriggered = false;
         if (target === 4) this.callbacks.onLaunchSector4();
         else if (target === 3) this.callbacks.onLaunchSector3();
         else if (target === 2) this.callbacks.onLaunchSector2();
@@ -323,11 +341,14 @@ export class HangarScene {
         y: DOCK1_POS.y + 44,
       };
       if (input.interactPressed()) {
-        sound.playWarp();
+        sound.playBoardingChime();
         this.launchingSector = 1;
         this.launchTimer = 0;
-        this.spawnBurst(DOCK1_POS.x, DOCK1_POS.y + 24, '#fbbf24', 20);
-        this.callbacks.onToast('🚀 Triebwerke gezündet — Kurs auf Sektor 1: Verlassene Korvette!', 'good');
+        this.boardStartX = this.playerX;
+        this.boardStartY = this.playerY;
+        this.ignitionTriggered = false;
+        this.spawnBurst(DOCK1_POS.x, DOCK1_POS.y + 8, '#38e8d4', 12);
+        this.callbacks.onToast('🚀 Einsteigen & Triebwerke hochfahren — Sektor 1: Verlassene Korvette!', 'good');
       }
       return;
     }
@@ -346,11 +367,14 @@ export class HangarScene {
       };
       if (input.interactPressed()) {
         if (unlocked) {
-          sound.playWarp();
+          sound.playBoardingChime();
           this.launchingSector = 2;
           this.launchTimer = 0;
-          this.spawnBurst(DOCK2_POS.x, DOCK2_POS.y + 24, '#c084fc', 22);
-          this.callbacks.onToast('🚀 Kristall-Kreuzer startet — Kurs auf Sektor 2: Kristall-Nebel!', 'good');
+          this.boardStartX = this.playerX;
+          this.boardStartY = this.playerY;
+          this.ignitionTriggered = false;
+          this.spawnBurst(DOCK2_POS.x, DOCK2_POS.y + 8, '#c084fc', 14);
+          this.callbacks.onToast('🚀 Einsteigen & Kristall-Kreuzer hochfahren — Sektor 2: Kristall-Nebel!', 'good');
         } else {
           sound.playUiClick();
           this.callbacks.onToast(
@@ -376,11 +400,14 @@ export class HangarScene {
       };
       if (input.interactPressed()) {
         if (unlocked) {
-          sound.playWarp();
+          sound.playBoardingChime();
           this.launchingSector = 3;
           this.launchTimer = 0;
-          this.spawnBurst(DOCK3_POS.x, DOCK3_POS.y + 22, '#f97316', 24);
-          this.callbacks.onToast('🔥 Solar-Fregatte zündet Plasmadüsen — Kurs auf Sektor 3: Solar-Gießerei!', 'good');
+          this.boardStartX = this.playerX;
+          this.boardStartY = this.playerY;
+          this.ignitionTriggered = false;
+          this.spawnBurst(DOCK3_POS.x, DOCK3_POS.y + 8, '#f97316', 14);
+          this.callbacks.onToast('🔥 Einsteigen & Solar-Fregatte hochfahren — Sektor 3: Solar-Gießerei!', 'good');
         } else {
           sound.playUiClick();
           this.callbacks.onToast(
@@ -406,11 +433,14 @@ export class HangarScene {
       };
       if (input.interactPressed()) {
         if (unlocked) {
-          sound.playWarp();
+          sound.playBoardingChime();
           this.launchingSector = 4;
           this.launchTimer = 0;
-          this.spawnBurst(DOCK4_POS.x, DOCK4_POS.y + 22, '#fde047', 24);
-          this.callbacks.onToast('👑 Ältesten-Jäger startet — Kurs auf Sektor 4: Ältesten-Monolith!', 'good');
+          this.boardStartX = this.playerX;
+          this.boardStartY = this.playerY;
+          this.ignitionTriggered = false;
+          this.spawnBurst(DOCK4_POS.x, DOCK4_POS.y + 8, '#fde047', 14);
+          this.callbacks.onToast('👑 Einsteigen & Ältesten-Jäger hochfahren — Sektor 4: Ältesten-Monolith!', 'good');
         } else {
           sound.playUiClick();
           this.callbacks.onToast(
@@ -547,7 +577,7 @@ export class HangarScene {
       this.renderEmptyDockHolo(ctx, DOCK4_POS.x, DOCK4_POS.y, '#64748b', 'GESPERRT', pulse);
     }
 
-    // Helper to render any docked ship with idle hover, shadow, glow & takeoff animation
+    // Geparkte Schiffe ruhen fest auf dem Pad (ohne Schweben/Triebwerksflammen); erst ab Zündung volle Flammen & Abheben
     const drawDockedShip = (
       sectorNum: 1 | 2 | 3 | 4,
       pos: { x: number; y: number },
@@ -556,39 +586,61 @@ export class HangarScene {
       h: number,
       idleCol: string,
       launchCol: string,
-      phase: number,
     ) => {
       const launching = this.launchingSector === sectorNum;
-      const hover = launching ? 0 : Math.sin(this.time * 3.4 + phase) * 1.1;
-      const lift = launching ? this.shipLiftY : 0;
-      const sx = pos.x;
-      const sy = pos.y - lift + hover;
-      drawPixelShadow(ctx, pos.x, pos.y + 18, 22, 8, Math.max(0.06, 0.45 - lift / 160));
-      drawGlow(ctx, sx, sy + 18, launching ? 36 : 23, launching ? launchCol : idleCol, 0.36 + pulse * 0.14);
+      const ignited = launching && this.launchTimer >= 0.4;
+      const lift = ignited ? this.shipLiftY : 0;
+      const rumble = ignited && this.launchTimer < 0.78 ? Math.sin(this.launchTimer * 65) * 1.1 : 0;
+      const sx = pos.x + rumble;
+      const sy = pos.y - lift;
+      drawPixelShadow(ctx, pos.x, pos.y + 18, 22, 8, Math.max(0.06, 0.5 - lift / 160));
+      if (ignited) {
+        drawGlow(ctx, sx, sy + 20, 38, launchCol, 0.45 + pulse * 0.16);
+      } else if (launching) {
+        // Einstiegs-Cockpit-Aufleuchten
+        drawGlow(ctx, sx, sy + 2, 24, idleCol, 0.34 + pulse * 0.15);
+      } else {
+        // Dezentes Standby-Licht auf dem Pad
+        drawGlow(ctx, sx, sy + 4, 16, idleCol, 0.12 + pulse * 0.05);
+      }
       if (spr) {
-        ctx.drawImage(spr, sx - w / 2, sy - h / 2 - 2, w, h);
+        if (ignited) {
+          ctx.drawImage(spr, sx - w / 2, sy - h / 2 - 2, w, h);
+        } else {
+          // Triebwerksflammen am unteren Sprite-Rand ausblenden, solange das Schiff geparkt ist
+          const srcH = Math.round(spr.height * 0.83);
+          const dstH = Math.round(h * 0.83);
+          ctx.drawImage(spr, 0, 0, spr.width, srcH, sx - w / 2, sy - h / 2 + 2, w, dstH);
+        }
       }
     };
 
     // Dock I — Starlighter Corvette (always unlocked)
-    drawDockedShip(1, DOCK1_POS, art.shipCorvette, 48, 57, '#38e8d4', '#fbbf24', 0);
+    drawDockedShip(1, DOCK1_POS, art.shipCorvette, 48, 57, '#38e8d4', '#fbbf24');
     // Dock II — Kristall-Kreuzer (unlocked after Sector 1)
     if (this.state.sector1Cleared) {
-      drawDockedShip(2, DOCK2_POS, art.shipCrystal, 54, 57, '#c084fc', '#e879f9', 1.5);
+      drawDockedShip(2, DOCK2_POS, art.shipCrystal, 54, 57, '#c084fc', '#e879f9');
     }
     // Dock III — Solar-Fregatte (unlocked after Sector 2)
     if (this.state.sector2Cleared) {
-      drawDockedShip(3, DOCK3_POS, art.shipSolar, 54, 54, '#f97316', '#fde047', 3.0);
+      drawDockedShip(3, DOCK3_POS, art.shipSolar, 54, 54, '#f97316', '#fde047');
     }
     // Dock IV — Ältesten-Sternenjäger (unlocked after Sector 3)
     if (this.state.sector3Cleared) {
-      drawDockedShip(4, DOCK4_POS, art.shipMonolith, 54, 54, '#38e8d4', '#fde047', 4.5);
+      drawDockedShip(4, DOCK4_POS, art.shipMonolith, 54, 54, '#38e8d4', '#fde047');
     }
 
     this.renderSignPills(ctx);
 
     if (this.launchingSector === null) {
       this.renderPlayer(ctx);
+    } else if (this.launchTimer < 0.4) {
+      // Spieler steigt sichtbar ins Schiff ein (gleitet hinein & blendet in die Luke aus)
+      const bp = Math.min(1, this.launchTimer / 0.4);
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, 1 - Math.max(0, (bp - 0.55) / 0.45));
+      this.renderPlayer(ctx);
+      ctx.restore();
     }
 
     for (const p of this.particles) {

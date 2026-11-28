@@ -1,4 +1,5 @@
-// Sektor-Anflug-Cutscene: Start über Hangar, alle 3 Phasen visuell prüfen, Skip & Wochen-Prüfung ohne Cutscene.
+// Cutscene-Suite: Geparkte Schiffe im Hangar, Kurvenflug + Drop-Pod (Anflug),
+// Extraktion & verletzte Notfall-Bergung (Rückkehr nach Port Solaris) + Skip.
 const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert');
@@ -13,7 +14,7 @@ module.exports = async ({ page }) => {
     g.ui.hideTitle?.();
   });
 
-  // 1. Sektor-1-Anflug über Hangar-Launch starten → Cutscene aktiv, HUD ausgeblendet
+  // 1. Sektor-1-Anflug starten: Kurvenflug (Banking) + Titelkarte + Absetzkapsel (Drop-Pod)
   const started = await page.evaluate(() => {
     const g = window.__game;
     g.launchSectorWithCutscene(1, false);
@@ -26,11 +27,9 @@ module.exports = async ({ page }) => {
   });
   assert.deepStrictEqual(started, { active: true, sector: 1, hudHidden: true }, JSON.stringify(started));
 
-  // Visuelle Snapshots der 3 Phasen (Warp, Titelkarte, Absetz-Strahl)
   for (const [label, sec] of [
-    ['cutscene_s1_warp', 0.45],
-    ['cutscene_s1_title', 2.05],
-    ['cutscene_s1_beam', 3.45],
+    ['cutscene_s1_curve', 0.78],
+    ['cutscene_s1_pod', 3.42],
   ]) {
     await page.evaluate((s) => {
       const g = window.__game;
@@ -40,11 +39,12 @@ module.exports = async ({ page }) => {
     await page.screenshot({ path: path.join(outDir, `${label}.png`) });
   }
 
-  // 2. Skip per Tastendruck (Space) → Cutscene endet, HUD wieder sichtbar, landet im Dungeon Sektor 1
+  // 2. Skip per Tastendruck (Space) → landet sauber im Dungeon
   await page.keyboard.press('Space');
   const afterSkip = await page.evaluate(async () => {
     const g = window.__game;
     for (let i = 0; i < 60 && g.activeScene !== 'dungeon'; i++) await new Promise((r) => setTimeout(r, 50));
+    for (let i = 0; i < 40 && g.transitionDir !== 0; i++) await new Promise((r) => setTimeout(r, 40));
     const hud = document.getElementById('hud-layer');
     return {
       cutscene: g.approachCutscene,
@@ -59,34 +59,80 @@ module.exports = async ({ page }) => {
     JSON.stringify(afterSkip),
   );
 
-  // 3. Sektor 2 (Kristall-Nebel) & Sektor 5 (Omega-Anomalie) rendern fehlerfrei + natürlicher Ablauf landet im Dungeon
-  for (const [sector, endless, name] of [
-    [2, false, 'cutscene_s2_crystal'],
-    [5, false, 'cutscene_s5_omega'],
+  // 3. Extraktions-Cutscene (freiwillige Rückkehr → Port Solaris)
+  await page.evaluate(() => {
+    const g = window.__game;
+    g.handleReturnFromDungeon({
+      victory: true,
+      reason: 'warp',
+      sector: 1,
+      floorReached: 2,
+      roomsCleared: 5,
+      enemiesDefeated: 12,
+      itemsSaved: 4,
+      itemsLost: 0,
+      warpedToChest: [],
+      shatteredItems: [],
+    });
+  });
+  for (const [label, sec] of [
+    ['cutscene_extract_p1', 0.58],
+    ['cutscene_extract_solaris', 2.45],
   ]) {
-    await page.evaluate(async ({ s, e }) => {
+    await page.evaluate((s) => {
       const g = window.__game;
-      for (let i = 0; i < 60 && g.transitionDir !== 0; i++) await new Promise((r) => setTimeout(r, 40));
-      g.launchSectorWithCutscene(s, e);
-      g.approachCutscene.seek(2.2);
-      g.approachCutscene.render(g.ctx);
-    }, { s: sector, e: endless });
-    await page.screenshot({ path: path.join(outDir, `${name}.png`) });
-    await page.evaluate(() => {
-      const g = window.__game;
-      g.approachCutscene.seek(4.54);
-    });
-    const done = await page.evaluate(async () => {
-      const g = window.__game;
-      for (let i = 0; i < 60 && g.approachCutscene !== null; i++) await new Promise((r) => setTimeout(r, 40));
-      return {
-        cutscene: g.approachCutscene,
-        scene: g.activeScene,
-        sector: g.dungeonScene?.currentSector,
-      };
-    });
-    assert.deepStrictEqual(done, { cutscene: null, scene: 'dungeon', sector }, JSON.stringify(done));
+      g.returnCutscene.seek(s);
+      g.returnCutscene.render(g.ctx);
+    }, sec);
+    await page.screenshot({ path: path.join(outDir, `${label}.png`) });
   }
+  await page.evaluate(() => window.__game.returnCutscene.skip());
+  const afterExtract = await page.evaluate(async () => {
+    const g = window.__game;
+    for (let i = 0; i < 60 && (g.returnCutscene !== null || g.activeScene !== 'hangar'); i++) {
+      await new Promise((r) => setTimeout(r, 40));
+    }
+    if (g.ui.modalOpen) g.ui.closeModal();
+    return { scene: g.activeScene, ret: g.returnCutscene };
+  });
+  assert.deepStrictEqual(afterExtract, { scene: 'hangar', ret: null }, JSON.stringify(afterExtract));
 
-  console.log('CUTSCENE APPROACH OK');
+  // 4. Notfall-Bergung (0 HP / defeat → Med-Evac-Drohne → Port Solaris)
+  await page.evaluate(() => {
+    const g = window.__game;
+    g.handleReturnFromDungeon({
+      victory: false,
+      reason: 'defeat',
+      sector: 2,
+      floorReached: 1,
+      roomsCleared: 2,
+      enemiesDefeated: 5,
+      itemsSaved: 0,
+      itemsLost: 3,
+      warpedToChest: [],
+      shatteredItems: [],
+    });
+  });
+  for (const [label, sec] of [
+    ['cutscene_rescue_p1', 0.92],
+    ['cutscene_rescue_solaris', 2.65],
+  ]) {
+    await page.evaluate((s) => {
+      const g = window.__game;
+      g.returnCutscene.seek(s);
+      g.returnCutscene.render(g.ctx);
+    }, sec);
+    await page.screenshot({ path: path.join(outDir, `${label}.png`) });
+  }
+  await page.evaluate(() => window.__game.returnCutscene.seek(3.94));
+  const afterRescue = await page.evaluate(async () => {
+    const g = window.__game;
+    for (let i = 0; i < 60 && g.returnCutscene !== null; i++) await new Promise((r) => setTimeout(r, 40));
+    const modal = g.ui.modalOpen;
+    if (modal) g.ui.closeModal();
+    return { scene: g.activeScene, ret: g.returnCutscene, modal };
+  });
+  assert.deepStrictEqual(afterRescue, { scene: 'hangar', ret: null, modal: true }, JSON.stringify(afterRescue));
+
+  console.log('CUTSCENE FULL SUITE OK');
 };

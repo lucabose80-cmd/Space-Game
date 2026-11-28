@@ -189,6 +189,9 @@ export interface HDArtAssets {
   cutsceneBgS3: HTMLCanvasElement | null;
   cutsceneBgS4: HTMLCanvasElement | null;
   cutsceneBgS5: HTMLCanvasElement | null;
+  cutsceneBgSolaris: HTMLCanvasElement | null;
+  cutsceneDropPod: HTMLCanvasElement | null;
+  cutsceneMedDrone: HTMLCanvasElement | null;
 }
 
 const art: HDArtAssets = {
@@ -386,6 +389,9 @@ const art: HDArtAssets = {
   cutsceneBgS3: null,
   cutsceneBgS4: null,
   cutsceneBgS5: null,
+  cutsceneBgSolaris: null,
+  cutsceneDropPod: null,
+  cutsceneMedDrone: null,
 };
 
 function loadImage(src: string): Promise<HTMLImageElement | null> {
@@ -524,6 +530,9 @@ export const CUTSCENE_OPTIONAL_SPRITES = {
   cutsceneBgS3: 'cutscene_bg_s3',
   cutsceneBgS4: 'cutscene_bg_s4',
   cutsceneBgS5: 'cutscene_bg_s5',
+  cutsceneBgSolaris: 'cutscene_bg_solaris',
+  cutsceneDropPod: 'cutscene_drop_pod',
+  cutsceneMedDrone: 'cutscene_med_drone',
 } as const;
 
 export type CutsceneSpriteKey = keyof typeof CUTSCENE_OPTIONAL_SPRITES;

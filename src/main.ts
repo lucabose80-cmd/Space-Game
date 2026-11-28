@@ -12,6 +12,7 @@ import { HangarScene } from './scenes/HangarScene';
 import { HubScene } from './scenes/HubScene';
 import { MarketTerraceScene } from './scenes/MarketTerraceScene';
 import { SectorApproachCutscene } from './scenes/SectorApproachCutscene';
+import { SectorReturnCutscene } from './scenes/SectorReturnCutscene';
 import { ShopScene } from './scenes/ShopScene';
 import { firebaseService } from './services/firebaseService';
 import { galacticNetwork } from './services/galacticNetwork';
@@ -42,8 +43,11 @@ class StarlighterGame {
   public dungeonReady: Promise<DungeonScene>;
   /** Behelfsmäßiges Boss-Labor (nur mit ?bosslab in der Adresse) */
   private bossLab: BossLab | null = null;
-  /** Sektor-Anflug-Cutscene (läuft optional zwischen Hangar und Dungeon) */
+  /** Sektor-Anflug-Cutscene (läuft zwischen Hangar und Dungeon) */
   private approachCutscene: SectorApproachCutscene | null = null;
+  /** Rückkehr-Cutscene (Extraktion oder verletzte Med-Evac-Bergung → Port Solaris) */
+  private returnCutscene: SectorReturnCutscene | null = null;
+  private pendingReturnSummary: RunSummary | null = null;
 
   private activeScene: SceneId = 'shop';
   private pendingDungeonSector: SectorId = 1;
@@ -559,7 +563,7 @@ class StarlighterGame {
     this.touch.setState(
       this.activeScene,
       this.activeScene === 'shop' && this.shopScene?.shopOpen,
-      this.ui.modalOpen || this.ui.titleVisible || this.approachCutscene !== null,
+      this.ui.modalOpen || this.ui.titleVisible || this.approachCutscene !== null || this.returnCutscene !== null,
       this.state.equippedWeapon,
       this.state.secondaryWeapon !== null,
     );
@@ -657,13 +661,42 @@ class StarlighterGame {
     const timeRes = wasNightRun ? this.state.startDay() : this.state.startNight();
     this.announceTimeChange(timeRes, wasNightRun ? 'night_run' : 'day_run');
     this.lastReturnedSector = summary.sector ?? 1;
-    this.transitionTo('hangar', 'dungeon', () => {
-      this.ui.openRunSummaryModal(summary);
+    this.pendingReturnSummary = summary;
+    this.returnCutscene = new SectorReturnCutscene({
+      mode: summary.reason === 'defeat' ? 'rescue' : 'extract',
+      sector: this.lastReturnedSector,
+      itemsSaved: summary.itemsSaved,
+      itemsLost: summary.itemsLost,
     });
+    this.setHudVisible(false);
+    this.syncTouch();
+  }
+
+  private finishReturnCutscene(skipped: boolean): void {
+    const summary = this.pendingReturnSummary;
+    this.returnCutscene = null;
+    this.pendingReturnSummary = null;
+    this.setHudVisible(true);
+    if (skipped) {
+      this.transitionTo('hangar', 'dungeon', () => {
+        if (summary) this.ui.openRunSummaryModal(summary);
+      });
+      return;
+    }
+    this.activeScene = 'hangar';
+    this.ui.currentScene = 'hangar';
+    this.ui.shopIsOpen = false;
+    this.hangarScene.onEnter('dungeon', this.lastReturnedSector);
+    this.syncMusic();
+    this.ui.renderHud();
+    this.syncTouch();
+    this.transitionAlpha = 1;
+    this.transitionDir = -1;
+    if (summary) this.ui.openRunSummaryModal(summary);
   }
 
   private handleGlobalShortcuts(): void {
-    if (this.ui.titleVisible || this.approachCutscene) return;
+    if (this.ui.titleVisible || this.approachCutscene || this.returnCutscene) return;
 
     if (this.input.wasPressed('Escape', true)) {
       if (this.ui.modalOpen) {
@@ -731,6 +764,12 @@ class StarlighterGame {
         const wasSkipped = this.approachCutscene.skipped;
         this.finishApproachCutscene(wasSkipped);
       }
+    } else if (this.returnCutscene) {
+      const done = this.returnCutscene.update(dt, this.input);
+      if (done) {
+        const wasSkipped = this.returnCutscene.skipped;
+        this.finishReturnCutscene(wasSkipped);
+      }
     } else if (this.activeScene === 'shop') {
       if (!this.ui.modalOpen && !this.ui.titleVisible) this.shopScene.update(dt, this.input);
     } else if (this.activeScene === 'backroom') {
@@ -753,6 +792,8 @@ class StarlighterGame {
     this.ctx.imageSmoothingEnabled = false;
     if (this.approachCutscene) {
       this.approachCutscene.render(this.ctx);
+    } else if (this.returnCutscene) {
+      this.returnCutscene.render(this.ctx);
     } else if (this.activeScene === 'shop') {
       this.shopScene.render(this.ctx);
     } else if (this.activeScene === 'backroom') {

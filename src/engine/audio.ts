@@ -625,6 +625,28 @@ export class SoundEngine {
     this.playTone(587.33, 1174.66, 0.34, 'triangle', 0.06, 0.08);
     this.playTone(784, 523.25, 0.32, 'sine', 0.07, 0.34);
   }
+
+  /** Hangar: Einsteigen & Triebwerks-Zündung */
+  public playBoardingChime(): void {
+    this.playTone(440, 660, 0.1, 'triangle', 0.07, 0);
+    this.playTone(660, 880, 0.12, 'sine', 0.07, 0.09);
+    this.playNoise(0.32, 360, 0.1);
+    this.playTone(78, 165, 0.36, 'sawtooth', 0.06, 0.28);
+  }
+
+  /** Sektor-Anflug: Absetzkapsel-Abschuss & Bremsdüsen */
+  public playPodLaunch(): void {
+    this.playNoise(0.18, 920, 0.11);
+    this.playTone(520, 220, 0.22, 'sawtooth', 0.07, 0);
+    this.playTone(330, 880, 0.26, 'triangle', 0.07, 0.18);
+  }
+
+  /** Notfall-Bergung (0 HP): Med-Evac-Alarmsignal */
+  public playEmergencySiren(): void {
+    this.playTone(740, 520, 0.22, 'sawtooth', 0.07, 0);
+    this.playTone(740, 520, 0.22, 'sawtooth', 0.07, 0.28);
+    this.playNoise(0.16, 1200, 0.07);
+  }
 }
 
 export const sound = new SoundEngine();
