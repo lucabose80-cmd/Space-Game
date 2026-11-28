@@ -6,6 +6,8 @@
 
 ## 1. Standard-Verifikations-Pipeline (Vor jedem Commit/Push)
 
+> **PC first, Handy second (`AGENTS.md` Regel 21):** Jede UI-Änderung zusätzlich per Playwright-Viewport prüfen — PC `1280×720`, Handy quer `915×412` / `844×390`, Handy hoch `390×844` (Screenshots in `tests/out/` ansehen; nichts abgeschnitten, Buttons im Bild, Touch-Flächen ≥ ~34 px). Vorlage: `tests/t10_save_slots.cjs`.
+
 1. **Alles auf einmal:**
    ```bash
    npm run verify   # build (tsc + vite) → check:invariants → check:sprites → alle Playwright-Tests

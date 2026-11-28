@@ -56,6 +56,7 @@
 - Nie zwei Werkzeuge im selben Bereich (Claim-Liste!). Kollision → `PARALLEL_WORK.md` §5.
 
 ## 5. Harte Projektregeln, die jedes Werkzeug kennen muss (Volltext: `AGENTS.md` §3)
+- **PC first, Handy second (Regel 21):** UI zuerst für PC, am Handy quer **und** hoch voll nutzbar; eigene Media-Queries, Viewport-Check `915×412` / `844×390` / `390×844` vor dem Push.
 Nie `state.credits +=` im Dungeon-Code · alles In-Game · Save abwärtskompatibel (optionale Felder) · strikte TS (`import type`) · UI-Texte **deutsch** · Zeit nur über `startNight()/startDay()` · Balancing nur in `src/data/balance.ts` · vor Push `npm run verify` (via `ship`) · Ergebnisse (Screenshots in `tests/out/`) **ansehen**, nicht nur „grün“ melden · nie `localhost` als Link an den Inhaber.
 
 ## 6. Selbsttest für ein neues Werkzeug (2 Minuten)

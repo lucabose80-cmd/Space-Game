@@ -12,7 +12,8 @@
   1. **Zero-Dungeon-Credits-Regel:** Spieler erhalten **niemals** direkt Credits aus Dungeons/Gegnern (`state.credits +=` ist in `DungeonScene.ts`, `enemyAi.ts` und `dungeonRenderer.ts` strikt verboten). Reichtum entsteht ausschließlich durch **Relikt-Verkäufe in *Astro-Barter***, Bounties und Handel.
   2. **Alles In-Game integriert:** Keine externen Menüs — Cloud-Save, Rangliste, Musik-Jukebox, Begleiter-Dock, Schmiede, Prägungen und Sektor-Wahl sind als begehbare Stationen/Terminals direkt in der Spielwelt verankert.
   3. **Extraktions-Risiko:** 20 Cargo-Slots im Rucksack (Verlust bei 0 HP, außer durch *Warp-Anker* gerettet), sichere Lagertruhen im Shop/Quartier (28 / 36 / 48 Slots) und richtungsabhängige Cargo-Synergien (`→`, `↑`, `▲`, `←`).
-  4. **Saubere Plattform-Unterstützung:** Maus+Tastatur, Touch-Controls (Portrait & Landscape) und nativer HTML5-Gamepad-Support (`InputManager.pollGamepad()`).
+  4. **PC first, Handy second:** Das Spiel ist in erster Linie ein **PC-Spiel** (Maus+Tastatur im Browser); das **Handy** (quer und hoch) ist zweite Priorität, muss aber vollständig nutzbar sein (kompakte Layouts, Touch-Flächen ≥ ~34 px, nichts abgeschnitten). Konfliktregel: PC-Erlebnis gewinnt, Handy bekommt eine eigene Variante. Siehe `AGENTS.md` Regel 21.
+  5. **Saubere Plattform-Unterstützung:** Maus+Tastatur, Touch-Controls (Portrait & Landscape) und nativer HTML5-Gamepad-Support (`InputManager.pollGamepad()`).
 
 ---
 

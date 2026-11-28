@@ -17,6 +17,7 @@
 | 2026-11-28 | Claude Code · Doku-Prozess | Regel 20 + Weiter-Protokoll + Startsatz eingeführt | — | Bereichs-Arbeit laut Tabelle unten („Nächster Schritt“) | ja |
 
 ## Stand (2026-11-28)
+- **Plattform-Priorität:** **PC first, Handy second** (quer & hoch voll nutzbar) — `AGENTS.md` Regel 21.
 - Meilensteine 1–10-C sind umgesetzt, `SAVE_VERSION = 11` (Vercel deployt über `vercel.json` **nur** `main` und überspringt reine Doku-/Test-/`art_source`-Commits per `ignoreCommand` → schont das 100-Deploys/Tag-Limit im Free Tier).
 - **M11 (lebendige Gegner & Bosse):** **Alle normalen Gegner in allen 4 Sektoren sind zu 100 % geriggt (G1–G10, Tests `m11p7`–`m11p17`, 59/59 Playwright-Tests grün, 0 fehlende Sprites)**; Kern-Wächter & Krall animiert (warten auf Abnahme im echten Kampf); Teilen von Quarz-Koloss/Sternen-Archon fertig. **Status je Bereich: [`handoff/README.md`](handoff/README.md).**
 - **M12 (Sektor-Endboss-Arenen, Pilot A.E.G.I.S. Leviathan):** Auf **Schienen-Kran-Koloss mit echtem M11-Rig** (`boss_leviathan.json` / `boss_leviathan.ts`) auf fester Nordwand-Laufschiene umgestellt (`m12p8_leviathan_rework`, inkl. Phase-II-Absturz-Respawn-Fix `findSafeFloorPos` und nahtloser Nordwand ohne Geisterkern). **Wichtige Praxis-Learnings & harte Fallen für alle künftigen Endboss-Arenen stehen in [`handoff/endboss_arena.md`](handoff/endboss_arena.md) — vor neuen M12-Arenen unbedingt lesen!**

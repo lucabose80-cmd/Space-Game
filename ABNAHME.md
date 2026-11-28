@@ -1,6 +1,6 @@
 # ABNAHME — Was der Projektinhaber im echten Spiel prüfen muss (Stand 2026-11-28)
 
-> Pro Zeile testen, Ergebnis rückmelden (✅ ok / ❌ Fehler + Beobachtung). Wir tragen es hier und im jeweiligen Status-Blatt (`handoff/…`) ein. Alle Sprites der Queue sind geliefert (0 fehlende), Tests grün — offen ist nur die Sichtprüfung.
+> **PC first, Handy second:** jede Zeile zuerst am PC prüfen; wo ein Handy-Punkt steht (J11–J13, B9) zusätzlich am Handy quer/hoch. Pro Zeile testen, Ergebnis rückmelden (✅ ok / ❌ Fehler + Beobachtung). Wir tragen es hier und im jeweiligen Status-Blatt (`handoff/…`) ein. Alle Sprites der Queue sind geliefert (0 fehlende), Tests grün — offen ist nur die Sichtprüfung.
 > Hilfsmittel: `?bosslab` (Bosse/Gegner/Arenen einzeln; **je gewähltem Boss/Gegner Abschnitt „ANGRIFFE“ = jeder Angriff einzeln auslösbar + „STATI“ = HP-Stufen 100/80/65/50 (Phase II)/35/25/14 % kritisch, 💥 Treffer, ☠ Tod, ↺ Neu**; Leviathan wie gehabt über 🏟 Arena), `?cutscenelab` (alle Cutscenes ohne Spielstand-Änderung), `?arena`.
 
 | Status | Legende |

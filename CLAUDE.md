@@ -1,6 +1,7 @@
 @AGENTS.md
 
 # Claude-Code-Zusatz
+- **PC first, Handy second (Inhaber-Vorgabe, `AGENTS.md` Regel 21):** Alles zuerst für PC (Maus+Tastatur) entwerfen, aber am Handy quer **und** hoch voll nutzbar halten — eigene Media-Queries, nie das PC-Layout verbiegen; UI vor dem Push in Viewports `915×412`, `844×390`, `390×844` ansehen.
 - Einstieg: erst `AGENTS.md`, dann `HANDOFF.md` (aktueller Stand & nächster Schritt).
 - **Pushen: `npm run ship`** (fetch → merge `origin/main` → verify → push `main`; nie bei Fehlern). Mehrere Chats parallel: `PARALLEL_WORK.md`, Status je Bereich in `handoff/`. Vor jedem Push gilt weiterhin `npm run verify` (Build → Invarianten → Sprite-Check → Tests) — `ship` ruft es auf. Nur ein Teil davon? `npm test -- m10p3` (einzelne Tests), `npm run build`.
 - **Sprites als Standardwerkzeug (`AGENTS.md` Regel 14/15):** Bei jedem neuen Feature, Umbau oder jeder Verbesserung prüfen, ob eigene Sprites es schöner machen — dann direkt per `npm run art:gen` erzeugen (Key kommt über den Proxy) bzw. in `SPRITE_QUEUE.md` bestellen. Nicht an Bild-Credits sparen.

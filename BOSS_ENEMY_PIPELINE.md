@@ -33,7 +33,7 @@ Jede Stufe hat ein **Tor**: erst weiter, wenn das Tor erfüllt ist. Status je St
 | **5 Import & Rig** | Claude Code | `src/data/rigs/<id>.json`, `npm run art:import -- <id> --force`, Kontaktbogen `node scripts/rig-sheet.cjs <id>` | Gelenke sitzen in jeder Pose, nichts schwebt (D1/D13 bzw. G1) |
 | **6 Posen & Bewegung** | Claude Code | `src/dungeon/anim/rigs/<id>.ts`: Zustand → Pose, Glättung/Impuls, Laufrhythmus aus Strecke, Treffer, Tod, Phase 2 | im Boss-Labor (`?bosslab`) bei 0,25× kein „Ploppen“; Hitbox/Schaden unverändert |
 | **7 Prüfung gegen Checkliste** | Claude Code | jede Zeile G1–G10 / D1–D15 / A1–A10 im Status-Blatt mit ✅ + Nachweis (Test, Screenshot, Labor-Stelle) | eigener Test `tests/m11p…_<id>.cjs` bzw. `m12p…`, `npm run verify` grün, Screenshots in `tests/out/` angesehen |
-| **8 Abnahme im Spiel** | Projektinhaber | 1–2 echte Kämpfe, Rückmeldung mit konkreten Stellen | Inhaber sagt „abgenommen“ → Status-Tabelle in `BOSS_ANIMATION_PLAN.md` §3 auf ✅ |
+| **8 Abnahme im Spiel** | Projektinhaber | 1–2 echte Kämpfe am PC **und** kurz am Handy (PC first, Handy second — Regel 21), Rückmeldung mit konkreten Stellen | Inhaber sagt „abgenommen“ → Status-Tabelle in `BOSS_ANIMATION_PLAN.md` §3 auf ✅ |
 
 **Fehlen in Stufe 5–7 Bilder oder überzeugen die gelieferten nicht:** nicht mit Code überbrücken, sondern zurück zu Stufe 3 (neue Queue-Zeile bzw. Ersatz-Sheet, Priorität P0 für laufende Bosse), Fallback bis dahin. **Rückmeldung des Inhabers „gefällt mir nicht“ in Stufe 8** → betroffene Sheets als Ersatz bestellen, nicht nur den Code nachjustieren.
 
