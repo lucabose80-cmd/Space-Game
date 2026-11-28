@@ -31,6 +31,9 @@ module.exports = async ({ page }) => {
       'arenaLeviathanFlame',
       'arenaLeviathanVortex',
       'arenaLeviathanCrater',
+      'arenaLeviathanIrisClosed',
+      'arenaLeviathanVentIntact',
+      'arenaLeviathanVentCharge',
     ];
     const missing = spriteKeys.filter((k) => !art[k]);
 

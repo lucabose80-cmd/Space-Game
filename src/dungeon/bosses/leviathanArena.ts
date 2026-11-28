@@ -104,8 +104,8 @@ export function createLeviathanArena(scene: DungeonScene, e: Enemy): void {
   };
   if (e.levArms) {
     for (const arm of e.levArms) {
-      arm.homeX = rb.cx + arm.side * 120;
-      arm.homeY = rb.t + 66;
+      arm.homeX = rb.cx + arm.side * 102;
+      arm.homeY = rb.t + 72;
       arm.x = arm.targetX = arm.homeX;
       arm.y = arm.targetY = arm.homeY;
     }
@@ -463,9 +463,9 @@ function startMove(scene: DungeonScene, e: Enemy, move: LevArenaMove, rb: Dungeo
       break;
     }
     case 'beam': {
-      // Zwillings-Strahl: Fäuste öffnen sich zur Laser-Emitter-Pose (bzw. Schulter-Buchse falls Arm zerstört) und feuern über die Halle
-      const len = scene.rayLimit(340);
-      const angs = [[0.42, 0.82, 1.22], [Math.PI - 0.42, Math.PI - 0.82, Math.PI - 1.22]];
+      // Zwillings-Strahl: Fäuste öffnen sich zur Laser-Emitter-Pose, drehen sich aktiv in Schussrichtung und feuern 2 fette Plasma-Strahlen nacheinander
+      const len = scene.rayLimit(360);
+      const angs = [[0.62, 1.18], [Math.PI - 0.62, Math.PI - 1.18]];
       for (let s = 0; s < 2; s++) {
         const arm = e.levArms?.[s];
         const side = s === 0 ? -1 : 1;
@@ -474,8 +474,9 @@ function startMove(scene: DungeonScene, e: Enemy, move: LevArenaMove, rb: Dungeo
         if (arm && !arm.dead) {
           arm.state = 'beam';
           arm.timer = 2.4 * k;
+          arm.beamAngle = angs[s][0];
           arm.targetX = arm.homeX;
-          arm.targetY = arm.homeY + 14;
+          arm.targetY = arm.homeY + 12;
           arm.x = arm.targetX;
           arm.y = arm.targetY;
           ox = arm.x;
@@ -488,16 +489,16 @@ function startMove(scene: DungeonScene, e: Enemy, move: LevArenaMove, rb: Dungeo
             y: oy,
             x2: ox + Math.cos(a) * len,
             y2: oy + Math.sin(a) * len,
-            width: 12,
-            delay: (0.8 + j * 0.45) * k,
-            life: 0.38,
+            width: 16,
+            delay: (0.85 + j * 0.95) * k,
+            life: 0.44,
             burst: 18,
             color: '#fb7185',
             fx: 'beam',
           });
         });
       }
-      L.timer = 2.6 * k;
+      L.timer = 2.55 * k;
       e.bossStatusText = 'ZWILLINGS-STRAHL!';
       sound.playBossLaser();
       break;
@@ -639,8 +640,10 @@ function updateArms(scene: DungeonScene, e: Enemy, dt: number): void {
     }
     if (arm.state === 'beam') {
       arm.timer -= dt;
-      const aimX = arm.homeX;
-      const aimY = arm.homeY + 14 + Math.sin(scene.time * 28 + arm.side) * 2;
+      const targetAng = arm.timer < 1.15 ? (arm.side < 0 ? 1.18 : Math.PI - 1.18) : (arm.side < 0 ? 0.62 : Math.PI - 0.62);
+      arm.beamAngle += (targetAng - arm.beamAngle) * Math.min(1, dt * 8);
+      const aimX = arm.homeX - Math.cos(arm.beamAngle) * 3;
+      const aimY = arm.homeY + 12 + Math.sin(scene.time * 28 + arm.side) * 1.5;
       arm.x += (aimX - arm.x) * Math.min(1, dt * 10);
       arm.y += (aimY - arm.y) * Math.min(1, dt * 10);
       if (arm.timer <= 0) arm.state = 'returning';
@@ -776,14 +779,16 @@ export function drawLeviathanArena(ctx: CanvasRenderingContext2D, scene: Dungeon
       ctx.restore();
     }
   }
-  // Kühlventile
+  // Kühlventile: sichtbare Wand-Düsen (intakt / überdruck-glühend bei Dampf-Vorwarnung / zerstört)
+  const steamActive = L.state === 'move' && L.move === 'steam';
+  const steamTop = L.moveIdx % 2 === 0;
   for (const v of L.vents) {
     ctx.save();
     if (v.broken) {
       if (art.arenaLeviathanVentBroken) {
         ctx.translate(v.x, v.y);
         if (v.x > scene.bounds.cx) ctx.scale(-1, 1);
-        ctx.drawImage(art.arenaLeviathanVentBroken, -13, -13, 26, 26);
+        ctx.drawImage(art.arenaLeviathanVentBroken, -15, -15, 30, 30);
       } else {
         ctx.fillStyle = '#1e293b';
         ctx.fillRect(v.x - 7, v.y - 9, 14, 18);
@@ -796,8 +801,17 @@ export function drawLeviathanArena(ctx: CanvasRenderingContext2D, scene: Dungeon
       ctx.fill();
     } else {
       const weak = L.phase >= 2;
-      if (!hasBg) {
-        // Rückfall ohne Arena-Boden-Sprite: Ventil-Gitter selbst zeichnen
+      const charging = steamActive && (v.y < scene.bounds.cy) === steamTop;
+      const ventSpr = charging ? (art.arenaLeviathanVentCharge ?? art.arenaLeviathanVentIntact) : art.arenaLeviathanVentIntact;
+      if (ventSpr) {
+        ctx.save();
+        const jx = charging ? Math.sin(t * 55 + v.y) * 1.4 : 0;
+        const jy = charging ? Math.cos(t * 48 + v.x) * 1.0 : 0;
+        ctx.translate(v.x + jx, v.y + jy);
+        if (v.x > scene.bounds.cx) ctx.scale(-1, 1);
+        ctx.drawImage(ventSpr, -16, -16, 32, 32);
+        ctx.restore();
+      } else if (!hasBg) {
         ctx.fillStyle = '#0d2536';
         ctx.fillRect(v.x - 7, v.y - 9, 14, 18);
         ctx.fillStyle = weak ? `rgba(56, 232, 212, ${0.6 + 0.4 * pulse})` : '#1e6f6a';
@@ -811,9 +825,9 @@ export function drawLeviathanArena(ctx: CanvasRenderingContext2D, scene: Dungeon
         ctx.stroke();
         // kleine HP-Leiste
         ctx.fillStyle = '#0b1019';
-        ctx.fillRect(v.x - 9, v.y + 12, 18, 3);
+        ctx.fillRect(v.x - 9, v.y + 13, 18, 3);
         ctx.fillStyle = '#38e8d4';
-        ctx.fillRect(v.x - 9, v.y + 12, 18 * (v.hp / Math.max(1, v.maxHp)), 3);
+        ctx.fillRect(v.x - 9, v.y + 13, 18 * (v.hp / Math.max(1, v.maxHp)), 3);
       }
     }
     ctx.restore();
@@ -863,11 +877,11 @@ export function drawLeviathanArena(ctx: CanvasRenderingContext2D, scene: Dungeon
     // Arm-HP-Leiste (A13): sichtbar wenn angreifbar ODER bereits beschädigt
     ctx.fillStyle = '#0b1019';
     ctx.fillRect(arm.x - 13, arm.y + 21, 26, 3.5);
-    ctx.fillStyle = frac < 0.25 ? '#fb7185' : frac < 0.55 ? '#fb923c' : '#fbbf24';
+    ctx.fillStyle = frac < 0.35 ? '#fb7185' : frac < 0.7 ? '#fb923c' : '#fbbf24';
     ctx.fillRect(arm.x - 12.5, arm.y + 21.5, 25 * frac, 2.5);
     ctx.restore();
   });
-  // Kern-Linse
+  // Kern-Linse: offen = leuchtendes Reaktor-Auge + Flare; verriegelt = echtes Iris-Blenden-Sprite (kein grauer Canvas-Kreis!)
   const lx = e.x;
   const ly = e.y + LENS_DY;
   ctx.save();
@@ -879,7 +893,7 @@ export function drawLeviathanArena(ctx: CanvasRenderingContext2D, scene: Dungeon
       ctx.globalCompositeOperation = 'lighter';
       ctx.translate(lx, ly);
       ctx.rotate(t * 0.8);
-      const fsz = 46 + pulse * 8;
+      const fsz = 48 + pulse * 8;
       ctx.drawImage(art.arenaLeviathanLensFlare, -fsz / 2, -fsz / 2, fsz, fsz);
       ctx.restore();
     } else {
@@ -899,21 +913,13 @@ export function drawLeviathanArena(ctx: CanvasRenderingContext2D, scene: Dungeon
       ctx.textAlign = 'center';
       ctx.fillText(`LINSE OFFEN ${L.lensOpen.toFixed(1)}`, lx, ly - LENS_R - 10);
     }
+  } else if (art.arenaLeviathanIrisClosed) {
+    ctx.drawImage(art.arenaLeviathanIrisClosed, lx - 22, ly - 22, 44, 44);
   } else {
-    // Linse verriegelt: Lamellen
     ctx.fillStyle = 'rgba(30, 41, 59, 0.85)';
     ctx.beginPath();
     ctx.arc(lx, ly, LENS_R, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = '#64748b';
-    ctx.lineWidth = 1;
-    for (let k = 0; k < 4; k++) {
-      const a = (k / 4) * Math.PI * 2 + 0.4;
-      ctx.beginPath();
-      ctx.moveTo(lx, ly);
-      ctx.lineTo(lx + Math.cos(a) * LENS_R, ly + Math.sin(a) * LENS_R);
-      ctx.stroke();
-    }
   }
   ctx.restore();
 }

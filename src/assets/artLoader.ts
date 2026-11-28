@@ -106,6 +106,9 @@ export interface HDArtAssets {
   arenaLeviathanFlame: HTMLCanvasElement | null;
   arenaLeviathanVortex: HTMLCanvasElement | null;
   arenaLeviathanCrater: HTMLCanvasElement | null;
+  arenaLeviathanIrisClosed: HTMLCanvasElement | null;
+  arenaLeviathanVentIntact: HTMLCanvasElement | null;
+  arenaLeviathanVentCharge: HTMLCanvasElement | null;
   npcPilgrim: HTMLCanvasElement | null;
   npcFoundryWorker: HTMLCanvasElement | null;
   npcElderScholar: HTMLCanvasElement | null;
@@ -297,6 +300,9 @@ const art: HDArtAssets = {
   arenaLeviathanFlame: null,
   arenaLeviathanVortex: null,
   arenaLeviathanCrater: null,
+  arenaLeviathanIrisClosed: null,
+  arenaLeviathanVentIntact: null,
+  arenaLeviathanVentCharge: null,
   npcPilgrim: null,
   npcFoundryWorker: null,
   npcElderScholar: null,
@@ -472,6 +478,9 @@ export const M12_OPTIONAL_SPRITES = {
   arenaLeviathanFlame: 'arena_leviathan_flame',
   arenaLeviathanVortex: 'arena_leviathan_vortex',
   arenaLeviathanCrater: 'arena_leviathan_crater',
+  arenaLeviathanIrisClosed: 'arena_leviathan_iris_closed',
+  arenaLeviathanVentIntact: 'arena_leviathan_vent_intact',
+  arenaLeviathanVentCharge: 'arena_leviathan_vent_charge',
 } as const;
 
 export type M12SpriteKey = keyof typeof M12_OPTIONAL_SPRITES;

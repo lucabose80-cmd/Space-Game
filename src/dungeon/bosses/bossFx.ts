@@ -200,13 +200,14 @@ export class BossFx {
       const prog = warn ? 1 - Math.max(0, z.delay) / Math.max(0.01, z.maxDelay ?? 1) : 1;
       const pulse = 0.5 + 0.5 * Math.sin(time * 14);
       const spriteBacked = !warn && (z.fx === 'beam' || z.fx === 'whip' || z.fx === 'flame' || z.fx === 'vortex' || z.fx === 'steam');
+      const subtleWarn = warn && (z.fx === 'beam' || z.fx === 'steam');
       ctx.fillStyle = z.color;
       ctx.strokeStyle = z.color;
       ctx.lineWidth = warn ? 1.2 : 1.6;
-      ctx.globalAlpha = warn ? 0.1 + 0.2 * prog : spriteBacked ? 0.08 : 0.38 + 0.12 * pulse;
+      ctx.globalAlpha = subtleWarn ? 0.04 : warn ? 0.1 + 0.2 * prog : spriteBacked ? 0.06 : 0.38 + 0.12 * pulse;
       this.path(ctx, z);
       ctx.fill();
-      ctx.globalAlpha = warn ? 0.4 + 0.4 * pulse : spriteBacked ? 0.18 : 0.85;
+      ctx.globalAlpha = subtleWarn ? 0.18 + 0.18 * prog : warn ? 0.4 + 0.4 * pulse : spriteBacked ? 0.14 : 0.85;
       this.path(ctx, z);
       ctx.stroke();
       if (z.fx) this.renderFx(ctx, z, time, warn, prog);
@@ -462,29 +463,35 @@ export class BossFx {
       const y2 = z.y2 ?? z.y;
       const len = Math.hypot(x2 - z.x, y2 - z.y) || 1;
       const ang = Math.atan2(y2 - z.y, x2 - z.x);
-      const bw = Math.max(16, (z.width ?? 12) * 1.9);
+      const bw = Math.max(28, (z.width ?? 16) * 2.0);
       if (warn) {
-        // Auflade-Mündungsblitz direkt an der Faust/Schulter + pulsierender Zielstrahl
+        // Auflade-Mündungsblitz direkt an der Faust/Schulter + fokussierter Zielstrahl
         if (art.arenaLeviathanMuzzle) {
           ctx.save();
           ctx.globalCompositeOperation = 'lighter';
-          ctx.globalAlpha = 0.35 + 0.65 * prog;
-          sprite(art.arenaLeviathanMuzzle, z.x, z.y, 14 + 22 * prog, time * 5);
+          ctx.globalAlpha = 0.45 + 0.55 * prog;
+          sprite(art.arenaLeviathanMuzzle, z.x, z.y, 18 + 26 * prog, time * 6);
           ctx.restore();
         }
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
-        ctx.strokeStyle = '#fda4af';
-        ctx.lineWidth = 1.2 + prog * 1.5;
-        ctx.globalAlpha = 0.35 + 0.45 * prog;
-        ctx.setLineDash([6, 4]);
+        ctx.strokeStyle = '#fb7185';
+        ctx.lineWidth = 2.0 + prog * 3.0;
+        ctx.globalAlpha = 0.28 + 0.42 * prog;
+        ctx.beginPath();
+        ctx.moveTo(z.x, z.y);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 0.9 + prog * 0.8;
+        ctx.globalAlpha = 0.4 + 0.5 * prog;
         ctx.beginPath();
         ctx.moveTo(z.x, z.y);
         ctx.lineTo(x2, y2);
         ctx.stroke();
         ctx.restore();
       } else {
-        const a = Math.min(1, (1 - kAct) * 2.5);
+        const a = Math.min(1, (1 - kAct) * 2.8);
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
         ctx.globalAlpha = a;
@@ -492,8 +499,8 @@ export class BossFx {
           ctx.save();
           ctx.translate(z.x, z.y);
           ctx.rotate(ang);
-          const segW = 48;
-          const scroll = (time * 180) % segW;
+          const segW = 54;
+          const scroll = (time * 220) % segW;
           for (let sx = -scroll; sx < len; sx += segW) {
             const x0 = Math.max(0, sx);
             const x1 = Math.min(len, sx + segW);
@@ -504,14 +511,14 @@ export class BossFx {
           ctx.restore();
         } else {
           ctx.strokeStyle = z.color;
-          ctx.lineWidth = z.width ?? 12;
+          ctx.lineWidth = z.width ?? 16;
           ctx.beginPath();
           ctx.moveTo(z.x, z.y);
           ctx.lineTo(x2, y2);
           ctx.stroke();
         }
         if (art.arenaLeviathanMuzzle) {
-          sprite(art.arenaLeviathanMuzzle, z.x, z.y, 38 + 10 * Math.sin(time * 40), time * 9);
+          sprite(art.arenaLeviathanMuzzle, z.x, z.y, 46 + 12 * Math.sin(time * 40), time * 9);
         }
         ctx.restore();
       }
@@ -601,17 +608,33 @@ export class BossFx {
       const art = getHDArt();
       const w = z.w ?? 160;
       const h = z.h ?? 28;
-      if (!warn && art.arenaLeviathanSteam) {
+      const dir = (z.variant ?? 1) >= 0 ? 1 : -1;
+      const startX = dir > 0 ? z.x - w / 2 : z.x + w / 2;
+      if (warn && art.arenaLeviathanSteam) {
+        // Zischende Vorwarn-Dampfschwaden direkt aus der Düsen-Mündung
         ctx.save();
-        const dir = (z.variant ?? 1) >= 0 ? 1 : -1;
-        const startX = dir > 0 ? z.x - w / 2 : z.x + w / 2;
-        for (let k = 0; k < 6; k++) {
-          const u = ((time * 1.6 + k / 6) % 1);
-          const sx = startX + dir * (10 + u * (w - 14));
-          const sy = z.y + Math.sin(time * 10 + k * 2.1) * (h * 0.22);
-          const sz = 18 + u * 18;
+        for (let k = 0; k < 3; k++) {
+          const u = ((time * 2.2 + k / 3) % 1);
+          const sx = startX + dir * (4 + u * 36 * (0.4 + 0.6 * prog));
+          const sy = z.y + Math.sin(time * 14 + k * 2) * 4;
+          const sz = 10 + u * 12;
           ctx.save();
-          ctx.globalAlpha = Math.sin(u * Math.PI) * 0.88;
+          ctx.globalAlpha = (1 - u) * (0.35 + 0.45 * prog);
+          ctx.translate(sx, sy);
+          if (dir < 0) ctx.scale(-1, 1);
+          ctx.drawImage(art.arenaLeviathanSteam, -sz / 2, -sz / 2, sz, sz);
+          ctx.restore();
+        }
+        ctx.restore();
+      } else if (!warn && art.arenaLeviathanSteam) {
+        ctx.save();
+        for (let k = 0; k < 7; k++) {
+          const u = ((time * 1.7 + k / 7) % 1);
+          const sx = startX + dir * (8 + u * (w - 12));
+          const sy = z.y + Math.sin(time * 10 + k * 2.1) * (h * 0.24);
+          const sz = 20 + u * 20;
+          ctx.save();
+          ctx.globalAlpha = Math.sin(u * Math.PI) * 0.92;
           ctx.translate(sx, sy);
           if (dir < 0) ctx.scale(-1, 1);
           ctx.drawImage(art.arenaLeviathanSteam, -sz / 2, -sz / 2, sz, sz);
