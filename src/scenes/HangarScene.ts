@@ -28,7 +28,7 @@ export interface HangarCallbacks {
 }
 
 // Exact coordinates aligned pixel-for-pixel to public/art/hangar_bg.png (480x270 logical)
-const PROMENADE_GATE_POS = { x: 64, y: 138 };
+const PROMENADE_GATE_POS = { x: 100, y: 146 }; // Schleusentür steht in der Wand (x 33–89): man tritt davor, nicht darüber
 const DOCK1_POS = { x: 146, y: 86 }; // Sektor 1: Verlassene Korvette (Unlocked & Ship Docked!)
 const DOCK2_POS = { x: 364, y: 86 }; // Sektor 2: Kristall-Nebel (Ship docks once Sector 1 cleared!)
 const DOCK3_POS = { x: 146, y: 202 }; // Sektor 3: Solar-Gießerei (Ship docks once Sector 2 cleared!)
@@ -159,8 +159,8 @@ export class HangarScene {
         this.spawnBurst(DOCK1_POS.x, DOCK1_POS.y + 24, '#38e8d4', 18);
       }
     } else {
-      this.playerX = 92;
-      this.playerY = 142;
+      this.playerX = 104;
+      this.playerY = 146;
       this.facing = 'right';
       this.spawnBurst(PROMENADE_GATE_POS.x + 8, PROMENADE_GATE_POS.y, '#38e8d4', 14);
     }
@@ -445,6 +445,7 @@ export class HangarScene {
   private isWalkable(x: number, y: number): boolean {
     if (x < 56 || x > 438 || y < 44 || y > 244) return false;
     if (x < 84 && y < 112) return false;
+    if (x < 92 && y > 108 && y < 182) return false; // Tür-Nische (Wandbauteil)
     if (Math.hypot(x - OMEGA_GATE_POS.x, y - OMEGA_GATE_POS.y) < 35) return false;
     if (x > 106 && x < 186 && y > 54 && y < 114) return false;
     if (this.state.sector1Cleared && x > 324 && x < 404 && y > 54 && y < 114) return false;
@@ -460,10 +461,10 @@ export class HangarScene {
     if (Math.hypot(this.playerX - PROMENADE_GATE_POS.x, this.playerY - PROMENADE_GATE_POS.y) < 34) {
       this.activePrompt = {
         label: '[E] Zurück zur Port Solaris Promenade',
-        x: PROMENADE_GATE_POS.x + 48,
-        y: PROMENADE_GATE_POS.y - 26,
+        x: PROMENADE_GATE_POS.x + 46,
+        y: PROMENADE_GATE_POS.y - 40,
       };
-      if (input.interactPressed() || (this.entryCooldown <= 0 && moveX < -0.65 && this.playerX <= 66)) {
+      if (input.interactPressed() || (this.entryCooldown <= 0 && moveX < -0.65 && this.playerX <= 98)) {
         sound.playUiClick();
         this.callbacks.onReturnToHub();
       }
@@ -892,7 +893,7 @@ export class HangarScene {
     const keys = this.countSectorKeys();
 
     const pills = [
-      { text: '◀ PROMENADE', x: 66, y: 174, color: '#38e8d4' },
+      { text: '◀ PROMENADE', x: 62, y: 190, color: '#38e8d4' },
       {
         text: isNight ? 'DOCK I · SEKTOR 1 🌙' : 'DOCK I · SEKTOR 1',
         x: DOCK1_POS.x,

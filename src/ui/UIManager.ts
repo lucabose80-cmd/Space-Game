@@ -1848,7 +1848,7 @@ export class UIManager {
             this.closeModal();
             this.hooks.onUpgradeCutscene(
               {
-                kind: isMajor ? 'shop' : isForge ? 'forge_step' : 'tech_step',
+                kind: key === 'quartersTier' ? 'quarters' : isMajor ? 'shop' : isForge ? 'forge_step' : 'tech_step',
                 title: (track?.title ?? 'UPGRADE').toUpperCase(),
                 subtitle: key === 'quartersTier'
                   ? nextLevel === 1

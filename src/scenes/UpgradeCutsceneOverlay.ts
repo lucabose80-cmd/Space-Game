@@ -5,7 +5,7 @@ import { VIRTUAL_HEIGHT, VIRTUAL_WIDTH, type InputManager } from '../engine/inpu
 import { getDeviceSettings } from '../systems/deviceSettings';
 import { drawMinaSprite } from './HubCutsceneOverlay';
 
-export type UpgradeCutsceneKind = 'weapon' | 'shop' | 'ship' | 'forge_step' | 'tech_step';
+export type UpgradeCutsceneKind = 'weapon' | 'shop' | 'quarters' | 'ship' | 'forge_step' | 'tech_step';
 
 export interface UpgradeCutsceneConfig {
   kind: UpgradeCutsceneKind;
@@ -254,7 +254,7 @@ export class UpgradeCutsceneOverlay {
       ctx.globalAlpha = alpha * 0.7;
       ctx.fillRect(cx - 42, Math.round(scanY), 84, 2);
       ctx.globalAlpha = alpha;
-    } else if (major && kind === 'shop') {
+    } else if (major && (kind === 'shop' || kind === 'quarters')) {
       // Goldene Vitrinen-Ikone
       ctx.fillStyle = '#fbbf24';
       ctx.fillRect(cx - 24, cardY + 38, 48, 6);
@@ -275,7 +275,9 @@ export class UpgradeCutsceneOverlay {
         ? minaPresent
           ? 'EXO-SCHMIEDE · KAEL & MINA'
           : 'EXO-SCHMIEDE · NEUE WAFFE'
-        : kind === 'shop'
+        : kind === 'quarters'
+          ? 'KAPITÄNS-QUARTIER · AUSBAU'
+          : kind === 'shop'
           ? 'ASTRO-BARTER · LADEN-AUSBAU'
           : kind === 'ship'
             ? 'RAUMHAFEN · NEUES SCHIFF'

@@ -426,8 +426,29 @@ export class BackroomScene {
       }
     }
 
+    // Stufe III: vier Trophäen-Vitrinen — je bezwungenem Sektor leuchtet die zugehörige Vitrine, die anderen sind abgedunkelt
+    if (this.qTier >= 2) {
+      const cleared = this.state.omegaCleared
+        ? [true, true, true, true]
+        : [this.state.sector1Cleared, this.state.sector2Cleared, this.state.sector3Cleared, this.state.sector4Cleared];
+      const vit = [
+        { x: 221, y: 87, w: 15, h: 22, col: '#fbbf24' }, // S1 Bernstein
+        { x: 244, y: 86, w: 16, h: 23, col: '#c084fc' }, // S2 Violett
+        { x: 266, y: 88, w: 16, h: 21, col: '#fb923c' }, // S3 Orange
+        { x: 238, y: 110, w: 15, h: 14, col: '#38e8d4' }, // S4 Cyan
+      ];
+      vit.forEach((v, i) => {
+        if (cleared[i]) {
+          drawGlow(ctx, v.x, v.y, 17, v.col, 0.3 + pulse * 0.14);
+        } else {
+          ctx.fillStyle = 'rgba(8, 10, 24, 0.5)';
+          ctx.fillRect(v.x - v.w / 2, v.y - v.h / 2, v.w, v.h);
+        }
+      });
+    }
+
     // Radiant multi-sector victory auras over the built-in trophy altar!
-    if (this.state.sector1Cleared && this.qTier >= 1) {
+    if (this.state.sector1Cleared && this.qTier === 1) {
       drawGlow(ctx, 240, 100, 32, '#fbbf24', 0.34 + pulse * 0.14);
       for (let i = 0; i < 4; i++) {
         const phase = (this.time * 0.65 + i * 0.25) % 1;
@@ -437,13 +458,13 @@ export class BackroomScene {
         ctx.fillRect(sx, sy, 1.8, 1.8);
       }
     }
-    if (this.state.sector2Cleared && this.qTier >= 1) {
+    if (this.state.sector2Cleared && this.qTier === 1) {
       drawGlow(ctx, 240, 96, 36, '#c084fc', 0.28 + pulse * 0.12);
     }
-    if (this.state.sector3Cleared && this.qTier >= 1) {
+    if (this.state.sector3Cleared && this.qTier === 1) {
       drawGlow(ctx, 240, 94, 40, '#f97316', 0.28 + pulse * 0.12);
     }
-    if ((this.state.sector4Cleared || this.state.omegaCleared) && this.qTier >= 1) {
+    if ((this.state.sector4Cleared || this.state.omegaCleared) && this.qTier === 1) {
       drawGlow(ctx, 240, 90, 44, this.state.omegaCleared ? '#fde047' : '#38e8d4', 0.36 + pulse * 0.16);
       for (let i = 0; i < 5; i++) {
         const phase = (this.time * 0.85 + i * 0.2) % 1;
