@@ -229,7 +229,7 @@ export function renderArenaFloor(ctx: CanvasRenderingContext2D, room: DungeonRoo
     }
     // nach dem Sieg (Boss-Gegner entfernt): erloschener Körper bleibt in der Wand
     if (room.cleared && room.arenaKind === 'boss_leviathan') drawLeviathanBodyStatic(ctx, room);
-    if (room.arenaKind === 'boss_leviathan') drawLeviathanWrecks(ctx, room, time); // abgerissene Arme liegen auf dem Boden
+    if (room.arenaKind === 'boss_leviathan') drawLeviathanWrecks(ctx, room, time, 'ground'); // abgerissene Arme liegen auf dem Boden
     drawArenaVault(ctx, room, time); // Schatzkammer-Tür/Gang/Kammer (nach dem Sieg)
   }
 }

@@ -336,13 +336,21 @@ export function updateLeviathanArena(scene: DungeonScene, e: Enemy, dt: number):
       scene.spawnBurst(e.x + side * (28 + (curTick % 3) * 18), e.y - 14 + (curTick % 4) * 8, curTick % 3 === 0 ? '#fb923c' : '#fde047', 3);
     }
   }
-  // Wracks: rauchen/funken die ersten Sekunden nach dem Aufprall
+  // Wracks: Staub beim Aufprall, danach rauchen/funken die ersten Sekunden
   for (const w of scene.currentRoom.levWrecks ?? []) {
     const age = scene.time - w.t0;
-    if (age < 0.5 || age > 9) continue;
-    const rate = age < 3 ? 4 : 1.5;
+    const pose = wreckPose(w, age);
+    const prevAge = age - dt;
+    if (prevAge < pose.landT && age >= pose.landT) {
+      scene.spawnBurst(pose.x, w.y + 10, '#a8a29e', 14);
+      scene.spawnBurst(pose.x, w.y + 8, '#fbbf24', 6);
+      scene.triggerShake(0.25, 3);
+      sound.playBossSlam();
+    }
+    if (age < pose.landT || age > 9) continue;
+    const rate = age < pose.landT + 3 ? 4 : 1.5;
     if (Math.floor(scene.time * rate) !== Math.floor((scene.time - dt) * rate)) {
-      scene.spawnBurst(w.x + ((Math.floor(scene.time * 7) % 5) - 2) * 6, w.y - 6, Math.floor(scene.time * rate) % 2 === 0 ? '#94a3b8' : '#fde047', 2);
+      scene.spawnBurst(pose.x + ((Math.floor(scene.time * 7) % 5) - 2) * 6, w.y - 6, Math.floor(scene.time * rate) % 2 === 0 ? '#94a3b8' : '#fde047', 2);
     }
   }
   // Ramponiert (D12): Funken/Glut/Rauch wachsen mit dem Schaden — P1 ab <88 %, P2 stärker, P3 am stärksten
@@ -929,6 +937,7 @@ export function drawLeviathanArena(ctx: CanvasRenderingContext2D, scene: Dungeon
   const t = scene.time;
   const pulse = 0.5 + 0.5 * Math.sin(t * 8);
   const art = getHDArt();
+  drawLeviathanWrecks(ctx, scene.currentRoom, t, 'air');
   const hasBg = !!art.arenaLeviathanBg;
   // A12: 3-stufiger Plattenbruch während der Phase-II-Vorwarnung (P1-06)
   if (L.plateCrackT > 0 && !L.platesBroken) {
@@ -1171,34 +1180,70 @@ export function drawLeviathanBody(ctx: CanvasRenderingContext2D, scene: DungeonS
   return true;
 }
 
-/** Abgerissene Arme: fallen (0,55 s), prallen auf und liegen als dunkles Wrack auf dem Boden (bleiben bis zum Verlassen der Arena). */
-export function drawLeviathanWrecks(ctx: CanvasRenderingContext2D, room: DungeonRoom, time: number): void {
+/** Flugbahn eines abgerissenen Arms (rein deterministisch aus dem Alter): Wurf nach außen → Aufprall → 2 Nachhüpfer → Rutschen → flach liegend. */
+export function wreckPose(w: { x: number; y: number; sx: number; sy: number; side: -1 | 1 }, age: number): { x: number; y: number; rot: number; landT: number } {
+  const g = 520;
+  const vy0 = -70;
+  const vx = w.side * 46;
+  const dy = Math.max(10, w.y - w.sy);
+  const t1 = (-vy0 + Math.sqrt(vy0 * vy0 + 2 * g * dy)) / g; // Aufprallzeit
+  const REST = w.side * 0.12; // per Sichtprüfung: so liegt die Faust-Achse flach auf dem Boden
+  const t = Math.max(0, age);
+  if (t < t1) {
+    const k = t / t1;
+    const ease = k * k * (3 - 2 * k);
+    return {
+      x: w.sx + vx * t,
+      y: w.sy + vy0 * t + 0.5 * g * t * t,
+      rot: w.side * (0.08 + 0.04 * ease + 0.9 * Math.sin(Math.PI * k)), // schwingt nach außen weg, dreht dann flach
+      landT: t1,
+    };
+  }
+  const tau = t - t1;
+  const vImpact = vy0 + g * t1;
+  const vb1 = vImpact * 0.3;
+  const d1 = (2 * vb1) / g;
+  const vb2 = vb1 * 0.35;
+  const d2 = (2 * vb2) / g;
+  let hop = 0;
+  if (tau < d1) hop = vb1 * tau - 0.5 * g * tau * tau;
+  else if (tau < d1 + d2) {
+    const t2 = tau - d1;
+    hop = vb2 * t2 - 0.5 * g * t2 * t2;
+  }
+  const x1 = w.sx + vx * t1;
+  const slide = w.side * 12 * (1 - Math.exp(-tau * 5));
+  const wob = w.side * 0.05 * Math.exp(-tau * 4) * Math.sin(tau * 16);
+  return { x: x1 + slide, y: w.y - Math.max(0, hop), rot: REST + wob, landT: t1 };
+}
+
+/** Abgerissene Arme: fallen, prallen auf und liegen als dunkles Wrack flach auf dem Boden (bleiben bis zum Verlassen der Arena). */
+/** `layer`: 'air' = Fall/Aufprall (über dem Boss-Rig gezeichnet, sonst verschwindet der Arm hinter dem Körper), 'ground' = liegendes Wrack (Boden-Ebene). */
+export function drawLeviathanWrecks(ctx: CanvasRenderingContext2D, room: DungeonRoom, time: number, layer: 'air' | 'ground'): void {
   const wr = room.levWrecks;
   if (!wr || !wr.length) return;
   const img = getHDArt().rigs.boss_leviathan?.parts.armDead;
   for (const w of wr) {
     const age = Math.max(0, time - w.t0);
-    const u = Math.min(1, age / 0.55);
-    const ease = u * u;
-    const bounce = age > 0.55 ? Math.abs(Math.sin((age - 0.55) * 9)) * 9 * Math.exp(-(age - 0.55) * 5) : 0;
-    const x = w.sx + (w.x - w.sx) * u;
-    const y = w.sy + (w.y - w.sy) * ease - bounce;
-    const rot = w.side * (0.35 + 0.95 * u) + (age > 0.55 ? w.side * 0.04 * Math.exp(-(age - 0.55) * 4) * Math.sin((age - 0.55) * 14) : 0);
-    // Schatten am Boden
+    const p = wreckPose(w, age);
+    if ((age < p.landT + 0.9) !== (layer === 'air')) continue;
+    const airborne = Math.max(0, w.y - p.y);
+    // Schatten am Boden (wird mit der Höhe kleiner/blasser)
     ctx.save();
-    ctx.fillStyle = 'rgba(8, 10, 16, 0.5)';
+    ctx.fillStyle = `rgba(8, 10, 16, ${0.5 - Math.min(0.3, airborne / 150)})`;
     ctx.beginPath();
-    ctx.ellipse(w.x, w.y + 16, 38 * (0.5 + 0.5 * u), 8, 0, 0, Math.PI * 2);
+    ctx.ellipse(p.x, w.y + 14, 40 - Math.min(14, airborne / 6), 8, 0, 0, Math.PI * 2);
     ctx.fill();
     if (img) {
       const iw = 100;
       const ih = (iw * img.height) / img.width;
-      ctx.translate(x, y);
-      ctx.rotate(rot);
+      ctx.translate(p.x, p.y);
+      if (w.side > 0) ctx.scale(-1, 1); // rechter Arm gespiegelt
+      ctx.rotate(w.side > 0 ? -p.rot : p.rot);
       ctx.drawImage(img, -iw * 0.42, -ih * 0.41, iw, ih);
     } else {
       ctx.fillStyle = '#1e293b';
-      ctx.fillRect(x - 30, y - 8, 60, 16);
+      ctx.fillRect(p.x - 30, p.y - 8, 60, 16);
     }
     ctx.restore();
   }
