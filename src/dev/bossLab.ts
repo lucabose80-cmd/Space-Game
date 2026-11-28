@@ -8,7 +8,8 @@ import { ARENAS, attachArenas } from '../data/arenas';
 import { labDestroyArm, startMoveForTest, type LevArenaMove } from '../dungeon/bosses/leviathanArena';
 import { ENDBOSS_ARENA } from '../data/balance';
 import { RIG_BY_KIND } from '../data/rigs';
-import type { Enemy } from '../dungeon/dungeonTypes';
+import { BOSS_DEFS } from '../dungeon/bosses/defs';
+import type { BossState, Enemy } from '../dungeon/dungeonTypes';
 import type { DungeonScene } from '../scenes/DungeonScene';
 import type { GameState } from '../systems/gameState';
 import type { SectorId } from '../types';
@@ -26,6 +27,21 @@ interface LabBoss {
 export /** Leviathan-Labor: Angriffe (Reihenfolge der Wiedergabe) und Schadensstufen (HP-Anteil → Phase/Rumpf-Variante) */
 const LEV_MOVES: Array<[LevArenaMove, string]> = [['hammer', 'Hammer'], ['whip', 'Welle'], ['quake', 'Doppelschlag'], ['steam', 'Dampf'], ['beam', 'Strahl'], ['debris', 'Trümmer'], ['grab', 'Griff'], ['pulse', 'Puls'], ['glow', 'Glut']];
 const LEV_STAGES: Array<[number, string]> = [[1, 'P1 100'], [0.85, 'P1 85'], [0.7, 'P1 70'], [0.6, 'P2 60'], [0.48, 'P2 48'], [0.36, 'P2 36'], [0.25, 'P3 25'], [0.12, 'P3 12']];
+/**
+ * Boss-Labor: gezielte Angriffe für Bosse mit eigener Zustandsmaschine (`enemyAi.ts`). Die KI wählt den nächsten Angriff über `e.phase % mod`
+ * — wir setzen `phase` passend und lassen die KI im Ruhezustand sofort starten. `incBefore`: KI erhöht `phase` VOR der Auswahl.
+ */
+const PHASE_ATTACKS: Partial<Record<Kind, { mod: number; idle: BossState; incBefore: boolean; atks: string[] }>> = {
+  boss: { mod: 4, idle: 'stalk', incBefore: false, atks: ['Orbit-Salve', 'Sturm/Anlauf', 'Sprung-Angriff', 'Reaktor-Laser'] },
+  boss_quartz_golem: { mod: 3, idle: 's2_idle', incBefore: true, atks: ['Kristall-Beben', 'Quarz-Salve'] },
+  boss_prism_weaver: { mod: 2, idle: 's2_idle', incBefore: true, atks: ['Phasen-Sprung', 'Laser-Gitter'] },
+  boss_prisma_archon: { mod: 3, idle: 's2_idle', incBefore: true, atks: ['Zwillings-Strahl', 'Kristall-Lanzen', 'Prisma-Nova'] },
+  boss_omega_archon: { mod: 3, idle: 's2_idle', incBefore: true, atks: ['Zwillings-Strahl', 'Kristall-Lanzen', 'Prisma-Nova'] },
+};
+/** Schadensstufen (HP-Anteil) für Bosse bzw. normale Gegner */
+const BOSS_STAGES: Array<[number, string]> = [[1, '100 %'], [0.8, '80 %'], [0.65, '65 %'], [0.5, '50 % · Phase II'], [0.35, '35 %'], [0.25, '25 %'], [0.14, '14 % kritisch']];
+const ENEMY_STAGES: Array<[number, string]> = [[1, '100 %'], [0.66, '66 %'], [0.33, '33 %'], [0.1, '10 %']];
+
 const LAB_BOSSES: LabBoss[] = [
   { kind: 'boss_breacher', name: 'Krall', sector: 1, floor: 1 },
   { kind: 'boss', name: 'Kern-Wächter', sector: 1, floor: 2 },
@@ -99,6 +115,9 @@ export class BossLab {
   private rigBackup: Record<string, ReturnType<typeof getHDArt>['rigs'][string]> = {};
   private infoTimer = 0;
   private tabsEl!: HTMLDivElement;
+  /** Dynamischer Abschnitt „ANGRIFFE & STATI“ (je Pane einer; wird bei jeder Auswahl neu aufgebaut) */
+  private actionEls: HTMLDivElement[] = [];
+  private atkIdx = 0;
   private open = window.innerHeight >= 520 && window.innerWidth >= 700; // Handy (hoch oder quer): eingeklappt starten
   private muteToastUntil = 0;
 
@@ -421,6 +440,111 @@ export class BossLab {
     return b;
   }
 
+  private dyn(parent: HTMLElement): HTMLDivElement {
+    const el = document.createElement('div');
+    parent.appendChild(el);
+    return el;
+  }
+
+  // ---------- Angriffe & Stati (alle Bosse/Gegner) ----------
+  private selectedKind(): Kind | null {
+    return this.selected?.kind ?? this.selectedEnemy ?? null;
+  }
+
+  /** Angriffsliste des gewählten Bosses [Name, Auslöser]; Leviathan-Arena hat eigene Abschnitte. */
+  private attackList(kind: Kind): Array<[string, (e: Enemy) => void]> {
+    const def = BOSS_DEFS[kind];
+    if (def) {
+      return def.moves.map((m, i): [string, (e: Enemy) => void] => [
+        m.name,
+        (e) => {
+          const p2 = e.bossPhase2 === true && e.splitGroup === undefined;
+          const seq = p2 ? def.movesP2 ?? def.movesP1 : def.movesP1;
+          const order = seq ?? def.moves.map((_, k) => k);
+          const pos = order.indexOf(i);
+          if (pos < 0) { this.dng.callbacks.onToast(`„${m.name}“ gehört nicht zum Zugplan dieser Phase`, 'warn'); return; }
+          e.bossSub = 'idle';
+          e.bossStateTimer = 0;
+          e.bossMoveIdx = pos;
+        },
+      ]);
+    }
+    const pa = PHASE_ATTACKS[kind];
+    if (pa) {
+      return pa.atks.map((name, t): [string, (e: Enemy) => void] => [
+        name,
+        (e) => {
+          e.bossState = pa.idle;
+          e.bossStateTimer = 0;
+          e.bossHeight = 0;
+          e.phase = pa.incBefore ? (t - 1 + pa.mod) % pa.mod : t;
+        },
+      ]);
+    }
+    return [];
+  }
+
+  private runAttack(fn: (e: Enemy) => void): void {
+    const e = this.bossEntity() ?? this.dng.enemies[0];
+    if (!e) return;
+    this.dng.bossFx.clear();
+    this.dng.projectiles.length = 0;
+    e.vx = 0;
+    e.vy = 0;
+    fn(e);
+  }
+
+  private setHpStage(frac: number): void {
+    const e = this.bossEntity() ?? this.dng.enemies[0];
+    if (!e) return;
+    if (frac > 0.5 && e.bossPhase2) {
+      // Phasen gehen nur vorwärts → Gegner neu aufbauen
+      if (this.selected) this.spawnBoss(this.selected);
+      else if (this.selectedEnemy) this.spawnEnemy(this.selectedEnemy);
+      this.setHpStage(frac);
+      return;
+    }
+    e.hp = Math.max(1, Math.round(e.maxHp * frac));
+    this.dng.invulnTimer = 5;
+  }
+
+  private renderActions(): void {
+    const kind = this.selectedKind();
+    for (const el of this.actionEls) el.replaceChildren();
+    if (!kind || this.selectedArena) return;
+    const isBoss = this.selected !== null;
+    const label = this.selected?.name ?? LAB_ENEMIES.find((x) => x.kind === kind)?.name ?? kind;
+    for (const el of this.actionEls) {
+      const g = this.section(el, `${label.toUpperCase()} · ANGRIFFE`);
+      const atks = this.attackList(kind);
+      if (atks.length > 0) {
+        g.appendChild(this.btn('⏭ Nächster', () => { const a = atks[this.atkIdx++ % atks.length]; this.runAttack(a[1]); }));
+        for (const [name, fn] of atks) g.appendChild(this.btn(name, () => this.runAttack(fn)));
+      } else if (isBoss && kind === 'boss_leviathan') {
+        g.appendChild(this.btn('→ Arena „🏟 Leviathan“ wählen (eigene Angriffsliste)', () => this.selectArena('boss_leviathan')));
+      } else if (!isBoss) {
+        g.appendChild(this.btn('⚔ Angriff jetzt', () => this.runAttack((e) => { e.aiTimer = 0; e.telegraphTimer = 0; }), 'atk:now'));
+      } else {
+        g.appendChild(this.btn('⚔ Angriff jetzt', () => this.runAttack((e) => { e.aiTimer = 0; }), 'atk:now'));
+      }
+      const gs = this.section(el, `${label.toUpperCase()} · STATI`);
+      for (const [frac, name] of isBoss ? BOSS_STAGES : ENEMY_STAGES) gs.appendChild(this.btn(name, () => this.setHpStage(frac)));
+      gs.appendChild(this.btn('💥 Treffer', () => { const e = this.bossEntity() ?? this.dng.enemies[0]; if (e) this.dng.damageEnemy(e, 1, 1, 0, 60); }));
+      gs.appendChild(this.btn('☠ Tod', () => {
+        const e = this.bossEntity() ?? this.dng.enemies[0];
+        if (!e) return;
+        this.bossImmortal = false;
+        this.refreshButtons();
+        e.hp = 1;
+        this.dng.damageEnemy(e, e.maxHp + 99, 1, 0, 60, true);
+      }));
+      gs.appendChild(this.btn('↺ Neu', () => {
+        if (this.selected) this.select(this.selected);
+        else if (this.selectedEnemy) this.spawnEnemy(this.selectedEnemy);
+      }));
+    }
+  }
+
   private pane(id: string): HTMLDivElement {
     const el = document.createElement('div');
     el.className = 'bl-pane';
@@ -442,6 +566,7 @@ export class BossLab {
   private buildBody(): void {
     // Tab „Bosse“: nach Sektor gruppiert
     const pb = this.pane('bosse');
+    this.actionEls.push(this.dyn(pb));
     // M12: Endboss-Arenen (echter Bossraum, so wie im Spiel) — künftige Arenen erscheinen hier automatisch
     const ga = this.section(pb, 'ARENEN (Endboss-Raum)');
     for (const kind of Object.keys(ARENAS) as EnemyKind[]) {
@@ -465,6 +590,7 @@ export class BossLab {
     }
     // Tab „Gegner“
     const pg = this.pane('gegner');
+    this.actionEls.push(this.dyn(pg));
     const g3 = this.section(pg, 'GEGNER (einzeln)');
     for (const en of LAB_ENEMIES) g3.appendChild(this.btn(en.name, () => this.spawnEnemy(en.kind), `enemy:${en.kind}`));
     // Tab „Mehr“: Zeit & Schalter
@@ -479,6 +605,7 @@ export class BossLab {
   }
 
   private refreshButtons(): void {
+    this.renderActions();
     const set = (id: string, on: boolean) => this.panel.querySelector(`[data-lab="${id}"]`)?.classList.toggle('on', on);
     set('pause', this.paused);
     set('lev:auto', this.levAuto);

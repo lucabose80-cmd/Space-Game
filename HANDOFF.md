@@ -10,6 +10,7 @@
 
 | Datum | Werkzeug · Bereich | Erledigt | Offen / Blocker | Nächster Schritt | Claim frei? |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| 2026-11-28 | Claude Code · Boss-Labor | `?bosslab`: „ANGRIFFE & STATI“ für alle 12 Bosse + 21 Gegner (Test `t11_lab_attacks`: 37 Angriffe starten) | Abnahme `ABNAHME.md` Block K | Inhaber testet K | ja |
 | 2026-11-28 | Claude Code · Spielstand-Slots | 3 Slots am Startscreen, Cloud nur Slot 1 (Test `t10_save_slots`, verify grün) | Abnahme `ABNAHME.md` Block J | Inhaber testet J1–J10 | ja |
 | 2026-11-28 | Claude Code · Abnahme-Liste | `P3-55` `title_bg.png` erzeugt; `ABNAHME.md` (alle offenen Stufe-8-Prüfungen A–G) | Abnahmen durch Inhaber; Startscreen-Code T2–T5 offen | Inhaber testet `ABNAHME.md`, meldet ✅/❌ → in `handoff/` eintragen | ja |
 | 2026-11-28 | Antigravity · Startscreen & Account-Einstieg | Neuer Live-Pixel-Art-Startscreen (`TitleBackdrop.ts`, `TitleScreen.ts`), direktes Cloud-Konto-Panel (Google/E-Mail Login & Registrierung + Live-Cloud-Save-Sync am Startscreen), sanfter Übergang in `intro_arrival` & neue „Weiterspielen“-Anflug-Animation (`ContinueIntroCutscene.ts`); Test `t9_title_screen` + voller `verify` grün | Optionales Key-Art `P3-55` (`public/art/sprites/title_bg.png`) in `SPRITE_QUEUE.md` offen (Antigravity-Bild-Quota erschöpft & kein lokaler API-Key in VM); Live-Fallback aktiv | Abnahme im echten Spiel; sobald Bild-Key/Quota verfügbar: `P3-55` per `npm run art:gen` nach `public/art/sprites/title_bg.png` erzeugen (wird ohne Code-Änderung aktiv) | ja |

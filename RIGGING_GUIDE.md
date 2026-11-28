@@ -143,3 +143,6 @@ Automatisch: `npm test -- m11p1 m11p2 m11p3 m11p4` (Rig-Engine · Pose-Sets/Übe
 ## 8. Offene Arbeit
 **Konkrete Aufgabenliste & Fertig-Definition:** [`BOSS_ANIMATION_PLAN.md`](BOSS_ANIMATION_PLAN.md). Stand: Kern-Wächter K1–K8 + S1–S5 eingebunden, offen S6 (Arme ohne Faust in Angriffsposen) und Abnahme im echten Kampf. Krall: Arme L/R + Rumpf-Set (6) eingebunden, Zuordnung nach Zug/Phase fertig; offen `krall_legs_R/L.png` + `krall_effects.png` (Antigravity) und Abnahme.
 Weiter laut `HANDOFF.md` („Nächster Schritt“): übrige Bosse (`ART_BRIEF_M11.md` §4.3) und Gegner-Rigs (`ART_BRIEF_M11_ENEMIES.md`).
+
+## Boss-Labor: Angriffe & Stati (`src/dev/bossLab.ts`)
+Jeder gewählte Boss/Gegner bekommt oben im Pane „ANGRIFFE“ (Boss-Engine-Bosse: aus `BOSS_DEFS[kind].moves` über `bossMoveIdx`; handcodierte Bosse: `PHASE_ATTACKS` — die KI wählt per `e.phase % mod`, das Labor setzt `phase` + Ruhezustand; Gegner: `aiTimer = 0`) und „STATI" (HP-Stufen, Treffer, Tod, Neu). **Neuer Boss mit eigener Zustandsmaschine → in `PHASE_ATTACKS` eintragen**, sonst fehlt die Angriffsliste. Test: `t11_lab_attacks`.

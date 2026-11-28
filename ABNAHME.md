@@ -1,7 +1,7 @@
 # ABNAHME — Was der Projektinhaber im echten Spiel prüfen muss (Stand 2026-11-28)
 
 > Pro Zeile testen, Ergebnis rückmelden (✅ ok / ❌ Fehler + Beobachtung). Wir tragen es hier und im jeweiligen Status-Blatt (`handoff/…`) ein. Alle Sprites der Queue sind geliefert (0 fehlende), Tests grün — offen ist nur die Sichtprüfung.
-> Hilfsmittel: `?bosslab` (Bosse/Gegner/Arenen einzeln), `?cutscenelab` (alle Cutscenes ohne Spielstand-Änderung), `?arena`.
+> Hilfsmittel: `?bosslab` (Bosse/Gegner/Arenen einzeln; **je gewähltem Boss/Gegner Abschnitt „ANGRIFFE“ = jeder Angriff einzeln auslösbar + „STATI“ = HP-Stufen 100/80/65/50 (Phase II)/35/25/14 % kritisch, 💥 Treffer, ☠ Tod, ↺ Neu**; Leviathan wie gehabt über 🏟 Arena), `?cutscenelab` (alle Cutscenes ohne Spielstand-Änderung), `?arena`.
 
 | Status | Legende |
 | :-: | :-- |
@@ -102,6 +102,26 @@
 | J8 | Mit Konto: Slot 1 wählen holt/gleicht den Cloud-Stand ab (wie beim Login) | ⬜ |
 | J9 | Im Spiel: Einstellungen → „Spielstand zurücksetzen“ wirkt nur auf den aktiven Slot | ⬜ |
 | J10 | Komplett von vorn anfangen **mit Konto**: Slot 1 → „Neues Spiel“ (setzt auch Cloud zurück) | ⬜ |
+
+## K. Boss-Labor: Angriffe & Stati einzeln durchtesten (neu — Test `t11_lab_attacks`)
+> `…/?bosslab` → Tab **Bosse** bzw. **Gegner** → Boss/Gegner wählen → ganz oben **„<NAME> · ANGRIFFE“** (jeder Zug einzeln, `⏭ Nächster` = der Reihe nach) und **„<NAME> · STATI“**. Pro Zeile prüfen: Vorwarnung (≥ 0,4 s sichtbar), Angriffsgrafik, Pose, Erholung; bei Stati: Beschädigungsstufen, Phase-II-Verwandlung, kritisch < 15 %, Treffer-Reaktion, Tod-Animation. Zusätzlich mit Biom-Knöpfen S1–S4/Ω (Boden-Effekte in fremden Sektoren). Ergebnis je Zeile ✅/❌ + Beobachtung.
+| Boss (Angriffe im Labor) | Angriffe | Stati (Stufen · P2 · kritisch · Tod) | Status |
+| :-- | :-- | :-: | :-: |
+| Krall | Magnet-Zug · Schrott-Wurf · Greifarm-Stoß · … | ⬜ | ⬜ |
+| Kern-Wächter | Orbit-Salve · Sturm/Anlauf · Sprung-Angriff · Reaktor-Laser | ⬜ | ⬜ |
+| Leviathan | in 🏟 Arena (Hammer, Welle, Doppelschlag, Dampf, Strahl, Trümmer, Griff …) | ⬜ | ⬜ |
+| Quarz-Koloss (+ Teilen bei Phase II) | Kristall-Beben · Quarz-Salve | ⬜ | ⬜ |
+| Prisma-Weberin | Phasen-Sprung · Laser-Gitter | ⬜ | ⬜ |
+| Prisma-Archon | Zwillings-Strahl · Kristall-Lanzen · Prisma-Nova | ⬜ | ⬜ |
+| Schlacken-Koloss | je Zug einzeln | ⬜ | ⬜ |
+| Gießerei-Meisterin | je Zug einzeln | ⬜ | ⬜ |
+| Vulkan-Titan | je Zug einzeln | ⬜ | ⬜ |
+| Chrono-Wächter | je Zug einzeln | ⬜ | ⬜ |
+| Monolith-Koloss | je Zug einzeln | ⬜ | ⬜ |
+| Sternen-Archon (+ Teilen) | je Zug einzeln | ⬜ | ⬜ |
+| Omega-Archon | Zwillings-Strahl · Kristall-Lanzen · Prisma-Nova | ⬜ | ⬜ |
+| Alle 21 normalen Gegner (Tab Gegner) | „⚔ Angriff jetzt“ (löst den nächsten Angriff sofort aus) + Stufen 100/66/33/10 %, 💥 Treffer, ☠ Tod | ⬜ | ⬜ |
+> Hinweis: Gegner-Angriff „jetzt“ setzt nur den KI-Timer auf 0 — der Gegner greift an, sobald er in Reichweite ist (steht nahe der Spielfigur). Beschädigungsstufen gibt es nur bei Bossen (Regel 11), Gegner haben Treffer-Zucken + Tod.
 
 ## H. Noch NICHT zur Abnahme (erst bauen / gesperrt)
 - **NG+-Aura, ∞ Spirale, Echo-Pilot:** Sprites da, Code wartet auf Startsignal; Echo-Serie nach Pilot-Abnahme.
