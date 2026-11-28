@@ -79,4 +79,20 @@ module.exports = async ({ page }) => {
     return { in2, in1 };
   });
   assert.deepStrictEqual(cloud, { in2: false, in1: true });
+
+  // Handy quer (PC first, aber nutzbar): Menü passt komplett in den Bildschirm, Planeten liegen im Bild
+  await page.setViewportSize({ width: 915, height: 412 });
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: path.join(outDir, 'title_phone_landscape.png') });
+  const fit = await page.evaluate(() => {
+    const vh = window.innerHeight, vw = window.innerWidth;
+    const rect = (sel) => document.querySelector(sel)?.getBoundingClientRect();
+    const cont = rect('#btn-continue') ?? rect('#btn-new-game');
+    const st = [1, 2, 3].map((n) => rect(`.ts-slot-star[data-slot="${n}"]`));
+    return {
+      btnInside: !!cont && cont.bottom <= vh && cont.top >= 0,
+      starsInside: st.every((r) => r && r.right <= vw && r.bottom <= vh && r.left >= 0 && r.top >= 0),
+    };
+  });
+  assert.deepStrictEqual(fit, { btnInside: true, starsInside: true }, JSON.stringify(fit));
 };

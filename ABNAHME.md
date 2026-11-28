@@ -102,7 +102,9 @@
 | J8 | **Cloud:** Planet wählen holt/gleicht den Cloud-Stand dieses Slots ab; „Cloud-Stand laden“/„Jetzt sichern“ wirken auf den aktiven Slot | ⬜ |
 | J9 | Im Spiel: Einstellungen → „Spielstand zurücksetzen“ wirkt nur auf den aktiven Slot | ⬜ |
 | J10 | Komplett von vorn **mit Konto**: pro Slot „Neues Spiel“ (setzt dessen Cloud-Kopie zurück) | ⬜ |
-| J11 | Handy/schmal: Planeten als Reihe unter dem Menü, nichts überlappt die Buttons | ⬜ |
+| J11 | Handy **hochkant**: Planeten als Reihe unter dem Menü, nichts überlappt | ⬜ |
+| J12 | Handy **quer** (z. B. 915×412): kompaktes Menü (nur Logo, Karte, Buttons), alles ohne Scrollen sichtbar, Planeten innerhalb der Bildfläche, Slots anklickbar | ⬜ |
+| J13 | PC (≥ 1280×720) sieht aus wie zuvor (Terminal-Kopf, Tagline, Hinweiszeile) | ⬜ |
 > Grenzen (bewusst): Konflikte zwischen zwei Geräten löst derselbe Fortschritts-Vergleich wie bisher (weiter fortgeschritten gewinnt). Slot leeren auf Gerät A, während Gerät B noch eine lokale Kopie hat → B kann ihn beim Auswählen wieder hochladen (kein Lösch-Marker). Planeten sind echte Pixel-Art-Sprites (`title_planet_1/2/3/empty.png`, P3-56…59); Fallback bei fehlendem Bild = CSS-Kugel.
 
 ## K. Boss-Labor: Angriffe & Stati einzeln durchtesten (neu — Test `t11_lab_attacks`)
