@@ -391,6 +391,36 @@ class StarlighterGame {
     });
   }
 
+  /** Cutscene-Labor: springt direkt in eine Sonderraum-Szene (Käfig-Kammer / Befreiung / Heilquelle). Speichern ist gesperrt. */
+  private previewDungeonScene(dng: DungeonScene, kind: string): void {
+    const [what, arg] = kind.split('_');
+    const crew = (what === 'rescue' || what === 'cell' ? arg : null) as 'mina' | 'pip' | 'ping' | 'midnight' | null;
+    const sector = (crew ? CREW_DEFS[crew].sector : Number(arg) || 1) as SectorId;
+    if (crew) this.state.rescuedCrew = this.state.rescuedCrew.filter((c) => c !== crew);
+    const wanted = crew ? 'cell' : 'spring';
+    dng.startRun(sector);
+    dng.startFloor(crew ? 2 : 1, false, sector);
+    const room = [...dng.floor.rooms.values()].find((r) => r.special === wanted);
+    if (!room) return;
+    dng.enterRoom(room.key, null);
+    this.activeScene = 'dungeon';
+    this.ui.currentScene = 'dungeon';
+    this.ui.dungeonSector = sector;
+    this.ui.dungeonFloor = crew ? 2 : 1;
+    if (crew && room.captive) {
+      dng.playerX = room.captive.x;
+      dng.playerY = room.captive.y + 28;
+      if (what === 'rescue') dng.rescueCine = { crew, t: 0, beat: 0, beatT: 0 };
+    } else if (room.spring) {
+      this.state.hp = Math.max(1, Math.round(this.state.getStats().maxHp * 0.3));
+      dng.playerX = room.spring.x;
+      dng.playerY = room.spring.y;
+    }
+    this.ui.renderHud();
+    this.syncTouch();
+    this.syncMusic();
+  }
+
   // ==================== BEHELF: CUTSCENE-STUDIO (?cutscenelab) ====================
   private startCutsceneLab(): void {
     this.ui.hideTitle();
@@ -428,6 +458,12 @@ class StarlighterGame {
           };
           this.pendingReturnSummary = summary;
           this.startSpaceReturnCutscene(summary);
+        },
+        playDungeonPreview: (kind) => {
+          void this.dungeonReady.then((dng) => this.previewDungeonScene(dng, kind));
+        },
+        leaveDungeonPreview: () => {
+          if (this.activeScene === 'dungeon') this.transitionTo('hub', 'dungeon');
         },
         playBackroomWakeup: () => {
           this.activeScene = 'backroom';
