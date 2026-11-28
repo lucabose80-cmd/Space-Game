@@ -21,7 +21,7 @@ npm run verify                           # Build + Invarianten + Sprite-Check + 
 - **Reine Doku-/Roh-Asset-Commits (`*.md`, `art_source/**`):** `npm run check:invariants` + `npm run check:sprites` + visuelle Prüfung per `view_file` reichen.
 - **Antigravity (`AGENTS.md` §6):** erzeugt Sprites/Sheets per `generate_image` (mit `ImagePaths` als Referenz), bereinigt ggf. Rasterlinien und legt verlustfreie PNGs direkt im Repo unter `art_source/rigs/` oder `public/art/sprites/` ab → Commit & Push auf `main`.
 - **Claude Code (`CLAUDE.md`):** setzt Code-Phasen, `npm run art:import` und Tests um.
-- M11-Prüfwerkzeuge: `npm run art:check -- <sheet>`, `npm run art:import -- <rig> --force`, `node scripts/rig-sheet.cjs core_warden|krall` (startet Vite bei Bedarf selbst), `?bosslab` · Handbuch `RIGGING_GUIDE.md`.
+- Prüfwerkzeuge: `npm run art:check -- <sheet>`, `npm run art:import -- <rig> --force`, `node scripts/rig-sheet.cjs core_warden|krall` (startet Vite bei Bedarf selbst), `?bosslab` (Bosse/Arenen), `?cutscenelab` (alle Cutscenes & Promenaden-Vorschau, `saveLocked`) · Handbuch `RIGGING_GUIDE.md` & `handoff/cutscenes.md`.
 - Einzelne Tests: `npm test -- m10p3 t5` · Screenshots der Tests landen in `tests/out/` (nicht committet).
 - Dev-Test-Hook `window.__game` gibt es nur im Vite-Dev-Server.
 

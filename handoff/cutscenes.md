@@ -1,7 +1,7 @@
-# Status-Blatt & Architektur-Handbuch: Cutscenes (Expeditions-Flug-Zyklus)
+# Status-Blatt & Architektur-Handbuch: Cutscenes (Flug-Zyklus, Story, Feiern, Mina & Upgrades)
 
-> **Stand:** 2026-11-28 · **Besitzer:** frei (wartet auf Abnahme im echten Spiel)  
-> **Zweck:** Vollständige Übergabe für jeden Chat/KI-Wechsel (Claude Code, Antigravity, Cursor, Copilot) — inkl. Architektur, Dateien, Assets und harter Praxis-Learnings.
+> **Stand:** 2026-11-28 · **Besitzer:** frei (komplett live, wartet auf Abnahme im echten Spiel)  
+> **Zweck:** Vollständige Übergabe für jeden Chat/KI-Wechsel (Claude Code, Antigravity, Cursor, Copilot) — inkl. Architektur, Dateien, Assets, Teststudio (`?cutscenelab`) und harter Praxis-Learnings.
 
 ---
 
@@ -33,17 +33,28 @@
   - `src/scenes/SectorApproachCutscene.ts`
   - `src/scenes/SectorReturnCutscene.ts`
   - `src/dungeon/dungeonCutscene.ts`
-  - `tests/cutscene_approach.cjs` (prüft 2-Szenen-Anflug, In-Map Drop-Pod + Prop, In-Map Extraktion, In-Map Med-Evac-Rettung, Rückflug Phase 1 & 2, Skip, Hangar-Disembark & Backroom-Wakeup; Screenshots in `tests/out/cutscene_*.png`).
+  - `src/scenes/StoryPanelCutscene.ts` (16:9 Kino-Panel-Player + `CUTSCENE_CATALOG` für Logbuch & `?cutscenelab`)
+  - `src/scenes/HubCutsceneOverlay.ts` (Live-Regie auf Port Solaris: S1–S4 Siegesfeiern, Omega-Fest, Mina-Einzug + `drawMinaSprite`)
+  - `src/scenes/UpgradeCutsceneOverlay.ts` (Amboss-Schmieden mit Kael & Mina, Laden-Ausbau, Schiff-Enthüllung, schnelle Stufen-Upgrades)
+  - `src/dev/cutsceneLab.ts` (Lazy-loaded `?cutscenelab` Teststudio, `saveLocked = true`)
+  - `tests/cutscene_approach.cjs` (Flug-Zyklus, In-Map Drop-Pod/Extraktion/Med-Evac, Hangar-Disembark & Backroom-Wakeup)
+  - `tests/cutscene_story.cjs` (Intro, S1-Siegesfeier, Mina-Einzug + Dauerpräsenz, Upgrade-Cutscene, Kino-Chronik, Kurz-Modus & `?cutscenelab`)
 - **Kleine Hooks in gemeinsamen Dateien:**
-  - `src/main.ts`: Orchestrierung von `approachCutscene`, `mapCutscene`, `returnCutscene`, `setHudVisible()`, Routing Extraktion → Hangar-Disembark & Defeat → Backroom-Wakeup.
+  - `src/main.ts`: Orchestrierung aller 6 Cutscene-Layer (`approachCutscene`, `mapCutscene`, `returnCutscene`, `storyPanelCutscene`, `hubCutscene`, `upgradeCutscene`), `setHudVisible()`, `checkPendingHubCutscenes()`, `replayCutscene()`, `startCutsceneLab()`.
+  - `src/scenes/HubScene.ts`: dauerhaftes Mina-Sprite (`state.isMinaPresent()`) an Kaels 2. Werkbank + passives Flag `hideActorsForCutscene`.
   - `src/scenes/HangarScene.ts`: 3/4-Seitenansicht-Schiffe (`104×104` geparkt, `94×94` Flug), perspektivische Skalierung (`1.0 ↔ 0.7`) beim Ein-/Aussteigen über die Rampe, `startDisembark()`.
   - `src/scenes/BackroomScene.ts`: `onEnter('rescue', onWakeDone)` Aufwach-Sequenz in der Koje.
   - `src/scenes/DungeonScene.ts`: nur 2 passive Felder (`hidePlayerForCutscene`, `landedPod`).
   - `src/dungeon/dungeonRenderer.ts`: `landedPod` (`46×46`) Y-sortiert in `drawables` + `if (!this.scene.hidePlayerForCutscene)`.
-  - `src/engine/audio.ts`: `playApproachWhoosh()`, `playDropBeam()`, `playBoardingChime()`, `playPodLaunch()`, `playEmergencySiren()`.
-  - `src/assets/artLoader.ts`: Block `CUTSCENE_OPTIONAL_SPRITES` (21 Sprites, alle vorhanden & in `SPRITE_QUEUE.md` `P3-27`–`P3-47` als `[x]`).
+  - `src/ui/UIManager.ts`: `onReplayCutscene` / `onUpgradeCutscene`, **🎬 Kino-Chronik** im Logbuch, Schalter **Kurze Cutscenes** im Hilfe-Tab.
+  - `src/systems/gameState.ts` & `src/types.ts`: optionales `seenCutscenes?: string[]` (Save-v11-kompatibel), `hasSeenCutscene()`, `markCutsceneSeen()`, `isMinaPresent()`.
+  - `src/systems/deviceSettings.ts`: `shortCutscenes: boolean`.
+  - `src/engine/audio.ts`: `playApproachWhoosh()`, `playDropBeam()`, `playBoardingChime()`, `playPodLaunch()`, `playEmergencySiren()`, `playCelebrationFanfare()`, `playForgeHammer()`, `playUpgradeReveal()`, `playStoryChime()`.
+  - `src/assets/artLoader.ts`: Block `CUTSCENE_OPTIONAL_SPRITES` (28 Sprites, alle vorhanden & in `SPRITE_QUEUE.md` `P3-27`–`P3-54` als `[x]`).
 - **Pixel-Art-Sprites unter `public/art/sprites/`:**
   - 16:9 Vistas (`960×540` RGB): `cutscene_bg_s1.png`…`cutscene_bg_s5.png`, `cutscene_bg_solaris.png`
+  - 16:9 Story-/Intro-Panels (`960×540` RGB): `cutscene_intro_1.png`…`cutscene_intro_4.png`, `cutscene_story_gate5.png`, `cutscene_story_omega.png`
+  - Kaels Gehilfin Mina (`96×96` RGBA): `npc_mina.png`
   - Kapsel & Drohne: `cutscene_drop_pod.png` (`64×64`), `cutscene_drop_pod_open.png` (`64×64`), `cutscene_med_drone.png` (`96×96`)
   - 3/4-Schräglagen-Flug (`96×96`): `ship_{corvette,crystal,solar,monolith}_bank.png`
   - 3/4-Seitenansicht geparkt & Rampe offen (`128×128`, Shared-BBox): `ship_{corvette,crystal,solar,monolith}_docked.png` & `*_docked_open.png`
@@ -67,17 +78,23 @@
 13. **Proportionen Schiff/Drop-Pod vs. Spieler (`24×28`):** Schiffe im Hangar müssen die achteckigen Pads (`~103×86` logische Pixel) ausfüllen (`104×104` geparkt, `94×94` im Flug, Treppe bei `doorX = dock.x + 10`, `footX = dock.x + 3`), und der Spieler skaliert auf der Treppe perspektivisch `1.0 ↔ 0.7`, damit der Eingang größer/stimmig zum Spieler wirkt. Drop-Pod im Dungeon = `46×46` (`podY = sy - 16`, synchron in `dungeonCutscene.ts`, `dungeonRenderer.ts` und `main.ts`), Med-Evac-Drohne in-map = `50×50`.
 14. **Kontinuität zwischen In-Map- & Weltraum-Rückflug:** Niemals denselben Abhol-/Beam-Vorgang in `SectorReturnCutscene` wiederholen — nach `DungeonMapCutscene` (`extract`/`rescue`) ist der Kapitän bereits an Bord, daher zeigt Phase 1 von `SectorReturnCutscene` ausschließlich den Abflug aus der Sektor-Schleuse (ohne `renderPickupBeam` / schwebenden `heroDown`).
 15. **Flugkurven & Titelkarte:** Anflugkurven (`SectorApproachCutscene` Phase 2, `SectorReturnCutscene` Phase 2) als einzelne Kurve ohne S-Wendepunkt (verhindert plötzliches horizontales Spiegeln von `ship_*_bank.png`) und oberhalb der Titelkarte (`y ≥ 200`) führen.
+16. **Kael-Sprite-Key in `artLoader.ts` heißt `art.npcKael`** (nicht `npcBlacksmith`). Immer exakte Keys aus `HDArtAssets` prüfen.
+17. **HTML-Modal vs. Canvas-Upgrade-Cutscene:** Da `#modal-layer` über `<canvas>` liegt, schließt `UIManager` das Stations-Modal während `UpgradeCutsceneOverlay` kurz und öffnet es über `onDone` automatisch wieder — so bleibt der Spielfluss beim Mehrfach-Upgraden nahtlos.
+18. **Rückwärtskompatibles `seenCutscenes`:** Altspielstände (`day > 1 || totalSold > 0 || bossDefeatedCount > 0`) ohne `seenCutscenes`-Feld bekommen beim Laden automatisch `'intro_arrival'` eingetragen, damit bestehende Saves nicht nachträglich vom Intro unterbrochen werden.
+19. **`HubScene.hideActorsForCutscene = true` während Live-Promenaden-Cutscenes:** Ohne dieses Flag zeichnet `HubScene` unter `HubCutsceneOverlay` weiterhin Kael/Lyra/Nyx/Vex/Spieler, `!`-Marker und `[E]`-Prompts doppelt. Durch das passive Flag bleibt die echte Promenade inkl. Evolution & Passanten erhalten, während nur die choreografierten Cutscene-Figuren sichtbar sind.
+20. **Zukunftssichere Cutscene-Registrierung (`CUTSCENE_CATALOG` & `?cutscenelab`):** Neue Story-, Feier- oder NPC-Cutscenes einfach in `CUTSCENE_CATALOG` (`StoryPanelCutscene.ts`) eintragen — sie erscheinen dann **automatisch** sowohl in der **🎬 Kino-Chronik** im Logbuch als auch im **🎬 Cutscene-Teststudio (`?cutscenelab`, `src/dev/cutsceneLab.ts`)**, das als eigener Lazy-Chunk geladen wird und `state.saveLocked = true` setzt.
 
 ---
 
-## 4. Ausbau: Story-, Feier-, Gehilfin- & Upgrade-Cutscenes (in Arbeit · Antigravity)
+## 4. Ausbau: Story-, Feier-, Gehilfin- & Upgrade-Cutscenes (umgesetzt ✅ · wartet auf Abnahme im echten Spiel)
 
 > **Entscheidungen des Projektinhabers (2026-11-28):**
 > - **Stil:** Mix aus 16:9 Pixel-Art-Kino-Panels (Spielstart & große Story-Momente) + Live-Regie auf Port Solaris (Siegesfeiern, Gehilfin, Upgrades).
 > - **Kaels Gehilfin (Mina):** Kommt nach Sektor 1 / Kaels Kapitel-1-Gespräch dauerhaft als eigenes Sprite (`npc_mina.png`) an die zweite Werkbank neben Kael — inkl. eigener Einzugs-Cutscene.
 > - **Upgrade-Cutscenes:** Knackig (~2 s, überspringbar) bei großen Meilensteinen (neue Waffe, Laden-Ausbau, neues Schiff) + schnelle Funken-Mini-Animation (~1 s) bei normalen Stufen-Upgrades + optionaler Kurz-Modus in den Geräte-Einstellungen.
+> - **Testbarkeit:** Dauerhaftes `?cutscenelab`-Studio für alle aktuellen & künftigen Cutscenes ohne Veränderung des Spielstands.
 
-### Checkliste (Etappen 1–4)
+### Checkliste (Etappen 0–4)
 - [x] **Etappe 0 (Sprites `P3-48`–`P3-54`):** Alle 7 Sprites per `scripts/gen-sheet.py` (`gemini-nano-banana-2.1`) erzeugt, aufbereitet (`960×540` RGB Panels + `96×96` RGBA Flood-Fill `npc_mina.png`), per `view_file` geprüft & in `SPRITE_QUEUE.md` als `[x]` markiert (0 fehlende Sprites!).
 - [x] **Etappe 1 (Kino-Panel-Player & Spielstart-Intro):** `src/scenes/StoryPanelCutscene.ts`, `SaveData.seenCutscenes?` (Save-v11-kompatibel), `DeviceSettings.shortCutscenes`, Intro beim Neustart (`onStartNewGame`) + **🎬 Kino-Chronik** im Logbuch.
 - [x] **Etappe 2 (Live-Regie auf Port Solaris — Siegesfeiern & Story-Höhepunkte):** `src/scenes/HubCutsceneOverlay.ts` für Sektor-1-Siegesfeier nach A.E.G.I.S. Leviathan (Lichterketten gehen an, NPCs versammeln sich & jubeln, Konfetti/Feuerwerk) + S2–S4-Feiern + Omega-Fest + 5.-Tor-/Omega-Panels (`story_gate5`, `story_omega_finale`).
@@ -86,11 +103,6 @@
 - [x] **Teststudio (`?cutscenelab`):** Lazy-loaded `src/dev/cutsceneLab.ts` (`saveLocked = true`), liest `CUTSCENE_CATALOG` automatisch und bietet 1-Klick-Vorschau für alle Story-, Feier-, Mina-, Upgrade-, Flug- & Promenaden-Szenen.
 - [x] **Tests & Sichtprüfung:** `tests/cutscene_story.cjs` + `npm run verify` grün + alle Screenshots in `tests/out/` visuell geprüft.
 
-### Praxis-Learnings (Story-/Feier-/Gehilfin-/Upgrade-Cutscenes)
-16. **Kael-Sprite-Key in `artLoader.ts` heißt `art.npcKael`** (nicht `npcBlacksmith`). Immer exakte Keys aus `HDArtAssets` prüfen.
-17. **HTML-Modal vs. Canvas-Upgrade-Cutscene:** Da `#modal-layer` über `<canvas>` liegt, schließt `UIManager` das Stations-Modal während `UpgradeCutsceneOverlay` kurz und öffnet es über `onDone` automatisch wieder — so bleibt der Spielfluss beim Mehrfach-Upgraden nahtlos.
-18. **Rückwärtskompatibles `seenCutscenes`:** Altspielstände (`day > 1 || totalSold > 0 || bossDefeatedCount > 0`) ohne `seenCutscenes`-Feld bekommen beim Laden automatisch `'intro_arrival'` eingetragen, damit bestehende Saves nicht nachträglich vom Intro unterbrochen werden.
-19. **`HubScene.hideActorsForCutscene = true` während Live-Promenaden-Cutscenes:** Ohne dieses Flag zeichnet `HubScene` unter `HubCutsceneOverlay` weiterhin Kael/Lyra/Nyx/Vex/Spieler, `!`-Marker und `[E]`-Prompts doppelt. Durch das passive Flag bleibt die echte Promenade inkl. Evolution & Passanten erhalten, während nur die choreografierten Cutscene-Figuren sichtbar sind.
 
 
 
