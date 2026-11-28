@@ -103,6 +103,22 @@
 - [x] **Teststudio (`?cutscenelab`):** Lazy-loaded `src/dev/cutsceneLab.ts` (`saveLocked = true`), liest `CUTSCENE_CATALOG` automatisch und bietet 1-Klick-Vorschau für alle Story-, Feier-, Mina-, Upgrade-, Flug- & Promenaden-Szenen.
 - [x] **Tests & Sichtprüfung:** `tests/cutscene_story.cjs` + `npm run verify` grün + alle Screenshots in `tests/out/` visuell geprüft.
 
+---
 
+## 5. Ausbau 2 (2026-11-28): Hafenverkehr · Rolltor-Cutscene · Begleiter-Rettung (umgesetzt ✅ · wartet auf Abnahme)
 
+**Auslöser (Inhaber):** Das neue Startscreen-Key-Art (`title_bg.png`) hat viele kleine Schiffe um Port Solaris — das soll überall gelten, wo die Außenansicht gezeigt wird, mit Bewegung („Schiffe gehen ein und aus“); außerdem Cutscenes beim Laden öffnen/schließen und beim Abholen befreiter Begleiter.
 
+| Was | Datei | Hinweise |
+| :--- | :--- | :--- |
+| **Hafenverkehr** | `src/scenes/stationTraffic.ts` (`StationTraffic`, `BAY_POS`) + Sprites `traffic_ship_1..6.png` (`P3-66`, `CUTSCENE_OPTIONAL_SPRITES`) | Deterministisch (eigener LCG), Bahnen `inbound` (rechts → Schleuse, schrumpft + Aufleuchten), `outbound` (Schleuse → rechts unten), `pass_top`, `pass_low`. Eingebaut in `TitleBackdrop` (3 Schiffe mit Key-Art / 4 im Fallback), `ContinueIntroCutscene` (3–4), `SectorReturnCutscene` Phase 2 (Extraktion 3–4; Rettung nur `pass_top`), `StoryPanelCutscene` Intro-Panel 2 (`solaris_approach`), `CompanionRescueCutscene` Rückflug. Zoom/Pan wird über `TrafficTransform` vom Hintergrundbild übernommen. |
+| **Rolltor-Cutscene Laden** | `src/scenes/ShopShiftCutscene.ts`; Hooks `ShopScene.callbacks.onShopOpened` + `onOpenShiftSummary` in `main.ts` (`playShiftCutscene`) | Öffnen ≈ 1,45 s (Tor fährt hoch, Neon „OFFEN“), Schließen ≈ 1,95 s (Tor fährt herunter, „GESCHLOSSEN“ + Schicht-Bilanz), danach öffnet die Schicht-Bilanz. Spielzustand ist beim Start schon umgestellt (wie Learning #5). Respektiert „Kurze Cutscenes“. |
+| **Begleiter-Rettung** | `src/scenes/CompanionRescueCutscene.ts`; `main.playRescueCutscene` / `playArrivalWithRescue`; Katalog-Ids `rescue_mina/pip/ping/midnight` | Ablauf: Dialog im Sektor-Wrack (2 Beats) → Rettungsdrohne (Mina: das Schiff) fliegt ein, Stasis-Strahl hebt den Begleiter hoch → Flug zur Schleuse von Port Solaris → **danach wie bisher die Hub-Einzugs-Szene**. Läuft einmalig vor `story_*_arrives` (Flag `rescue_<id>` in `seenCutscenes`); Alt-Saves mit gesehenem Einzug sehen sie nicht. Im Logbuch (🎬 Kino-Chronik) wiederholbar. |
+| Test | `tests/t12_cutscene_traffic.cjs` | Screenshots `tests/out/traffic_*.png`, `rescue_*.png`, `shift_*.png`. |
+
+### Praxis-Learnings (Fortsetzung der Nummerierung)
+21. **Verkehrs-Bahnen müssen das Helden-Schiff meiden:** In `ContinueIntro`/`SectorReturn` (Extraktion) fliegt das Helden-Schiff von **links unten** in die Schleuse, die Rettungs-Drohne (`SectorReturn` rescue, `CompanionRescue` Rückflug) von **rechts unten**. Darum: `inbound` kommt von rechts-oben, `outbound` geht nach rechts unten, bei Rettungs-Anflügen nur `pass_top` (Konstruktor-Parameter `lanes`). Neue Cutscene mit anderem Anflug → Bahnen prüfen.
+22. **`cutscene_intro_2`, `title_bg` und `cutscene_bg_solaris_g2` haben schon eingemalte Schiffe** (statisch). Dort bewusst nur 3 Schiffe Zusatz-Verkehr; die Sauber-Bilder (`cutscene_bg_solaris`, `_g1`) tragen den Verkehr allein.
+23. **Rolltor/Overlay erst nach der Zustandsänderung starten:** `ShopScene.toggleShopOpen()` bleibt synchron (Test `m10cp5`); die Cutscene ist reine Zugabe. Beim Schließen wird `openShiftSummaryModal` bis zum Ende der Cutscene verzögert (`playShiftCutscene(cfg, onDone)`); läuft schon eine andere Cutscene, wird `onDone` sofort ausgeführt.
+24. **Befreit-Mechanik gibt es (noch) nicht im Dungeon:** Begleiter kommen weiter per Story (siehe `world_overhaul.md` #23). Die Rettungs-Cutscene inszeniert die „Befreiung“ als Szene vor dem Einzug. Mögliche spätere Erweiterung: echter „gefangen finden“-Raum im Dungeon (eigene RNG in `mechanicsGen.ts`!) → dort `playRescueCutscene` aufrufen.
+25. **Dialogbox & Figuren:** Sektor-Vistas (`cutscene_bg_s1..s4`) haben keinen Boden; Figuren stehen bei `groundY = 160` auf Felsen/Wrack und **über** der Dialogbox (Box beginnt bei y ≈ 186).

@@ -1,3 +1,4 @@
+import { StationTraffic } from './stationTraffic';
 import { getHDArt } from '../assets/artLoader';
 import { sound } from '../engine/audio';
 import { InputManager, VIRTUAL_HEIGHT, VIRTUAL_WIDTH } from '../engine/input';
@@ -136,11 +137,18 @@ export class SectorReturnCutscene {
   private playedWarpSfx = false;
   private spawnAcc = 0;
 
+  private readonly traffic: StationTraffic;
+
   constructor(config: SectorReturnConfig) {
     this.config = config;
     this.duration = config.mode === 'rescue' ? RESCUE_DURATION : EXTRACT_DURATION;
     this.splitTime = config.mode === 'rescue' ? 1.5 : 1.4;
     this.rng = createRng(config.sector * 3571 + (config.mode === 'rescue' ? 911 : 202));
+    // Hafenverkehr nur in Phase 2 sichtbar. Rettungs-Drohne kommt von rechts unten → dort fliegt nichts (nur ruhige obere Bahnen)
+    this.traffic =
+      config.mode === 'rescue'
+        ? new StationTraffic(2, 55 + config.sector, ['pass_top'])
+        : new StationTraffic((config.storyChapter ?? 0) >= 4 ? 3 : 4, 55 + config.sector, ['inbound', 'outbound', 'pass_top']);
 
     for (let i = 0; i < 78; i++) {
       const layer = i < 38 ? 0 : i < 64 ? 1 : 2;
@@ -197,6 +205,7 @@ export class SectorReturnCutscene {
 
     // Sterne
     const inPhase2 = this.elapsed >= this.splitTime;
+    if (inPhase2) this.traffic.update(dt);
     const speed = inPhase2 ? 24 + (1 - easeOutCubic((this.elapsed - this.splitTime) / 1.1)) * 150 : 28;
     for (const s of this.stars) {
       const mult = s.layer === 0 ? 0.35 : s.layer === 1 ? 0.72 : 1.3;
@@ -356,6 +365,7 @@ export class SectorReturnCutscene {
       const w = VIRTUAL_WIDTH * zoom;
       const h = VIRTUAL_HEIGHT * zoom;
       ctx.drawImage(bg, (VIRTUAL_WIDTH - w) / 2 + panX, (VIRTUAL_HEIGHT - h) / 2 + panY, w, h);
+      if (inPhase2) this.traffic.render(ctx, { zoom, panX, panY }, clamp01((t - this.splitTime) / 0.6));
     } else {
       ctx.fillStyle = isRescue ? '#1a090d' : '#081120';
       ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);

@@ -8,6 +8,7 @@ Jeder Chat/Agent pflegt **nur die Datei seines Bereichs**. `HANDOFF.md` bleibt d
 | Bereich | Besitzer (Werkzeug · Chat) | seit | Umfang (was ist in Arbeit — **was bewusst nicht**) |
 | :--- | :--- | :--- | :--- |
 | Endboss-Arenen M12 (Leviathan-Pilot, künftig S2–S4) | frei — Pilot wartet auf Abnahme im echten Spiel | 2026-11-28 | nächste Arena erst nach Abnahme (Pipeline Stufe 8) |
+| Cutscenes-Ausbau 2 (Schiffsverkehr · Laden öffnen/schließen · Begleiter-Rettung) | frei — komplett live, wartet auf Abnahme | 2026-11-28 | Details: [`cutscenes.md`](cutscenes.md) §5 |
 | Cutscenes (Intro, Feiern, Gehilfin Mina, Upgrades, Flug-Zyklus) | frei — komplett live inkl. aller 7 Sprites `P3-48`–`P3-54` & `?cutscenelab`, wartet auf Abnahme | 2026-11-28 | Details & Praxis-Learnings in [`cutscenes.md`](cutscenes.md) |
 | Welt-Überarbeitung (Port Solaris, Laden, Quartier, Crew, Cutscene-Angleichung) | frei — P1–P6 komplett live, Rest siehe „Offen“ | 2026-11-28 | Details & Rezepte: [`world_overhaul.md`](world_overhaul.md) |
 | Startscreen & Account-Einstieg | frei — komplett live (Key-Art, 3 Cloud-Slots als Planeten, Menü mit Platten/Objekten, Handy quer), wartet auf Abnahme | 2026-11-28 | Details & Praxis-Learnings: [`title_screen.md`](title_screen.md) (#3 durch #4 überholt) |

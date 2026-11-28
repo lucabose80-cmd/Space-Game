@@ -1,6 +1,7 @@
 import { getHDArt } from '../assets/artLoader';
 import { VIRTUAL_HEIGHT, VIRTUAL_WIDTH } from '../engine/input';
 import type { GameState } from '../systems/gameState';
+import { StationTraffic, type TrafficTransform } from './stationTraffic';
 
 interface TitleStar {
   x: number;
@@ -42,6 +43,9 @@ export class TitleBackdrop {
   private sparks: ThrusterSpark[] = [];
   private nextShootIn = 1.6;
   private sparkAccum = 0;
+  /** Hafenverkehr (Schiffe fliegen die Schleuse an/aus) — bei Key-Art mit eingemalten Schiffen etwas weniger */
+  private traffic: StationTraffic | null = null;
+  private trafficKey: 'art' | 'fallback' | null = null;
 
   constructor() {
     // Deterministische Sternen-Verteilung (keine Zufallssprünge bei Tests)
@@ -66,6 +70,8 @@ export class TitleBackdrop {
   public update(dt: number, state: GameState): void {
     const safeDt = Math.min(dt, 0.05);
     this.t += safeDt;
+    this.ensureTraffic();
+    this.traffic?.update(safeDt);
 
     // Gelegentliche Sternschnuppen am oberen Himmel
     this.nextShootIn -= safeDt;
@@ -117,6 +123,13 @@ export class TitleBackdrop {
     }
   }
 
+  private ensureTraffic(): void {
+    const key = getHDArt().titleBg ? 'art' : 'fallback';
+    if (this.trafficKey === key) return;
+    this.trafficKey = key;
+    this.traffic = new StationTraffic(key === 'art' ? 3 : 4, 777);
+  }
+
   private getShipPos(): { x: number; y: number; tilt: number } {
     const bob = Math.sin(this.t * 1.15) * 4.5;
     const drift = Math.sin(this.t * 0.42) * 10;
@@ -164,6 +177,7 @@ export class TitleBackdrop {
     ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
 
     // 2. Haupt-Artwork mit ganz sanfter, lebendiger Kamera-Atmung (genug Zoom-Überstand gegen Rand-Nähte)
+    let tf: TrafficTransform | undefined;
     if (bg) {
       const baseZoom = art.titleBg ? 1.04 : 1.16;
       const zoom = baseZoom + Math.sin(this.t * 0.25) * 0.014;
@@ -174,6 +188,7 @@ export class TitleBackdrop {
       const dx = (VIRTUAL_WIDTH - drawW) / 2 + panX;
       const dy = (VIRTUAL_HEIGHT - drawH) / 2 + panY;
       ctx.drawImage(bg, dx, dy, drawW, drawH);
+      tf = { zoom, panX, panY };
     }
 
     // 3. Funkelnde Sterne im Hintergrund / oberen Himmel
@@ -223,6 +238,9 @@ export class TitleBackdrop {
     cyanGlow.addColorStop(1, 'rgba(56, 232, 212, 0)');
     ctx.fillStyle = cyanGlow;
     ctx.fillRect(bayX - 56, bayY - 56, 112, 112);
+
+    // 5b. Hafenverkehr: Pendler, Frachter & Taxis fliegen die Schleuse an und aus (hinter dem Helden-Schiff)
+    this.traffic?.render(ctx, tf);
 
     // 6. Expeditions-Schiff im Vordergrund (nur wenn Fallback-Hintergrund ohne Schiff genutzt wird)
     if (!art.titleBg) {

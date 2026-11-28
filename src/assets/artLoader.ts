@@ -256,6 +256,13 @@ export interface HDArtAssets {
   titleObjContinue: HTMLCanvasElement | null;
   titleObjNew: HTMLCanvasElement | null;
   titleObjClear: HTMLCanvasElement | null;
+  /** Mini-Schiff für den Hafenverkehr an Port Solaris (P3-66, Fallback prozedural) */
+  trafficShip1: HTMLCanvasElement | null;
+  trafficShip2: HTMLCanvasElement | null;
+  trafficShip3: HTMLCanvasElement | null;
+  trafficShip4: HTMLCanvasElement | null;
+  trafficShip5: HTMLCanvasElement | null;
+  trafficShip6: HTMLCanvasElement | null;
 }
 
 const art: HDArtAssets = {
@@ -514,6 +521,12 @@ const art: HDArtAssets = {
   titleObjContinue: null,
   titleObjNew: null,
   titleObjClear: null,
+  trafficShip1: null,
+  trafficShip2: null,
+  trafficShip3: null,
+  trafficShip4: null,
+  trafficShip5: null,
+  trafficShip6: null,
 };
 
 function loadImage(src: string): Promise<HTMLImageElement | null> {
@@ -715,6 +728,12 @@ export const CUTSCENE_OPTIONAL_SPRITES = {
   titleObjContinue: 'title_obj_continue',
   titleObjNew: 'title_obj_new',
   titleObjClear: 'title_obj_clear',
+  trafficShip1: 'traffic_ship_1',
+  trafficShip2: 'traffic_ship_2',
+  trafficShip3: 'traffic_ship_3',
+  trafficShip4: 'traffic_ship_4',
+  trafficShip5: 'traffic_ship_5',
+  trafficShip6: 'traffic_ship_6',
 } as const;
 
 export type CutsceneSpriteKey = keyof typeof CUTSCENE_OPTIONAL_SPRITES;

@@ -20,6 +20,8 @@ import {
   type PanelCutsceneId,
   type ReplayableCutsceneId,
 } from './scenes/StoryPanelCutscene';
+import { CompanionRescueCutscene, rescueIdFor, type RescueCompanionId } from './scenes/CompanionRescueCutscene';
+import { ShopShiftCutscene, type ShopShiftConfig } from './scenes/ShopShiftCutscene';
 import { UpgradeCutsceneOverlay, type UpgradeCutsceneConfig } from './scenes/UpgradeCutsceneOverlay';
 import { ContinueIntroCutscene } from './scenes/ContinueIntroCutscene';
 import { TitleBackdrop } from './scenes/TitleBackdrop';
@@ -67,6 +69,10 @@ class StarlighterGame {
   private hubCutsceneOnDone: (() => void) | null = null;
   /** Knackige Upgrade-Cutscene (Waffe geschmiedet, Laden-Ausbau, Stufen-Upgrades) */
   private upgradeCutscene: UpgradeCutsceneOverlay | null = null;
+  private shiftCutscene: ShopShiftCutscene | null = null;
+  private rescueCutscene: CompanionRescueCutscene | null = null;
+  private rescueOnDone: (() => void) | null = null;
+  private shiftCutsceneOnDone: (() => void) | null = null;
   private upgradeCutsceneOnDone: (() => void) | null = null;
   /** Animierter Pixel-Art-Hintergrund für den Startscreen */
   private titleBackdrop = new TitleBackdrop();
@@ -238,7 +244,18 @@ class StarlighterGame {
             res.bonusCredits,
           );
         }),
-      onOpenShiftSummary: (summary) => this.ui.openShiftSummaryModal(summary),
+      onOpenShiftSummary: (summary) =>
+        // Rolltor fährt herunter („Ladenschluss“), danach erst die Schicht-Bilanz
+        this.playShiftCutscene(
+          {
+            mode: 'close',
+            itemsSold: summary.itemsSold,
+            credits: summary.totalCredits,
+            nextLabel: summary.newDay ? `MORGEN BRICHT AN · TAG ${summary.nextDay}` : 'DIE NACHT BRICHT AN',
+          },
+          () => this.ui.openShiftSummaryModal(summary),
+        ),
+      onShopOpened: () => this.playShiftCutscene({ mode: 'open' }),
       onEnterDungeon: () => this.transitionTo('hub', 'shop'),
       onToast: (msg, tone) => this.ui.toast(msg, tone),
       onHudDirty: () => {
@@ -741,6 +758,8 @@ class StarlighterGame {
       this.storyPanelCutscene !== null ||
       this.hubCutscene !== null ||
       this.upgradeCutscene !== null ||
+      this.shiftCutscene !== null ||
+      this.rescueCutscene !== null ||
       this.continueCutscene !== null
     );
   }
@@ -774,6 +793,44 @@ class StarlighterGame {
     this.syncTouch();
   }
 
+  /** Begleiter-Rettung (Dialog → Rettungsdrohne/Schiff holt ab → Flug nach Port Solaris), danach `onDone` (meist die Einzugs-Szene). */
+  public playRescueCutscene(companion: RescueCompanionId, onDone?: () => void): void {
+    this.rescueCutscene?.dispose();
+    this.rescueCutscene = new CompanionRescueCutscene(companion, this.state.captainName);
+    this.rescueOnDone = () => {
+      this.state.markCutsceneSeen(rescueIdFor(companion));
+      this.state.save();
+      onDone?.();
+    };
+    this.setHudVisible(false);
+    this.syncTouch();
+  }
+
+  /** Einzug eines Begleiters: erst die Rettungs-Cutscene (falls noch nicht gesehen), dann die Hub-Einzugsszene. */
+  private playArrivalWithRescue(arrivalId: HubCutsceneId, companion: RescueCompanionId): void {
+    if (this.state.hasSeenCutscene(rescueIdFor(companion))) {
+      this.playHubCutscene(arrivalId);
+      return;
+    }
+    this.playRescueCutscene(companion, () => this.playHubCutscene(arrivalId));
+  }
+
+  /** Rolltor-Cutscene beim Öffnen/Schließen von Astro-Barter (Zustand ist beim Aufruf bereits umgestellt). */
+  public playShiftCutscene(cfg: ShopShiftConfig, onDone?: () => void): void {
+    // Läuft schon eine größere Cutscene (z. B. Weiterspielen-Anflug)? Dann kein Rolltor, nur direkt weiter.
+    if (this.hasActiveCutscene() && !this.shiftCutscene) {
+      onDone?.();
+      return;
+    }
+    const prevDone = this.shiftCutsceneOnDone;
+    this.shiftCutscene?.dispose();
+    this.shiftCutscene = new ShopShiftCutscene(cfg);
+    this.shiftCutsceneOnDone = onDone ?? null;
+    // Wurde eine laufende Cutscene ersetzt (z. B. Öffnen → sofort Schließen), muss ihr Abschluss trotzdem laufen
+    prevDone?.();
+    this.syncTouch();
+  }
+
   public playUpgradeCutscene(config: UpgradeCutsceneConfig, onDone?: () => void): void {
     this.upgradeCutscene?.dispose();
     if (config.building && this.activeScene === 'hub') {
@@ -803,6 +860,17 @@ class StarlighterGame {
   public replayCutscene(id: ReplayableCutsceneId): void {
     if (id === 'intro_arrival' || id === 'story_gate5' || id === 'story_omega_finale') {
       this.playPanelCutscene(id);
+      return;
+    }
+    if (id === 'rescue_mina' || id === 'rescue_pip' || id === 'rescue_ping' || id === 'rescue_midnight') {
+      const c: RescueCompanionId = id === 'rescue_mina' ? 'mina' : id === 'rescue_pip' ? 'pip' : id === 'rescue_ping' ? 'ping' : 'midnight';
+      const startRescue = (): void => this.playRescueCutscene(c);
+      if (this.activeScene === 'hub') startRescue();
+      else {
+        this.transitionDir = 0;
+        this.transitionAlpha = 0;
+        this.transitionTo('hub', this.activeScene, startRescue);
+      }
       return;
     }
     const startHub = (): void => {
@@ -850,19 +918,19 @@ class StarlighterGame {
       return;
     }
     if (this.state.isMinaPresent() && !this.state.hasSeenCutscene('story_mina_arrives')) {
-      this.playHubCutscene('story_mina_arrives');
+      this.playArrivalWithRescue('story_mina_arrives', 'mina');
       return;
     }
     // Alt: Pip wurde früher nur per Toast vorgestellt → nicht erneut als Cutscene zeigen
     if (this.state.hasSeenCutscene('pip_arrives')) this.state.markCutsceneSeen('story_pip_arrives');
-    const arrivals: Array<[boolean, 'story_pip_arrives' | 'story_ping_arrives' | 'story_midnight_arrives']> = [
-      [this.state.isPipPresent(), 'story_pip_arrives'],
-      [this.state.isPingPresent(), 'story_ping_arrives'],
-      [this.state.isMidnightPresent(), 'story_midnight_arrives'],
+    const arrivals: Array<[boolean, 'story_pip_arrives' | 'story_ping_arrives' | 'story_midnight_arrives', RescueCompanionId]> = [
+      [this.state.isPipPresent(), 'story_pip_arrives', 'pip'],
+      [this.state.isPingPresent(), 'story_ping_arrives', 'ping'],
+      [this.state.isMidnightPresent(), 'story_midnight_arrives', 'midnight'],
     ];
-    for (const [present, id] of arrivals) {
+    for (const [present, id, who] of arrivals) {
       if (present && !this.state.hasSeenCutscene(id)) {
-        this.playHubCutscene(id);
+        this.playArrivalWithRescue(id, who);
         return;
       }
     }
@@ -1188,6 +1256,16 @@ class StarlighterGame {
         this.syncTouch();
         cb?.();
       }
+    } else if (this.rescueCutscene) {
+      const done = this.rescueCutscene.update(dt, this.input);
+      if (done) {
+        const cb = this.rescueOnDone;
+        this.rescueCutscene = null;
+        this.rescueOnDone = null;
+        this.setHudVisible(true);
+        this.syncTouch();
+        cb?.();
+      }
     } else if (this.hubCutscene) {
       const done = this.hubCutscene.update(dt, this.input);
       if (done) {
@@ -1195,6 +1273,15 @@ class StarlighterGame {
         this.hubCutscene = null;
         this.hubCutsceneOnDone = null;
         this.setHudVisible(true);
+        this.syncTouch();
+        cb?.();
+      }
+    } else if (this.shiftCutscene) {
+      const done = this.shiftCutscene.update(dt, this.input);
+      if (done) {
+        const cb = this.shiftCutsceneOnDone;
+        this.shiftCutscene = null;
+        this.shiftCutsceneOnDone = null;
         this.syncTouch();
         cb?.();
       }
@@ -1242,6 +1329,8 @@ class StarlighterGame {
       this.returnCutscene.render(this.ctx);
     } else if (this.storyPanelCutscene) {
       this.storyPanelCutscene.render(this.ctx);
+    } else if (this.rescueCutscene) {
+      this.rescueCutscene.render(this.ctx);
     } else if (this.activeScene === 'shop') {
       this.shopScene.render(this.ctx);
     } else if (this.activeScene === 'backroom') {
@@ -1265,6 +1354,9 @@ class StarlighterGame {
     }
     if (this.upgradeCutscene && !this.storyPanelCutscene) {
       this.upgradeCutscene.render(this.ctx);
+    }
+    if (this.shiftCutscene) {
+      this.shiftCutscene.render(this.ctx);
     }
 
     if (this.transitionAlpha > 0) {

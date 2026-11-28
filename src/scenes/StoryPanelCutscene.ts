@@ -1,3 +1,4 @@
+import { StationTraffic } from './stationTraffic';
 import { getHDArt } from '../assets/artLoader';
 import { sound } from '../engine/audio';
 import { VIRTUAL_HEIGHT, VIRTUAL_WIDTH, type InputManager } from '../engine/input';
@@ -15,7 +16,11 @@ export type ReplayableCutsceneId =
   | 'story_mina_arrives'
   | 'story_pip_arrives'
   | 'story_ping_arrives'
-  | 'story_midnight_arrives';
+  | 'story_midnight_arrives'
+  | 'rescue_mina'
+  | 'rescue_pip'
+  | 'rescue_ping'
+  | 'rescue_midnight';
 
 export interface CutsceneCatalogEntry {
   id: ReplayableCutsceneId;
@@ -45,12 +50,28 @@ export const CUTSCENE_CATALOG: CutsceneCatalogEntry[] = [
     icon: '🎉',
   },
   {
+    id: 'rescue_mina',
+    kind: 'hub',
+    chapter: 1,
+    title: 'Mina wird abgeholt',
+    subtitle: 'Sektor 1 · Dialog im Wrack, dann holt dein Schiff sie ab',
+    icon: '🛸',
+  },
+  {
     id: 'story_mina_arrives',
     kind: 'hub',
     chapter: 1,
     title: 'Kaels neue Gehilfin',
     subtitle: 'Exo-Schmiede · Mina übernimmt die zweite Werkbank',
     icon: '🔨',
+  },
+  {
+    id: 'rescue_pip',
+    kind: 'hub',
+    chapter: 2,
+    title: 'Pip wird gerettet',
+    subtitle: 'Sektor 2 · Lyra schickt die Rettungsdrohne',
+    icon: '🚁',
   },
   {
     id: 'story_pip_arrives',
@@ -77,12 +98,28 @@ export const CUTSCENE_CATALOG: CutsceneCatalogEntry[] = [
     icon: '🔥',
   },
   {
+    id: 'rescue_ping',
+    kind: 'hub',
+    chapter: 3,
+    title: 'Ping wird gerettet',
+    subtitle: 'Sektor 3 · Vex schickt die Rettungsdrohne',
+    icon: '🚁',
+  },
+  {
     id: 'story_ping_arrives',
     kind: 'hub',
     chapter: 3,
     title: 'Vex baut eine Echo-Sonde',
     subtitle: 'Tech-Labor · Ping hört, was das Echo flüstert',
     icon: '📡',
+  },
+  {
+    id: 'rescue_midnight',
+    kind: 'hub',
+    chapter: 4,
+    title: 'Mitternacht wird abgeholt',
+    subtitle: 'Sektor 4 · Nyx schickt die Rettungsdrohne',
+    icon: '🚁',
   },
   {
     id: 'story_midnight_arrives',
@@ -427,12 +464,25 @@ export class StoryPanelCutscene {
     }
   }
 
+  private traffic: StationTraffic | null = null;
+
+  private getTraffic(): StationTraffic {
+    if (!this.traffic) this.traffic = new StationTraffic(4, 91);
+    return this.traffic;
+  }
+
+  /** Gleiche Zoom/Pan-Transformation wie das Hintergrundbild des Panels. */
+  private panelTransform(panel: PanelDef, tNorm: number): { zoom: number; panX: number; panY: number } {
+    return { zoom: panel.zoomFrom + (panel.zoomTo - panel.zoomFrom) * tNorm, panX: panel.panX * (tNorm - 0.5), panY: 0 };
+  }
+
   public update(dt: number, input: InputManager): boolean {
     const safeDt = Math.min(0.05, Math.max(0, dt));
     this.totalElapsed += safeDt;
     this.panelElapsed += safeDt;
 
     const panel = this.currentPanel();
+    if (panel.fxMode === 'solaris_approach') this.getTraffic().update(safeDt);
     const clicked = this.pointerClicked;
     this.pointerClicked = false;
 
@@ -636,6 +686,8 @@ export class StoryPanelCutscene {
         ctx.restore();
       }
     } else if (panel.fxMode === 'solaris_approach') {
+      // Hafenverkehr (Korvette fliegt links unten ein → Verkehr nutzt rechts/oben)
+      this.getTraffic().render(ctx, this.panelTransform(panel, tNorm));
       // Kleine Korvette fliegt warm Richtung Port Solaris
       const ship = art.shipCorvetteBank ?? art.shipCorvette;
       if (ship) {

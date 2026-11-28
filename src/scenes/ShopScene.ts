@@ -86,6 +86,8 @@ export interface ShopCallbacks {
   onEnterDungeon: () => void;
   onToast: (msg: string, tone?: 'info' | 'good' | 'warn') => void;
   onHudDirty: () => void;
+  /** Optional: Laden wurde gerade geöffnet (löst die Rolltor-Cutscene aus) */
+  onShopOpened?: () => void;
 }
 
 type SolidShape =
@@ -272,6 +274,7 @@ export class ShopScene {
       );
       this.spawnBurst(SHOP_DOOR_POS.x, SHOP_DOOR_POS.y, '#4ade80', 14);
       this.callbacks.onHudDirty();
+      this.callbacks.onShopOpened?.();
     } else {
       this.closeShop();
     }

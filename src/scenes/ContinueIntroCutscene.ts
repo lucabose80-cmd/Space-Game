@@ -1,3 +1,4 @@
+import { StationTraffic } from './stationTraffic';
 import { getHDArt } from '../assets/artLoader';
 import { sound } from '../engine/audio';
 import { VIRTUAL_HEIGHT, VIRTUAL_WIDTH, type InputManager } from '../engine/input';
@@ -27,6 +28,7 @@ export class ContinueIntroCutscene {
   private skipped = false;
   private sparks: Spark[] = [];
   private sparkAccum = 0;
+  private readonly traffic: StationTraffic;
   private onPointerDown: () => void;
   private onKeyDown: (e: KeyboardEvent) => void;
 
@@ -58,6 +60,8 @@ export class ContinueIntroCutscene {
     this.solarisTier =
       state.sector4Cleared || state.omegaCleared ? 2 : state.sector2Cleared ? 1 : 0;
     this.shipTier = state.sector3Cleared ? 4 : state.sector2Cleared ? 3 : state.sector1Cleared ? 2 : 1;
+    // Hafenverkehr: je weiter der Ausbau, desto mehr los (das späte Bild hat schon viele Schiffe eingemalt → weniger Zusatz)
+    this.traffic = new StationTraffic(this.solarisTier === 2 ? 3 : this.solarisTier === 1 ? 4 : 3, 31 + this.solarisTier);
 
     this.onPointerDown = () => {
       if (this.elapsed > 0.25) this.skip();
@@ -91,6 +95,7 @@ export class ContinueIntroCutscene {
   public update(dt: number, input: InputManager): boolean {
     const safeDt = Math.min(dt, 0.05);
     this.elapsed += safeDt;
+    this.traffic.update(safeDt);
 
     if (
       this.elapsed > 0.25 &&
@@ -167,6 +172,8 @@ export class ContinueIntroCutscene {
       const dx = (VIRTUAL_WIDTH - drawW) / 2;
       const dy = (VIRTUAL_HEIGHT - drawH) / 2 + ease * 8;
       ctx.drawImage(bg, dx, dy, drawW, drawH);
+      // Hafenverkehr mit demselben Zoom → bleibt an der Station; Helden-Schiff kommt von links unten (Verkehr meidet das)
+      this.traffic.render(ctx, { zoom, panX: 0, panY: ease * 8 });
     }
 
     // Tag-/Nacht-Stimmung auf Port Solaris
