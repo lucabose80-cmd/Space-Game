@@ -463,28 +463,29 @@ export class BossFx {
       const y2 = z.y2 ?? z.y;
       const len = Math.hypot(x2 - z.x, y2 - z.y) || 1;
       const ang = Math.atan2(y2 - z.y, x2 - z.x);
-      const bw = Math.max(28, (z.width ?? 16) * 2.0);
+      const bw = Math.max(32, (z.width ?? 16) * 2.0);
+      const muzBase = Math.max(46, bw * 1.15);
       if (warn) {
-        // Auflade-Mündungsblitz direkt an der Faust/Schulter + fokussierter Zielstrahl
+        // Gewaltiger Auflade-Mündungsblitz direkt am Reaktorkern + fokussierter Zielstrahl
         if (art.arenaLeviathanMuzzle) {
           ctx.save();
           ctx.globalCompositeOperation = 'lighter';
           ctx.globalAlpha = 0.45 + 0.55 * prog;
-          sprite(art.arenaLeviathanMuzzle, z.x, z.y, 18 + 26 * prog, time * 6);
+          sprite(art.arenaLeviathanMuzzle, z.x, z.y, muzBase * (0.4 + 0.65 * prog), time * 6);
           ctx.restore();
         }
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
         ctx.strokeStyle = '#fb7185';
-        ctx.lineWidth = 2.0 + prog * 3.0;
-        ctx.globalAlpha = 0.28 + 0.42 * prog;
+        ctx.lineWidth = Math.max(3, bw * 0.14) * (0.5 + 0.8 * prog);
+        ctx.globalAlpha = 0.3 + 0.45 * prog;
         ctx.beginPath();
         ctx.moveTo(z.x, z.y);
         ctx.lineTo(x2, y2);
         ctx.stroke();
         ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 0.9 + prog * 0.8;
-        ctx.globalAlpha = 0.4 + 0.5 * prog;
+        ctx.lineWidth = 1.4 + prog * 1.6;
+        ctx.globalAlpha = 0.45 + 0.5 * prog;
         ctx.beginPath();
         ctx.moveTo(z.x, z.y);
         ctx.lineTo(x2, y2);
@@ -499,8 +500,8 @@ export class BossFx {
           ctx.save();
           ctx.translate(z.x, z.y);
           ctx.rotate(ang);
-          const segW = 54;
-          const scroll = (time * 220) % segW;
+          const segW = Math.max(54, bw * 1.1);
+          const scroll = (time * 260) % segW;
           for (let sx = -scroll; sx < len; sx += segW) {
             const x0 = Math.max(0, sx);
             const x1 = Math.min(len, sx + segW);
@@ -518,7 +519,7 @@ export class BossFx {
           ctx.stroke();
         }
         if (art.arenaLeviathanMuzzle) {
-          sprite(art.arenaLeviathanMuzzle, z.x, z.y, 46 + 12 * Math.sin(time * 40), time * 9);
+          sprite(art.arenaLeviathanMuzzle, z.x, z.y, muzBase * 1.15 + 14 * Math.sin(time * 40), time * 9);
         }
         ctx.restore();
       }
@@ -628,13 +629,13 @@ export class BossFx {
         ctx.restore();
       } else if (!warn && art.arenaLeviathanSteam) {
         ctx.save();
-        for (let k = 0; k < 7; k++) {
-          const u = ((time * 1.7 + k / 7) % 1);
-          const sx = startX + dir * (8 + u * (w - 12));
-          const sy = z.y + Math.sin(time * 10 + k * 2.1) * (h * 0.24);
-          const sz = 20 + u * 20;
+        for (let k = 0; k < 8; k++) {
+          const u = ((time * 1.8 + k / 8) % 1);
+          const sx = startX + dir * (10 + u * (w - 14));
+          const sy = z.y + Math.sin(time * 10 + k * 2.1) * (h * 0.28);
+          const sz = 28 + u * 26;
           ctx.save();
-          ctx.globalAlpha = Math.sin(u * Math.PI) * 0.92;
+          ctx.globalAlpha = Math.sin(u * Math.PI) * 0.94;
           ctx.translate(sx, sy);
           if (dir < 0) ctx.scale(-1, 1);
           ctx.drawImage(art.arenaLeviathanSteam, -sz / 2, -sz / 2, sz, sz);

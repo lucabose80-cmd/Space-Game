@@ -411,7 +411,7 @@ function startMove(scene: DungeonScene, e: Enemy, move: LevArenaMove, rb: Dungeo
       break;
     }
     case 'whip': {
-      // Kabel-Peitsche: schwingt direkt vom jeweiligen Leviathan-Arm / der Schulter-Buchse quer durch die Halle Richtung Spieler
+      // Titanen-Schockwelle: breite Hochspannungs-Plasma-Welle schlägt vom Boss-Arm quer durch die Halle Richtung Spieler
       const left = px < rb.cx;
       const sideIdx: 0 | 1 = left ? 0 : 1;
       const arm = e.levArms?.[sideIdx];
@@ -419,88 +419,87 @@ function startMove(scene: DungeonScene, e: Enemy, move: LevArenaMove, rb: Dungeo
       const shY = e.y + LENS_DY + BODY_SHOULDER_DY;
       const ox = arm && !arm.dead ? arm.x : shX;
       const oy = arm && !arm.dead ? arm.y : shY;
-      const tx = Math.max(rb.l + 18, Math.min(rb.r - 18, px + (left ? 36 : -36)));
+      const tx = Math.max(rb.l + 18, Math.min(rb.r - 18, px + (left ? 44 : -44)));
       const ty = Math.max(rb.t + 76, Math.min(rb.b - 14, py));
-      fx(scene).add({ shape: 'line', x: ox, y: oy, x2: tx, y2: ty, width: 16, delay: 0.85 * k, life: 0.28, burst: 18, color: '#a855f7', fx: 'whip' });
+      fx(scene).add({ shape: 'line', x: ox, y: oy, x2: tx, y2: ty, width: 26, delay: 0.85 * k, life: 0.34, burst: 20, color: '#a855f7', fx: 'whip', onFire: (s) => s.triggerShake(0.25, 4) });
       if (L.phase === 3) {
         const otherIdx: 0 | 1 = left ? 1 : 0;
         const arm2 = e.levArms?.[otherIdx];
         const ox2 = arm2 && !arm2.dead ? arm2.x : e.x + (left ? BODY_SHOULDER_DX : -BODY_SHOULDER_DX);
         const oy2 = arm2 && !arm2.dead ? arm2.y : shY;
-        const tx2 = Math.max(rb.l + 18, Math.min(rb.r - 18, px + (left ? -42 : 42)));
+        const tx2 = Math.max(rb.l + 18, Math.min(rb.r - 18, px + (left ? -48 : 48)));
         const ty2 = Math.max(rb.t + 76, Math.min(rb.b - 14, ty + (ty > rb.cy ? -54 : 54)));
-        fx(scene).add({ shape: 'line', x: ox2, y: oy2, x2: tx2, y2: ty2, width: 16, delay: 1.12 * k, life: 0.28, burst: 18, color: '#a855f7', fx: 'whip' });
+        fx(scene).add({ shape: 'line', x: ox2, y: oy2, x2: tx2, y2: ty2, width: 26, delay: 1.12 * k, life: 0.34, burst: 20, color: '#a855f7', fx: 'whip' });
       }
-      L.timer = 1.45 * k;
-      e.bossStatusText = 'KABEL-PEITSCHE!';
+      L.timer = 1.5 * k;
+      e.bossStatusText = 'TITANEN-WELLE!';
       sound.playBossCharge();
       break;
     }
     case 'steam': {
-      // Ventil-Dampf: nur intakte Seitenventile stoßen Dampf-Reihen in die Halle (oben- oder unten-Paar im Wechsel)
+      // Kühl-Überdruck-Sturm: nur intakte Seiten-Kühlaggregate blasen breite Hochdruck-Dampf-Korridore quer durch die Halle
       const top = L.moveIdx % 2 === 0;
       for (const v of L.vents) {
         if (v.broken) continue;
         if ((v.y < rb.cy) !== top) continue;
         const fromLeft = v.x < rb.cx;
-        const w = 170;
+        const w = 200;
         fx(scene).add({
           shape: 'rect',
-          x: fromLeft ? v.x + 8 + w / 2 : v.x - 8 - w / 2,
+          x: fromLeft ? v.x + 12 + w / 2 : v.x - 12 - w / 2,
           y: v.y,
           w,
-          h: 30,
+          h: 44,
           delay: 0.9 * k,
-          life: 1.1,
+          life: 1.15,
           dps: 16,
           color: '#e2e8f0',
           fx: 'steam',
           variant: fromLeft ? 1 : -1,
         });
       }
-      L.timer = 2.1 * k;
-      e.bossStatusText = 'VENTIL-DAMPF!';
+      L.timer = 2.15 * k;
+      e.bossStatusText = 'ÜBERDRUCK-STURM!';
       break;
     }
     case 'beam': {
-      // Zwillings-Strahl: Fäuste öffnen sich zur Laser-Emitter-Pose, drehen sich aktiv in Schussrichtung und feuern 2 fette Plasma-Strahlen nacheinander
-      const len = scene.rayLimit(360);
-      const angs = [[0.62, 1.18], [Math.PI - 0.62, Math.PI - 1.18]];
-      for (let s = 0; s < 2; s++) {
-        const arm = e.levArms?.[s];
-        const side = s === 0 ? -1 : 1;
-        let ox = e.x + side * BODY_SHOULDER_DX;
-        let oy = e.y + LENS_DY + BODY_SHOULDER_DY;
-        if (arm && !arm.dead) {
+      // OMEGA-REAKTOR-STRAHL: monströse 68-px-Mega-Strahlen direkt aus der BRUST-LINSE des Leviathans (schwenken über die gesamte Halle!)
+      const len = scene.rayLimit(400);
+      const lx = e.x;
+      const ly = e.y + LENS_DY;
+      const aimToPlayer = Math.atan2(py - ly, px - lx);
+      const clampedAim = Math.max(0.45, Math.min(Math.PI - 0.45, aimToPlayer));
+      const sweep = clampedAim < Math.PI / 2 ? [clampedAim, clampedAim + 0.52] : [clampedAim, clampedAim - 0.52];
+      // Arme stützen sich wuchtig ab während der Reaktor feuert
+      for (const arm of e.levArms ?? []) {
+        if (!arm.dead) {
           arm.state = 'beam';
           arm.timer = 2.4 * k;
-          arm.beamAngle = angs[s][0];
-          arm.targetX = arm.homeX;
-          arm.targetY = arm.homeY + 12;
-          arm.x = arm.targetX;
-          arm.y = arm.targetY;
-          ox = arm.x;
-          oy = arm.y;
+          arm.beamAngle = sweep[0];
         }
-        angs[s].forEach((a, j) => {
-          fx(scene).add({
-            shape: 'line',
-            x: ox,
-            y: oy,
-            x2: ox + Math.cos(a) * len,
-            y2: oy + Math.sin(a) * len,
-            width: 16,
-            delay: (0.85 + j * 0.95) * k,
-            life: 0.44,
-            burst: 18,
-            color: '#fb7185',
-            fx: 'beam',
-          });
-        });
       }
-      L.timer = 2.55 * k;
-      e.bossStatusText = 'ZWILLINGS-STRAHL!';
-      sound.playBossLaser();
+      sweep.forEach((a, j) => {
+        fx(scene).add({
+          shape: 'line',
+          x: lx,
+          y: ly,
+          x2: lx + Math.cos(a) * len,
+          y2: ly + Math.sin(a) * len,
+          width: 34,
+          delay: (0.9 + j * 1.0) * k,
+          life: 0.5,
+          burst: 22,
+          color: '#fb7185',
+          fx: 'beam',
+          onFire: (s) => {
+            s.triggerShake(0.4, 5.5);
+            sound.playBossLaser();
+          },
+        });
+      });
+      L.timer = 2.65 * k;
+      e.bossStatusText = 'OMEGA-REAKTOR-STRAHL!';
+      sound.playBossRoar();
       break;
     }
     case 'debris': {
@@ -779,7 +778,7 @@ export function drawLeviathanArena(ctx: CanvasRenderingContext2D, scene: Dungeon
       ctx.restore();
     }
   }
-  // Kühlventile: sichtbare Wand-Düsen (intakt / überdruck-glühend bei Dampf-Vorwarnung / zerstört)
+  // Kühlventile: große, integrierte Wand-Kühlaggregate (50×50: intakt / überdruck-glühend / zerstört)
   const steamActive = L.state === 'move' && L.move === 'steam';
   const steamTop = L.moveIdx % 2 === 0;
   for (const v of L.vents) {
@@ -788,16 +787,16 @@ export function drawLeviathanArena(ctx: CanvasRenderingContext2D, scene: Dungeon
       if (art.arenaLeviathanVentBroken) {
         ctx.translate(v.x, v.y);
         if (v.x > scene.bounds.cx) ctx.scale(-1, 1);
-        ctx.drawImage(art.arenaLeviathanVentBroken, -15, -15, 30, 30);
+        ctx.drawImage(art.arenaLeviathanVentBroken, -24, -24, 48, 48);
       } else {
         ctx.fillStyle = '#1e293b';
-        ctx.fillRect(v.x - 7, v.y - 9, 14, 18);
+        ctx.fillRect(v.x - 10, v.y - 12, 20, 24);
       }
       ctx.restore();
       ctx.save();
       ctx.fillStyle = `rgba(148, 163, 184, ${0.3 + 0.2 * Math.sin(t * 5 + v.y)})`;
       ctx.beginPath();
-      ctx.arc(v.x + (v.x < scene.bounds.cx ? 8 : -8), v.y - 6 - ((t * 20) % 12), 4, 0, Math.PI * 2);
+      ctx.arc(v.x + (v.x < scene.bounds.cx ? 10 : -10), v.y - 8 - ((t * 20) % 14), 5, 0, Math.PI * 2);
       ctx.fill();
     } else {
       const weak = L.phase >= 2;
@@ -805,29 +804,29 @@ export function drawLeviathanArena(ctx: CanvasRenderingContext2D, scene: Dungeon
       const ventSpr = charging ? (art.arenaLeviathanVentCharge ?? art.arenaLeviathanVentIntact) : art.arenaLeviathanVentIntact;
       if (ventSpr) {
         ctx.save();
-        const jx = charging ? Math.sin(t * 55 + v.y) * 1.4 : 0;
-        const jy = charging ? Math.cos(t * 48 + v.x) * 1.0 : 0;
+        const jx = charging ? Math.sin(t * 55 + v.y) * 1.6 : 0;
+        const jy = charging ? Math.cos(t * 48 + v.x) * 1.2 : 0;
         ctx.translate(v.x + jx, v.y + jy);
         if (v.x > scene.bounds.cx) ctx.scale(-1, 1);
-        ctx.drawImage(ventSpr, -16, -16, 32, 32);
+        ctx.drawImage(ventSpr, -25, -25, 50, 50);
         ctx.restore();
       } else if (!hasBg) {
         ctx.fillStyle = '#0d2536';
-        ctx.fillRect(v.x - 7, v.y - 9, 14, 18);
+        ctx.fillRect(v.x - 10, v.y - 12, 20, 24);
         ctx.fillStyle = weak ? `rgba(56, 232, 212, ${0.6 + 0.4 * pulse})` : '#1e6f6a';
-        for (let k = -6; k <= 4; k += 4) ctx.fillRect(v.x - 5, v.y + k, 10, 2);
+        for (let k = -6; k <= 4; k += 4) ctx.fillRect(v.x - 7, v.y + k, 14, 2);
       }
       if (weak) {
         ctx.strokeStyle = `rgba(253, 224, 71, ${0.5 + 0.5 * pulse})`;
-        ctx.lineWidth = 1;
+        ctx.lineWidth = 1.2;
         ctx.beginPath();
-        ctx.arc(v.x, v.y, VENT_R + 3 + pulse * 2, 0, Math.PI * 2);
+        ctx.arc(v.x, v.y, VENT_R + 7 + pulse * 2, 0, Math.PI * 2);
         ctx.stroke();
         // kleine HP-Leiste
         ctx.fillStyle = '#0b1019';
-        ctx.fillRect(v.x - 9, v.y + 13, 18, 3);
+        ctx.fillRect(v.x - 12, v.y + 20, 24, 3.5);
         ctx.fillStyle = '#38e8d4';
-        ctx.fillRect(v.x - 9, v.y + 13, 18 * (v.hp / Math.max(1, v.maxHp)), 3);
+        ctx.fillRect(v.x - 12, v.y + 20, 24 * (v.hp / Math.max(1, v.maxHp)), 3.5);
       }
     }
     ctx.restore();
@@ -841,11 +840,11 @@ export function drawLeviathanArena(ctx: CanvasRenderingContext2D, scene: Dungeon
       if (art.arenaLeviathanStump) {
         ctx.translate(shX, shY + 2);
         if (arm.side > 0) ctx.scale(-1, 1);
-        ctx.drawImage(art.arenaLeviathanStump, -18, -16, 36, 36);
+        ctx.drawImage(art.arenaLeviathanStump, -24, -22, 48, 48);
       } else {
         ctx.fillStyle = '#0f172a';
         ctx.beginPath();
-        ctx.arc(shX, shY, 7, 0, Math.PI * 2);
+        ctx.arc(shX, shY, 10, 0, Math.PI * 2);
         ctx.fill();
         ctx.strokeStyle = '#475569';
         ctx.lineWidth = 1.2;
@@ -853,11 +852,11 @@ export function drawLeviathanArena(ctx: CanvasRenderingContext2D, scene: Dungeon
       }
       // funkende abgerissene Kabelenden
       ctx.strokeStyle = pulse > 0.5 ? '#fde047' : '#38e8d4';
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1.2;
       for (let k = -1; k <= 1; k++) {
         ctx.beginPath();
-        ctx.moveTo(shX + k * 2, shY + 4);
-        ctx.lineTo(shX + k * 5 + Math.sin(t * 14 + k) * 2, shY + 13 + (k === 0 ? 3 : 0));
+        ctx.moveTo(shX + k * 3, shY + 5);
+        ctx.lineTo(shX + k * 6 + Math.sin(t * 14 + k) * 2.5, shY + 16 + (k === 0 ? 4 : 0));
         ctx.stroke();
       }
       ctx.restore();
@@ -869,31 +868,32 @@ export function drawLeviathanArena(ctx: CanvasRenderingContext2D, scene: Dungeon
     ctx.save();
     if (weak) {
       ctx.strokeStyle = `rgba(253, 224, 71, ${0.55 + 0.45 * pulse})`;
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 1.8;
       ctx.beginPath();
-      ctx.arc(arm.x, arm.y, ARM_R + 4 + pulse * 2, 0, Math.PI * 2);
+      ctx.arc(arm.x, arm.y, ARM_R + 12 + pulse * 2.5, 0, Math.PI * 2);
       ctx.stroke();
     }
     // Arm-HP-Leiste (A13): sichtbar wenn angreifbar ODER bereits beschädigt
     ctx.fillStyle = '#0b1019';
-    ctx.fillRect(arm.x - 13, arm.y + 21, 26, 3.5);
+    ctx.fillRect(arm.x - 18, arm.y + 30, 36, 4);
     ctx.fillStyle = frac < 0.35 ? '#fb7185' : frac < 0.7 ? '#fb923c' : '#fbbf24';
-    ctx.fillRect(arm.x - 12.5, arm.y + 21.5, 25 * frac, 2.5);
+    ctx.fillRect(arm.x - 17.5, arm.y + 30.5, 35 * frac, 3);
     ctx.restore();
   });
-  // Kern-Linse: offen = leuchtendes Reaktor-Auge + Flare; verriegelt = echtes Iris-Blenden-Sprite (kein grauer Canvas-Kreis!)
+  // Kern-Linse: offen (oder beim Omega-Reaktor-Strahl!) = gleißendes Reaktor-Auge + Flare; verriegelt = passende Iris-Blende (P1 / überhitzte P2)
   const lx = e.x;
   const ly = e.y + LENS_DY;
+  const beamFiring = L.state === 'move' && L.move === 'beam';
   ctx.save();
-  if (lensIsOpen(L)) {
+  if (lensIsOpen(L) || beamFiring) {
     const flicker = L.critical ? 0.6 + 0.4 * Math.sin(t * 30) : 1;
     ctx.globalAlpha = flicker;
     if (art.arenaLeviathanLensFlare) {
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
       ctx.translate(lx, ly);
-      ctx.rotate(t * 0.8);
-      const fsz = 48 + pulse * 8;
+      ctx.rotate(t * 0.9);
+      const fsz = (beamFiring ? 62 : 52) + pulse * 10;
       ctx.drawImage(art.arenaLeviathanLensFlare, -fsz / 2, -fsz / 2, fsz, fsz);
       ctx.restore();
     } else {
@@ -902,24 +902,29 @@ export function drawLeviathanArena(ctx: CanvasRenderingContext2D, scene: Dungeon
       ctx.arc(lx, ly, LENS_R + 8 + pulse * 3, 0, Math.PI * 2);
       ctx.fill();
     }
-    ctx.strokeStyle = `rgba(253, 224, 71, ${0.6 + 0.4 * pulse})`;
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.arc(lx, ly, LENS_R + 3, 0, Math.PI * 2);
-    ctx.stroke();
-    if (L.phase === 2 && L.lensOpen > 0) {
-      ctx.fillStyle = '#fde047';
-      ctx.font = 'bold 5px Silkscreen, monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(`LINSE OFFEN ${L.lensOpen.toFixed(1)}`, lx, ly - LENS_R - 10);
+    if (lensIsOpen(L)) {
+      ctx.strokeStyle = `rgba(253, 224, 71, ${0.6 + 0.4 * pulse})`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(lx, ly, LENS_R + 6, 0, Math.PI * 2);
+      ctx.stroke();
+      if (L.phase === 2 && L.lensOpen > 0) {
+        ctx.fillStyle = '#fde047';
+        ctx.font = 'bold 5px Silkscreen, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(`LINSE OFFEN ${L.lensOpen.toFixed(1)}`, lx, ly - LENS_R - 12);
+      }
     }
-  } else if (art.arenaLeviathanIrisClosed) {
-    ctx.drawImage(art.arenaLeviathanIrisClosed, lx - 22, ly - 22, 44, 44);
   } else {
-    ctx.fillStyle = 'rgba(30, 41, 59, 0.85)';
-    ctx.beginPath();
-    ctx.arc(lx, ly, LENS_R, 0, Math.PI * 2);
-    ctx.fill();
+    const irisSpr = L.phase === 2 ? (art.arenaLeviathanIrisP2 ?? art.arenaLeviathanIrisClosed) : art.arenaLeviathanIrisClosed;
+    if (irisSpr) {
+      ctx.drawImage(irisSpr, lx - 26, ly - 26, 52, 52);
+    } else {
+      ctx.fillStyle = 'rgba(30, 41, 59, 0.85)';
+      ctx.beginPath();
+      ctx.arc(lx, ly, LENS_R, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
   ctx.restore();
 }

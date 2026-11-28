@@ -2989,16 +2989,16 @@ export class DungeonRenderer {
         const handY = breachMode ? plungeY : arm.y;
 
         ctx.save();
-        // Echte 2-Bone-IK mit festen Segmentlängen (L1=42, L2=38) — NIE gestretcht!
-        const L1 = 42;
-        const L2 = 38;
+        // Echte 2-Bone-IK mit festen, massiven Titanen-Segmentlängen (L1=46, L2=42) — NIE gestretcht!
+        const L1 = 46;
+        const L2 = 42;
         const dx = handX - shX;
         const dy = handY - shY;
         const rawDist = Math.max(6, Math.hypot(dx, dy));
         const dist = Math.min(L1 + L2 - 2, rawDist);
         const baseAng = Math.atan2(dy, dx);
         const cosA = Math.max(-1, Math.min(1, (L1 * L1 + dist * dist - L2 * L2) / (2 * L1 * dist)));
-        // Ellbogen winkelt realistisch nach außen ab (links: -, rechts: +)
+        // Ellbogen winkelt realistisch nach außen ab (links: +, rechts: -)
         const elbAng = baseAng + (arm.side < 0 ? 1 : -1) * Math.acos(cosA);
         const elbX = shX + Math.cos(elbAng) * L1;
         const elbY = shY + Math.sin(elbAng) * L1;
@@ -3016,49 +3016,48 @@ export class DungeonRenderer {
             ctx.save();
             ctx.translate(ax, ay);
             ctx.rotate(ang);
-            // Genau 1 festes, sauberes Hydraulik-Segment pro Knochen!
-            ctx.drawImage(segImg, -2, -thickness / 2, ldist + 4, thickness);
+            ctx.drawImage(segImg, -4, -thickness / 2, ldist + 8, thickness);
             ctx.restore();
           } else {
             ctx.strokeStyle = '#64748b';
-            ctx.lineWidth = 6;
+            ctx.lineWidth = 8;
             ctx.beginPath();
             ctx.moveTo(ax, ay);
             ctx.lineTo(bx, by);
             ctx.stroke();
             ctx.strokeStyle = enraged ? '#fb7185' : '#38e8d4';
-            ctx.lineWidth = 1.4;
+            ctx.lineWidth = 1.6;
             ctx.stroke();
           }
         };
 
         // Boden-Durchbruch-Schacht vorn am Leviathan, wenn der Arm ins Deck gerammt ist
         if (breachMode && (slamming || grounded) && art.arenaLeviathanCrater) {
-          ctx.drawImage(art.arenaLeviathanCrater, wristX - 24, wristY - 10, 48, 34);
+          ctx.drawImage(art.arenaLeviathanCrater, wristX - 32, wristY - 12, 64, 44);
         }
         // Unterirdische glühende Riss-Spur vom Leviathan-Deck zum Durchbruch-Punkt beim Spieler
         if (breachMode && (tracking || slamming)) {
           ctx.save();
           ctx.globalCompositeOperation = 'lighter';
           ctx.strokeStyle = '#fb923c';
-          ctx.lineWidth = tracking ? 2.0 : 3.2;
-          ctx.globalAlpha = tracking ? 0.45 : 0.75;
+          ctx.lineWidth = tracking ? 2.6 : 4.2;
+          ctx.globalAlpha = tracking ? 0.5 : 0.85;
           ctx.beginPath();
           ctx.moveTo(wristX, wristY + 4);
           for (let s = 1; s <= 6; s++) {
             const u = s / 6;
-            const j = s < 6 ? Math.sin(this.scene.time * 26 + s * 2.3 + arm.side) * 5 : 0;
+            const j = s < 6 ? Math.sin(this.scene.time * 26 + s * 2.3 + arm.side) * 6 : 0;
             ctx.lineTo(wristX + (arm.targetX - wristX) * u + j, wristY + (arm.targetY - wristY) * u);
           }
           ctx.stroke();
           ctx.restore();
         }
 
-        // Oberarm (Schulter -> Ellbogen) + Unterarm (Ellbogen -> Handgelenk)
-        drawBone(shX, shY, elbX, elbY, 21);
-        drawBone(elbX, elbY, wristX, wristY, 18);
+        // Massiver gepanzerter Oberarm (38 px) + Unterarm (34 px)
+        drawBone(shX, shY, elbX, elbY, 38);
+        drawBone(elbX, elbY, wristX, wristY, 34);
 
-        // Schulter- & Ellbogen-Kugelgelenke
+        // Schulter- (44 px) & Ellbogen-Kugelgelenke (36 px)
         const drawJoint = (jx: number, jy: number, sz: number): void => {
           if (spriteBody && art.arenaLeviathanArmJoint) {
             ctx.drawImage(art.arenaLeviathanArmJoint, jx - sz / 2, jy - sz / 2, sz, sz);
@@ -3068,46 +3067,38 @@ export class DungeonRenderer {
             ctx.arc(jx, jy, sz * 0.35, 0, Math.PI * 2);
             ctx.fill();
             ctx.strokeStyle = enraged ? '#fb7185' : '#94a3b8';
-            ctx.lineWidth = 1.2;
+            ctx.lineWidth = 1.4;
             ctx.stroke();
           }
         };
-        drawJoint(shX, shY, 25);
-        drawJoint(elbX, elbY, 21);
+        drawJoint(shX, shY, 44);
+        drawJoint(elbX, elbY, 36);
 
-        // Faust-Position: im Normal-/Laser-Modus am Handgelenk, bei Boden-Durchbruch (slamming/grounded) bricht sie am Zielpunkt aus dem Boden!
+        // Faust-Position: im Normal-/Beam-Modus am Handgelenk, bei Boden-Durchbruch (slamming/grounded) bricht die 68-px-Titanenfaust aus dem Boden!
         const fistX = breachMode && !tracking ? arm.x : wristX;
         const fistY = breachMode && !tracking ? arm.y : wristY;
 
-        // Einschlagskrater + Bodenschatten unter der Faust
+        // Einschlagskrater + Bodenschatten unter der gigantischen Faust
         if (grounded && spriteBody && art.arenaLeviathanCrater) {
-          ctx.drawImage(art.arenaLeviathanCrater, fistX - 34, fistY - 8, 68, 48);
+          ctx.drawImage(art.arenaLeviathanCrater, fistX - 42, fistY - 12, 84, 58);
         }
-        drawPixelShadow(ctx, fistX, fistY + 18, grounded ? 22 : 15, grounded ? 7 : 4.5, grounded ? 0.58 : 0.35);
+        drawPixelShadow(ctx, fistX, fistY + 24, grounded ? 30 : 22, grounded ? 10 : 6.5, grounded ? 0.6 : 0.38);
 
-        // Massive Armored Gauntlet Fist — Schadensstufen IMMER sichtbar (< 35 % kritisch, < 70 % beschädigt)!
+        // Gigantische geballte Titanen-Faust (68 px) — Schadensstufen IMMER sichtbar (< 35 % kritisch, < 70 % beschädigt)!
         const hammerSpr = spriteBody
-          ? beaming
-            ? (art.arenaLeviathanHammerLaser ?? art.arenaLeviathanHammer)
-            : armFrac < 0.35
-              ? (art.arenaLeviathanHammerCrit ?? art.arenaLeviathanHammerDmg ?? art.arenaLeviathanHammer)
-              : armFrac < 0.7
-                ? (art.arenaLeviathanHammerDmg ?? art.arenaLeviathanHammer)
-                : grounded
-                  ? (art.arenaLeviathanHammerGrounded ?? art.arenaLeviathanHammer)
-                  : art.arenaLeviathanHammer
+          ? armFrac < 0.35
+            ? (art.arenaLeviathanHammerCrit ?? art.arenaLeviathanHammerDmg ?? art.arenaLeviathanHammer)
+            : armFrac < 0.7
+              ? (art.arenaLeviathanHammerDmg ?? art.arenaLeviathanHammer)
+              : grounded
+                ? (art.arenaLeviathanHammerGrounded ?? art.arenaLeviathanHammer)
+                : art.arenaLeviathanHammer
           : null;
         if (hammerSpr) {
           ctx.translate(fistX, fistY);
-          if (beaming) {
-            // Laser-Faust dreht sich aktiv mit dem Schusswinkel mit!
-            const aimRot = (arm.beamAngle ?? Math.PI / 2) - Math.PI / 2;
-            ctx.rotate(aimRot);
-          } else if (arm.side > 0) {
-            ctx.scale(-1, 1);
-          }
+          if (arm.side > 0) ctx.scale(-1, 1);
           if (flash) ctx.filter = 'brightness(2.0)';
-          const sz = beaming ? 48 : 44;
+          const sz = grounded ? 72 : 66;
           ctx.drawImage(hammerSpr, -sz / 2, -sz / 2, sz, sz);
           ctx.filter = 'none';
         } else {
@@ -3135,9 +3126,9 @@ export class DungeonRenderer {
           ctx,
           fistX,
           fistY,
-          beaming ? 32 : grounded ? 26 : 18,
+          beaming ? 34 : grounded ? 32 : 22,
           beaming ? '#fb7185' : grounded ? '#fde047' : armFrac < 0.35 ? '#fb923c' : enraged ? '#fb7185' : '#38e8d4',
-          beaming ? 0.58 : grounded ? 0.45 : 0.25,
+          beaming ? 0.5 : grounded ? 0.42 : 0.24,
         );
       });
     }
