@@ -60,9 +60,16 @@ export class HangarScene {
   private launchingSector: 1 | 2 | 3 | 4 | null = null;
   private launchTimer = 0;
   private shipLiftY = 0;
+  private shipLiftX = 0;
   private boardStartX = 0;
   private boardStartY = 0;
   private ignitionTriggered = false;
+
+  // Ship landing & disembark animation when returning from a successful extraction!
+  private disembarkSector: 1 | 2 | 3 | 4 | null = null;
+  private disembarkTimer = 0;
+  private disembarkTouchdownPlayed = false;
+  private onDisembarkDone: (() => void) | null = null;
 
   private particles: Particle[] = [];
   private stars: Array<{ x: number; y: number; phase: number }> = [];
@@ -83,6 +90,24 @@ export class HangarScene {
     }
   }
 
+  private getDockPos(sector: 1 | 2 | 3 | 4): { x: number; y: number } {
+    return sector === 4 ? DOCK4_POS : sector === 3 ? DOCK3_POS : sector === 2 ? DOCK2_POS : DOCK1_POS;
+  }
+
+  /** Spielt nach erfolgreicher Extraktion die Landung am Dock + sichtbares Aussteigen über die Rampe ab. */
+  public startDisembark(sector: 1 | 2 | 3 | 4, onDone?: () => void): void {
+    this.launchingSector = null;
+    this.disembarkSector = sector;
+    this.disembarkTimer = 0;
+    this.disembarkTouchdownPlayed = false;
+    this.onDisembarkDone = onDone ?? null;
+    const dock = this.getDockPos(sector);
+    this.playerX = dock.x + 2;
+    this.playerY = dock.y + 8;
+    this.facing = 'down';
+    this.activePrompt = null;
+  }
+
   private countSectorKeys(): number {
     return (
       (this.state.sector1Cleared ? 1 : 0) +
@@ -99,6 +124,10 @@ export class HangarScene {
     this.launchingSector = null;
     this.launchTimer = 0;
     this.shipLiftY = 0;
+    this.shipLiftX = 0;
+    this.disembarkSector = null;
+    this.disembarkTimer = 0;
+    this.onDisembarkDone = null;
     this.entryCooldown = 0.45;
     this.particles = [];
 
@@ -161,22 +190,84 @@ export class HangarScene {
 
     // Geparkte Schiffe ruhen still am Dock (keine laufenden Triebwerke vor dem Einsteigen)
 
-    // 4-Phasen-Startsequenz:
-    // 0.00..0.22 s: Einstiegsrampe fährt aus
-    // 0.22..0.58 s: Spieler läuft & hüpft sichtbar in die leuchtende Luke
-    // 0.58..0.82 s: Luke schließt, Cockpit blitzt auf, Dock-Klammern lösen sich mit Dampf
-    // 0.82..1.45 s: Triebwerke zünden & Schiff hebt aus dem Hangar ab
+    // Landung & sichtbares Aussteigen über die Rampe nach erfolgreicher Extraktion (0..1.55 s)
+    if (this.disembarkSector !== null) {
+      this.disembarkTimer += dt;
+      this.activePrompt = null;
+      const dock = this.getDockPos(this.disembarkSector);
+      const t = this.disembarkTimer;
+      if (t < 0.56) {
+        // Schiff schwebt diagonal von rechts-oben aufs Lande-Pad ein
+        const p = 1 - Math.min(1, t / 0.56);
+        const ease = p * p;
+        this.shipLiftY = ease * 96;
+        this.shipLiftX = ease * 72;
+        if (Math.random() < dt * 26) {
+          this.particles.push({
+            x: dock.x + this.shipLiftX - 10 + (Math.random() - 0.5) * 8,
+            y: dock.y - this.shipLiftY + 14,
+            vx: -18 + (Math.random() - 0.5) * 14,
+            vy: 24 + Math.random() * 24,
+            color: Math.random() < 0.5 ? '#e2e8f0' : '#38e8d4',
+            size: 2,
+            life: 0.28,
+            maxLife: 0.28,
+          });
+        }
+      } else {
+        this.shipLiftY = 0;
+        this.shipLiftX = 0;
+        if (!this.disembarkTouchdownPlayed) {
+          this.disembarkTouchdownPlayed = true;
+          sound.playBoardingChime();
+          for (let i = 0; i < 16; i++) {
+            const ang = (i / 16) * Math.PI * 2;
+            this.particles.push({
+              x: dock.x + Math.cos(ang) * 14,
+              y: dock.y + 16 + Math.sin(ang) * 5,
+              vx: Math.cos(ang) * (24 + Math.random() * 16),
+              vy: Math.sin(ang) * 8,
+              color: '#e2e8f0',
+              size: 2.2,
+              life: 0.36,
+              maxLife: 0.36,
+            });
+          }
+        }
+        // Ab 0.74 s: Spieler geht sichtbar die geöffnete Treppe herunter aufs Hangar-Deck!
+        if (t >= 0.74 && t < 1.28) {
+          const dp = Math.min(1, (t - 0.74) / 0.54);
+          this.playerX = dock.x + 2 - dp * 4;
+          this.playerY = dock.y + 6 + dp * 28;
+          this.facing = 'down';
+          this.walkAnim += dt * 13;
+        } else if (t >= 1.28) {
+          this.playerX = dock.x - 2;
+          this.playerY = dock.y + 34;
+          this.walkAnim = 0;
+        }
+      }
+      this.updateParticles(dt);
+      if (this.disembarkTimer >= 1.55) {
+        this.disembarkSector = null;
+        this.shipLiftX = 0;
+        this.shipLiftY = 0;
+        const done = this.onDisembarkDone;
+        this.onDisembarkDone = null;
+        done?.();
+      }
+      return;
+    }
+
+    // 4-Phasen-Startsequenz mit echter seitlicher Einstiegstreppe:
+    // 0.00..0.24 s: Seitentür öffnet sich & Treppe fährt aus (ship_*_docked_open.png)
+    // 0.24..0.68 s: Spieler geht an die Treppe & steigt sichtbar die Stufen hoch in die Kabine
+    // 0.68..0.92 s: Tür schließt, Cockpit blitzt auf, Dock-Klammern lösen sich mit Dampf
+    // 0.92..1.55 s: Triebwerke zünden & Schiff hebt im 3/4-Schräglagen-Sprite diagonal nach rechts-oben ab!
     if (this.launchingSector !== null) {
       this.launchTimer += dt;
       this.activePrompt = null;
-      const dock =
-        this.launchingSector === 4
-          ? DOCK4_POS
-          : this.launchingSector === 3
-            ? DOCK3_POS
-            : this.launchingSector === 2
-              ? DOCK2_POS
-              : DOCK1_POS;
+      const dock = this.getDockPos(this.launchingSector);
       const flameA =
         this.launchingSector === 4
           ? '#fde047'
@@ -187,29 +278,41 @@ export class HangarScene {
               : '#fbbf24';
       const flameB = this.launchingSector === 3 ? '#fde047' : '#38e8d4';
 
-      if (this.launchTimer < 0.22) {
-        // Rampe fährt aus — Spieler richtet sich zum Schiff aus
+      if (this.launchTimer < 0.24) {
+        // Rampe fährt aus — Spieler richtet sich auf die Treppe aus
         this.facing = 'up';
         this.shipLiftY = 0;
-      } else if (this.launchTimer < 0.58) {
-        // Spieler läuft auf die Rampe & macht einen sichtbaren Sprungbogen in die Luke
-        const bp = Math.min(1, (this.launchTimer - 0.22) / 0.36);
-        const ease = 1 - (1 - bp) * (1 - bp);
-        const hop = Math.sin(bp * Math.PI) * 9;
-        this.playerX = this.boardStartX + (dock.x - this.boardStartX) * ease;
-        this.playerY = this.boardStartY + (dock.y + 8 - this.boardStartY) * ease - hop;
+        this.shipLiftX = 0;
+      } else if (this.launchTimer < 0.68) {
+        // Spieler geht an den Fuß der Treppe und steigt dann die Stufen hoch in die leuchtende Tür
+        const bp = Math.min(1, (this.launchTimer - 0.24) / 0.44);
+        const footX = dock.x - 2;
+        const footY = dock.y + 30;
+        const doorX = dock.x + 2;
+        const doorY = dock.y + 6;
+        if (bp < 0.45) {
+          const u = bp / 0.45;
+          this.playerX = this.boardStartX + (footX - this.boardStartX) * u;
+          this.playerY = this.boardStartY + (footY - this.boardStartY) * u;
+        } else {
+          const u = (bp - 0.45) / 0.55;
+          this.playerX = footX + (doorX - footX) * u;
+          this.playerY = footY + (doorY - footY) * u;
+        }
         this.facing = 'up';
-        this.walkAnim += dt * 16;
+        this.walkAnim += dt * 15;
         this.shipLiftY = 0;
-      } else if (this.launchTimer < 0.82) {
-        // Luke schließt & Dock-Halteklammern zischen mit Dampf auf
+        this.shipLiftX = 0;
+      } else if (this.launchTimer < 0.92) {
+        // Tür schließt & Dock-Halteklammern zischen mit Dampf auf
         this.shipLiftY = 0;
-        if (Math.random() < dt * 24) {
-          const side = Math.random() < 0.5 ? -18 : 18;
+        this.shipLiftX = 0;
+        if (Math.random() < dt * 26) {
+          const side = Math.random() < 0.5 ? -24 : 24;
           this.particles.push({
             x: dock.x + side,
             y: dock.y + 10,
-            vx: side * 1.4 + (Math.random() - 0.5) * 10,
+            vx: side * 1.2 + (Math.random() - 0.5) * 10,
             vy: (Math.random() - 0.5) * 12,
             color: '#e2e8f0',
             size: 2.4,
@@ -224,8 +327,8 @@ export class HangarScene {
           for (let i = 0; i < 20; i++) {
             const ang = (i / 20) * Math.PI * 2;
             this.particles.push({
-              x: dock.x + Math.cos(ang) * 10,
-              y: dock.y + 18 + Math.sin(ang) * 4,
+              x: dock.x + Math.cos(ang) * 12,
+              y: dock.y + 18 + Math.sin(ang) * 5,
               vx: Math.cos(ang) * (30 + Math.random() * 24),
               vy: Math.sin(ang) * 10 + 14,
               color: i % 3 === 0 ? '#e2e8f0' : flameB,
@@ -235,33 +338,36 @@ export class HangarScene {
             });
           }
         }
-        if (this.launchTimer < 1.06) {
-          const ip = (this.launchTimer - 0.82) / 0.24;
+        if (this.launchTimer < 1.14) {
+          const ip = (this.launchTimer - 0.92) / 0.22;
           this.shipLiftY = ip * ip * 14;
+          this.shipLiftX = ip * ip * 6;
         } else {
-          const lp = Math.min(1, (this.launchTimer - 1.06) / 0.39);
-          this.shipLiftY = 14 + lp * lp * 150;
+          const lp = Math.min(1, (this.launchTimer - 1.14) / 0.41);
+          this.shipLiftY = 14 + lp * lp * 145;
+          this.shipLiftX = 6 + lp * lp * 125;
         }
         for (let i = 0; i < 2; i++) {
-          const side = i === 0 ? -8 : 8;
           this.particles.push({
-            x: dock.x + side + (Math.random() - 0.5) * 4,
-            y: dock.y + 24 - this.shipLiftY,
-            vx: (Math.random() - 0.5) * 18,
-            vy: 42 + Math.random() * 52,
+            x: dock.x + this.shipLiftX - 18 + (Math.random() - 0.5) * 6,
+            y: dock.y - this.shipLiftY + 14 + (Math.random() - 0.5) * 6,
+            vx: -48 - Math.random() * 35,
+            vy: 34 + Math.random() * 38,
             color: Math.random() < 0.5 ? flameA : flameB,
             size: 2.2,
-            life: 0.35,
-            maxLife: 0.35,
+            life: 0.34,
+            maxLife: 0.34,
           });
         }
       }
 
       this.updateParticles(dt);
-      if (this.launchTimer >= 1.45) {
+      if (this.launchTimer >= 1.55) {
         const target = this.launchingSector;
         this.launchingSector = null;
         this.ignitionTriggered = false;
+        this.shipLiftX = 0;
+        this.shipLiftY = 0;
         if (target === 4) this.callbacks.onLaunchSector4();
         else if (target === 3) this.callbacks.onLaunchSector3();
         else if (target === 2) this.callbacks.onLaunchSector2();
@@ -599,106 +705,128 @@ export class HangarScene {
       this.renderEmptyDockHolo(ctx, DOCK4_POS.x, DOCK4_POS.y, '#64748b', 'GESPERRT', pulse);
     }
 
-    // Geparkte Schiffe ruhen fest auf dem Pad (ohne Schweben/Triebwerksflammen); erst ab Zündung volle Flammen & Abheben
+    // Neue 3/4-Seitenansicht-Raumschiffe auf den Hangar-Pads (geparkt, offene Treppe beim Ein-/Aussteigen, 3/4-Flug beim Start/Landen)
     const drawDockedShip = (
       sectorNum: 1 | 2 | 3 | 4,
       pos: { x: number; y: number },
-      spr: HTMLCanvasElement | null,
-      w: number,
-      h: number,
+      sprDocked: HTMLCanvasElement | null,
+      sprOpen: HTMLCanvasElement | null,
+      sprBank: HTMLCanvasElement | null,
+      sprFallback: HTMLCanvasElement | null,
       idleCol: string,
       launchCol: string,
     ) => {
       const launching = this.launchingSector === sectorNum;
-      const ignited = launching && this.launchTimer >= 0.82;
-      const lift = ignited ? this.shipLiftY : 0;
-      const rumble = ignited && this.launchTimer < 1.08 ? Math.sin(this.launchTimer * 68) * 1.2 : 0;
-      const sx = pos.x + rumble;
-      const sy = pos.y - lift;
+      const disembarking = this.disembarkSector === sectorNum;
+      const ignited = launching && this.launchTimer >= 0.92;
+      const flyingIn = disembarking && this.disembarkTimer < 0.56;
+      const rampOpen =
+        (launching && this.launchTimer >= 0.08 && this.launchTimer < 0.72) ||
+        (disembarking && this.disembarkTimer >= 0.64 && this.disembarkTimer < 1.36);
 
-      // Dock-Halteklammern links & rechts (lösen sich ab 0.58 s beim Start!)
-      const clampOpen = launching && this.launchTimer >= 0.58
-        ? Math.min(1, (this.launchTimer - 0.58) / 0.22)
-        : 0;
-      const clampSpread = 22 + clampOpen * 7;
-      ctx.fillStyle = '#334155';
-      ctx.fillRect(Math.round(pos.x - clampSpread - 4), Math.round(pos.y + 4), 5, 10);
-      ctx.fillRect(Math.round(pos.x + clampSpread - 1), Math.round(pos.y + 4), 5, 10);
-      ctx.fillStyle = launching ? '#fbbf24' : '#475569';
-      ctx.fillRect(Math.round(pos.x - clampSpread - 3), Math.round(pos.y + 6), 3, 2);
-      ctx.fillRect(Math.round(pos.x + clampSpread), Math.round(pos.y + 6), 3, 2);
+      const liftY = ignited || flyingIn ? this.shipLiftY : 0;
+      const liftX = ignited || flyingIn ? this.shipLiftX : 0;
+      const rumble = ignited && this.launchTimer < 1.16 ? Math.sin(this.launchTimer * 68) * 1.2 : 0;
+      const sx = pos.x + liftX + rumble;
+      const sy = pos.y - liftY;
 
-      // Ausfahrende Einstiegsrampe & leuchtende Innenluke (0.00..0.76 s)
-      if (launching && this.launchTimer < 0.76) {
-        const rampP = this.launchTimer < 0.22
-          ? this.launchTimer / 0.22
-          : this.launchTimer > 0.58
-            ? 1 - (this.launchTimer - 0.58) / 0.18
-            : 1;
-        const rampLen = Math.round(14 * Math.max(0, Math.min(1, rampP)));
-        if (rampLen > 1) {
-          ctx.fillStyle = '#475569';
-          ctx.fillRect(Math.round(pos.x - 7), Math.round(pos.y + 12), 14, rampLen);
-          ctx.fillStyle = '#94a3b8';
-          ctx.fillRect(Math.round(pos.x - 5), Math.round(pos.y + 13), 10, Math.max(1, rampLen - 2));
-          ctx.fillStyle = idleCol;
-          ctx.globalAlpha = 0.65;
-          ctx.fillRect(Math.round(pos.x - 6), Math.round(pos.y + 12), 1, rampLen);
-          ctx.fillRect(Math.round(pos.x + 5), Math.round(pos.y + 12), 1, rampLen);
-          ctx.globalAlpha = 1;
-        }
-      }
-
-      drawPixelShadow(ctx, pos.x, pos.y + 18, 22, 8, Math.max(0.06, 0.5 - lift / 160));
-      if (ignited) {
-        drawGlow(ctx, sx, sy + 20, 38, launchCol, 0.45 + pulse * 0.16);
-      } else if (launching) {
-        drawGlow(ctx, sx, sy + 8, 26, idleCol, 0.36 + pulse * 0.16);
+      drawPixelShadow(ctx, pos.x, pos.y + 18, 28, 9, Math.max(0.06, 0.52 - liftY / 160));
+      if (ignited || flyingIn) {
+        drawGlow(ctx, sx - 12, sy + 14, 34, launchCol, 0.48 + pulse * 0.14);
+      } else if (rampOpen) {
+        // Warmes Innenlicht aus der geöffneten Einstiegstür aufs Deck
+        drawGlow(ctx, pos.x + 2, pos.y + 14, 24, idleCol, 0.34 + pulse * 0.1);
       } else {
-        drawGlow(ctx, sx, sy + 4, 16, idleCol, 0.12 + pulse * 0.05);
+        drawGlow(ctx, pos.x, pos.y + 4, 16, idleCol, 0.1 + pulse * 0.04);
       }
-      if (spr) {
-        if (ignited) {
-          ctx.drawImage(spr, sx - w / 2, sy - h / 2 - 2, w, h);
-        } else {
-          const srcH = Math.round(spr.height * 0.83);
-          const dstH = Math.round(h * 0.83);
-          ctx.drawImage(spr, 0, 0, spr.width, srcH, sx - w / 2, sy - h / 2 + 2, w, dstH);
+
+      if ((ignited && this.launchTimer >= 1.05) || flyingIn) {
+        const flySpr = sprBank ?? sprFallback;
+        if (flySpr) {
+          ctx.drawImage(flySpr, Math.round(sx - 35), Math.round(sy - 35), 70, 70);
+        }
+      } else {
+        const bodySpr = (rampOpen ? sprOpen : sprDocked) ?? sprDocked ?? sprFallback;
+        if (bodySpr) {
+          ctx.drawImage(bodySpr, Math.round(sx - 37), Math.round(sy - 38), 74, 74);
         }
       }
 
-      // Cockpit-Aufblitzen („Pilot an Bord“: 0.58..0.82 s)
-      if (launching && this.launchTimer >= 0.58 && this.launchTimer < 0.84) {
-        const flash = Math.sin(((this.launchTimer - 0.58) / 0.26) * Math.PI);
-        drawGlow(ctx, sx, sy - 6, 18, '#ffffff', flash * 0.85);
-        drawGlow(ctx, sx, sy - 6, 26, idleCol, flash * 0.6);
+      // Cockpit-Aufblitzen („Pilot an Bord“: 0.68..0.92 s)
+      if (launching && this.launchTimer >= 0.68 && this.launchTimer < 0.94) {
+        const flash = Math.sin(((this.launchTimer - 0.68) / 0.26) * Math.PI);
+        drawGlow(ctx, sx + 6, sy - 10, 18, '#ffffff', flash * 0.85);
+        drawGlow(ctx, sx + 6, sy - 10, 26, idleCol, flash * 0.6);
       }
     };
 
     // Dock I — Starlighter Corvette (always unlocked)
-    drawDockedShip(1, DOCK1_POS, art.shipCorvette, 48, 57, '#38e8d4', '#fbbf24');
+    drawDockedShip(
+      1,
+      DOCK1_POS,
+      art.shipCorvetteDocked,
+      art.shipCorvetteDockedOpen,
+      art.shipCorvetteBank,
+      art.shipCorvette,
+      '#38e8d4',
+      '#fbbf24',
+    );
     // Dock II — Kristall-Kreuzer (unlocked after Sector 1)
     if (this.state.sector1Cleared) {
-      drawDockedShip(2, DOCK2_POS, art.shipCrystal, 54, 57, '#c084fc', '#e879f9');
+      drawDockedShip(
+        2,
+        DOCK2_POS,
+        art.shipCrystalDocked,
+        art.shipCrystalDockedOpen,
+        art.shipCrystalBank,
+        art.shipCrystal,
+        '#c084fc',
+        '#e879f9',
+      );
     }
     // Dock III — Solar-Fregatte (unlocked after Sector 2)
     if (this.state.sector2Cleared) {
-      drawDockedShip(3, DOCK3_POS, art.shipSolar, 54, 54, '#f97316', '#fde047');
+      drawDockedShip(
+        3,
+        DOCK3_POS,
+        art.shipSolarDocked,
+        art.shipSolarDockedOpen,
+        art.shipSolarBank,
+        art.shipSolar,
+        '#f97316',
+        '#fde047',
+      );
     }
     // Dock IV — Ältesten-Sternenjäger (unlocked after Sector 3)
     if (this.state.sector3Cleared) {
-      drawDockedShip(4, DOCK4_POS, art.shipMonolith, 54, 54, '#38e8d4', '#fde047');
+      drawDockedShip(
+        4,
+        DOCK4_POS,
+        art.shipMonolithDocked,
+        art.shipMonolithDockedOpen,
+        art.shipMonolithBank,
+        art.shipMonolith,
+        '#38e8d4',
+        '#fde047',
+      );
     }
 
     this.renderSignPills(ctx);
 
-    if (this.launchingSector === null) {
+    if (this.launchingSector === null && this.disembarkSector === null) {
       this.renderPlayer(ctx);
-    } else if (this.launchTimer < 0.58) {
-      // Spieler wartet kurz bis Rampe offen ist, hüpft dann sichtbar in die Luke
-      const bp = this.launchTimer < 0.22 ? 0 : Math.min(1, (this.launchTimer - 0.22) / 0.36);
+    } else if (this.launchingSector !== null && this.launchTimer < 0.68) {
+      // Spieler läuft an die Treppe & steigt sichtbar in die Kabine ein
+      const bp = this.launchTimer < 0.24 ? 0 : Math.min(1, (this.launchTimer - 0.24) / 0.44);
       ctx.save();
-      ctx.globalAlpha = Math.max(0, 1 - Math.max(0, (bp - 0.72) / 0.28));
+      ctx.globalAlpha = Math.max(0, 1 - Math.max(0, (bp - 0.8) / 0.2));
+      this.renderPlayer(ctx);
+      ctx.restore();
+    } else if (this.disembarkSector !== null && this.disembarkTimer >= 0.74) {
+      // Spieler kommt sichtbar aus der geöffneten Tür & geht die Treppe herunter!
+      const dp = Math.min(1, (this.disembarkTimer - 0.74) / 0.22);
+      ctx.save();
+      ctx.globalAlpha = dp;
       this.renderPlayer(ctx);
       ctx.restore();
     }

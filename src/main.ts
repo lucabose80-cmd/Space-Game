@@ -754,24 +754,51 @@ class StarlighterGame {
     this.pendingReturnSummary = null;
     if (this.dungeonScene) this.dungeonScene.hidePlayerForCutscene = false;
     this.setHudVisible(true);
+
+    const isDefeat = summary?.reason === 'defeat';
     if (skipped) {
       this.transitionDir = 0;
       this.transitionAlpha = 0;
-      this.transitionTo('hangar', 'dungeon', () => {
+      this.transitionTo(isDefeat ? 'backroom' : 'hangar', 'dungeon', () => {
         if (summary) this.ui.openRunSummaryModal(summary);
       });
       return;
     }
+
+    if (isDefeat) {
+      // K.O. / 0 HP → Aufwachen in der Koje im Kapitäns-Quartier!
+      this.activeScene = 'backroom';
+      this.ui.currentScene = 'backroom';
+      this.ui.shopIsOpen = false;
+      this.backroomScene.onEnter('rescue', () => {
+        if (summary) this.ui.openRunSummaryModal(summary);
+      });
+      this.syncMusic();
+      this.ui.renderHud();
+      this.syncTouch();
+      this.transitionAlpha = 1;
+      this.transitionDir = -1;
+      return;
+    }
+
+    // Erfolgreiche Extraktion → Landung & Aussteigen über die Rampe am Abflugport!
     this.activeScene = 'hangar';
     this.ui.currentScene = 'hangar';
     this.ui.shopIsOpen = false;
     this.hangarScene.onEnter('dungeon', this.lastReturnedSector);
+    const sec = this.lastReturnedSector;
+    if (sec === 1 || sec === 2 || sec === 3 || sec === 4) {
+      this.hangarScene.startDisembark(sec, () => {
+        if (summary) this.ui.openRunSummaryModal(summary);
+      });
+    } else if (summary) {
+      this.ui.openRunSummaryModal(summary);
+    }
     this.syncMusic();
     this.ui.renderHud();
     this.syncTouch();
     this.transitionAlpha = 1;
     this.transitionDir = -1;
-    if (summary) this.ui.openRunSummaryModal(summary);
   }
 
   private handleGlobalShortcuts(): void {
