@@ -10,6 +10,8 @@ export interface SectorReturnConfig {
   sector: SectorId;
   itemsSaved: number;
   itemsLost: number;
+  /** Story-Kapitel (0..6) — bestimmt, wie weit Port Solaris ausgebaut gezeigt wird. */
+  storyChapter?: number;
 }
 
 interface Star {
@@ -339,7 +341,11 @@ export class SectorReturnCutscene {
     ctx.save();
 
     // 1. Hintergrund: Phase 1 = Sektor-Vista (Abflug), Phase 2 = Port Solaris Raumstation (Anflug)
-    const bg = inPhase2 ? hd.cutsceneBgSolaris : hd[SECTOR_BG_KEYS[this.config.sector]];
+    // Die Station wächst mit der Geschichte: ab Kapitel 1 Lichterketten & mehr Verkehr, ab Kapitel 4 Leuchtfeuer-Obelisk & Feuerwerk
+    const chapter = this.config.storyChapter ?? 0;
+    const solarisBg =
+      chapter >= 4 ? (hd.cutsceneBgSolarisG2 ?? hd.cutsceneBgSolaris) : chapter >= 1 ? (hd.cutsceneBgSolarisG1 ?? hd.cutsceneBgSolaris) : hd.cutsceneBgSolaris;
+    const bg = inPhase2 ? solarisBg : hd[SECTOR_BG_KEYS[this.config.sector]];
     const panX = Math.sin(t * 0.8) * 4.5;
     const panY = Math.cos(t * 0.6) * 2.5;
     if (bg) {

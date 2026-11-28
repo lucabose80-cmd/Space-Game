@@ -23,7 +23,7 @@
 - [x] **P5b**: Crew-Mitglied **Pip** (Lyras Assistenz-Droide, `npc_pip.png`, `GameState.isPipPresent()` ab Kapitel 2 / `lyra_c2`; Toast-Vorstellung einmalig `pip_arrives`, Passantenspruch `needs:'pip'`) + Chronik-Abschnitt **„Port Solaris wächst“** (Gebäude, Crew Mina/Pip, Laden-/Quartier-Stufe; `renderChronicleHtml(story, world)`). ⬜ Pip hat (noch) keine eigene Einzugs-Cutscene wie Mina (nur Toast)
 - [x] **Laden-Räume je Stufe wirklich verschieden** (Inhaber-Feedback): Stufe 1 = Starter mit Kisten-Haufen/rissigem Boden; Stufe 2 = renoviert (sauberer Boden, Regal statt Kisten, neue Teppiche, Messing, Kabel verkleidet); Stufe 3 = Flaggschiff (dunkles Parkett mit Gold, Säulen, Kristalle, goldene Truhen, freier Boden für Vitrinen). Rezept: Vollbild-Edit mit Stufe 1 als Zweitreferenz + „change the WHOLE room, not just the counter“ + „keep open floor for vitrines“.
 - [x] Truhen-Öffnen-Animation (Deckel-Sprung, Lichtstrahl, Funken, `RoomChest.openedAt`).
-- [ ] P6 Anflug an Port Solaris & Intro-Panel `cutscene_intro_3` (zeigt noch den alten Laden mit Portal) an die neue Welt angleichen (siehe oben)
+- [x] **P6**: `cutscene_intro_3` (Laden mit Seitentür, frontalen Vitrinen, Sternenlampe) und `cutscene_intro_4` (Hub-Kuppel mit Airlock statt Portal) neu; Port-Solaris-Außenansicht wächst mit der Story (`cutscene_bg_solaris` Kap. 0, `_g1` ab Kap. 1 Lichterketten, `_g2` ab Kap. 4 Obelisk-Leuchtfeuer & Feuerwerk; `SectorReturnConfig.storyChapter`). Originale: `art_source/_raw/cutscene_intro_*_OLD.png`. (siehe oben)
 
 ## Praxis-Learnings
 1. Portale sind **in die Hintergrund-PNGs eingebacken** (`hub_bg`, `hangar_bg`, `shop_bg*`) → Entfernen = Hintergrund neu erzeugen/übermalen (`npm run art:gen`), nicht nur Code.

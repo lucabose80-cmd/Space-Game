@@ -930,6 +930,7 @@ class StarlighterGame {
       sector: this.lastReturnedSector,
       itemsSaved: summary.itemsSaved,
       itemsLost: summary.itemsLost,
+      storyChapter: this.state.story.chapter,
     });
     this.setHudVisible(false);
     this.syncTouch();

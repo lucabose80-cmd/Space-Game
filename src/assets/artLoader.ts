@@ -217,6 +217,8 @@ export interface HDArtAssets {
   cutsceneBgS4: HTMLCanvasElement | null;
   cutsceneBgS5: HTMLCanvasElement | null;
   cutsceneBgSolaris: HTMLCanvasElement | null;
+  cutsceneBgSolarisG1: HTMLCanvasElement | null;
+  cutsceneBgSolarisG2: HTMLCanvasElement | null;
   cutsceneDropPod: HTMLCanvasElement | null;
   cutsceneDropPodOpen: HTMLCanvasElement | null;
   cutsceneMedDrone: HTMLCanvasElement | null;
@@ -463,6 +465,8 @@ const art: HDArtAssets = {
   cutsceneBgS4: null,
   cutsceneBgS5: null,
   cutsceneBgSolaris: null,
+  cutsceneBgSolarisG1: null,
+  cutsceneBgSolarisG2: null,
   cutsceneDropPod: null,
   cutsceneDropPodOpen: null,
   cutsceneMedDrone: null,
@@ -651,6 +655,8 @@ export const CUTSCENE_OPTIONAL_SPRITES = {
   cutsceneBgS4: 'cutscene_bg_s4',
   cutsceneBgS5: 'cutscene_bg_s5',
   cutsceneBgSolaris: 'cutscene_bg_solaris',
+  cutsceneBgSolarisG1: 'cutscene_bg_solaris_g1',
+  cutsceneBgSolarisG2: 'cutscene_bg_solaris_g2',
   cutsceneDropPod: 'cutscene_drop_pod',
   cutsceneDropPodOpen: 'cutscene_drop_pod_open',
   cutsceneMedDrone: 'cutscene_med_drone',
